@@ -195,12 +195,14 @@ final class ChangeWatcher {
         if change.mustScanSubDirs, let mount = mounts[mediumID] {
             let mountPath = URL(fileURLWithPath: mount).standardizedFileURL.path
             let eventPath = URL(fileURLWithPath: change.path).standardizedFileURL.path
-            if eventPath == mountPath {
-                if let volume = volumes[mediumID] {
-                    onFullReconcile?(mediumID, volume)
-                }
+            let mountPrefix = mountPath.hasSuffix("/") ? mountPath : mountPath + "/"
+            if eventPath != mountPath, !eventPath.hasPrefix(mountPrefix) {
                 return
             }
+            if let volume = volumes[mediumID] {
+                onFullReconcile?(mediumID, volume)
+            }
+            return
         }
         guard let mount = mounts[mediumID],
               let directory = directoryToReread(change.path, mount: mount, mediumID: mediumID) else { return }

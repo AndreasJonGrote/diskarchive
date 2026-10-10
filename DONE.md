@@ -69,4 +69,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | 193 | Fehlerbericht: Erfolg = 201 mit `id`, Debug lokal, Release `https://diskarchive.app/api/issues/` | 10.10. | ebenda |
 | 194 | Systemanfragen „Disk Archive“, Netzlaufwerke-Text, Englisch | 10.10. (plutil geprüft) | ebenda |
 
-**Offen:** 195 (zwei Nebenänderungen aus 192 korrigieren).
+| 195 a, b | `MustScanSubDirs` an/unter dem Einhängepunkt → Abgleich, außerhalb ignoriert; `.counts` verwirft keine geplante Spalten-Invalidierung mehr (Sabotagen von Claude nachgestellt: rot ✓) | 10.10. (Claude-Lauf 383 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-10b.md` |
+
+**Offen:** Version 0.2 (bekannte Fehler, Liste in TODO.md A). 196 (Messwerkzeug) liegt im Backlog unter 0.3.

@@ -11,22 +11,43 @@
 - **Systemfreigaben (Claude geprüft 09.10.):** nur **Wechselmedien** (und **Netzlaufwerke**, falls gelesen) und **Mitteilungen**; Autostart erzeugt nur den macOS-Hinweis „Hintergrundobjekt“. Keine Bedienungshilfen, kein voller Festplattenzugriff. Tests dürfen keine Systemrechte auslösen (TODO Regel 21).
 - **Weitergabe außerhalb des App Store:** Signatur „Developer ID Application“ + Notarisierung durch Apple (Bezahl-Mitgliedschaft im Apple Developer Program nötig).
 
-## Fahrplan nach dem aktuellen Stand (Nutzer 10.10.)
+## Roadmap (Nutzer 10.10.)
 
-Reihenfolge, jede Stufe setzt die vorige voraus. **Stufen 1 und 2 sind Pflicht, danach Beta-Release** (Nutzer 10.10.). Ab der Beta laden andere die App → **Stichtag**: ab dann Schemaänderungen nur noch mit echter Migration und Sicherungskopie (datenbank-konzeption.md). Ab Stufe 3 kommen **neue Layouts** dazu; Claude übersetzt sie wie bisher in Aufgaben.
-1. **Aktuelle Funktionen fehlerfrei fertig** (laufende Aufgaben, Nutzertests).
-2. **Datenbank-Umbau** (vor der Beta, weil danach jede Änderung eine Migration braucht) nach [datenbank-konzeption.md](datenbank-konzeption.md): erst Messwerkzeug (synthetisch 1 Mio. Einträge auf einem Medium, 9 Mio. auf 300 Medien), dann Entscheidung. Claude-Empfehlung: **eine gemeinsame Datei**, schlanke `item`-Tabelle (Baum + Felder, nach denen gesucht/gefiltert wird: Name, Endung, Größe, Änderungsdatum), Nebentabellen `item_<funktion>` für alles, was nur in Details gebraucht wird. Muss vor den neuen Funktionen stehen.
-**— Beta-Release —**
-3. **Lizenzmodell:** Stufen nach Medienzahl — **max. 1 / max. 50 / max. 250 Medien**. Technisch trägt die Datenbank 250 Medien (Messung bestätigt mit 300 als Reserve); keine weitere Grenze nötig. Offene Fragen siehe unten.
-4. **Metadaten** je Dateityp (Felder in datenbank-konzeption.md), als zweiter Durchgang nach dem Index, damit das Indizieren so schnell bleibt.
-5. **Vorschaubilder** mit **Abschalter** (global und je Medium), Größe noch offen; eigene Datei/Ordner mit Obergrenze.
-6. **Duplikate** über alle Medien, stufenweise (Größe → Anfang/Ende → volle Prüfsumme nur bei Treffern), nur im Hintergrund.
+Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgeblich ist dieser Abschnitt.** Die Nummern sind die Versionsnummern der App (`MARKETING_VERSION`), Stand heute **0.1 Beta**.
 
-**Offene Fragen Lizenz (vor Stufe 3 zu klären):** Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert beim Erreichen der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar aber wird nicht indiziert)? Was passiert bei Herabstufung mit mehr Medien als erlaubt (Index bleibt durchsuchbar, keine Aktualisierung)? Prüfung der Lizenz online über diskarchive.app oder offline per Schlüssel?
+| Version | Inhalt |
+|---|---|
+| **0.1 Beta** | **jetzt** |
+| **0.2** | alle bekannten Fehler beheben (Live-Überwachung, Indizieren, nicht angezeigte Dinge, Glitches) |
+| **0.3** | neue Datenbankstruktur |
+| **0.4** | letzte Fixes. **Beta für Beta-Tester.** Ab hier laden andere die App |
+| **0.5** | Metadaten und EXIF (Code und Design) |
+| **0.6** | Vorschaubilder |
+| **0.7** | Export von CSV-Listen |
+| **0.8** | Duplikate erkennen |
+| **0.9** | Lizenz |
+| **1.0** | erste fertige Version |
+
+- **Grundsatz (Nutzer):** Mit 0.4 sind **alle Probleme erledigt**. Was Fehler ist, muss **in 0.2** gelöst sein. 0.3 und 0.4 sind Umbau und Politur. Neues, das kein Fehler ist, kommt ins Backlog der nächsten Version.
+- **Stichtag:** 0.3 ist die letzte Version, in der die Datenbank frei verworfen und neu gebaut werden darf. Ab dem ersten Download durch eine andere Person (0.4) gilt: Schemaänderungen nur noch mit echter Migration, Sicherungskopie und Schutz vor Rückschritt ([datenbank-konzeption.md](datenbank-konzeption.md)).
+- **0.3 Datenbank:** erst Messwerkzeug (synthetisch 1 Mio. Einträge auf einem Medium, 9 Mio. auf 300 Medien), dann Entscheidung nach [datenbank-konzeption.md](datenbank-konzeption.md). Claude-Empfehlung (offen bis zur Messung): eine gemeinsame Datei, schlanke `item`-Tabelle (Baum + Felder, nach denen gesucht oder gefiltert wird: Name, Endung, Größe, Änderungsdatum), Nebentabellen `item_<funktion>` für alles, was nur in Details gebraucht wird. Muss vor den neuen Funktionen stehen.
+- **0.4 Voraussetzungen für die Weitergabe [Annahme]:** Developer-ID-Signatur und Notarisierung, Download-Seite, Versions-Check (`GET …/api/version/` existiert), Beta-Verfallsdatum, zentrale Stelle „Darf der Nutzer das?“ (immer ja), Test auf macOS 14, Fehlerbericht mit echten Protokollzeilen, Update durch Ersetzen der App (Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe, Launch-Agent neu registrieren).
+- **Funktionen 0.5 bis 0.9 sind Entwürfe (Nutzer 10.10.):** Jede muss **vor dem Start einzeln besprochen** werden (Umfang, Last, Layout, Grenzen). Die Angaben unten sind Ausgangspunkte, keine Beschlüsse.
+- **Ab 0.5 kommen neue Layouts** dazu; Claude übersetzt sie wie bisher in Aufgaben.
+- **0.5 Metadaten:** je Dateityp (Felder in datenbank-konzeption.md), als zweiter Durchgang nach dem Index, damit das Indizieren so schnell bleibt.
+- **0.6 Vorschaubilder [offen, zu besprechen]:** mit **Abschalter** (global und je Medium), eigene Datei mit Obergrenze. **Größe: 250 px lange Seite** (Nutzer 10.10.; 400 px wären problematisch: etwa 20 KB je Bild, 5.000 Fotos ca. 100 MB). Bei 250 px etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB, 100.000 Fotos ca. 1 GB (Überschlag, nicht gemessen). Zu klären: Schärfe auf Retina-Anzeige in der Detailspalte.
+- **0.7 CSV-Export:** noch nicht ausgearbeitet **[offen]** (Was wird exportiert, welche Spalten, Trennzeichen und Kodierung für deutsches Excel, Metadaten dabei?).
+- **0.8 Duplikate:** über alle Medien, stufenweise (Größe → Anfang/Ende → volle Prüfsumme nur bei Treffern), nur im Hintergrund.
+- **0.9 Lizenz:** Stufen nach Medienzahl — **max. 1 / max. 50 / max. 250 Medien**. Technisch trägt die Datenbank 250 Medien; die Messung mit 300 Medien als Reserve ist in 0.3 vorgesehen **[prüfen: Messung steht noch aus]**; keine weitere Grenze nötig. In der Beta (0.1 bis 0.8) gibt es keine Grenze.
+
+**Offene Fragen Lizenz (vor 0.9 zu klären):** Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert beim Erreichen der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar aber wird nicht indiziert)? Was passiert bei Herabstufung mit mehr Medien als erlaubt (Index bleibt durchsuchbar, keine Aktualisierung)? Prüfung der Lizenz online über diskarchive.app oder offline per Schlüssel?
 
 ## Spaltenansicht: Scrollen (Nutzer 09.10.)
 
-- **Waagerechte Scrollleiste** bleibt sichtbar, liegt aber **im Spaltenbereich über der Statusleiste** und überdeckt sie nicht; die letzte Zeile bleibt lesbar. Senkrechte Leisten in Ordnerspalten bleiben aus.
+- **Systemleisten zulassen (Nutzer 10.10.):** Scrollleisten kommen vom System (Overlay oder dauerhaft, je nach Systemeinstellung) und werden nicht unterdrückt. **Jede Ordnerspalte** zeigt bei vielen Einträgen ihre **eigene senkrechte Leiste** am rechten Rand der Spalte (wie die Einstellungen). Sie liegt innerhalb der Spalte, nie auf der Trennlinie oder der Nachbarspalte; im dauerhaften Stil wird der Text davor gekürzt, nicht überdeckt.
+- **Waagerechte Scrollleiste** liegt **im Spaltenbereich über der Statusleiste** und überdeckt sie nie; die letzte Zeile bleibt lesbar. Gilt in beiden Stilen.
+- **Kein Demo-Medium mehr (Nutzer 10.10.):** „Spalten-Zustände (Demo)“ entfällt; die Layouts der Spaltenzustände sind abgenommen.
+- **Detail-Spalte** nur bei gewählter Datei oder Mehrfachauswahl, auch wenn die Ordnerspalten breiter als das Fenster sind (Nutzer 10.10.).
 - **Automatisch nach rechts:** Öffnet eine Nutzeraktion (Datei wählen, Ordner öffnen, Pfeiltaste) die Details-Spalte oder eine neue Spalte außerhalb der Sicht, springt die Ansicht so weit nach rechts, dass sie ganz sichtbar ist (kurz, 0,2 s). Nie bei Live-Änderungen oder Nachladen.
 
 ## Verhältnis zum Layout

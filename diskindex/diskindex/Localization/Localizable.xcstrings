@@ -1,2974 +1,3053 @@
 {
-  "sourceLanguage": "de",
-  "strings": {
-    " ": {},
-    "!": {},
-    "→": {},
-    "1 000 000": {},
-    "100 000": {},
-    "Auswerfen erscheint erst, wenn ein Medium ausgeworfen wird: willUnmount, didUnmount und DiskArbitration „verschwunden“ mit Zeitstempel und Pfad.": {},
-    "copy.a11y.close": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schließen"
+  "sourceLanguage" : "de",
+  "strings" : {
+    " " : {
+
+    },
+    "!" : {
+
+    },
+    "→" : {
+
+    },
+    "1 000 000" : {
+
+    },
+    "100 000" : {
+
+    },
+    "Auswerfen erscheint erst, wenn ein Medium ausgeworfen wird: willUnmount, didUnmount und DiskArbitration „verschwunden“ mit Zeitstempel und Pfad." : {
+
+    },
+    "copy.a11y.close" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
           }
         }
       }
     },
-    "copy.a11y.favorites": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Favoriten"
+    "copy.a11y.favorites" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favoriten"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Favorites"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favorites"
           }
         }
       }
     },
-    "copy.a11y.filter": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Filter"
+    "copy.a11y.filter" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Filter"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
           }
         }
       }
     },
-    "copy.a11y.overview": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Übersicht"
+    "copy.a11y.overview" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übersicht"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overview"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Overview"
           }
         }
       }
     },
-    "copy.a11y.search": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suche"
+    "copy.a11y.search" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suche"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search"
           }
         }
       }
     },
-    "copy.a11y.settings": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Einstellungen"
+    "copy.a11y.settings" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Settings"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings"
           }
         }
       }
     },
-    "copy.action.close": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schließen"
+    "copy.action.close" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Close"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
           }
         }
       }
     },
-    "copy.action.confirm": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bestätigen"
+    "copy.action.confirm" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirm"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirm"
           }
         }
       }
     },
-    "copy.action.confirmed": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bestätigt"
+    "copy.action.confirmed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigt"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Confirmed"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confirmed"
           }
         }
       }
     },
-    "copy.action.retry": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erneut versuchen"
+    "copy.action.retry" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erneut versuchen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Try again"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try again"
           }
         }
       }
     },
-    "copy.app.name": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive"
+    "copy.app.name" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive"
           }
         }
       }
     },
-    "copy.empty.no_media.message": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schließe ein externes Speichermedium an, um es zu indizieren."
+    "copy.column.all_media_heading" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALLE SPEICHERMEDIEN"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Connect an external storage medium to index it."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALL STORAGE MEDIA"
           }
         }
       }
     },
-    "copy.empty.no_media.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Noch keine Speichermedien erfasst"
+    "copy.column.change_scan_depth" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan-Tiefe ändern"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No storage media indexed yet"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Change scan depth"
           }
         }
       }
     },
-    "copy.column.all_media_heading": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ALLE SPEICHERMEDIEN"
+    "copy.column.detail_heading" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DETAIL"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ALL STORAGE MEDIA"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DETAIL"
           }
         }
       }
     },
-    "copy.column.change_scan_depth": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scan-Tiefe ändern"
+    "copy.column.detail.last_seen" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt gesehen: %1$@"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Change scan depth"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last seen: %1$@"
           }
         }
       }
     },
-    "copy.column.detail_heading": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DETAIL"
+    "copy.column.detail.modified" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geändert: %1$@"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DETAIL"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Modified: %1$@"
           }
         }
       }
     },
-    "copy.column.detail.last_seen": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zuletzt gesehen: %1$@"
+    "copy.column.detail.size" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Größe: %1$@"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Last seen: %1$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size: %1$@"
           }
         }
       }
     },
-    "copy.column.detail.modified": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Geändert: %1$@"
+    "copy.column.detail.total_size" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Größe gesamt: %1$@"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Modified: %1$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total size: %1$@"
           }
         }
       }
     },
-    "copy.column.detail.size": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Größe: %1$@"
+    "copy.column.folder_loading_many" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Ordner enthält sehr viele Objekte. Die Liste erscheint erst, wenn alle geladen sind."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Size: %1$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder contains very many items. The list appears only after everything is loaded."
           }
         }
       }
     },
-    "copy.column.detail.total_size": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Größe gesamt: %1$@"
+    "copy.column.folder_loading_progress" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ von %2$@ Objekten geladen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Total size: %1$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ of %2$@ objects loaded"
           }
         }
       }
     },
-    "copy.column.folder_loading_many": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dieser Ordner enthält sehr viele Objekte. Die Liste erscheint erst, wenn alle geladen sind."
+    "copy.column.folder_loading_progress_example" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12 480 von 41 902 Objekten geladen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This folder contains very many items. The list appears only after everything is loaded."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "12,480 of 41,902 objects loaded"
           }
         }
       }
     },
-    "copy.column.folder_loading_progress": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ von %2$@ Objekten geladen"
+    "copy.column.folder_not_indexed_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt wird nicht indiziert"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ of %2$@ objects loaded"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contents are not indexed"
           }
         }
       }
     },
-    "copy.column.folder_loading_progress_example": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "12 480 von 41 902 Objekten geladen"
+    "copy.column.folder_pending_body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Ordner wird gerade indiziert. Sein Inhalt erscheint, sobald die Indizierung abgeschlossen ist."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "12,480 of 41,902 objects loaded"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder is being indexed. Its contents will appear when indexing finishes."
           }
         }
       }
     },
-    "copy.column.folder_not_indexed_title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inhalt wird nicht indiziert"
+    "copy.column.indexing_in_progress" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird indiziert"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contents are not indexed"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing"
           }
         }
       }
     },
-    "copy.column.folder_pending_body": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dieser Ordner wird gerade indiziert. Sein Inhalt erscheint, sobald die Indizierung abgeschlossen ist."
+    "copy.column.loading_contents" : {
+      "comment" : "Screen 07",
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalte werden geladen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This folder is being indexed. Its contents will appear when indexing finishes."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading contents"
           }
         }
       }
     },
-    "copy.column.indexing_in_progress": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wird indiziert"
+    "copy.column.offline_banner" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline — Inhalt aus dem Index, zum Öffnen bitte anschließen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indexing"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline — content from the index; connect to open"
           }
         }
       }
     },
-    "copy.column.loading_contents": {
-      "comment": "Screen 07",
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inhalte werden geladen"
+    "copy.column.uncaptured_scan_depth" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Inhalt dieses Ordners wird wegen der Scan-Tiefe nicht indiziert."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Loading contents"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder’s contents are not indexed because of scan depth."
           }
         }
       }
     },
-    "copy.column.offline_banner": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline — Inhalt aus dem Index, zum Öffnen bitte anschließen"
+    "copy.column.uncaptured_title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt nicht erfasst"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline — content from the index; connect to open"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Contents not captured"
           }
         }
       }
     },
-    "copy.column.uncaptured_scan_depth": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Der Inhalt dieses Ordners wird wegen der Scan-Tiefe nicht indiziert."
+    "copy.crash.body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This folder’s contents are not indexed because of scan depth."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters."
           }
         }
       }
     },
-    "copy.column.uncaptured_title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inhalt nicht erfasst"
+    "copy.crash.discard" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bericht nicht senden"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Contents not captured"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't send report"
           }
         }
       }
     },
-    "copy.crash.body": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Es liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen."
+    "copy.crash.send" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bericht senden"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send report"
           }
         }
       }
     },
-    "copy.crash.discard": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bericht nicht senden"
+    "copy.crash.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive wurde unerwartet beendet"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Don't send report"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive quit unexpectedly"
           }
         }
       }
     },
-    "copy.crash.send": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bericht senden"
+    "copy.dashboard.error_retry" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehler · erneut versuchen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Send report"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Error · try again"
           }
         }
       }
     },
-    "copy.crash.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive wurde unerwartet beendet"
+    "copy.dashboard.last_seen.days_ago" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vor %lld Tagen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive quit unexpectedly"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld days ago"
           }
         }
       }
     },
-    "copy.dashboard.error_retry": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fehler · erneut versuchen"
+    "copy.dashboard.last_seen.now" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "jetzt"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Error · try again"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "now"
           }
         }
       }
     },
-    "copy.dashboard.last_seen.now": {
-      "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "jetzt" } },
-        "en": { "stringUnit": { "state": "translated", "value": "now" } }
+    "copy.dashboard.last_seen.today" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "heute, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "today, %@"
+          }
+        }
       }
     },
-    "copy.dashboard.last_seen.today": {
-      "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "heute, %@" } },
-        "en": { "stringUnit": { "state": "translated", "value": "today, %@" } }
+    "copy.dashboard.last_seen.unknown" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "unbekannt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "unknown"
+          }
+        }
       }
     },
-    "copy.dashboard.last_seen.yesterday": {
-      "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "gestern, %@" } },
-        "en": { "stringUnit": { "state": "translated", "value": "yesterday, %@" } }
+    "copy.dashboard.last_seen.yesterday" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "gestern, %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "yesterday, %@"
+          }
+        }
       }
     },
-    "copy.dashboard.last_seen.days_ago": {
-      "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "vor %lld Tagen" } },
-        "en": { "stringUnit": { "state": "translated", "value": "%lld days ago" } }
+    "copy.dashboard.occupied_suffix" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " belegt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " used"
+          }
+        }
       }
     },
-    "copy.dashboard.last_seen.unknown": {
-      "localizations": {
-        "de": { "stringUnit": { "state": "translated", "value": "unbekannt" } },
-        "en": { "stringUnit": { "state": "translated", "value": "unknown" } }
+    "copy.empty.no_favorites.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Favoriten in dieser Auswahl. Wähle „Alle“ oder markiere Objekte über das Kontextmenü als Favorit."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No favorites in this selection. Choose “All” or mark items as favorites via the context menu."
+          }
+        }
       }
     },
-    "copy.dashboard.occupied_suffix": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " belegt"
+    "copy.empty.no_favorites.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Favoriten"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " used"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No favorites"
           }
         }
       }
     },
-    "copy.filter.toolbar": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Filter"
+    "copy.empty.no_media.message" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließe ein externes Speichermedium an, um es zu indizieren."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Filter"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connect an external storage medium to index it."
           }
         }
       }
     },
-    "copy.index.failed.body": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beim Indizieren ist ein Fehler aufgetreten. Das Medium konnte nicht indiziert werden."
+    "copy.empty.no_media.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Speichermedien erfasst"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "An error occurred while indexing. The medium could not be indexed."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No storage media indexed yet"
           }
         }
       }
     },
-    "copy.index.failed.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%1$@“ konnte nicht indiziert werden"
+    "copy.filter.toolbar" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” could not be indexed"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter"
           }
         }
       }
     },
-    "copy.medium.files_folders": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dateien / Ordner"
+    "copy.index.failed.body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Indizieren ist ein Fehler aufgetreten. Das Medium konnte nicht indiziert werden."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Files / folders"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An error occurred while indexing. The medium could not be indexed."
           }
         }
       }
     },
-    "copy.medium.forget": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vergessen"
+    "copy.index.failed.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@“ konnte nicht indiziert werden"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Forget"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” could not be indexed"
           }
         }
       }
     },
-    "copy.medium.last_seen": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zuletzt gesehen"
+    "copy.medium.files" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Last seen"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files"
           }
         }
       }
     },
-    "copy.medium.reindex": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neu indizieren"
+    "copy.medium.files_folders" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien / Ordner"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Re-index"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files / folders"
           }
         }
       }
     },
-    "copy.medium.should_index": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Soll indiziert werden"
+    "copy.medium.folders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Should be indexed"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders"
           }
         }
       }
     },
-    "copy.medium.show_content": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inhalt anzeigen"
+    "copy.medium.forget" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergessen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show contents"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget"
           }
         }
       }
     },
-    "copy.medium.total": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gesamt"
+    "copy.medium.last_seen" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt gesehen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Total"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last seen"
           }
         }
       }
     },
-    "copy.medium.used_free": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Belegt / Frei"
+    "copy.medium.reindex" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neu indizieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Used / Free"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-index"
           }
         }
       }
     },
-    "copy.menu.auto_index": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatisches Indizieren"
+    "copy.medium.should_index" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soll indiziert werden"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic indexing"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Should be indexed"
           }
         }
       }
     },
-    "copy.menu.change_to": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ÄNDERN AUF"
+    "copy.medium.show_content" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt anzeigen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CHANGE TO"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show contents"
           }
         }
       }
     },
-    "copy.menu.connected_heading": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ANGESCHLOSSEN"
+    "copy.medium.total" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamt"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CONNECTED"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Total"
           }
         }
       }
     },
-    "copy.menu.forever": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Für immer"
+    "copy.medium.used_free" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belegt / Frei"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Forever"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used / Free"
           }
         }
       }
     },
-    "copy.menu.minutes_30": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "30 Minuten"
+    "copy.menu.auto_index" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisches Indizieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "30 minutes"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic indexing"
           }
         }
       }
     },
-    "copy.menu.on": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "An"
+    "copy.menu.change_to" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ÄNDERN AUF"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CHANGE TO"
           }
         }
       }
     },
-    "copy.menu.one_hour": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 Stunde"
+    "copy.menu.connected_heading" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ANGESCHLOSSEN"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 hour"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CONNECTED"
           }
         }
       }
     },
-    "copy.menu.open_app": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive öffnen"
+    "copy.menu.forever" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für immer"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open Disk Archive"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forever"
           }
         }
       }
     },
-    "copy.menu.pause_for": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PAUSIEREN FÜR"
+    "copy.menu.minutes_30" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 Minuten"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "PAUSE FOR"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "30 minutes"
           }
         }
       }
     },
-    "copy.menu.paused": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausiert"
+    "copy.menu.on" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "On"
           }
         }
       }
     },
-    "copy.menu.paused_for": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pausiert für %1$@"
+    "copy.menu.one_hour" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Stunde"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Paused for %1$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 hour"
           }
         }
       }
     },
-    "copy.menu.until_tomorrow": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bis morgen"
+    "copy.menu.open_app" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive öffnen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Until tomorrow"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Disk Archive"
           }
         }
       }
     },
-    "copy.new_medium.body": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "„%1$@“ (%2$@, %3$@) wurde angeschlossen. Soll sie indiziert werden?"
+    "copy.menu.pause_for" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PAUSIEREN FÜR"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "“%1$@” (%2$@, %3$@) was connected. Should it be indexed?"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PAUSE FOR"
           }
         }
       }
     },
-    "copy.new_medium.dont_index": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht indizieren"
+    "copy.menu.paused" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausiert"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Don't index"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused"
           }
         }
       }
     },
-    "copy.new_medium.index": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indizieren"
+    "copy.menu.paused_for" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pausiert für %1$@"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Index"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Paused for %1$@"
           }
         }
       }
     },
-    "copy.new_medium.remember": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Für dieses Medium merken"
+    "copy.menu.until_tomorrow" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bis morgen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remember for this medium"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Until tomorrow"
           }
         }
       }
     },
-    "copy.new_medium.title": {
-      "comment": "Screen 02",
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neues Speichermedium erkannt"
+    "copy.new_medium.body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@“ (%2$@, %3$@) wurde angeschlossen. Soll sie indiziert werden?"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New storage medium detected"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” (%2$@, %3$@) was connected. Should it be indexed?"
           }
         }
       }
     },
-    "copy.no": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nein"
+    "copy.new_medium.dont_index" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht indizieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't index"
           }
         }
       }
     },
-    "copy.notice.defaults_applied": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voreinstellungen angewendet."
+    "copy.new_medium.index" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indizieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Defaults applied."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index"
           }
         }
       }
     },
-    "copy.notice.forget_all": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle Speichermedien wurden vergessen."
+    "copy.new_medium.remember" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für dieses Medium merken"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All storage media were forgotten."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remember for this medium"
           }
         }
       }
     },
-    "copy.notice.prune": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Index bereinigt."
+    "copy.new_medium.title" : {
+      "comment" : "Screen 02",
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neues Speichermedium erkannt"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Index cleaned up."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New storage medium detected"
           }
         }
       }
     },
-    "copy.permission.line": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive darf dieses Medium nicht lesen. Das lässt sich in den Systemeinstellungen unter Datenschutz & Sicherheit ändern."
+    "copy.no" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nein"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive cannot read this medium. You can change this in System Settings › Privacy & Security."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No"
           }
         }
       }
     },
-    "copy.registry.filter.all": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle"
+    "copy.notice.defaults_applied" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voreinstellungen angewendet."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Defaults applied."
           }
         }
       }
     },
-    "copy.registry.filter.indexed": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indiziert"
+    "copy.notice.forget_all" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Speichermedien wurden vergessen."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indexed"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All storage media were forgotten."
           }
         }
       }
     },
-    "copy.registry.filter.not_allowed": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nicht erlaubt"
+    "copy.notice.prune" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index bereinigt."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not allowed"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index cleaned up."
           }
         }
       }
     },
-    "copy.registry.filter.offline": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline"
+    "copy.permission.line" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive darf dieses Medium nicht lesen. Das lässt sich in den Systemeinstellungen unter Datenschutz & Sicherheit ändern."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive cannot read this medium. You can change this in System Settings › Privacy & Security."
           }
         }
       }
     },
-    "copy.reveal_in_finder": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Im Finder anzeigen"
+    "copy.registry.filter.all" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Show in Finder"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All"
           }
         }
       }
     },
-    "copy.search.filter_all_media": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle Medien"
+    "copy.registry.filter.indexed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indiziert"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "All media"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexed"
           }
         }
       }
     },
-    "copy.search.idle.subtitle": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Durchsucht alle erfassten Speichermedien – auch offline."
+    "copy.registry.filter.not_allowed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht erlaubt"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Searches all indexed storage — including offline."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not allowed"
           }
         }
       }
     },
-    "copy.search.idle.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Suchbegriff eingeben oder Filter verwenden"
+    "copy.registry.filter.offline" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enter a search term or use filters"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
           }
         }
       }
     },
-    "copy.settings.appearance.auto": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatisch"
+    "copy.reveal_in_finder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Finder anzeigen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Automatic"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Finder"
           }
         }
       }
     },
-    "copy.settings.appearance.dark": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dunkel"
+    "copy.search.filter_all_media" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Medien"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dark"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All media"
           }
         }
       }
     },
-    "copy.settings.appearance.light": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hell"
+    "copy.search.idle.subtitle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Durchsucht alle erfassten Speichermedien – auch offline."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Light"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searches all indexed storage — including offline."
           }
         }
       }
     },
-    "copy.settings.appearance.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hell oder Dunkel legt das Erscheinungsbild fest. Automatisch folgt der Systemeinstellung von macOS."
+    "copy.search.idle.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchbegriff eingeben oder Filter verwenden"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Light or Dark sets the appearance. Automatic follows the macOS system setting."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enter a search term or use filters"
           }
         }
       }
     },
-    "copy.settings.appearance.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ERSCHEINUNGSBILD"
+    "copy.settings.appearance.auto" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatisch"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "APPEARANCE"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatic"
           }
         }
       }
     },
-    "copy.settings.artifacts.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ignoriert temporäre Dateien, Backups, Systemreste und Ordner mit generischen Programmbibliotheken. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
+    "copy.settings.appearance.dark" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dunkel"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ignores temporary files, backups, system clutter, and generic library folders. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains reappears; the rest is added on the next scan."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dark"
           }
         }
       }
     },
-    "copy.settings.artifacts.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ARTEFAKTE"
+    "copy.settings.appearance.light" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hell"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ARTIFACTS"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light"
           }
         }
       }
     },
-    "copy.settings.autostart.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive startet nach dem Anmelden automatisch in der Menüleiste, damit angeschlossene Speichermedien sofort erkannt werden."
+    "copy.settings.appearance.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hell oder Dunkel legt das Erscheinungsbild fest. Automatisch folgt der Systemeinstellung von macOS."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk Archive starts in the menu bar at login so connected storage is detected immediately."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Light or Dark sets the appearance. Automatic follows the macOS system setting."
           }
         }
       }
     },
-    "copy.settings.autostart.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AUTOSTART"
+    "copy.settings.appearance.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ERSCHEINUNGSBILD"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "AUTOSTART"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APPEARANCE"
           }
         }
       }
     },
-    "copy.settings.autostart.toggle": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Beim Anmelden starten"
+    "copy.settings.artifacts.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignoriert temporäre Dateien, Backups, Systemreste und Ordner mit generischen Programmbibliotheken. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start at login"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignores temporary files, backups, system clutter, and generic library folders. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains reappears; the rest is added on the next scan."
           }
         }
       }
     },
-    "copy.settings.column_filter.show_folders": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordner weiterhin anzeigen"
+    "copy.settings.artifacts.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ARTEFAKTE"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Still show folders"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ARTIFACTS"
           }
         }
       }
     },
-    "copy.settings.column_filter.show_folders_hint": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordner bleiben sichtbar, damit man sich bis zu den passenden Dateien durchklicken kann."
+    "copy.settings.autostart.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive startet nach dem Anmelden automatisch in der Menüleiste, damit angeschlossene Speichermedien sofort erkannt werden."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Folders stay visible so you can navigate to matching files."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive starts in the menu bar at login so connected storage is detected immediately."
           }
         }
       }
     },
-    "copy.settings.column_filter.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Legt fest, wie sich gesetzte Dateityp- und Endungsfilter beim Durchblättern von Ordnern verhalten."
+    "copy.settings.autostart.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AUTOSTART"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Controls how file type and extension filters apply while browsing folders."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AUTOSTART"
           }
         }
       }
     },
-    "copy.settings.column_filter.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DATEITYP-FILTER IN DER SPALTENANSICHT"
+    "copy.settings.autostart.toggle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Anmelden starten"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "FILE TYPE FILTER IN COLUMN VIEW"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start at login"
           }
         }
       }
     },
-    "copy.settings.defaults.button": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Voreinstellungen anwenden"
+    "copy.settings.column_filter.show_folders" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner weiterhin anzeigen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apply defaults"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Still show folders"
           }
         }
       }
     },
-    "copy.settings.defaults.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Setzt alle Programmeinstellungen auf die Voreinstellungen zurück. Speichermedien, Index und Favoriten bleiben erhalten."
+    "copy.settings.column_filter.show_folders_hint" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner bleiben sichtbar, damit man sich bis zu den passenden Dateien durchklicken kann."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Resets all app settings to defaults. Storage media, index, and favorites are kept."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders stay visible so you can navigate to matching files."
           }
         }
       }
     },
-    "copy.settings.defaults.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "VOREINSTELLUNGEN"
+    "copy.settings.column_filter.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Legt fest, wie sich gesetzte Dateityp- und Endungsfilter beim Durchblättern von Ordnern verhalten."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DEFAULTS"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Controls how file type and extension filters apply while browsing folders."
           }
         }
       }
     },
-    "copy.settings.exclude.add": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hinzufügen"
+    "copy.settings.column_filter.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DATEITYP-FILTER IN DER SPALTENANSICHT"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FILE TYPE FILTER IN COLUMN VIEW"
           }
         }
       }
     },
-    "copy.settings.exclude.placeholder": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name, Endung (*.log) oder Ordner…"
+    "copy.settings.defaults.button" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voreinstellungen anwenden"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name, extension (*.log), or folder…"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply defaults"
           }
         }
       }
     },
-    "copy.settings.exclude.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Namen, Endungen oder Ordner, die auf keinem Speichermedium indiziert werden. Lässt sich auch per Rechtsklick auf ein Objekt setzen. Bereits erfasste Treffer verschwinden sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ im Tab „Erweitert“. Wird ein Chip entfernt, erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
+    "copy.settings.defaults.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Setzt alle Programmeinstellungen auf die Voreinstellungen zurück. Speichermedien, Index und Favoriten bleiben erhalten."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Names, extensions, or folders never indexed on any volume. Can also be set via right-click. Matches already indexed disappear from view and are removed from the index after 1 hour, or immediately via “Clean up index now” in Advanced. Removing a chip shows what remains; the rest is added on the next scan."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resets all app settings to defaults. Storage media, index, and favorites are kept."
           }
         }
       }
     },
-    "copy.settings.exclude.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DATEIEN & ORDNER AUSSCHLIESSEN"
+    "copy.settings.defaults.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "VOREINSTELLUNGEN"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EXCLUDE FILES & FOLDERS"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DEFAULTS"
           }
         }
       }
     },
-    "copy.settings.hidden.ignore": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ignorieren"
+    "copy.settings.exclude.add" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hinzufügen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ignore"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add"
           }
         }
       }
     },
-    "copy.settings.hidden.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Schließt versteckte Systemdateien und -ordner vom Index aus. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
+    "copy.settings.exclude.placeholder" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name, Endung (*.log) oder Ordner…"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Excludes hidden system files and folders from the index. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains in the index reappears; the rest is added on the next scan."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name, extension (*.log), or folder…"
           }
         }
       }
     },
-    "copy.settings.hidden.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "UNSICHTBARE DATEIEN"
+    "copy.settings.exclude.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Namen, Endungen oder Ordner, die auf keinem Speichermedium indiziert werden. Lässt sich auch per Rechtsklick auf ein Objekt setzen. Bereits erfasste Treffer verschwinden sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ im Tab „Erweitert“. Wird ein Chip entfernt, erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "HIDDEN FILES"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Names, extensions, or folders never indexed on any volume. Can also be set via right-click. Matches already indexed disappear from view and are removed from the index after 1 hour, or immediately via “Clean up index now” in Advanced. Removing a chip shows what remains; the rest is added on the next scan."
           }
         }
       }
     },
-    "copy.settings.language.english": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "English"
+    "copy.settings.exclude.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DATEIEN & ORDNER AUSSCHLIESSEN"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "English"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EXCLUDE FILES & FOLDERS"
           }
         }
       }
     },
-    "copy.settings.language.german": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deutsch"
+    "copy.settings.hidden.ignore" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignorieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deutsch"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore"
           }
         }
       }
     },
-    "copy.settings.language.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sprache der Benutzeroberfläche. Die Änderung gilt sofort."
+    "copy.settings.hidden.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließt versteckte Systemdateien und -ordner vom Index aus. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Language of the user interface. The change applies immediately."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excludes hidden system files and folders from the index. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains in the index reappears; the rest is added on the next scan."
           }
         }
       }
     },
-    "copy.settings.language.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SPRACHE"
+    "copy.settings.hidden.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UNSICHTBARE DATEIEN"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "LANGUAGE"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HIDDEN FILES"
           }
         }
       }
     },
-    "copy.settings.media.forget_all": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Alle Speichermedien vergessen"
+    "copy.settings.language.english" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Forget all storage media"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "English"
           }
         }
       }
     },
-    "copy.settings.media.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vergisst alle Speichermedien und löscht alle zugehörigen Daten: Index, Favoriten, Berechtigungen und Einstellungen je Medium. Die Programmeinstellungen bleiben erhalten. Beim nächsten Anschließen erscheint der Erkennungs-Dialog wieder."
+    "copy.settings.language.german" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deutsch"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Forgets all storage media and deletes related data: index, favorites, permissions, and per-medium settings. App settings are kept. The detection dialog appears again on next connection."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deutsch"
           }
         }
       }
     },
-    "copy.settings.media.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SPEICHERMEDIEN"
+    "copy.settings.language.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprache der Benutzeroberfläche. Die Änderung gilt sofort."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "STORAGE MEDIA"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Language of the user interface. The change applies immediately."
           }
         }
       }
     },
-    "copy.settings.media.warning": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Löscht alle Daten. Das kann nicht rückgängig gemacht werden."
+    "copy.settings.language.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SPRACHE"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deletes all data. This cannot be undone."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "LANGUAGE"
           }
         }
       }
     },
-    "copy.settings.notices.favorites": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Speichermedium mit Favoriten angeschlossen"
+    "copy.settings.media.forget_all" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Speichermedien vergessen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Storage medium with favorites connected"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget all storage media"
           }
         }
       }
     },
-    "copy.settings.notices.indexed": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Speichermedium vollständig indiziert"
+    "copy.settings.media.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergisst alle Speichermedien und löscht alle zugehörigen Daten: Index, Favoriten, Berechtigungen und Einstellungen je Medium. Die Programmeinstellungen bleiben erhalten. Beim nächsten Anschließen erscheint der Erkennungs-Dialog wieder."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Storage medium fully indexed"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forgets all storage media and deletes related data: index, favorites, permissions, and per-medium settings. App settings are kept. The detection dialog appears again on next connection."
           }
         }
       }
     },
-    "copy.settings.notices.pause_forever": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indizierung pausiert."
+    "copy.settings.media.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SPEICHERMEDIEN"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indexing paused."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "STORAGE MEDIA"
           }
         }
       }
     },
-    "copy.settings.notices.pause_resumed": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medien werden wieder indiziert."
+    "copy.settings.media.warning" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Löscht alle Daten. Das kann nicht rückgängig gemacht werden."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Media are being indexed again."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deletes all data. This cannot be undone."
           }
         }
       }
     },
-    "copy.settings.notices.pause_until": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indizierung pausiert bis %1$@ Uhr."
+    "copy.settings.notices.favorites" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichermedium mit Favoriten angeschlossen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indexing paused until %1$@."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage medium with favorites connected"
           }
         }
       }
     },
-    "copy.settings.notices.preview_favorites": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medium „Archiv 2019–2021“ mit 7 Favoriten ist online"
+    "copy.settings.notices.indexed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichermedium vollständig indiziert"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medium “Archive 2019–2021” with 7 favorites is online"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage medium fully indexed"
           }
         }
       }
     },
-    "copy.settings.notices.preview_indexed": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medium „Archiv 2019–2021“ ist vollständig indiziert – 48.210 Objekte"
+    "copy.settings.notices.pause_forever" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indizierung pausiert."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medium “Archive 2019–2021” is fully indexed – 48,210 items"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing paused."
           }
         }
       }
     },
-    "copy.settings.notices.preview_system": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Medien werden wieder indiziert."
+    "copy.settings.notices.pause_resumed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medien werden wieder indiziert."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Media are being indexed again."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media are being indexed again."
           }
         }
       }
     },
-    "copy.settings.notices.system": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Systemmeldungen"
+    "copy.settings.notices.pause_until" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indizierung pausiert bis %1$@ Uhr."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "System messages"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexing paused until %1$@."
           }
         }
       }
     },
-    "copy.settings.notices.system_and_pauses": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Systemmeldungen umfassen Hinweise zu Fehlern und zu Pausen."
+    "copy.settings.notices.preview_favorites" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium „Archiv 2019–2021“ mit 7 Favoriten ist online"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "System messages include notes on errors and pauses."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium “Archive 2019–2021” with 7 favorites is online"
           }
         }
       }
     },
-    "copy.settings.notices.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pro Ereignis einzeln wählbar. Systemmeldungen umfassen Hinweise zu Fehlern und zu Pausen. „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern."
+    "copy.settings.notices.preview_indexed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium „Archiv 2019–2021“ ist vollständig indiziert – 48.210 Objekte"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose each event individually. System messages include errors and pause notices. “Fully indexed” appears only if the scan took longer than 59 seconds (including reconcile or re-index). If “Enable notifications” is off, events are disabled. macOS asks once at first launch; if denied, change it only in macOS System Settings › Notifications."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium “Archive 2019–2021” is fully indexed – 48,210 items"
           }
         }
       }
     },
-    "copy.settings.notices.text_lead": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pro Ereignis einzeln wählbar. "
+    "copy.settings.notices.preview_system" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medien werden wieder indiziert."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Choose each event individually. "
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media are being indexed again."
           }
         }
       }
     },
-    "copy.settings.notices.text_tail": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern."
+    "copy.settings.notices.system" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemmeldungen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " “Fully indexed” appears only if the scan took longer than 59 seconds (including reconcile or re-index). If “Enable notifications” is off, events are disabled. macOS asks once at first launch; if denied, change it only in macOS System Settings › Notifications."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System messages"
           }
         }
       }
     },
-    "copy.settings.notices.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "MITTEILUNGEN"
+    "copy.settings.notices.system_and_pauses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemmeldungen umfassen Hinweise zu Fehlern und zu Pausen."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "NOTIFICATIONS"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "System messages include notes on errors and pauses."
           }
         }
       }
     },
-    "copy.settings.notices.turned_off": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mitteilungen sind ausgeschaltet."
+    "copy.settings.notices.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Ereignis einzeln wählbar. Systemmeldungen umfassen Hinweise zu Fehlern und zu Pausen. „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notifications are turned off."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose each event individually. System messages include errors and pause notices. “Fully indexed” appears only if the scan took longer than 59 seconds (including reconcile or re-index). If “Enable notifications” is off, events are disabled. macOS asks once at first launch; if denied, change it only in macOS System Settings › Notifications."
           }
         }
       }
     },
-    "copy.settings.notices.turned_on": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mitteilungen sind eingeschaltet."
+    "copy.settings.notices.text_lead" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Ereignis einzeln wählbar. "
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Notifications are turned on."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose each event individually. "
           }
         }
       }
     },
-    "copy.settings.notices.toggle": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mitteilungen aktivieren"
+    "copy.settings.notices.text_tail" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Enable notifications"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : " “Fully indexed” appears only if the scan took longer than 59 seconds (including reconcile or re-index). If “Enable notifications” is off, events are disabled. macOS asks once at first launch; if denied, change it only in macOS System Settings › Notifications."
           }
         }
       }
     },
-    "copy.settings.prune.button": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Index jetzt bereinigen"
+    "copy.settings.notices.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MITTEILUNGEN"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clean up index now"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "NOTIFICATIONS"
           }
         }
       }
     },
-    "copy.settings.prune.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Werden Dateien oder Ordner ausgeschlossen, unsichtbare Dateien oder Artefakte ignoriert oder die Scan-Tiefe verringert, verschwinden die betroffenen Einträge sofort aus der Ansicht, auch Favoriten darunter. Aus dem Index gelöscht werden sie nach 1 Stunde. „Index jetzt bereinigen“ löscht sie sofort."
+    "copy.settings.notices.toggle" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitteilungen aktivieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Excluded files or folders, ignored hidden files or artifacts, or reduced scan depth remove affected entries from view immediately, including favorites below. They are deleted from the index after 1 hour. “Clean up index now” deletes them immediately."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable notifications"
           }
         }
       }
     },
-    "copy.settings.prune.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SCAN-TIEFE UND AUSGESCHLOSSENE DATEIEN & ORDNER"
+    "copy.settings.notices.turned_off" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitteilungen sind ausgeschaltet."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SCAN DEPTH AND EXCLUDED FILES & FOLDERS"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications are turned off."
           }
         }
       }
     },
-    "copy.settings.reports.auto_send": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Künftig automatisch senden"
+    "copy.settings.notices.turned_on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitteilungen sind eingeschaltet."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Send automatically in the future"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notifications are turned on."
           }
         }
       }
     },
-    "copy.settings.reports.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wurde Disk Archive unerwartet beendet, liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen."
+    "copy.settings.prune.button" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index jetzt bereinigen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "If Disk Archive quit unexpectedly, a report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clean up index now"
           }
         }
       }
     },
-    "copy.settings.reports.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "FEHLERBERICHTE"
+    "copy.settings.prune.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Werden Dateien oder Ordner ausgeschlossen, unsichtbare Dateien oder Artefakte ignoriert oder die Scan-Tiefe verringert, verschwinden die betroffenen Einträge sofort aus der Ansicht, auch Favoriten darunter. Aus dem Index gelöscht werden sie nach 1 Stunde. „Index jetzt bereinigen“ löscht sie sofort."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "CRASH REPORTS"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Excluded files or folders, ignored hidden files or artifacts, or reduced scan depth remove affected entries from view immediately, including favorites below. They are deleted from the index after 1 hour. “Clean up index now” deletes them immediately."
           }
         }
       }
     },
-    "copy.settings.scan_depth.disk_crumb": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Festplatte"
+    "copy.settings.prune.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SCAN-TIEFE UND AUSGESCHLOSSENE DATEIEN & ORDNER"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Disk"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SCAN DEPTH AND EXCLUDED FILES & FOLDERS"
           }
         }
       }
     },
-    "copy.settings.scan_depth.example_heading": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "BEISPIEL"
+    "copy.settings.reports.auto_send" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Künftig automatisch senden"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "EXAMPLE"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Send automatically in the future"
           }
         }
       }
     },
-    "copy.settings.scan_depth.label": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "TIEFE"
+    "copy.settings.reports.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wurde Disk Archive unerwartet beendet, liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "DEPTH"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "If Disk Archive quit unexpectedly, a report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters."
           }
         }
       }
     },
-    "copy.settings.scan_depth.max_depth_crumb": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "maximale Indextiefe"
+    "copy.settings.reports.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FEHLERBERICHTE"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "maximum index depth"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CRASH REPORTS"
           }
         }
       }
     },
-    "copy.settings.scan_depth.text": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wie viele Ordnerebenen unterhalb des Wurzelverzeichnisses eines Speichermediums durchsucht werden. „5+“ durchsucht uneingeschränkt alles. Wird die Tiefe verringert, verschwinden tiefere Ebenen sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Wird sie erhöht, erscheint, was noch im Index ist; fehlende Ebenen kommen beim nächsten Scan dazu."
+    "copy.settings.scan_depth.disk_crumb" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Festplatte"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "How many folder levels below each volume root are scanned. “5+” scans without limit. Lowering depth hides deeper levels immediately and removes them from the index after 1 hour, or immediately via “Clean up index now” (Advanced). Raising depth shows what remains in the index; missing levels are added on the next scan."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk"
           }
         }
       }
     },
-    "copy.settings.scan_depth.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SCAN-TIEFE"
+    "copy.settings.scan_depth.example_heading" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "BEISPIEL"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SCAN DEPTH"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EXAMPLE"
           }
         }
       }
     },
-    "copy.settings.tab.advanced": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Erweitert"
+    "copy.settings.scan_depth.label" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TIEFE"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Advanced"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DEPTH"
           }
         }
       }
     },
-    "copy.settings.tab.files": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dateien & Ordner"
+    "copy.settings.scan_depth.max_depth_crumb" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "maximale Indextiefe"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Files & folders"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "maximum index depth"
           }
         }
       }
     },
-    "copy.settings.tab.general": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Allgemein"
+    "copy.settings.scan_depth.text" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wie viele Ordnerebenen unterhalb des Wurzelverzeichnisses eines Speichermediums durchsucht werden. „5+“ durchsucht uneingeschränkt alles. Wird die Tiefe verringert, verschwinden tiefere Ebenen sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Wird sie erhöht, erscheint, was noch im Index ist; fehlende Ebenen kommen beim nächsten Scan dazu."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "General"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "How many folder levels below each volume root are scanned. “5+” scans without limit. Lowering depth hides deeper levels immediately and removes them from the index after 1 hour, or immediately via “Clean up index now” (Advanced). Raising depth shows what remains in the index; missing levels are added on the next scan."
           }
         }
       }
     },
-    "copy.settings.tab.media": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Speichermedien"
+    "copy.settings.scan_depth.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SCAN-TIEFE"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Storage media"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SCAN DEPTH"
           }
         }
       }
     },
-    "copy.store.open_failed.body": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Die Index-Datenbank konnte nicht geöffnet werden. Disk Archive kann Speichermedien derzeit nicht verarbeiten."
+    "copy.settings.tab.advanced" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erweitert"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The index database could not be opened. Disk Archive cannot process storage media right now."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Advanced"
           }
         }
       }
     },
-    "copy.store.open_failed.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Index-Datenbank nicht verfügbar"
+    "copy.settings.tab.files" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dateien & Ordner"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Index database unavailable"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Files & folders"
           }
         }
       }
     },
-    "copy.table.column.index": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Indizieren"
+    "copy.settings.tab.general" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allgemein"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Index"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "General"
           }
         }
       }
     },
-    "copy.table.column.name": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name"
+    "copy.settings.tab.media" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichermedien"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Name"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage media"
           }
         }
       }
     },
-    "copy.table.column.status": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Status"
+    "copy.store.open_failed.body" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Index-Datenbank konnte nicht geöffnet werden. Disk Archive kann Speichermedien derzeit nicht verarbeiten."
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Status"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The index database could not be opened. Disk Archive cannot process storage media right now."
           }
         }
       }
     },
-    "copy.table.column.type": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Typ"
+    "copy.store.open_failed.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index-Datenbank nicht verfügbar"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Type"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index database unavailable"
           }
         }
       }
     },
-    "copy.yes": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ja"
+    "copy.table.column.index" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indizieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yes"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Index"
           }
         }
       }
     },
-    "diagnostics.cancel": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Abbrechen"
+    "copy.table.column.name" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancel"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Name"
           }
         }
       }
     },
-    "diagnostics.fsevents.start": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "FSEvents starten"
+    "copy.table.column.status" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start FSEvents"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Status"
           }
         }
       }
     },
-    "diagnostics.fsevents.stop": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "FSEvents stoppen"
+    "copy.table.column.type" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Typ"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Stop FSEvents"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Type"
           }
         }
       }
     },
-    "diagnostics.level": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ebene %lld"
+    "copy.yes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ja"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Level %lld"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes"
           }
         }
       }
     },
-    "diagnostics.menu_item": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnose: Indexierung…"
+    "diagnostics.cancel" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abbrechen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnostics: Indexing…"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
           }
         }
       }
     },
-    "diagnostics.report.copy": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bericht kopieren"
+    "diagnostics.fsevents.start" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FSEvents starten"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Copy report"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start FSEvents"
           }
         }
       }
     },
-    "diagnostics.root.read": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wurzelverzeichnis lesen"
+    "diagnostics.fsevents.stop" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FSEvents stoppen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Read root directory"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop FSEvents"
           }
         }
       }
     },
-    "diagnostics.rows": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Zeilen"
+    "diagnostics.level" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ebene %lld"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Rows"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Level %lld"
           }
         }
       }
     },
-    "diagnostics.scan.start": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scan starten"
+    "diagnostics.menu_item" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnose: Indexierung…"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Start scan"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics: Indexing…"
           }
         }
       }
     },
-    "diagnostics.section.access": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "B. Zugriff"
+    "diagnostics.report.copy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bericht kopieren"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "B. Access"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy report"
           }
         }
       }
     },
-    "diagnostics.section.fsevents": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "D. FSEvents"
+    "diagnostics.root.read" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wurzelverzeichnis lesen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "D. FSEvents"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read root directory"
           }
         }
       }
     },
-    "diagnostics.section.scan": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "C. Scan, ebenenweise"
+    "diagnostics.rows" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeilen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "C. Scan, by level"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rows"
           }
         }
       }
     },
-    "diagnostics.section.sqlite": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "E. SQLite"
+    "diagnostics.scan.start" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan starten"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "E. SQLite"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start scan"
           }
         }
       }
     },
-    "diagnostics.section.volumes": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A. Volumes"
+    "diagnostics.section.access" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "B. Zugriff"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A. Volumes"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "B. Access"
           }
         }
       }
     },
-    "diagnostics.sqlite.measure": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "SQLite messen"
+    "diagnostics.section.fsevents" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D. FSEvents"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Measure SQLite"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "D. FSEvents"
           }
         }
       }
     },
-    "diagnostics.status.offline": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline"
+    "diagnostics.section.scan" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "C. Scan, ebenenweise"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Offline"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "C. Scan, by level"
           }
         }
       }
     },
-    "diagnostics.status.online": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Online"
+    "diagnostics.section.sqlite" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E. SQLite"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Online"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E. SQLite"
           }
         }
       }
     },
-    "diagnostics.title": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnose: Indexierung"
+    "diagnostics.section.volumes" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A. Volumes"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Diagnostics: Indexing"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A. Volumes"
           }
         }
       }
     },
-    "diagnostics.volumes.reread": {
-      "extractionState": "stale",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Volumes neu lesen"
+    "diagnostics.sqlite.measure" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SQLite messen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Re-read volumes"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Measure SQLite"
           }
         }
       }
     },
-    "Ebene %lld": {},
-    "Offline": {},
-    "Online": {},
-    "Sandbox aus: Xcode → Target diskindex → Signing & Capabilities → „App Sandbox“ entfernen → neu starten → Abschnitt B erneut. Danach die Sandbox wieder einschalten. Dialog zurücksetzen: tccutil reset SystemPolicyRemovableVolumes xjonx.diskindex": {},
-    "Strom starten. Im Finder eine Datei anlegen, umbenennen, löschen. Strom stoppen, Medium auswerfen, wieder anstecken, Strom mit gespeicherter ID starten. Optional: Medium an einem anderen Rechner ändern (Datei anlegen), dann prüfen, ob das Nachspielen sie zeigt (erwartet: nein).": {},
-    "Systemdialog erschienen: ja/nein/wann": {},
-    "copy.empty.no_favorites.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keine Favoriten"
+    "diagnostics.status.offline" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No favorites"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Offline"
           }
         }
       }
     },
-    "copy.empty.no_favorites.message": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Keine Favoriten in dieser Auswahl. Wähle „Alle“ oder markiere Objekte über das Kontextmenü als Favorit."
+    "diagnostics.status.online" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No favorites in this selection. Choose “All” or mark items as favorites via the context menu."
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Online"
           }
         }
       }
     },
-    "copy.medium.files": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dateien"
+    "diagnostics.title" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnose: Indexierung"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Files"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diagnostics: Indexing"
           }
         }
       }
     },
-    "copy.medium.folders": {
-      "extractionState": "manual",
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordner"
+    "diagnostics.volumes.reread" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volumes neu lesen"
           }
         },
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Folders"
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Re-read volumes"
           }
         }
       }
+    },
+    "Ebene %lld" : {
+
+    },
+    "Offline" : {
+
+    },
+    "Online" : {
+
+    },
+    "Sandbox aus: Xcode → Target diskindex → Signing & Capabilities → „App Sandbox“ entfernen → neu starten → Abschnitt B erneut. Danach die Sandbox wieder einschalten. Dialog zurücksetzen: tccutil reset SystemPolicyRemovableVolumes xjonx.diskindex" : {
+
+    },
+    "Strom starten. Im Finder eine Datei anlegen, umbenennen, löschen. Strom stoppen, Medium auswerfen, wieder anstecken, Strom mit gespeicherter ID starten. Optional: Medium an einem anderen Rechner ändern (Datei anlegen), dann prüfen, ob das Nachspielen sie zeigt (erwartet: nein)." : {
+
+    },
+    "Systemdialog erschienen: ja/nein/wann" : {
+
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

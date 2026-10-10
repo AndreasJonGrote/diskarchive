@@ -25,41 +25,73 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 19. **Bildschirm des Nutzers frei lassen (Nutzer 09.10.: „keine Screenshots, nur Script-Prüfung“, gilt bis auf Widerruf).** Keine echte App starten, keinen `ScreenshotRunner`, keine Bildschirmfotos, nichts aktivieren oder in den Vordergrund holen. Nachweis nur über `xcodebuild test` (mit Zeitgrenze), Protokolldateien und Skripte (`sqlite3`, `grep`). `PixelProbe`-Fenster werden **außerhalb des sichtbaren Bereichs** geöffnet (Ursprung `x: -20000, y: -20000`, `orderFrontRegardless` statt `makeKeyAndOrderFront`, nie `NSApp.activate`); `cacheDisplay` funktioniert dort genauso. Echte-App-Teilaufgaben (z. B. 183 e) entfallen und werden durch einen Skript-Nachweis ersetzt (siehe dort).
 20. **Tests stürzen nie ab.** Kein Zugriff `array[i]` ohne vorheriges `try #require(array.count > i)` (bzw. `#require(array.first)`), kein `!` auf Optionals, keine Bereiche `a..<b` ohne Prüfung `a <= b`. Ein fehlgeschlagener Test meldet „rot“, er beendet nie den Prozess (sonst Absturzbericht auf dem Bildschirm des Nutzers, Regel 19). Vor „Bereit zur Prüfung“: `grep -n '\[0\]\|\[1\]\|\[2\]' diskindexTests/<neue Dateien>` und jede Stelle absichern.
 21. **Keine System-Ereignisse aus Tests.** Verboten: `CGEvent(…).post(…)`, `CGWarpMouseCursorPosition`, `AXUIElement…`, alles, was die **echte** Maus/Tastatur des Nutzers bewegt oder Bedienungshilfen-Rechte braucht (Nutzer 09.10. 23:00: macOS fragte „Disk Archive möchte diesen Computer mit Funktionen der Bedienungshilfe steuern“). Klicks nur per `NSEvent.mouseEvent(…)` + `window.sendEvent` an das **eigene** Testfenster (wie `PixelProbe.click`). Kein `makeKeyAndOrderFront`, kein `NSApp.activate` (Regel 19).
+22. **Kein Git, kein GitHub (AGENTS.md).** Keine verändernden Git-Befehle (`commit`, `add`, `push`, `pull`, `checkout`, `stash`, `worktree`, `reset` …), keine Best-of-N-Läufe mit Git-Arbeitskopien, nichts auf GitHub. Nur `git status`/`log`/`diff`/`show` zum Nachsehen.
+23. **Zum Schluss die App bauen, die der Nutzer startet (Nutzer 10.10.).** Letzter Schritt jeder Aufgabe, **nach** Sabotage-Rücknahme und Testläufen: `xcodebuild build -project diskindex.xcodeproj -scheme diskindex -configuration Debug -destination 'platform=macOS'` **ohne** `-derivedDataPath` (Ziel: `~/Library/Developer/Xcode/DerivedData/diskindex-…/Build/Products/Debug/Disk Archive.app`, dort startet der Nutzer). Dann belegen: `stat -f '%Sm' -t '%H:%M:%S'` der Datei `Contents/MacOS/Disk Archive` ist **jünger** als die zuletzt geänderte `.swift`-Datei (`find diskindex -name '*.swift' -newer <App-Binary>` muss **leer** sein). Beide Uhrzeiten in den Status. Ohne diesen Beleg gilt die Aufgabe als nicht gemacht. Grund: Am 10.10. testete der Nutzer einen Sabotage-Build, weil nach der Rücknahme nicht mehr gebaut wurde.
 
 ---
 
-## A. Jetzt
+## A. Jetzt — Version 0.2 „Alle bekannten Fehler“
 
-**Stand 10.10.:** Abgenommen bis 194 (siehe DONE.md). Offen: 195.
+**Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
 
-## ARBEITSAUFTRAG JETZT (Claude, 10.10. — exakt so umsetzen)
+**Stand 10.10.:** Abgenommen bis 195 (siehe DONE.md). **Freigegeben: 197 → 198 → 199 → 200 (ein Paket). HALT nach 200.**
 
-**Lies zuerst diese drei Regeln, sie gelten für jede Aufgabe unten:**
+**Claude-Prüfung 10.10. (2):** 195 **abgenommen**. Claude: `clean build-for-testing` **0** Warnungen; **383 Tests, 101 Suiten seriell grün**; beide Sabotagen in einer Kopie selbst nachgestellt → `mustScanSubDirsUnderMountStartsReconcile` und `layerWholeMediumInvalidateSurvivesCountsMetaTick` **rot** ✓. Volltext: `archiv/todo-stand-2026-10-10b.md`.
+
+**Arbeitsregeln je Aufgabe (gelten zusätzlich zu den 22 Regeln):**
 - **R1 Nur die genannten Stellen ändern.** Jede Aufgabe nennt Datei und Zeile. Andere Dateien nur, wenn die Aufgabe es sagt. Keine „Verbesserungen nebenbei“.
 - **R2 Beweis = Pixel aus einem echten Fenster.** `hitTest != nil`, `source.contains(…)`, Zahlenvergleiche mit Konstanten und Prüfungen nur am Datenmodell zählen **nicht** als Beweis für Aussehen oder Klickverhalten. Benutze dafür ausschließlich die Hilfe `PixelProbe` (Aufgabe 150 a). Jeder neue Test wird einmal **sabotiert** und muss dann rot sein; im Status: „Sabotage: rot ✓“.
 - **R3 Status je Aufgabe:** höchstens 5 Zeilen: geänderte Dateien:Zeilen, Testname, Ergebnis der Sabotage, Pfad der Bildschirmfotos (`Werkzeuge/screenshots/<JJJJ-MM-TT>-<aufgabe>/`).
 
----
+### Liste der bekannten Fehler (0.2, Claude sammelt)
 
-**Claude-Prüfung 10.10.:** 192, 193, 194 **abgenommen**. Claude: `clean build-for-testing` **0** Warnungen; **380 Tests, 101 Suiten seriell grün**; `plutil` zeigt beide Texte „Disk Archive …“. Volltexte: `archiv/todo-stand-2026-10-10.md`.
-**Zwei Nebenänderungen aus 192 (Fix für `largeOpenFolderSurvivesMetaTicksDuringLiveSync`) sind fachlich falsch → 195.**
+| Nr. | Fehler | Herkunft | Stand |
+|---|---|---|---|
+| 195 | `MustScanSubDirs` unter der Wurzel verlor Änderungen; `.counts` verwarf Spalten-Invalidierung | Claude-Prüfung 192 | **behoben** 10.10. |
+| F1 | Testlücke: `BulkDirectoryReaderTests` (FAT-Abbild) endet mit `return` und meldet **grün**, wenn `hdiutil create/attach` scheitert (in Claudes Umgebung so geschehen) → prüft dann nichts. Soll: sichtbar überspringen oder rot. | Claude 10.10. | **freigegeben als 197** |
+| F3 | Waagerechte Scrollleiste liegt **auf** der Statusleiste und verdeckt den Pfadtext; senkrechte Leisten je Spalte fehlen (README „Spaltenansicht: Scrollen“, Nutzer 10.10.) | Nutzer 10.10. (Foto) | **freigegeben als 198** |
+| F4 | Detail-Spalte erscheint **ohne Auswahl**, sobald die Ordnerspalten breiter als das Fenster sind (README 5: nur bei Datei oder Mehrfachauswahl) | Nutzer 10.10. (Foto) | **freigegeben als 199** |
+| F5 | Demo-Medium „Spalten-Zustände (Demo)“ entfernen (Nutzer 10.10.: Layouts sind abgenommen, wird nicht mehr gebraucht) | Nutzer 10.10. | **freigegeben als 200** |
+| F2 | Live-Überwachung am echten Stick nach 195 bestätigen: Umbenennen, neuer Ordner, Kopieren, Spalte bleibt sichtbar und aktualisiert sich | Nutzer 09.10. | **bestätigt** 10.10. (erster Test lief mit veraltetem Sabotage-Build → Regel 23) |
 
-**195. Zwei Korrekturen an der Live-Kette.**
-a) **`MustScanSubDirs` unterhalb der Wurzel verliert Änderungen.** `ChangeWatcher.ingest` (`Indexing/ChangeWatcher.swift` ~Z. 195–204) löst den Abgleich jetzt **nur noch** aus, wenn das Ereignis genau die Wurzel betrifft; für `/mount/A/B` läuft es wie ein normales Ereignis weiter → `directoryToReread` liest nur den **Elternordner** `A` neu, der Unterbaum von `B` (wo macOS Ereignisse **verworfen** hat — genau das bedeutet das Flag) wird nie gelesen. *Soll:* Pfad **außerhalb** des Einhängepunkts → ignorieren (das war dein eigentlicher Befund); Pfad **an oder unterhalb** des Einhängepunkts → `onFullReconcile` (Abgleich, `fromScratch: false`, wie seit 179 c). *Test* (Fake-`ChangeSource`): `mustScanSubDirs` für `/mount/A/B` → genau ein Abgleich angefordert; für `/anderswo/X` → keiner. Sabotage: heutige Fassung → rot ✓.
-b) **`.counts` darf fremde Spaltenaufträge nicht verwerfen.** `scheduleIndexChange` ruft bei `.counts` `discardPendingColumnCacheInvalidation` (`App/AppState+IndexChanges.swift` ~Z. 167–170, Funktion ~Z. 260) → eine geplante Invalidierung **des ganzen Mediums** (aus `.layer` nach einer fertigen Ebene oder aus `dropAll`) wird gestrichen, die Spalten bleiben nach dem Indizieren alt. README: „Meta-Ticks (`.counts`) invalidieren nie“ heißt: sie **tun nichts** an den Spalten, sie **löschen** aber auch nichts. *Soll:* Aufruf bei `.counts` entfernen; `discardPendingColumnCacheInvalidation` löschen, falls danach unbenutzt. `largeOpenFolderSurvivesMetaTicksDuringLiveSync` muss weiter grün sein (40 Meta-Ticks planen nichts → kein Neuladen). *Neuer Test:* `.layer`-Meldung, sofort danach `.counts` → nach der Verzögerung sind die Spalten des Mediums `stale` und werden neu geladen. Sabotage: Aufruf zurück → rot ✓.
-c) Seriell grün (Zahl aus „Test run with N tests“), einmal parallel, Warnungen 0 (Befehl wörtlich). Regeln 19–21.
+Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meldet.
+
+**197. (F1) FAT-Test darf nicht still grün sein.**
+a) `diskindexTests/BulkDirectoryReaderTests.swift`, `bulkUsedOnFAT32Volume` (~Z. 54–90): Die beiden `guard … terminationStatus == 0 else { return }` (nach `hdiutil create` und `hdiutil attach`) ersetzen: Ausgabe von `hdiutil` lesen (Pipe auf `standardOutput` und `standardError`) und mit `Issue.record("hdiutil create/attach fehlgeschlagen: <Ausgabe>")` melden, danach `return`. Ergebnis: Der Test ist **rot**, wenn die Platte nicht entsteht, genauso wie die Tests mit `MountedTestVolume.make()` (die werfen dann). Kein Überspringen, kein `.enabled(if:)`.
+b) Sonst nichts ändern: der eigentliche Prüfteil (200 Dateien, `usedBulk`, `!usedFallback`) bleibt gleich. Regeln 19–21 (kein Fenster, `detach` bleibt im `defer`).
+c) **Sabotage:** `"MS-DOS FAT32"` vorübergehend durch `"GIBTSNICHT"` ersetzen → Test **rot** mit der `hdiutil`-Meldung im Protokoll ✓; zurücksetzen → grün.
+d) Seriell grün (Zahl aus „Test run with N tests“), einmal parallel, Warnungen 0 (Befehl wörtlich). Zum Schluss Regel 23 (App bauen, beide Uhrzeiten).
 Status:
 
-**HALT nach 195.**
+**198. (F3) Scrollleisten: senkrecht je Spalte, waagerecht über der Statusleiste.**
+*Nutzer 10.10.:* „Scrollbars nicht verhindern, vor allem nicht die nativen vom System.“ README „Spaltenansicht: Scrollen“ ist neu gefasst. *Befund (Foto, macOS 15, Systemeinstellung „automatisch“ = Overlay):* Die waagerechte Leiste liegt **mitten im Pfadtext** der Statusleiste. Der Test aus 192 hat das nicht gefunden, vermutlich weil das Testfenster einen anderen Stil zeigt.
+a) **Senkrecht je Ordnerspalte:** `Views/ColumnBrowser/ColumnFolderContents.swift` ~Z. 71 `.scrollIndicators(.never)` → Systemleiste zulassen (`.automatic`). Sie sitzt am **rechten Rand der eigenen Spalte**, nicht auf der Trennlinie und nicht in der Nachbarspalte. Im dauerhaften Stil (`legacy`) belegt sie eigenen Platz: Zeilen und Auswahl-Hintergrund enden **vor** der Leiste, der Text wird gekürzt (Ausblendung wie bisher), nicht überdeckt. Gilt auch für Detail-Spalte und Statusflächen nur, wenn sie überlaufen.
+b) **Waagerecht:** Ursache finden, nicht Abstand raten: `ColumnBrowserView.columnsArea` (~Z. 314–375: `ScrollView(.horizontal)`, `.padding(.bottom, scrollInset)`, `.contentMargins(.bottom, scrollInset, for: .scrollIndicators)`) und `ColumnBrowserPathFooter`. Warum wird der Scroller unterhalb des Spaltenbereichs gezeichnet? Ursache in 1 Zeile in den Status. Soll: Leiste **vollständig oberhalb** der Statusleiste, letzte Zeile lesbar, in beiden Stilen.
+c) **Tests mit beiden Stilen** (`PixelProbe`, Fenster außerhalb des Bildschirms, Regeln 19–21): im Hosting-View die `NSScrollView`s suchen, `scrollerStyle` nacheinander `.overlay` und `.legacy` setzen, `flashScrollers()`, Layout abwarten, aufnehmen.
+- Waagerecht: 5 Spalten bei 1000 pt Breite. Rahmen des `horizontalScroller` (Fensterkoordinaten) liegt **ganz über** der Oberkante der Fußzeile; keine Scroller-Pixel in den Pixelzeilen der Fußzeile.
+- Senkrecht: Ordner mit 500 Einträgen. Die Spalte hat einen sichtbaren `verticalScroller`, dessen Rahmen **innerhalb** der Spaltenbreite liegt (rechte Kante ≤ Trennlinie); im Legacy-Stil endet der Auswahl-Hintergrund einer gewählten Zeile links vom Scroller.
+- Kurzer Ordner (5 Einträge): **keine** senkrechte Leiste im Legacy-Stil.
+Sabotage je Prüfung: heutiger Stand (`.never` bzw. altes Inset) → **rot** ✓.
 
-### Weg zur Veröffentlichung (Claude 09.10., Nutzer: „langsam Richtung Production“ — Entscheidungen offen, Cursor arbeitet nicht daran)
-- **Signatur und Notarisierung:** Release signiert heute mit „Apple Development“ (`CODE_SIGN_IDENTITY`). Für Weitergabe außerhalb des App Store: **Developer ID Application** + Notarisierung (`notarytool`) + Stapeln. Hardened Runtime ist schon an, Sandbox aus (README).
-- **Mindest-macOS:** entschieden 14.0 → Aufgabe 184. Laufzeittest auf macOS 14 (z. B. VM) vor Release.
-- **Fehlerbericht-Ziel:** live `https://diskarchive.app/api/issues` → Aufgabe 193.
-- **Name:** entschieden „Disk Archive“, Bundle-ID `app.diskarchive` → Aufgabe 185.
-- **Version:** `MARKETING_VERSION 1.0`, `CURRENT_PROJECT_VERSION 1` — vor Release festlegen, Build-Nummer automatisch erhöhen.
-- **Release-Prüfung:** ein Release-Build mit `DEAD_CODE_STRIPPING = YES`; Debug-Werkzeuge sind sauber abgegrenzt (`#if DEBUG`/`#if BENCH` in allen `DebugTools`-Dateien geprüft).
-- **Datenschutz Fehlerbericht:** `ReportScrubber` ersetzt Pfade unter `/Volumes`, `/Users`, `~` und Anführungsnamen; `leakCategory` sperrt Versand bei Restpfaden. Vor Release: ein Test mit echten Protokollzeilen dieses Tages (`reread … /Volumes/NO NAME/…`).
+**199. (F4) Detail-Spalte nur bei Datei oder Mehrfachauswahl.**
+a) `ColumnBrowserView.shouldShowDetailColumn` (~Z. 397–409): der Rückfall `return folderWidth >= geometry.size.width` zeigt eine **leere** Detail-Spalte, sobald die Ordnerspalten überlaufen. Entfernen: ohne Datei-Einzelauswahl und ohne Mehrfachauswahl → **keine** Detail-Spalte (README 5). Falls der Rückfall etwas anderes absichern sollte (Rest-Fläche rechts), in 1 Zeile in den Status, nicht neu erfinden.
+b) Test (`PixelProbe`): 4 Ordnerspalten, Fensterbreite kleiner als die Summe, **nur Ordner** gewählt → keine Detail-Spalte (kein `id("detail")`, Kopf „DETAIL“ fehlt im Bild); danach eine Datei wählen → Detail-Spalte da. Sabotage: Rückfall zurück → rot ✓.
+c) Automatisches Rechts-Scrollen (`scrollToTrailingColumn`) zielt ohne Detail-Spalte auf die letzte Ordnerspalte – vorhandene Tests dazu bleiben grün.
+
+**200. (F5) Demo-Medium „Spalten-Zustände (Demo)“ entfernen.**
+a) `DebugTools/ColumnStateSimulation.swift` löschen und alle Verweise entfernen: `IndexRepository.swift` (alle `#if DEBUG`-Zweige mit `ColumnStateSimulation`/`simulation…`, ~24 Stellen, Abschnitt „Spalten-Zustände (Demo)“ ~Z. 330 ff.), `AppState+Media.swift`, `IndexingService.swift`, `Models/ColumnFolderOpenState.swift`, `Views/ColumnBrowser/ColumnBrowserView.swift`, `DebugTools/ScreenshotRunner.swift`. Das Medium erscheint danach nirgends mehr (Seitenleiste, Dashboard, Einstellungen, Suche).
+b) Tests: `ColumnStateSimulationTests.swift` und `ColumnDemoIsolationTests.swift` löschen. In `ColumnChromeTests.swift` und `ColumnVerticalLayoutTests.swift` jeden Test, der das Demo-Medium benutzt, auf echte Testdaten umstellen (temporärer `IndexStore` mit `applyDirectory`, Ladezustand über `setLoadingForUITest`). Geht ein Test nicht ohne Demo: **nicht** löschen, sondern „Frage:“ mit Testname.
+c) `grep -rn "ColumnStateSimulation\|isSimulationMedium\|Spalten-Zustände" diskindex diskindexTests` → **leer** (Ausgabe in den Status). Der Text „Spalten-Zustände (Demo)“ verschwindet auch aus `Localizable.xcstrings`, falls vorhanden.
+d) Keine Sabotage nötig (Entfernen). Anzahl der Tests vorher/nachher in den Status.
+
+**Für das ganze Paket 197–200:** nach jeder Aufgabe seriell grün (Zahl), am Ende einmal parallel, Warnungen 0 (Befehl wörtlich), zum Schluss **Regel 23** (App bauen, beide Uhrzeiten).
+Status 198–200:
+
+---
+
+### Vor 0.4: Voraussetzungen für die Weitergabe
+
+Siehe README, Abschnitt „Roadmap“ (0.4). Cursor arbeitet nicht daran; die Liste steht in B unter 0.4. Merkhilfe für den Nutzer (bleibt hier):
 
 - **Eigene Kopie auf einem anderen Mac (ohne Notarisierung, nur für den Nutzer selbst):** Xcode → Product → Archive → „Distribute App“ → „Custom“ → „Copy App“. Kommt die App per AirDrop/Mail/Cloud und blockiert macOS sie: `xattr -dr com.apple.quarantine "/Applications/Disk Archive.app"` (Pfad anpassen; per USB-Stick kopiert meist nicht nötig). Für andere Nutzer nur mit Developer ID + Notarisierung.
 
@@ -70,7 +102,67 @@ Status:
 
 ---
 
-## B. Backlog (nicht freigegeben, Cursor arbeitet nicht daran)
+## B. Backlog (nicht freigegeben, Cursor arbeitet nicht daran) — nach Zielversion
+
+### Ohne feste Version (klein)
+
+- **V1. Versionsnummer.** `MARKETING_VERSION` von heute `1.0` auf **`0.1`** setzen (Debug und Release, App und Tests gleich), `CURRENT_PROJECT_VERSION` **automatisch erhöhen** (Build-Nummer, z. B. Build-Phase vor dem Kompilieren). **Keine Anzeige bauen:** Cursor meldet per „Frage:“, **wo** die Version heute in der App erscheint (Einstellungen, Fehlerbericht `app{version,build}`, Info-Fenster …).
+
+### 0.3 — Neue Datenbankstruktur (Roadmap 0.3, `datenbank-konzeption.md`)
+
+Reihenfolge: (1) Messwerkzeug 196 und Messung „vorher“ → (2) Architektur entscheiden (eine Datei oder Datei je Medium plus Register) → (3) Konvention Seitentabellen (`item_<funktion>`, `itemID`, `ON DELETE CASCADE`, `srcSize`, `srcModifiedAt`, `extractorVersion`; Thumbnails in eigener Datei) → (4) Zuschnitt `item`/`medium` → (5) Schema neu, Abfragen umstellen (erst Schreib-, dann Lesewege, kleine Aufgaben mit Zwischenabnahme) → (6) Messung „nachher“ gegen die Schwelle → (7) Altlasten entfernen.
+
+**196. Messwerkzeug Datenbank (Roadmap 0.3, README; Grundlage: `datenbank-konzeption.md`, Empfehlung Schritt 1). Nur messen, nichts am App-Schema ändern.**
+*Zweck:* Zahlen für die Architektur-Entscheidung (eine Datei vs. Datei je Medium, Zuschnitt `item`, Pfad speichern oder berechnen). Dieser Lauf misst den **heutigen** Stand („vorher“).
+a) **Ort und Start:** neue Datei `diskindexTests/IndexBenchTests.swift`, Suite mit `.enabled(if: ProcessInfo.processInfo.environment["DA_BENCH"] == "1")` → im normalen Lauf **übersprungen**. Start: `TEST_RUNNER_DA_BENCH=1 xcodebuild test -scheme diskindex -destination platform=macOS -only-testing:diskindexTests/IndexBenchTests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 3600`. Skript `Werkzeuge/db-messung.sh` mit genau diesem Aufruf. Kein Fenster (Regel 19).
+b) **Speicherplatz:** Datenbank im Temp-Ordner; **vorher** freien Platz prüfen — unter **15 GB** frei: Test bricht mit klarer Meldung ab (Mac des Nutzers hat ~25 GB frei). Nach dem Lauf Temp-Datenbank löschen.
+c) **Daten (synthetisch, reproduzierbar, fester Zufallsstartwert)** über die **echten** Schreibwege (`IndexStore.applyDirectories` in Blöcken wie der Indexer), nicht per Roh-SQL:
+- **S1:** 1 Medium, **1.000.000** Einträge, Tiefe bis 6; darunter Ordner mit genau 100, 5.000 und 50.000 Kindern.
+- **S2:** **300** Medien, zusammen **9.000.000** Einträge: 1 × 3 Mio., 20 × 200.000, Rest gleichmäßig.
+Namen realistisch (Länge 4–60, Umlaute, Leerzeichen), Endungen nach Verteilung (jpg 30 %, pdf 10 %, mov 5 %, txt 10 %, ohne 15 %, Rest gemischt), `modifiedAt` über 10 Jahre, `sizeBytes` 1 KB–4 GB.
+d) **Messen** (je Median aus 5 Läufen, Zeiten in ms), für S1 und S2:
+- Schreibdurchsatz beim Erzeugen (Einträge/s); zwei Medien **gleichzeitig** schreiben (Durchsatz je Medium und gesamt).
+- Öffnen der Datenbank kalt (`IndexDatabase` öffnen inkl. `quick_check`) — getrennt: Zeit mit und ohne `quick_check`.
+- Spaltenansicht: `childCount` + erste Seite `childrenPage` und **alle** Seiten für 100 / 5.000 / 50.000 Kinder.
+- Suche über alle Medien: `search` (Limit 500) und `searchCount` für einen häufigen Begriff (3 Zeichen) und einen seltenen (8 Zeichen); jeweils ohne Filter, mit Dateityp-Filter (pdf), mit Alters-Filter (letzte 30 Tage), mit beiden.
+- `favorites` bei 1.000 Favoriten verteilt über alle Medien.
+- `deleteMedium` für das 3-Mio.-Medium (S2) und anschließend Dateigröße vor/nach `incremental_vacuum`.
+- `pruneToMatch` nach Verringern der Scan-Tiefe um 1.
+- Größe: Datenbankdatei, WAL, Anteil `item`, Indizes, `item_fts` (`dbstat` bzw. `PRAGMA page_count`), und **Bytes der Spalte `path`** gesamt (`SUM(LENGTH(path))`).
+e) **Ausgabe:** `Werkzeuge/messung/2026-10-<TT>-vorher.md` (Tabelle je Messpunkt, Rechner, macOS, Laufzeit gesamt) und dieselben Werte als `.json`. Die Datei kommt ins Repository (klein).
+f) Kein Sabotage-Nachweis nötig (Messung, kein Prüftest). Normaler serieller Lauf bleibt grün und **unverändert schnell** (Suite übersprungen); Warnungen 0.
+Status: (noch nicht freigegeben)
+
+### 0.4 — Letzte Fixes, Beta für Beta-Tester
+
+- **Signatur und Notarisierung:** Release signiert heute mit „Apple Development“ (`CODE_SIGN_IDENTITY`). Nötig: **Developer ID Application** + Notarisierung (`notarytool`) + Stapeln (Bezahl-Mitgliedschaft Apple Developer Program). Hardened Runtime ist an, Sandbox aus.
+- **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (Nutzer, nicht Cursor).
+- **Versions-Check:** `version.json` bzw. `GET …/api/version/` (existiert), Dialog „Neue Version verfügbar“ **einmal je Version**, Link **nur** auf `diskarchive.app`, Schalter in den Einstellungen; Datenschutztext, README 8 und 9 anpassen.
+- **Beta-Verfallsdatum** mit freundlicher Meldung.
+- **`FeatureAccess`:** zentrale Stelle „Darf der Nutzer das?“, in der Beta immer „ja“ (Vorbereitung 0.9).
+- **macOS 14:** Mindestversion entschieden (184 erledigt); **Laufzeittest auf macOS 14** (z. B. VM) steht aus.
+- **Fehlerbericht:** Ziel live `https://diskarchive.app/api/issues` (193 erledigt). **Datenschutz:** `ReportScrubber` ersetzt Pfade unter `/Volumes`, `/Users`, `~` und Anführungsnamen; `leakCategory` sperrt Versand bei Restpfaden. Test mit **echten Protokollzeilen** (`reread … /Volumes/NO NAME/…`).
+- **Name:** „Disk Archive“, Bundle-ID `app.diskarchive` (185 erledigt).
+- **Release-Prüfung:** Release-Build mit `DEAD_CODE_STRIPPING = YES`; Debug-Werkzeuge sauber abgegrenzt (`#if DEBUG`/`#if BENCH` in allen `DebugTools`-Dateien geprüft).
+- **Update durch Ersetzen der App:** Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe nach Version (neuere übernimmt), Launch Agent beim Start neu registrieren.
+- **Ab 0.4 echte Migrationen:** Sicherungskopie vor jeder Migration, Schutz vor Rückschritt (GRDB `hasBeenSuperseded`, Namen prüfen).
+
+### 0.5 — Metadaten und EXIF
+Wartet auf das **Layout vom Nutzer** und eine eigene Besprechung (README Roadmap). Felder: `datenbank-konzeption.md`.
+
+### 0.6 — Vorschaubilder
+Eigene Datei, **Abschalter global und je Medium**. Größe laut README **250 px** lange Seite (Nutzer 10.10.). Wird vor dem Start besprochen.
+
+### 0.7 — CSV-Export
+Noch nicht ausgearbeitet; vier offene Fragen in README (Roadmap).
+
+### 0.8 — Duplikate
+Über alle Medien, stufenweise, nur im Hintergrund (README).
+
+### 0.9 — Lizenz
+Nach Medienzahl **1 / 50 / 250**; offene Fragen in README.
+
+### Ohne Zielversion (wartet auf Entscheidung des Nutzers)
 
 - **T1. Ladehinweis erst nach 1 s** (Nutzer 06.10.): gehört zu 107; Suche/Favoriten später.
 - **T2. Programme als Dateityp „Programme“** (`.app`-Pakete, dmg, pkg).

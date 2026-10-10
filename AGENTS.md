@@ -20,15 +20,20 @@ Cursor implementiert alle Aufgaben aus `TODO.md` im Xcode-Projekt (SwiftUI/AppKi
 - Pixel-genaue Umsetzung der Design-Tokens aus der README mit **nativen Controls** — kein Kopieren von HTML/CSS, aber gleiche Werte (Farben, Radius, Spacing, Icon-Gewichte).
 - Nach jeder Aufgabe: nur das Feld „Status“ der Aufgabe in `TODO.md` ausfüllen (höchstens 5 Zeilen) und „Bereit zur Prüfung“ schreiben, nie „fertig“. Es gelten die **Regeln für Cursor** oben in `TODO.md` (verbindlich, haben Vorrang vor Gewohnheiten).
 
+## Git und GitHub (Nutzer 10.10., gilt für beide Agenten)
+
+**Keiner der Agenten macht etwas mit Git oder GitHub, das etwas verändert.** Verboten sind `git commit`, `git commit --amend`, `git push`, `git pull`, `git merge`, `git rebase`, `git reset`, `git checkout`/`git switch`, `git stash`, `git tag`, `git branch -d`, `git worktree`, `git rm`, `git add` sowie jede Aktion auf GitHub (Pull Requests, Issues, Releases, `gh`). Commits und Pushes macht **nur der Nutzer** (GitHub Desktop). Erlaubt sind nur lesende Befehle (`git status`, `git log`, `git diff`, `git show`). Nach einer Abnahme schlägt Claude höchstens eine Commit-Nachricht vor.
+
 ## Workflow
 
 1. Claude schreibt/aktualisiert Aufgaben in `TODO.md` (eine Aufgabe = ein klar abgegrenzter Screen oder Teilschritt).
 2. Cursor arbeitet die Aufgaben in `TODO.md` der Reihe nach ab und trägt unter jeder Aufgabe im Feld „Status" ein, was gemacht wurde.
-3. Claude liest `TODO.md`, prüft den Code gegen Aufgabe + Layout + README. Bei Freigabe verschiebt **nur Claude** die Aufgabe nach `DONE.md` (Register) und den Volltext ins Archiv; sonst schreibt Claude Korrekturen in die Aufgabe.
+3. Claude liest `TODO.md`, prüft, dass die App in `DerivedData/…/Build/Products/Debug/` jünger ist als die letzte geänderte `.swift`-Datei (TODO Regel 23; sonst baut Claude sie vor dem Nutzertest selbst), prüft den Code gegen Aufgabe + Layout + README. Bei Freigabe verschiebt **nur Claude** die Aufgabe nach `DONE.md` (Register) und den Volltext ins Archiv; sonst schreibt Claude Korrekturen in die Aufgabe.
 4. Erst nach Freigabe durch Claude gilt eine Aufgabe als abgeschlossen.
 
 ## Quellen der Wahrheit
 - **Konzept (aktuell gültig)**: [README.md](README.md) — eine Stelle für alle Produktentscheidungen, nach Thema. Bei Widerspruch zum Layout gilt das Konzept (außer reine Optik). Claude pflegt es bei jeder Entscheidung des Nutzers; überholte werden ersetzt. Älterer Verlauf: [archiv/readme-verlauf-bis-2026-10-02.md](archiv/readme-verlauf-bis-2026-10-02.md).
+- **Versionen und Reihenfolge**: README, Abschnitt „Roadmap“ (maßgeblich). [ROADMAP.md](ROADMAP.md) ist die ausführliche Fassung und folgt der README. `TODO.md` A enthält nur die laufende Version, B ist nach Zielversion sortiert.
 - **Design (seit 28.09.)**: [layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html) (Mockup, Sektionen 00–15) und [layout/Farbschema.dc.html](layout/Farbschema.dc.html) (Farbkonzept). Screenshot-Vorlage, nicht Code-Vorlage. Regeln für Mockups: [layout/CLAUDE.md](layout/CLAUDE.md).
 - **Komponentenkatalog (Maße, Farben, Zustände):** [layout/Komponenten.dc.html](layout/Komponenten.dc.html), zusammengefasst in [docs/Komponenten-Masse.md](docs/Komponenten-Masse.md) (Claude pflegt die Zusammenfassung; bei Widerspruch gilt die Layout-Seite).
 - **Erledigt**: [DONE.md](DONE.md) — Register der von Claude abgenommenen Aufgaben (nur Claude pflegt es).

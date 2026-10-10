@@ -104,6 +104,28 @@ extension WindowTestGroup {
         #expect(log.ids == [rig.medium.uuid])
     }
 
+    @Test func mustScanSubDirsUnderMountStartsReconcile() async throws {
+        let rig = try await watchRig()
+        let log = ReconcileLog()
+        rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/B", eventID: 2, mustScanSubDirs: true))
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(log.ids == [rig.medium.uuid])
+        #expect(rig.access.listCount.isEmpty)
+    }
+
+    @Test func mustScanSubDirsOutsideMountIsIgnored() async throws {
+        let rig = try await watchRig()
+        let log = ReconcileLog()
+        rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        rig.source.emit(VolumeChange(path: "/anderswo/X", eventID: 3, mustScanSubDirs: true))
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(log.ids.isEmpty)
+        #expect(rig.access.listCount.isEmpty)
+    }
+
     @Test func indexedMediumReconcilesUnknownDoesNot() async throws {
         let rig = try await SurfaceRig.make()
         let log = ReconcileLog()

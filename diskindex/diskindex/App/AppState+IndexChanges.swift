@@ -166,7 +166,6 @@ extension AppState {
         switch change {
         case .counts(let id):
             await debouncedMediumRefresh(id) {
-                self.discardPendingColumnCacheInvalidation(for: id)
                 await self.reloadMedium(id)
             }
         case .medium(let id):
@@ -254,16 +253,6 @@ extension AppState {
 
     func isMediumIndexing(_ id: UUID) -> Bool {
         medium(with: id)?.indexStatus == .indexing || mediumLiveSyncIDs.contains(id)
-    }
-
-    /// Ausstehende Spalten-Invalidierung verwerfen (ohne `stale` zu setzen) — Meta-Ticks `.counts`.
-    private func discardPendingColumnCacheInvalidation(for id: UUID) {
-        columnInvalidateTasks[id]?.cancel()
-        columnInvalidateTasks[id] = nil
-        pendingColumnInvalidateWholeMedium.remove(id)
-        if let keys = pendingColumnFolderPathKeys[id], !keys.isEmpty {
-            scheduleColumnCacheInvalidate(id, folderPaths: keys.map(Self.columnPath(fromKey:)))
-        }
     }
 
     /// Spalten-Cache gezielt; Meta-Ticks (`.counts`) invalidieren nie. Während Indizierung höchstens alle 2 s.

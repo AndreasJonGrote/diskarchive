@@ -28,7 +28,7 @@ Fehlende Werte werden immer als "–" gezeigt.
 | PDF | Seiten, Seitenformat, Text (durchsuchbar oder Scan), Schutz |
 
 Weitere Entscheidungen:
-- **Thumbnails:** 400 px lange Seite, etwa 20 KB je Bild (5.000 Fotos ca. 100 MB). Zustimmung des Nutzers.
+- **Thumbnails [offen, zu besprechen]:** zuerst 400 px lange Seite (etwa 20 KB je Bild, 5.000 Fotos ca. 100 MB). Am 10.10. will der Nutzer eher **250 px** (etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB; Überschlag, nicht gemessen).
 - **Duplikate:** sichere Erkennung über mehrere Medien hinweg.
 - **QuickLook:** nur live, solange das Laufwerk angeschlossen ist.
 

@@ -71,5 +71,49 @@ struct WindowTestGroupStoreCacheTests {
         #expect(hasCacheAfter)
         #expect(loadsAfter == loadsBefore)
     }
+
+    @Test func layerWholeMediumInvalidateSurvivesCountsMetaTick() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-layer-counts-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
+        let store = IndexStore(database: database)
+        defer { try? database.close(); try? FileManager.default.removeItem(at: directory) }
+        let app = AppState()
+        app.attach(store: store)
+        var medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Layer", decision: .index, indexStatus: .indexed)
+        try await store.upsertMedium(medium)
+        medium = try #require(try await store.medium(uuid: medium.uuid))
+        try await store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "Ordner", isFolder: true)],
+            seenAt: Date()
+        )
+        await app.loadStoredMedia()
+        app.indexRepository.seedScreenshotCache(
+            mediumID: medium.uuid,
+            entries: [([], [
+                IndexedItem(
+                    id: IndexedItem.stableID(mediumID: medium.uuid, rowID: 1),
+                    rowID: 1,
+                    name: "Ordner",
+                    kind: .folder,
+                    parentPath: [],
+                    modifiedAt: Date(),
+                    sizeBytes: 0,
+                    lastSeenAt: Date(),
+                    listedAt: Date()
+                ),
+            ])]
+        )
+        let staleBefore = app.indexRepository.stale.count
+        await app.scheduleIndexChange(.counts(medium.uuid), dropped: false)
+        await app.scheduleIndexChange(.layer(medium: medium.uuid, depth: 1), dropped: false)
+        await app.scheduleIndexChange(.counts(medium.uuid), dropped: false)
+        let staleAfterLayer = await waitUntil(timeout: 2.5) {
+            app.indexRepository.stale.count > staleBefore
+        }
+        #expect(staleAfterLayer)
+    }
 }
 }
