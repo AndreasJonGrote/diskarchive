@@ -24,14 +24,19 @@ struct StickProgressTests {
             }
         })
         #expect(outcome.status == .indexed)
-        #expect(countingItemCount.value <= 1)
+        // Vorlauf (206): während der Zählung sind genau Ebene 1 und 2 gespeichert (7+1+7+1 Einträge).
+        #expect(countingItemCount.value == 16)
         let ratios = outcome.progress
         let percents = ratios.map { Int(floor($0 * 100)) }
         #expect(Set(percents).count >= 20)
         #expect(zip(percents, percents.dropFirst()).allSatisfy { $0 <= $1 })
         #expect(zip(ratios, ratios.dropFirst()).allSatisfy { $0 <= $1 })
-        for pair in zip(percents, percents.dropFirst()) {
+        // Der erste Sprung nach der Zählung enthält die schon gespeicherten Ebenen 1 und 2 (16 von 314 ≈ 5 %).
+        for pair in zip(percents, percents.dropFirst()).dropFirst() {
             #expect(pair.1 - pair.0 <= 5)
+        }
+        if let a = percents.first, percents.count > 1 {
+            #expect(percents[1] - a <= 6)
         }
         #expect(ratios.last.map { $0 >= 0.98 } ?? false)
     }

@@ -234,9 +234,6 @@ final class MenuBarController: NSObject {
         menu.addItem(launchItem)
         #if DEBUG
         menu.addItem(.separator())
-        let diagnosticsItem = NSMenuItem(title: L10n.string("diagnostics.menu_item"), action: #selector(openIndexDiagnostics), keyEquivalent: "")
-        diagnosticsItem.target = self
-        menu.addItem(diagnosticsItem)
         let proposalHighlightItem = NSMenuItem(
             title: ProposalCopy.debugHighlightProposalCopy,
             action: #selector(toggleProposalCopyHighlight),
@@ -299,10 +296,6 @@ final class MenuBarController: NSObject {
     }
 
     #if DEBUG
-    @objc private func openIndexDiagnostics() {
-        AppWindowPresenter.openIndexDiagnostics()
-    }
-
     @objc private func toggleProposalCopyHighlight() {
         ProposalCopySettings.highlightProposalCopy.toggle()
         NotificationCenter.default.post(name: .proposalCopyHighlightDidChange, object: nil)

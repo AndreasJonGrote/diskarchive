@@ -34,9 +34,9 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 **Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
 
-**Stand 10.10.:** Abgenommen bis 203 (siehe DONE.md). **Freigegeben: 205. HALT nach 205.** 204 und F9 warten auf den Nutzer.
+**Stand 10.10.:** Abgenommen bis 205 (siehe DONE.md). **Freigegeben: 206 → 207 → 208 (ein Paket). HALT nach 208.**
 
-**Claude-Prüfung 10.10. (4):** 201–203 **abgenommen**. Claude: `clean build-for-testing` **0** Warnungen; **387 Tests, 101 Suiten, zweimal seriell grün**; App 11:06:01, keine neuere `.swift` (Regel 23 ✓). Volltext: `archiv/todo-stand-2026-10-10e.md`. **Antworten auf die Fragen:** (1) `copy.table.column.type`/`.status` bleiben, richtig so. (2) Zeitüberschreitung endet als „Ausstehend“, nicht als Fehler: **so lassen** (README 4, Aufgabe zu `shouldPending`); der Grund `.timeout` gilt für den Fall, dass ein Lauf doch mit Fehler endet. (3) Rote Vorschlagstexte bleiben deutsch, bis das Layout sie festlegt; richtig so.
+**Claude-Prüfung 10.10. (5):** 205 **abgenommen**. Claude: 0 Warnungen, **390 Tests seriell grün**, App 12:16:03 aktuell. Volltext: `archiv/todo-stand-2026-10-10f.md`.
 
 **Arbeitsregeln je Aufgabe (gelten zusätzlich zu den 23 Regeln):**
 - **R1 Nur die genannten Stellen ändern.** Jede Aufgabe nennt Datei und Zeile. Andere Dateien nur, wenn die Aufgabe es sagt. Keine „Verbesserungen nebenbei“.
@@ -55,24 +55,40 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F6 | Fehlerdialog zeigt **nie** einen Grund: `IndexingService` meldet immer `reason: .unknown`; `IndexRunOutcome` trägt keinen Fehler, `IndexFailureReason.classify` wird nur von Tests benutzt (README 2b verlangt den Grund) | Claude-Durchsicht 10.10. | **behoben** 10.10. (202) |
 | F7 | Englisch unvollständig: feste deutsche Texte außerhalb von `L10n` (Kontextmenü, Menüleisten-Rechtsklick, Mitteilungen, Fehlergründe, Statuszeilen, Altersfilter, Fußzeile „x von y ausgewählt“, „Zuletzt indiziert“, Platzhalter) und feste `de_DE`-Formate | Claude-Durchsicht 10.10. | **behoben** 10.10. (203) |
 | F8 | Toter Code, nur von Tests benutzte Logik, Doppeltes | Claude-Durchsicht 10.10. | **behoben** 10.10. (201) |
-| F10 | Tests schreiben in die echten Einstellungen des Nutzers (`UserDefaults.standard` = `app.diskarchive`) | Claude-Prüfung 10.10. | **freigegeben als 205** |
-| F9 | Stresstest 1 TB (Nutzer 10.10.): erster Lauf zeigt **2 Minuten nichts** (Start 10:13:02, „ebene 1 fertig“ 10:15:02), weil die **Zählphase** (README 4) erst den ganzen Baum liest, bevor Ebene 1 geschrieben wird. Widerspricht „Schichten: erste Ebene sofort sichtbar“ | Claude, Protokoll 10.10. | **wartet auf Entscheidung des Nutzers** |
+| F10 | Tests schreiben in die echten Einstellungen des Nutzers (`UserDefaults.standard` = `app.diskarchive`) | Claude-Prüfung 10.10. | **behoben** 10.10. (205) |
+| F11 | `serviceRunPassesTheReasonToTheDialog` fällt im **parallelen** Lauf selten aus (2× gesehen, Meldung nicht erfasst; seriell 10/10 grün) | Agent 10.10. | beobachten; beim nächsten Ausfall Meldung sichern |
+| F12 | Jeder Testlauf hinterlässt eine Datei `~/Library/Preferences/app.diskarchive.tests.<pid>.plist` (16 Stück am 10.10.) | Claude-Prüfung 10.10. | **freigegeben als 208** |
+| F9 | Stresstest 1 TB (Nutzer 10.10.): erster Lauf zeigt **2 Minuten nichts** (Start 10:13:02, „ebene 1 fertig“ 10:15:02), weil die **Zählphase** (README 4) erst den ganzen Baum liest, bevor Ebene 1 geschrieben wird. Widerspricht „Schichten: erste Ebene sofort sichtbar“ | Claude, Protokoll 10.10. | **freigegeben als 206** (Nutzer 10.10.: ja) |
 | F2 | Live-Überwachung am echten Stick nach 195 bestätigen: Umbenennen, neuer Ordner, Kopieren, Spalte bleibt sichtbar und aktualisiert sich | Nutzer 09.10. | **bestätigt** 10.10. (erster Test lief mit veraltetem Sabotage-Build → Regel 23) |
 
 Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meldet.
 
 ---
 
-**205. (F10) Tests schreiben in die echten Einstellungen des Nutzers.**
-*Zweck:* Tests sollen sich nicht gegenseitig über geteilte Einstellungen beeinflussen (Ausfall `serviceRunPassesTheReasonToTheDialog`) und nicht von Resten früherer Läufe abhängen. Schutz der Nutzerdaten ist **kein** Ziel (Nutzer: bis 1.0 egal). *Befund Claude 10.10.:* Das Testziel läuft in der App selbst (Bundle `app.diskarchive`), `UserDefaults.standard` ist also die **echte** Einstellungsdatei des Nutzers. `defaults read app.diskarchive` zeigt `diskindex.failureModalCounts` mit 1.435 Byte voller Test-Medien. Betroffen sind alle Stellen mit Vorgabe `defaults: UserDefaults = .standard` (u. a. `AppState+Pause.swift` `resumeIndexing`, `refreshGlobalPause`, `presentIndexingFailure`; `IssueConsent`, `NoticePermission`, `AppLanguagePolicy`, `AppState(defaults:)`). Vermutlich auch die Ursache des einmaligen Ausfalls von `serviceRunPassesTheReasonToTheDialog` (geteilter Pausen- oder Zählerstand).
-a) Unter Tests (`RuntimeEnvironment.isRunningTests`) benutzt die App **nie** `UserDefaults.standard`, sondern eine eigene Suite je Testprozess (`UserDefaults(suiteName: "app.diskarchive.tests.<pid>")`, beim Start geleert). **Eine** Stelle liefert die Defaults (`AppDefaults.current`), alle Vorgaben `= .standard` zeigen darauf.
-b) Test: nach einem vollen Testlauf ist in `app.diskarchive` kein Schlüssel neu oder geändert. Umsetzung im Test: vor und nach dem Lauf einer Probe `UserDefaults(suiteName: "app.diskarchive")` lesen ist im selben Prozess nicht möglich → stattdessen prüfen, dass `AppDefaults.current !== UserDefaults.standard` unter Tests und dass `presentIndexingFailure`, `refreshGlobalPause`, `IssueConsent.setAutoSendEnabled` in `AppDefaults.current` schreiben. Sabotage: `AppDefaults.current` gibt `.standard` zurück → rot ✓.
-c) Den Altschlüssel `diskindex.migratedFromLegacy` liest niemand mehr (Übernahme in 186 entfernt): `grep` bestätigen. **Nutzer 10.10.: bis 1.0 keine Rücksicht auf vorhandene Daten und Einstellungen auf diesem Mac.** Du darfst die echte Datei aufräumen (`defaults delete app.diskarchive diskindex.failureModalCounts`, `… diskindex.migratedFromLegacy`); gelöschte Schlüssel in den Status.
-d) `serviceRunPassesTheReasonToTheDialog` danach **10-mal** einzeln wiederholen (`-only-testing:…/IndexFailureReasonTests -test-iterations 10`), Ergebnis in den Status. Dann seriell, parallel, Warnungen 0, Regel 23.
-Status: a) `App/AppDefaults.swift` (`AppDefaults.current`, Suite `app.diskarchive.tests.<pid>` unter Tests), alle `= .standard`/`@AppStorage` in App (ProposedCopy, SettingsGeneralTab, AppState*, DiskIndexLog, IssueTracker, AppDelegate, CrashReportDialog, AppLanguagePolicy) darauf. b) `AppDefaultsTests` (2) + `AutoSendToggleTests.factoryDefaultsWriteToTheTestSuite`; Sabotage `.standard`: rot ✓. c) `migratedFromLegacy` ohne Leser (grep leer); gelöscht in `app.diskarchive`: failureModalCounts, migratedFromLegacy (+ von meiner Sabotage: globalPause, autoSendCrashReports); übrig: appSettings, noticePermissionAsked, Fensterrahmen.
-d) 10× `IndexFailureReasonTests` einzeln: 10/10 grün. Seriell 390 Tests grün; Warnungen 0; Build 12:13:44, jüngste Swift 12:02:24. Parallel 5 von 7 grün: 1 Ausfall `AutoSendToggleTests` (behoben: Suite `.serialized`, der Schlüssel `autoSend` wurde von zwei Suiten geteilt), 1 Ausfall `serviceRunPassesTheReasonToTheDialog` (Meldung nicht erfasst, danach 4× grün, nicht reproduziert). Bereit zur Prüfung.
+**206. (F9) Erste Ebenen sofort speichern, danach zählen.** *Nutzer 10.10.: ja.* README 4 (neu gefasst, „Vorlauf“).
+*Heute* (`Indexing/DirectoryIndexer.swift`): Ohne gespeicherte Gesamtzahl ruft `run` zuerst `runCountingPhase` (~Z. 363) auf, die den **ganzen** Baum liest, und schreibt erst danach Ebene 1. Bei 1 TB: 2 Minuten nichts sichtbar (Protokoll 10.10. 10:13:02 → 10:15:02).
+a) **Vorlauf:** Steht der Lauf vor der Zählphase (Zweig, der heute `runCountingPhase` aufruft) und beginnt bei Ebene 1, werden zuerst **Ebene 1 und 2** über den **normalen** Ebenen-Weg geschrieben (gleiche Schreibwege, `.layer`-Meldungen, `completedDepth` = 2; bei `maxDepth` < 2 entsprechend weniger). Danach die Zählphase wie heute (sie zählt den ganzen Baum, Ebene 1 und 2 eingeschlossen), danach weiter ab Ebene 3. Kein zweiter Schreibweg, keine Kopie der Schleife: die vorhandene Ebenen-Schleife wird für den Vorlauf mit Ende bei Ebene 2 benutzt.
+b) **Anzeige während Vorlauf und Zählphase:** wie heute in der Zählphase („0 % indiziert“ mit Spinner, Phase `.counting`), **keine** Prozentzahl > 0, bevor die Zählung fertig ist. Danach Prozent wie bisher (gespeicherte ÷ Gesamtzahl, nie fallend, max. 99 %).
+c) **Unverändert:** Abgleich und Folgeläufe mit gespeicherter Gesamtzahl (dort gibt es keine Zählphase vorab); Pause, Abbruch und Fortsetzen (ein Abbruch im Vorlauf setzt bei der nächsten Ebene fort).
+d) **Test** (`MemoryVolume`, Baum mit 4 Ebenen, Lesen in Ebene 3 und 4 künstlich verzögert): Im `onProgress`-Rückruf beim **ersten** Ereignis der Phase `.counting` ist die Zählung noch nicht fertig, und der Store enthält bereits alle Einträge der Ebenen 1 und 2 (`storedNames`). Am Ende: alle Einträge da, `scanTotal` = Gesamtzahl, kein Fortschrittswert > 0 vor dem Ende der Zählung, Fortschritt nie fallend. Sabotage: Vorlauf entfernen → rot ✓.
 
-**204. Debug-Werkzeuge — wartet auf Entscheidung des Nutzers (nicht bearbeiten).** In `DebugTools/` liegen frühe Prototypen aus Aufgabe 35 (`AccessProbeSpike`, `BreadthScanSpike`, `FSEventsSpike`, `SQLiteSpike`, `VolumeListing`) hinter dem Debug-Menüpunkt „Index-Diagnose“ (`IndexDiagnostics*`), dazu `ColumnLoadBench` (`#if BENCH`, wird durch das Messwerkzeug 196 ersetzt) und `ScreenshotRunner` (Bildschirmfotos sind seit Regel 19 tabu; `ScreenshotPlan` wird noch von Tests gelesen). Claude-Empfehlung: Prototypen + Diagnosefenster löschen, `ColumnLoadBench` mit 196 ersetzen, `ScreenshotRunner` behalten, bis die neuen Layouts kommen.
+**207. (204) Alte Debug-Prototypen entfernen.** *Nutzer 10.10.: ja.*
+a) Löschen: `DebugTools/AccessProbeSpike.swift`, `BreadthScanSpike.swift`, `FSEventsSpike.swift`, `SQLiteSpike.swift`, `VolumeListing.swift`, `IndexDiagnosticsModel.swift`, `IndexDiagnosticsSupport.swift`, `IndexDiagnosticsView.swift`; den Menüpunkt „Index-Diagnose“ (`MenuBarController.swift` ~Z. 237 und `openIndexDiagnostics` ~Z. 302), `AppWindowPresenter.openIndexDiagnostics` (~Z. 196) und alles, was danach unbenutzt ist (Skript: `grep -rnw` je Name).
+b) Aus `Localizable.xcstrings` alle `diagnostics.*`-Schlüssel, „Ebene %lld“ und die Prototyp-Texte (Sandbox-/Strom-/Auswerfen-Anleitungen, „Systemdialog erschienen …“, „1 000 000“, „100 000“) entfernen, sofern kein Code sie mehr benutzt.
+c) **Bleiben:** `ScreenshotRunner`/`ScreenshotPlan` (bis die neuen Layouts kommen), `ColumnLoadBench` (wird mit 196 ersetzt), `PreviewData`.
+d) Keine Sabotage (Entfernen). Testzahl vorher/nachher; `grep -rn "Spike\|IndexDiagnostics\|VolumeListing" diskindex diskindexTests` → leer.
+
+**208. (F12) Testläufe hinterlassen keine Einstellungsdateien.**
+a) `App/AppDefaults.swift`: Unter Tests beim ersten Zugriff alle Domänen `app.diskarchive.tests.<pid>` entfernen, deren Prozess nicht mehr läuft (`kill(pid, 0) != 0`), mit `removePersistentDomain(forName:)` und Löschen der Datei in `~/Library/Preferences/`. Die eigene Domäne bleibt bis zum nächsten Lauf (parallele Prozesse laufen gleichzeitig).
+b) Test: eine erfundene Domäne mit einer nicht laufenden PID anlegen → nach dem Aufräumen weg; die eigene bleibt. Sabotage: Aufräumen aus → rot ✓.
+
+**Für 206–208:** nach jeder Aufgabe seriell grün (Zahl), am Ende parallel, Warnungen 0, zum Schluss Regel 23.
+Status 206–208:
+- 206: `DirectoryIndexer.run`: Zweig ohne Gesamtzahl setzt nur `needsCounting`; die vorhandene Ebenen-Schleife schreibt Ebene 1+2, danach `countWholeTree()` (nach `completeLayer` bei `depth >= preludeEnd`, sonst nach der Schleife); `noteIndexing` sendet im Vorlauf nichts. Test `IndexPreludeTests.levelsOneAndTwoAreStoredBeforeCountingStarts` (MemoryVolume `slowListing`), Sabotage `preludeEnd` 0: rot ✓. `StickProgressTests` angepasst (Spezifikationsänderung: während der Zählung 16 gespeicherte Einträge, erster Sprung ≤ 6 %). 391 Tests. Bereit zur Prüfung.
+- 207: 8 Dateien in `DebugTools/` gelöscht (Spikes, VolumeListing, IndexDiagnostics*), Menüpunkt, `openIndexDiagnostics`, `diagnosticsWindow` entfernt; 26 Katalogschlüssel entfernt (19 `diagnostics.*`, „Ebene %lld“, „1 000 000“, „100 000“, 4 Anleitungstexte); `grep` leer. Tests 391 → 391. Bereit zur Prüfung.
+- 208: `AppDefaults.removeStaleTestDomains` (kill(pid,0)/EPERM, eigene und laufende bleiben), beim ersten Zugriff unter Tests. `AppDefaultsCleanupTests` (2), Sabotage Löschen aus: rot ✓. Vorher 24 Dateien `app.diskarchive.tests.*` in `~/Library/Preferences`, nach dem Lauf 2 (eigene + eine laufende). Bereit zur Prüfung.
+- F11 geklärt: `serviceRunPassesTheReasonToTheDialog` las `indexingFailure` zu früh (`waitUntilIdle` kehrt vor `finish`-Ende zurück); Test wartet jetzt (`waitUntil`). Produktcode unverändert.
+- Gesamt: seriell 393 Tests grün, parallel 3/3 grün, Warnungen 0, Build 22:47:02, jüngste Swift 22:35:44 (`find` leer).
 
 ---
 
@@ -118,7 +134,7 @@ d) **Messen** (je Median aus 5 Läufen, Zeiten in ms), für S1 und S2:
 - Größe: Datenbankdatei, WAL, Anteil `item`, Indizes, `item_fts` (`dbstat` bzw. `PRAGMA page_count`), und **Bytes der Spalte `path`** gesamt (`SUM(LENGTH(path))`).
 e) **Ausgabe:** `Werkzeuge/messung/2026-10-<TT>-vorher.md` (Tabelle je Messpunkt, Rechner, macOS, Laufzeit gesamt) und dieselben Werte als `.json`. Die Datei kommt ins Repository (klein).
 f) Kein Sabotage-Nachweis nötig (Messung, kein Prüftest). Normaler serieller Lauf bleibt grün und **unverändert schnell** (Suite übersprungen); Warnungen 0.
-Status: (noch nicht freigegeben)
+Status: (noch nicht freigegeben) — **Zusatz (Nutzer 10.10., 204 ja):** mit 196 die alte `DebugTools/ColumnLoadBench.swift` samt `#if BENCH`-Zweigen (`AppDelegate`, `SystemNotice`) entfernen.
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
 

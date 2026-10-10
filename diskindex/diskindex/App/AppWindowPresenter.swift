@@ -148,9 +148,6 @@ enum AppWindowPresenter {
         mainWindow?.orderOut(nil)
         newMediumWindow?.orderOut(nil)
         crashReportWindow?.orderOut(nil)
-        #if DEBUG
-        diagnosticsWindow?.orderOut(nil)
-        #endif
     }
 
     static func openCrashReport() {
@@ -188,35 +185,6 @@ enum AppWindowPresenter {
         panel.orderFrontRegardless()
         panel.makeKey()
     }
-
-    #if DEBUG
-    private static var diagnosticsWindow: NSWindow?
-
-    /// Aufgabe 35: Messfenster, ohne die Aktivierungsrichtlinie (Dock) zu ändern.
-    static func openIndexDiagnostics() {
-        if let window = diagnosticsWindow {
-            window.makeKeyAndOrderFront(nil)
-            return
-        }
-
-        let host = NSHostingController(rootView: IndexDiagnosticsView())
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 880, height: 720),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
-            backing: .buffered,
-            defer: false
-        )
-        window.title = L10n.string("diagnostics.title")
-        window.contentViewController = host
-        window.setContentSize(NSSize(width: 880, height: 720))
-        window.center()
-        register(window) {
-            diagnosticsWindow = nil
-        }
-        diagnosticsWindow = window
-        window.makeKeyAndOrderFront(nil)
-    }
-    #endif
 
     private static func centerMainWindowOnVisibleScreen(_ window: NSWindow) {
         let screen = window.screen ?? NSScreen.main ?? NSScreen.screens.first

@@ -88,6 +88,9 @@ struct IndexFailureReasonTests {
         service.start(mediumUUID: medium.uuid, volume: volume, fromScratch: true)
         await service.waitUntilIdle(medium.uuid)
 
+        // `waitUntilIdle` kehrt schon zurück, bevor `finish` den Dialog gesetzt hat (Befund F11) → warten.
+        let shown = await waitUntil(timeout: 10) { app.indexingFailure != nil }
+        #expect(shown)
         let notice = try #require(app.indexingFailure)
         #expect(notice.reason == .database)
         #expect(try await dialogInkHeight(notice, reason: .database, app: app)

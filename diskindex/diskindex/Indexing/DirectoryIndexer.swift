@@ -82,6 +82,22 @@ nonisolated struct DirectoryIndexer: Sendable {
         let matcher = configuration.matcher
         let seenAt = Date()
         var foldersProcessed = 0
+        var needsCounting = false
+        let preludeEnd = min(2, configuration.maxDepth ?? 2)
+
+        func countWholeTree() async {
+            needsCounting = false
+            scanTotal = await runCountingPhase(
+                store: store,
+                access: access,
+                mediumUUID: mediumUUID,
+                volume: volume,
+                configuration: configuration,
+                token: token,
+                shouldHalt: shouldHalt,
+                onProgress: onProgress
+            )
+        }
 
         func noteIndexing(finished: Bool) async {
             let ratio: Double
@@ -96,6 +112,8 @@ nonisolated struct DirectoryIndexer: Sendable {
             if samples.count < 1_000, samples.last != highWater {
                 samples.append(highWater)
             }
+            // Vorlauf: Anzeige wie in der Zählphase, keine Ereignisse (und keine Prozentzahl) vor der Zählung.
+            if needsCounting { return }
             let now = ContinuousClock.now
             if !finished, let lastProgressNote, lastProgressNote.duration(to: now) < .milliseconds(250) {
                 return
@@ -147,17 +165,9 @@ nonisolated struct DirectoryIndexer: Sendable {
                     }
                 }
             } else {
-                scanTotal = await runCountingPhase(
-                    store: store,
-                    access: access,
-                    mediumUUID: mediumUUID,
-                    volume: volume,
-                    configuration: configuration,
-                    token: token,
-                    shouldHalt: shouldHalt,
-                    onProgress: onProgress
-                )
-                entriesCompleted = stored.fileCount + stored.folderCount
+                // Vorlauf (README 4): erst Ebene 1 und 2 über die normale Ebenen-Schleife schreiben,
+                // danach den ganzen Baum zählen.
+                needsCounting = true
             }
         } else if scanTotal <= 0 {
             scanTotal = max(entriesCompleted, 1)
@@ -325,6 +335,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
                 return await stop(store, mediumUUID, token, halt, stored, readErrors, samples, completedDepths)
             }
+            if needsCounting, depth >= preludeEnd { await countWholeTree() }
             if let maxDepth = configuration.maxDepth, depth >= maxDepth { break }
             let next = await parentsFor(depth: depth + 1, store: store, mediumUUID: mediumUUID, volume: volume)
             if next.isEmpty { break }
@@ -332,6 +343,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             depth += 1
         }
 
+        if needsCounting { await countWholeTree() }
         await noteIndexing(finished: true)
         let stamped = Date()
         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)

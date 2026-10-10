@@ -11,8 +11,37 @@ nonisolated enum AppDefaults {
     static let current: UserDefaults = {
         guard RuntimeEnvironment.isRunningTests else { return .standard }
         let name = "app.diskarchive.tests.\(ProcessInfo.processInfo.processIdentifier)"
+        removeStaleTestDomains(
+            in: FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Preferences", isDirectory: true),
+            ownPID: ProcessInfo.processInfo.processIdentifier
+        )
         guard let suite = UserDefaults(suiteName: name) else { return .standard }
         suite.removePersistentDomain(forName: name)
         return suite
     }()
+
+    static let testDomainPrefix = "app.diskarchive.tests."
+
+    /// Löscht Test-Domänen (`app.diskarchive.tests.<pid>`) von Prozessen, die nicht mehr laufen: aus den
+    /// Einstellungen und die `.plist`-Datei. Die eigene und die laufender (parallel gestarteter) Prozesse bleiben.
+    static func removeStaleTestDomains(
+        in directory: URL,
+        ownPID: Int32,
+        isRunning: (Int32) -> Bool = processIsRunning
+    ) {
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        for file in files {
+            let name = file.deletingPathExtension().lastPathComponent
+            guard file.pathExtension == "plist", name.hasPrefix(testDomainPrefix),
+                  let pid = Int32(name.dropFirst(testDomainPrefix.count)),
+                  pid != ownPID, !isRunning(pid)
+            else { continue }
+            UserDefaults.standard.removePersistentDomain(forName: name)
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+
+    static func processIsRunning(_ pid: Int32) -> Bool {
+        kill(pid, 0) == 0 || errno == EPERM
+    }
 }

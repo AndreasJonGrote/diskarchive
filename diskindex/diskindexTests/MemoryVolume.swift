@@ -22,6 +22,7 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
     private let lock = NSLock()
     private(set) var listed: [String] = []
     private var rootError: Error?
+    private var slowFromDepth: Int?
 
     init(mountPath: String) {
         self.mountPath = mountPath
@@ -98,6 +99,23 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
         rootError = error
     }
 
+    /// Das Lesen von Ordnern ab dieser Tiefe (Wurzel = 0) dauert künstlich länger (Vorlauf-Test, 206).
+    func slowListing(fromDepth depth: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        slowFromDepth = depth
+    }
+
+    private func listingDelay(for path: String) -> Duration? {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let slowFromDepth else { return nil }
+        let rootPath = URL(fileURLWithPath: mountPath).standardizedFileURL.path
+        guard path.hasPrefix(rootPath) else { return nil }
+        let depth = path.dropFirst(rootPath.count).split(separator: "/").count
+        return depth >= slowFromDepth ? .milliseconds(30) : nil
+    }
+
     private func injectedRootError() -> Error? {
         lock.lock()
         defer { lock.unlock() }
@@ -106,6 +124,7 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
 
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
         let path = url.standardizedFileURL.path
+        if let delay = listingDelay(for: path) { try await Task.sleep(for: delay) }
         let node = recordListing(path)
         if path == URL(fileURLWithPath: mountPath).standardizedFileURL.path, let injected = injectedRootError() {
             throw injected

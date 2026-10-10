@@ -80,4 +80,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | 202 | Fehlergrund aus dem Fehlerobjekt bis in den Dialog | 10.10. | ebenda |
 | 203 | Englisch vollständig (72 neue Schlüssel, `docs/englisch-neu.md`), Zahlen und Uhrzeit nach App-Sprache, Quell-Scan-Test | 10.10. | ebenda |
 
-**Offen:** 205 (Tests schreiben in echte Einstellungen); 204 und F9 warten auf den Nutzer. 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+| 205 | Tests mit eigener Einstellungsdatei (`AppDefaults.current`), echte Datei aufgeräumt | 10.10. (Claude-Lauf 390 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-10f.md` |
+
+**Offen:** F11, F12 klein; 204 und F9 warten auf den Nutzer. 196 (Messwerkzeug) liegt im Backlog unter 0.3.
