@@ -1,0 +1,18 @@
+diskindex column-load bench 2026-10-06T19:48:54Z
+config=Release
+batchSize=2000
+flag=BENCH
+baseline-ram-bytes=55984128
+wide-14300 seed-s=0.138 load-s=0.043 first-page-ms=3.654 first-page-count=2000 count=14300 ram-delta-mb=8.406 ram-vs-baseline-mb=24.188 goal=<0.5s pass=yes
+display-14300 first-visible-ms=43.865 max-main-block-ms=149.246 count=14300 ram-delta-mb=6.281 ram-vs-baseline-mb=30.469 goal-first-ms=<150 goal-block-ms=<50 pass-first=yes pass-block=no
+wide-100000 seed-s=1.139 load-s=0.619 first-page-ms=5.388 first-page-count=2000 count=100000 ram-delta-mb=14.469 ram-vs-baseline-mb=101.375 goal=<2.5s pass=yes
+display-100000 first-visible-ms=4.901 max-main-block-ms=115.456 count=100000 ram-delta-mb=0.438 ram-vs-baseline-mb=101.812 goal-first-ms=<150 goal-block-ms=<50 pass-first=yes pass-block=no
+wide-200000 seed-s=2.464 load-s=1.847 first-page-ms=6.554 first-page-count=2000 count=200000 ram-delta-mb=-59.312 ram-vs-baseline-mb=118.188 goal=<5s pass=yes
+display-200000 first-visible-ms=4.617 max-main-block-ms=110.879 count=200000 ram-delta-mb=-23.594 ram-vs-baseline-mb=84.453 goal-first-ms=<150 goal-block-ms=<50 pass-first=yes pass-block=no
+form-a seed-s=3.440 load-s=0.631 count=100000 ram-delta-mb=-2.109 goal-load=<2.5s
+page-500-on-30000 avg-ms=1.631 samples=1.831,1.528,1.533 goal=<30ms pass=yes
+form-b-scaled status=indexed dauer-s=1.016 folders=11110 files=5555 folders-per-s=10930.846 files-per-s=5465.423 ram-delta-mb=4.594 branch=10 depth=4
+form-c-scaled status=indexed dauer-s=0.501 folders=1554 files=12950 folders-per-s=3101.468 files-per-s=25845.563 ram-delta-mb=4.375 branch=6 depth=4
+form-b-full status=indexed dauer-s=6.698 folders=111150 files=30875 folders-per-s=16593.906 files-per-s=4609.418 ram-delta-mb=8.344 branch=18 depth=4
+form-c-full status=indexed dauer-s=5.481 folders=19607 files=140050 folders-per-s=3577.032 files-per-s=25550.225 ram-delta-mb=8.484 branch=7 depth=5
+done out=/Users/jon/Projekte/Disk Index/Werkzeuge/benchmarks/column-load-20261006-214830.txt

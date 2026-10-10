@@ -1,0 +1,12 @@
+diskindex column-load bench 2026-10-06T19:12:02Z
+config=Release
+batchSize=2000
+baseline-ram-bytes=56115200
+wide-14300 seed-s=0.149 load-s=0.043 first-page-ms=3.683 first-page-count=2000 count=14300 ram-delta-mb=10.375 ram-vs-baseline-mb=26.859 goal=<0.5s pass=yes
+wide-100000 seed-s=1.050 load-s=0.638 first-page-ms=5.418 first-page-count=2000 count=100000 ram-delta-mb=15.422 ram-vs-baseline-mb=99.156 goal=<2.5s pass=yes
+wide-200000 seed-s=2.557 load-s=2.041 first-page-ms=7.110 first-page-count=2000 count=200000 ram-delta-mb=-88.828 ram-vs-baseline-mb=88.500 goal=<5s pass=yes
+form-a seed-s=3.364 load-s=0.629 count=100000 ram-delta-mb=8.953 goal-load=<2.5s
+page-500-on-30000 avg-ms=1.507 samples=1.576,1.690,1.254 goal=<30ms pass=yes
+form-b status=indexed dauer-s=1.001 folders=11110 files=5555 folders-per-s=11095.608 files-per-s=5547.804 ram-delta-mb=4.469
+form-c status=indexed dauer-s=0.492 folders=1554 files=12950 folders-per-s=3155.735 files-per-s=26297.791 ram-delta-mb=4.375
+done out=/Users/jon/Projekte/Disk Index/Werkzeuge/benchmarks/column-load-20261006-211135.txt

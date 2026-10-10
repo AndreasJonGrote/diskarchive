@@ -1,0 +1,118 @@
+//
+//  MediumChipTests.swift
+//  diskindexTests
+//
+//  Aufgabe 115 — Chip-Texte nur nach Layout.
+//
+
+import Foundation
+import Testing
+@testable import diskindex
+
+struct MediumChipTests {
+    private static let allowedTexts: Set<String> = [
+        "Online",
+        "Offline",
+        "Fehler",
+        "Fehler, offline",
+        "Ausstehend",
+        "Nicht erlaubt",
+    ]
+
+    @Test func chipTextsMatchAllowlistPattern() {
+        var samples: [Medium] = []
+        for status in IndexStatus.allCases {
+            for connection in [ConnectionStatus.connected, .offline] {
+                for decision in StoredIndexDecision.allCases {
+                    var base = PreviewData.media[0]
+                    base.indexStatus = status
+                    base.connectionStatus = connection
+                    base.decision = decision
+                    base.indexingProgress = 0.47
+                    base.completedDepth = status == .indexed ? 3 : 1
+                    base.fileCount = 100
+                    samples.append(base)
+
+                    var empty = base
+                    empty.completedDepth = 0
+                    empty.fileCount = 0
+                    empty.folderCount = 0
+                    empty.lastIndexedAt = nil
+                    samples.append(empty)
+                }
+            }
+        }
+        for medium in samples {
+            let text = MediumChip.presentation(medium).text
+            if allowedStaticTexts.contains(text) { continue }
+            #expect(text.contains(" % indiziert"), "Unerwarteter Chip-Text: \(text)")
+        }
+    }
+
+    @Test func pendingWithPartialIndexShowsPercentOffline() {
+        var medium = PreviewData.media[0]
+        medium.indexStatus = .pending
+        medium.connectionStatus = .offline
+        medium.indexingProgress = 0.47
+        medium.completedDepth = 1
+        medium.fileCount = 500
+        let chip = MediumChip.presentation(medium)
+        #expect(chip.text == "47 % indiziert, offline")
+        #expect(chip.offlineGray)
+        #expect(chip.dashed)
+        #expect(!chip.spinner)
+    }
+
+    @Test func unplugMidRunKeepsSamePercentOnChip() {
+        var running = PreviewData.media[0]
+        running.indexStatus = .indexing
+        running.connectionStatus = .connected
+        running.indexingProgress = 0.47
+        let before = MediumChip.presentation(running).text
+
+        var unplugged = running
+        unplugged.indexStatus = .pending
+        unplugged.connectionStatus = .offline
+        let after = MediumChip.presentation(unplugged).text
+
+        #expect(before == "47 % indiziert")
+        #expect(after == "47 % indiziert, offline")
+    }
+
+    @Test func indexedOnlineAndOffline() {
+        var online = PreviewData.media[1]
+        online.connectionStatus = .connected
+        online.indexStatus = .indexed
+        #expect(MediumChip.presentation(online).text == "Online")
+
+        var offline = online
+        offline.connectionStatus = .offline
+        #expect(MediumChip.presentation(offline).text == "Offline")
+    }
+
+    @Test func spinnerOnlyWhileIndexingAndNotPaused() {
+        var medium = PreviewData.media[0]
+        medium.indexStatus = .indexing
+        medium.connectionStatus = .connected
+        medium.indexingProgress = 0.2
+        #expect(MediumChip.presentation(medium, globalAutoIndexPaused: false).spinner)
+        #expect(!MediumChip.presentation(medium, globalAutoIndexPaused: true).spinner)
+
+        medium.indexStatus = .pending
+        #expect(!MediumChip.presentation(medium).spinner)
+    }
+
+    @Test func percentUsesFloorNotRound() {
+        var medium = PreviewData.media[0]
+        medium.indexStatus = .indexing
+        medium.indexingProgress = 0.999
+        #expect(medium.indexProgressPercent == 99)
+        #expect(MediumChip.presentation(medium).text == "99 % indiziert")
+    }
+
+    private var allowedStaticTexts: Set<String> { Self.allowedTexts }
+}
+
+private extension StoredIndexDecision {
+    static var allCases: [StoredIndexDecision] { [.undecided, .index, .dontIndex] }
+}

@@ -1,0 +1,123 @@
+//
+//  AppState+Pause.swift
+//  diskindex
+//
+//  Aus AppState.swift aufgeteilt (Aufgabe 111). Keine Logikänderung.
+//
+
+import SwiftUI
+
+extension AppState {
+    var pauseSnapshot: GlobalPause { storedPause }
+
+    func loadPause(from defaults: UserDefaults = .standard, now: Date = Date()) {
+        if let data = defaults.data(forKey: Self.pauseKey),
+           let decoded = try? JSONDecoder().decode(GlobalPause.self, from: data) {
+            storedPause = decoded
+        }
+        _ = storedPause.refresh(now: now)
+        globalAutoIndexPaused = storedPause.isPaused
+        schedulePauseExpiryCheck(now: now)
+    }
+
+    func pauseIndexing(until date: Date?, defaults: UserDefaults = .standard, now: Date = Date()) {
+        storedPause.pause(until: date)
+        globalAutoIndexPaused = true
+        savePause(defaults)
+        schedulePauseExpiryCheck(now: now)
+        SystemNotice.post(
+            body: PauseNoticeCopy.began(until: date, now: now),
+            settings: appSettings,
+            event: .system,
+            kind: "pause-began"
+        )
+    }
+
+    func resumeIndexing(defaults: UserDefaults = .standard) {
+        let wasPaused = storedPause.isPaused
+        storedPause.resume()
+        globalAutoIndexPaused = false
+        savePause(defaults)
+        pauseExpiryTask?.cancel()
+        pauseExpiryTask = nil
+        guard wasPaused else { return }
+        SystemNotice.post(
+            body: LayoutCopy.noticePauseResumedManual,
+            settings: appSettings,
+            event: .system,
+            kind: "pause-resumed"
+        )
+    }
+
+    func refreshGlobalPause(now: Date = Date(), defaults: UserDefaults = .standard) {
+        guard storedPause.refresh(now: now) else { return }
+        globalAutoIndexPaused = false
+        savePause(defaults)
+        pauseExpiryTask?.cancel()
+        pauseExpiryTask = nil
+        SystemNotice.post(
+            body: LayoutCopy.noticePauseResumedManual,
+            settings: appSettings,
+            event: .system,
+            kind: "pause-expired"
+        )
+    }
+
+    func schedulePauseExpiryCheck(now: Date = Date()) {
+        pauseExpiryTask?.cancel()
+        pauseExpiryTask = nil
+        guard storedPause.isPaused, !storedPause.forever, let until = storedPause.until else { return }
+        let delay = until.timeIntervalSince(now)
+        pauseExpiryTask = Task { @MainActor [weak self] in
+            if delay > 0 {
+                try? await Task.sleep(for: .seconds(delay))
+            }
+            guard !Task.isCancelled else { return }
+            self?.refreshGlobalPause(now: until)
+        }
+    }
+
+    func savePause(_ defaults: UserDefaults) {
+        if let data = try? JSONEncoder().encode(storedPause) {
+            defaults.set(data, forKey: Self.pauseKey)
+        }
+    }
+
+    func presentIndexingFailure(mediumID: UUID, name: String, reason: IndexFailureReason, now: Date = Date(), defaults: UserDefaults = .standard) {
+        var counts = (try? JSONDecoder().decode([String: FailureCount].self, from: defaults.data(forKey: Self.failureCountsKey) ?? Data())) ?? [:]
+        var count = counts[mediumID.uuidString] ?? FailureCount(shown: 0, hourStart: now)
+        if now.timeIntervalSince(count.hourStart) >= 3_600 {
+            count = FailureCount(shown: 0, hourStart: now)
+        }
+        guard FailureModalThrottle.allowsAutomatic(shown: count.shown, hourStart: count.hourStart, now: now) else { return }
+        count.shown += 1
+        counts[mediumID.uuidString] = count
+        if let data = try? JSONEncoder().encode(counts) {
+            defaults.set(data, forKey: Self.failureCountsKey)
+        }
+        indexingFailure = IndexingFailureNotice(id: mediumID, name: name, reason: reason)
+        SystemNotice.postIndexingFailure(mediumID: mediumID, name: name, reason: reason, settings: appSettings)
+    }
+}
+
+nonisolated struct FailureCount: Codable {
+    var shown: Int
+    var hourStart: Date
+}
+
+nonisolated struct IndexingFailureNotice: Equatable, Identifiable {
+    var id: UUID
+    var name: String
+    var reason: IndexFailureReason
+}
+
+enum MenuBarBadgePreview: String, CaseIterable, Identifiable {
+    case idle
+    case indexing
+    case syncing
+    case newlyDetected
+    case paused
+    case error
+
+    var id: String { rawValue }
+}

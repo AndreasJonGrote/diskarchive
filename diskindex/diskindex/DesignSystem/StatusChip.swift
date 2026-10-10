@@ -1,0 +1,147 @@
+//
+//  StatusChip.swift
+//  diskindex
+//
+//  Aufgabe 19.2 — ein Chip-Rezept für alle Status-Chips.
+//
+
+import SwiftUI
+
+struct StatusChip: View {
+    let medium: Medium
+    @Environment(AppState.self) private var appState
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !tracksProgress)) { context in
+            chipBody(at: context.date)
+        }
+    }
+
+    private var tracksProgress: Bool {
+        medium.indexStatus == .indexing || appState.hasLiveProgress(medium.id)
+    }
+
+    private func chipBody(at date: Date) -> some View {
+        let kind = MediumChip.presentation(
+            medium,
+            globalAutoIndexPaused: appState.globalAutoIndexPaused,
+            displayedFraction: appState.displayedProgress(medium.id, now: date)
+        )
+        let color = roleColor(kind)
+        return HStack(spacing: 4) {
+            if appState.globalAutoIndexPaused, medium.indexStatus == .indexing || appState.hasLiveProgress(medium.id) {
+                Image(systemName: "pause.fill")
+                    .font(.system(size: 7, weight: .bold))
+            } else if kind.spinner {
+                IndexingSpinnerRing()
+                    .scaleEffect(0.65)
+                    .frame(width: 7, height: 7)
+            }
+            chipLabel(kind, color: color)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 3)
+        .frame(minHeight: 23.5)
+        .background(kind.dashed ? Color.clear : DesignColor.chipFill(color))
+        .overlay {
+            if kind.dashed {
+                RoundedRectangle(cornerRadius: DesignRadius.sm)
+                    .strokeBorder(
+                        DesignColor.chipBorder(color),
+                        style: StrokeStyle(lineWidth: DesignBorder.width, dash: [3, 2])
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: DesignRadius.sm)
+                    .strokeBorder(DesignColor.chipBorder(color), lineWidth: DesignBorder.width)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: DesignRadius.sm))
+    }
+
+    private var usesProposalCountingLabel: Bool {
+        medium.indexStatus == .indexing && medium.indexRunPhase == .counting
+    }
+
+    @ViewBuilder
+    private func chipLabel(_ kind: MediumChip.Presentation, color: Color) -> some View {
+        let font = Font.system(size: 10, weight: medium.indexStatus == .error ? .bold : .regular)
+        if usesProposalCountingLabel {
+            Text(kind.text)
+                .font(font)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .proposedCopy(baseColor: color)
+        } else {
+            Text(kind.text)
+                .font(font)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(color)
+        }
+    }
+
+    private func roleColor(_ kind: MediumChip.Presentation) -> Color {
+        if kind.offlineGray { return DesignColor.stateOff }
+        if kind.error { return DesignColor.stateError }
+        return DesignColor.stateOnline
+    }
+}
+
+enum MediumChip {
+    struct Presentation: Equatable {
+        var text: String
+        var dashed: Bool
+        var offlineGray: Bool
+        var error: Bool
+        var spinner: Bool
+    }
+
+    static func presentation(
+        _ medium: Medium,
+        globalAutoIndexPaused: Bool = false,
+        displayedFraction: Double? = nil
+    ) -> Presentation {
+        let connected = medium.connectionStatus == .connected
+        let percent = displayedFraction.map { Int(floor($0 * 100)) } ?? medium.indexProgressPercent
+        let stillShowing = displayedFraction != nil
+        if !medium.hasIndex {
+            if medium.decision.refusesIndexing {
+                return Presentation(text: "Nicht erlaubt", dashed: false, offlineGray: true, error: false, spinner: false)
+            }
+            return Presentation(text: "Ausstehend", dashed: true, offlineGray: false, error: false, spinner: false)
+        }
+        if medium.indexStatus == .error {
+            return Presentation(
+                text: connected ? "Fehler" : "Fehler, offline",
+                dashed: !connected,
+                offlineGray: !connected,
+                error: connected,
+                spinner: false
+            )
+        }
+        let complete = medium.indexStatus == .indexed && !stillShowing
+        if !connected {
+            if complete {
+                return Presentation(text: "Offline", dashed: true, offlineGray: true, error: false, spinner: false)
+            }
+            return Presentation(
+                text: "\(percent) % indiziert, offline",
+                dashed: true,
+                offlineGray: true,
+                error: false,
+                spinner: false
+            )
+        }
+        if complete {
+            return Presentation(text: "Online", dashed: false, offlineGray: false, error: false, spinner: false)
+        }
+        let spinner = (medium.indexStatus == .indexing || stillShowing) && !globalAutoIndexPaused
+        return Presentation(
+            text: "\(percent) % indiziert",
+            dashed: true,
+            offlineGray: false,
+            error: false,
+            spinner: spinner
+        )
+    }
+}

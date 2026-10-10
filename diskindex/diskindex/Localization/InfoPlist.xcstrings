@@ -1,0 +1,86 @@
+{
+  "sourceLanguage" : "de",
+  "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive"
+          }
+        }
+      }
+    },
+    "NSHumanReadableCopyright" : {
+      "comment" : "Copyright (human-readable)",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "NSRemovableVolumesUsageDescription" : {
+      "comment" : "TCC-Dialog: Zugriff auf externe Volumes (DE/EN).",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive liest Namen und Ordnerstruktur externer Speichermedien, um sie zu indizieren und offline durchsuchbar zu machen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive reads the names and folder structure of external drives to index them and make them searchable offline."
+          }
+        }
+      }
+    },
+    "NSNetworkVolumesUsageDescription" : {
+      "comment" : "TCC-Dialog: Zugriff auf Netzlaufwerke (DE/EN).",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive liest Namen und Ordnerstruktur von Netzlaufwerken, um sie zu indizieren und offline durchsuchbar zu machen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive reads the names and folder structure of network volumes to index them and make them searchable offline."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

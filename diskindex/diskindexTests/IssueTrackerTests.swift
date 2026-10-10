@@ -1,0 +1,286 @@
+//
+//  IssueTrackerTests.swift
+//  diskindexTests
+//
+
+import Foundation
+import Testing
+@testable import diskindex
+
+final class IssueStubURL: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var status = 201
+    nonisolated(unsafe) static var body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
+    nonisolated(unsafe) static var fail = false
+    nonisolated(unsafe) static var hits = 0
+    nonisolated(unsafe) static var lastRequestBody: Data?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        if let body = request.httpBody {
+            Self.lastRequestBody = body
+        }
+        return request
+    }
+
+    override func startLoading() {
+        Self.hits += 1
+        Self.lastRequestBody = request.httpBody
+        if Self.fail {
+            client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+            return
+        }
+        let response = HTTPURLResponse(url: request.url!, statusCode: Self.status, httpVersion: nil, headerFields: nil)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Self.body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Suite(.serialized)
+struct IssueTrackerTests {
+    @Test func crashReportIsSentAndLeavesTheOutbox() async throws {
+        let reporter = try makeReporter()
+        reporter.enqueue(kind: "crash")
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1)
+        #expect(reporter.reportFiles().isEmpty)
+    }
+
+    @Test func serverErrorKeepsTheFileAndBacksOff() async throws {
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        let reporter = try makeReporter(now: { clock.value })
+        IssueStubURL.status = 500
+        IssueStubURL.body = Data("no".utf8)
+        reporter.enqueue(kind: "crash")
+        let id = try #require(reporter.reportFiles().first?.deletingPathExtension().lastPathComponent)
+        await reporter.flush()
+        #expect(reporter.reportFiles().count == 1)
+        #expect(IssueStubURL.hits == 1)
+        let first = try #require(reporter.nextRetry(id: id))
+        #expect(first.attempts == 1)
+        #expect(abs(first.next.timeIntervalSince(clock.value) - 3_600) < 1)
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1)
+        clock.value = first.next
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 2)
+        let second = try #require(reporter.nextRetry(id: id))
+        #expect(second.attempts == 2)
+        #expect(abs(second.next.timeIntervalSince(clock.value) - 7_200) < 1)
+    }
+
+    @Test func clientErrorDropsTheFile() async throws {
+        let reporter = try makeReporter()
+        IssueStubURL.status = 400
+        reporter.enqueue(kind: "crash")
+        await reporter.flush()
+        #expect(reporter.reportFiles().isEmpty)
+    }
+
+    @Test func offlineKeepsTheFile() async throws {
+        let reporter = try makeReporter()
+        IssueStubURL.fail = true
+        reporter.enqueue(kind: "crash")
+        await reporter.flush()
+        #expect(reporter.reportFiles().count == 1)
+        #expect(IssueStubURL.hits == 1)
+    }
+
+    @Test func releaseRejectsPlainHTTP() async throws {
+        var lines: [String] = []
+        let reporter = try makeReporter(release: true, log: { lines.append($0) })
+        reporter.enqueue(kind: "crash")
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 0)
+        #expect(lines.contains { $0.contains("status=scheme") })
+        #expect(!IssueEndpointPolicy.allows(ReportTarget.endpoint, release: true))
+        #expect(IssueEndpointPolicy.allows(ReportTarget.endpoint, release: false))
+        #expect(IssueEndpointPolicy.allows(URL(string: "https://example.com/issue-tracker/")!, release: true))
+        #expect(ReportTarget.endpoint.absoluteString == "http://localhost:8888/disk-archive/api/issues/")
+    }
+
+    @Test func createdWithoutIDRetries() async throws {
+        let reporter = try makeReporter()
+        IssueStubURL.status = 201
+        IssueStubURL.body = Data(#"{"id":""}"#.utf8)
+        reporter.enqueue(kind: "crash")
+        await reporter.flush()
+        #expect(reporter.reportFiles().count == 1)
+    }
+
+    @Test func sentBodyHasRequiredAPIFields() async throws {
+        let reporter = try makeReporter()
+        reporter.enqueue(kind: "crash")
+        let fileData = try Data(contentsOf: #require(reporter.reportFiles().first))
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1)
+        let data = try #require(IssueStubURL.lastRequestBody ?? Optional(fileData))
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(object["schema"] as? Int == 2)
+        #expect(object["kind"] as? String == "crash")
+        let app = try #require(object["app"] as? [String: Any])
+        #expect((app["version"] as? String)?.isEmpty == false)
+        let system = try #require(object["system"] as? [String: Any])
+        #expect((system["macOS"] as? String)?.isEmpty == false)
+    }
+
+    @Test func legacyOKBodyRetries() async throws {
+        let reporter = try makeReporter()
+        IssueStubURL.status = 200
+        IssueStubURL.body = Data(#"{"ok":true}"#.utf8)
+        reporter.enqueue(kind: "crash")
+        await reporter.flush()
+        #expect(reporter.reportFiles().count == 1)
+    }
+
+    @Test func unprocessableEntityDropsFile() async throws {
+        let reporter = try makeReporter()
+        IssueStubURL.status = 422
+        reporter.enqueue(kind: "crash")
+        await reporter.flush()
+        #expect(reporter.reportFiles().isEmpty)
+    }
+
+    @Test func successWithoutOKBodyStaysAndBacksOff() async throws {
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        var lines: [String] = []
+        let reporter = try makeReporter(now: { clock.value }, log: { lines.append($0) })
+        IssueStubURL.status = 201
+        IssueStubURL.body = Data("<html>tracker</html>".utf8)
+        reporter.enqueue(kind: "crash")
+        let id = try #require(reporter.reportFiles().first?.deletingPathExtension().lastPathComponent)
+        await reporter.flush()
+        #expect(reporter.reportFiles().count == 1)
+        #expect(IssueStubURL.hits == 1)
+        #expect(lines.contains { $0.contains("status=201") && $0.contains("body=nicht-ok") })
+        let first = try #require(reporter.nextRetry(id: id))
+        #expect(first.attempts == 1)
+        #expect(abs(first.next.timeIntervalSince(clock.value) - 3_600) < 1)
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1)
+        clock.value = first.next
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 2)
+        let second = try #require(reporter.nextRetry(id: id))
+        #expect(second.attempts == 2)
+        #expect(abs(second.next.timeIntervalSince(clock.value) - 7_200) < 1)
+    }
+
+    @Test func errorsAreNotSentAsReports() throws {
+        let reporter = try makeReporter()
+        reporter.noteError(category: "store", message: "applyDirectories /tmp/a 12")
+        #expect(reporter.reportFiles().isEmpty)
+    }
+
+    @Test func scrubberDropsNamesButKeepsTheProfile() throws {
+        let nfc = "Müller – Übersicht 🎵 (final) .pdf"
+        let nfd = nfc.decomposedStringWithCanonicalMapping
+        let rtl = "\u{202E}secret"
+        let control = "datei\u{0001}name.txt"
+        let query = "Steuererklärung 2024"
+        let path = "/Volumes/KUNDE/Rechnungen/\(nfc)"
+        let lines = [
+            "search query=\(query)",
+            "search query=\(query.decomposedStringWithCanonicalMapping)",
+            path,
+            nfd,
+            rtl,
+            control,
+        ]
+        let scrubbed = lines.map(ReportScrubber.text).joined(separator: "\n")
+        for name in [nfc, nfd, query, "KUNDE", "Rechnungen", "Müller", "Übersicht", "final"] {
+            let stem = name.count >= 3 ? name : name
+            if stem.count >= 3 {
+                #expect(!scrubbed.contains(stem), "\(stem)")
+                #expect(!scrubbed.contains(stem.decomposedStringWithCanonicalMapping))
+            }
+        }
+        #expect(scrubbed.contains("nf=NFC") || scrubbed.contains("nf=NFD"))
+        #expect(scrubbed.contains("flags=emoji") || scrubbed.contains("emoji"))
+        #expect(scrubbed.contains("ext=.pdf"))
+        #expect(scrubbed.contains("‹path depth="))
+        #expect(scrubbed.contains("‹query chars="))
+    }
+
+    @Test func leakCheckBlocksAnInjectedPath() {
+        let json = #"{"schema":2,"logTail":["/Volumes/KUNDE/geheim"]}"#
+        #expect(ReportScrubber.leakCategory(in: json, names: []) == "path")
+        #expect(ReportScrubber.leakCategory(in: #"{"ok":true}"#, names: ["Archiv"]) == nil)
+        #expect(ReportScrubber.leakCategory(in: #"{"name":"Archivplatte"}"#, names: ["Archiv"]) == "name")
+    }
+
+    @Test func payloadHasTheContractFields() throws {
+        let reporter = try makeReporter()
+        reporter.enqueue(kind: "crash")
+        let data = try Data(contentsOf: #require(reporter.reportFiles().first))
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let keys = Set(object.keys)
+        #expect(keys == ["actions", "app", "crash", "createdAt", "id", "inventory", "kind", "logTail", "runtimeSeconds", "schema", "signature", "system"])
+        #expect(object["schema"] as? Int == 2)
+        #expect(object["kind"] as? String == "crash")
+        let created = try #require(object["createdAt"] as? String)
+        #expect(created.hasSuffix("Z"))
+        let id = try #require(object["id"] as? String)
+        #expect(UUID(uuidString: id) != nil)
+        #expect(id == id.uppercased())
+    }
+
+    @Test func outboxIsPrivateAndCapped() throws {
+        let reporter = try makeReporter()
+        for _ in 0..<51 {
+            reporter.enqueue(kind: "crash")
+        }
+        let files = reporter.reportFiles()
+        #expect(files.count == 50)
+        let mode = try #require(try FileManager.default.attributesOfItem(atPath: files[0].path)[.posixPermissions] as? NSNumber)
+        #expect(mode.intValue == 0o600)
+    }
+}
+
+private final class LockedDate: @unchecked Sendable {
+    var value: Date
+    init(_ value: Date) { self.value = value }
+}
+
+private func makeReporter(
+    release: Bool = false,
+    now: @escaping () -> Date = { Date() },
+    log: @escaping (String) -> Void = { _ in }
+) throws -> IssueReporter {
+    IssueStubURL.status = 201
+    IssueStubURL.body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
+    IssueStubURL.fail = false
+    IssueStubURL.hits = 0
+    IssueStubURL.lastRequestBody = nil
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let defaults = UserDefaults(suiteName: "diskindex-issue-\(UUID().uuidString)")!
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [IssueStubURL.self]
+    let session = URLSession(configuration: configuration)
+    let reporter = IssueReporter(
+        directory: directory,
+        defaults: defaults,
+        session: session,
+        releaseBuild: release,
+        now: now,
+        log: log,
+        makeDraft: { kind in
+            IssueDraft(
+                kind: kind,
+                signature: kind,
+                actions: ["ui /Musik/Lied.mp3"],
+                logTail: ["zeile"],
+                crashSignal: "SIGSEGV",
+                crashStack: ["/tmp/frame"],
+                media: 3,
+                items: 4,
+                dbBytes: 5
+            )
+        }
+    )
+    reporter.sendsImmediately = false
+    return reporter
+}

@@ -1,0 +1,12 @@
+*.DS_Store
+.DS_Store
+
+# Testbilder und Messdateien
+Werkzeuge/screenshots/
+*.profraw
+
+# Xcode
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
