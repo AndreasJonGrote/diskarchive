@@ -46,9 +46,6 @@ final class IndexingService {
             return
         }
         guard !isPaused(mediumUUID) else { return }
-        #if DEBUG
-        guard !ColumnStateSimulation.isSimulationMedium(mediumUUID) else { return }
-        #endif
         DiskIndexLog.shared.record(.index, .info, "auftrag medium=\(mediumUUID) scratch=\(fromScratch)")
 
         let token = UUID()
@@ -226,7 +223,7 @@ final class IndexingService {
             )
         }
         if outcome.status == .error, let medium = appState.medium(with: mediumUUID) {
-            appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: .unknown)
+            appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
         if outcome.status == .indexed, let volume = runVolumes[mediumUUID] {
             onRunIndexed?(mediumUUID, volume)

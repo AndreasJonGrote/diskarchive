@@ -129,7 +129,7 @@ struct ColumnPathEffect: Equatable {
 enum ColumnFooterLabel {
     static func text(selectedCount: Int, visibleCount: Int, filteredCount: Int, totalCount: Int) -> String {
         if selectedCount > 1 {
-            return "\(selectedCount) von \(visibleCount) ausgewählt"
+            return LayoutCopy.columnSelectedOf(selectedCount, visibleCount)
         }
         return ObjectCountFormatting.label(filtered: filteredCount, total: totalCount)
     }
@@ -144,7 +144,7 @@ enum ColumnSizeSummary {
     }
 
     static func objectLine(count: Int) -> String {
-        count == 1 ? "1 Objekt" : "\(count) Objekte"
+        count == 1 ? LayoutCopy.objectOne : LayoutCopy.objectMany(String(count))
     }
 }
 
@@ -184,7 +184,6 @@ enum FavoriteBatch {
 }
 
 struct ContextMenuPlan: Equatable {
-    var titles: [String]
     var finderEnabled: Bool
     var favoriteEnabled: Bool
     var favoriteChecked: Bool
@@ -201,14 +200,6 @@ struct ContextMenuPlan: Equatable {
         let namesIgnored = !names.isEmpty && names.allSatisfy { ignored.contains($0) }
         let typesIgnored = !extensions.isEmpty && extensions.allSatisfy { ignored.contains($0) }
         return ContextMenuPlan(
-            titles: [
-                "Im Finder anzeigen",
-                "Als Favorit markieren",
-                "Nach Namen suchen",
-                "Nach Dateiendung suchen",
-                "Dateinamen ignorieren",
-                "Dateitypen ignorieren",
-            ],
             finderEnabled: false,
             favoriteEnabled: true,
             favoriteChecked: FavoriteBatch.nextValue(current: favorites) == false,

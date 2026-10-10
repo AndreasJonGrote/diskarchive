@@ -7,8 +7,6 @@ import Foundation
 
 /// Liest ein Medium ebenenweise und schreibt jede fertige Ebene, bevor die nächste beginnt.
 nonisolated struct DirectoryIndexer: Sendable {
-    private static let readRetryDelays: [Duration] = [.seconds(1), .seconds(3), .seconds(10)]
-
     func run(
         store: IndexStore,
         access: any MediumAccess,
@@ -43,7 +41,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             if DiskIndexLog.isOperationalFailure(error) {
                 DiskIndexLog.shared.record(.store, .error, "store error medium \(error)")
             }
-            return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil)
+            return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: IndexFailureReason.classify(error))
         }
         let began: Bool
         do {
@@ -52,7 +50,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             if DiskIndexLog.isOperationalFailure(error) {
                 DiskIndexLog.shared.record(.store, .error, "store error beginIndexing \(error)")
             }
-            return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: stored.firstIndexedAt)
+            return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: stored.firstIndexedAt, failureReason: IndexFailureReason.classify(error))
         }
         guard began else {
             DiskIndexLog.shared.record(.index, .error, "begin abgelehnt medium=\(mediumUUID)")
@@ -261,7 +259,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         if IndexRunGuard.shouldPending(consecutiveTimeouts: consecutiveTimeouts, limit: limits.consecutiveTimeoutLimit) {
                             try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
                             _ = try? await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .pending, firstIndexedAt: stored.firstIndexedAt)
-                            return IndexRunOutcome(status: .pending, readErrors: readErrors, progress: samples, completedDepths: completedDepths, firstIndexedAt: stored.firstIndexedAt)
+                            return IndexRunOutcome(status: .pending, readErrors: readErrors, progress: samples, completedDepths: completedDepths, firstIndexedAt: stored.firstIndexedAt, failureReason: .timeout)
                         }
                     } catch is CancellationError {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
@@ -282,7 +280,8 @@ nonisolated struct DirectoryIndexer: Sendable {
                                 readErrors: readErrors,
                                 progress: samples,
                                 completedDepths: completedDepths,
-                                firstIndexedAt: stored.firstIndexedAt
+                                firstIndexedAt: stored.firstIndexedAt,
+                                failureReason: IndexFailureReason.classify(error)
                             )
                         }
                         readErrors += 1
@@ -320,7 +319,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         DiskIndexLog.shared.record(.index, .error, "finish nach ebenenfehler \(error)")
                     }
                 }
-                return IndexRunOutcome(status: .error, readErrors: readErrors, progress: samples, completedDepths: completedDepths, firstIndexedAt: stored.firstIndexedAt)
+                return IndexRunOutcome(status: .error, readErrors: readErrors, progress: samples, completedDepths: completedDepths, firstIndexedAt: stored.firstIndexedAt, failureReason: IndexFailureReason.classify(error))
             }
             if let halt = await stopped(shouldHalt) {
                 try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
@@ -436,7 +435,7 @@ nonisolated struct DirectoryIndexer: Sendable {
         onChunk: @escaping ([ListedDirectoryEntry]) async throws -> Void
     ) async throws {
         var lastError: Error = CocoaError(.fileReadUnknown)
-        for attempt in 0..<(Self.readRetryDelays.count + 1) {
+        for attempt in 0..<(limits.readRetryDelays.count + 1) {
             do {
                 for try await chunk in Self.directoryChunks(access: access, at: url, limits: limits, counting: counting) {
                     try await onChunk(chunk)
@@ -444,8 +443,8 @@ nonisolated struct DirectoryIndexer: Sendable {
                 return
             } catch {
                 lastError = error
-                if attempt < Self.readRetryDelays.count {
-                    try await Task.sleep(for: Self.readRetryDelays[attempt])
+                if attempt < limits.readRetryDelays.count {
+                    try await Task.sleep(for: limits.readRetryDelays[attempt])
                 }
             }
         }
@@ -477,7 +476,8 @@ nonisolated struct DirectoryIndexer: Sendable {
             readErrors: readErrors,
             progress: samples,
             completedDepths: completedDepths,
-            firstIndexedAt: stored.firstIndexedAt
+            firstIndexedAt: stored.firstIndexedAt,
+            failureReason: IndexFailureReason.classify(error)
         )
     }
 

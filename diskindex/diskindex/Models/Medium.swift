@@ -85,8 +85,6 @@ struct Medium: Identifiable, Equatable, Hashable {
         return min(max(indexingProgress, 0), 0.99)
     }
 
-    var indexProgressStoredEntries: Int { fileCount + folderCount }
-
     /// Anzeige-Prozent 0…99, abgerundet; 100 nur bei vollständig indiziert.
     var indexProgressPercent: Int {
         if indexStatus == .indexed { return 100 }
@@ -105,6 +103,6 @@ struct Medium: Identifiable, Equatable, Hashable {
 
     var specLine: String {
         let files = fileCount.formatted(.number.grouping(.automatic))
-        return "\(type.displayName) · \(totalCapacityLabel) · \(files) Dateien"
+        return "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumFilesCount(files))"
     }
 }

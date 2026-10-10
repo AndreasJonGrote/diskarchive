@@ -201,7 +201,7 @@ enum ScanDepthExampleFormatting {
             ]
         }
 
-        let labels = ["Festplatte", "Unterordner 1", "Unterordner 2", "Unterordner 3", "Unterordner 4"]
+        let labels = [LayoutCopy.diskCrumb] + (1...4).map { LayoutCopy.scanDepthSubfolder($0) }
         let visibleCount = min(max(depth, 1), labels.count)
         return (0..<visibleCount).map { index in
             Crumb(

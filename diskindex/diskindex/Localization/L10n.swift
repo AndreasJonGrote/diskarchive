@@ -8,12 +8,15 @@
 import Foundation
 
 nonisolated enum L10n {
+    /// Nur für Tests: Sprache für den aktuellen Task (kein globaler Zustand, keine Nebenwirkung auf andere Tests).
+    @TaskLocal static var languageOverride: AppDisplayLanguage?
+
     /// Lokalisierte Zeichenkette zur App-Sprache (`AppSettings.displayLanguage`).
     static func string(
         _ key: String,
         language: AppDisplayLanguage? = nil
     ) -> String {
-        let resolved = language ?? AppLanguagePolicy.resolvedDisplayLanguage()
+        let resolved = language ?? languageOverride ?? AppLanguagePolicy.resolvedDisplayLanguage()
         let bundle = localizationBundle(for: resolved)
         return NSLocalizedString(key, tableName: nil, bundle: bundle, value: key, comment: "")
     }
@@ -27,7 +30,7 @@ nonisolated enum L10n {
     }
 
     static func locale(for language: AppDisplayLanguage? = nil) -> Locale {
-        let resolved = language ?? AppLanguagePolicy.resolvedDisplayLanguage()
+        let resolved = language ?? languageOverride ?? AppLanguagePolicy.resolvedDisplayLanguage()
         return Locale(identifier: resolved.localeIdentifier)
     }
 

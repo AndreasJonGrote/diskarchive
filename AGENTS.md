@@ -15,6 +15,7 @@ Claude Code macht **keine Implementierung** im Xcode-Projekt. Claude ist zustän
 Claude editiert **niemals** Quellcode im Xcode-Projekt selbst. Ausnahme: Pflege von `AGENTS.md` und `TODO.md`.
 
 ### Cursor — Umsetzung (100%)
+*Ab 10.10. kann diese Rolle auch ein anderer Agent übernehmen (Cursor ohne Guthaben). Alles, was hier und in `TODO.md` für „Cursor“ gilt, gilt dann genauso für ihn.*
 Cursor implementiert alle Aufgaben aus `TODO.md` im Xcode-Projekt (SwiftUI/AppKit). Cursor ist zuständig für:
 - Den tatsächlichen Code (Views, Models, State, Menu-Bar-Integration, App-Fenster).
 - Pixel-genaue Umsetzung der Design-Tokens aus der README mit **nativen Controls** — kein Kopieren von HTML/CSS, aber gleiche Werte (Farben, Radius, Spacing, Icon-Gewichte).

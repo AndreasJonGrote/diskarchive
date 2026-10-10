@@ -47,9 +47,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     private let loggers: [DiskLogCategory: Logger]
 
     init(directory: URL? = nil, byteLimit: Int = DiskIndexLog.defaultByteLimit) {
-        let testing = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
-            || ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] != nil
-        self.writesToDisk = directory != nil || !testing
+        self.writesToDisk = directory != nil || !RuntimeEnvironment.isRunningTests
         self.directory = directory ?? Self.defaultDirectory
         self.byteLimit = byteLimit
         let formatter = DateFormatter()
@@ -71,7 +69,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         lock.unlock()
         let crashText = (try? String(contentsOf: crashFileURL, encoding: .utf8)) ?? ""
         if crashText.contains("CRASH") {
-            if IssueConsent.autoSendEnabled(defaults: .standard) {
+            if IssueConsent.autoSendEnabled(defaults: AppDefaults.current) {
                 IssueReporter.shared.enqueue(kind: "crash")
                 consumeCrashMarker()
             } else {
@@ -270,10 +268,6 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     func logTail(_ limit: Int) -> [String] {
         let text = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
         return CrashReportText.tail(text, limit: limit)
-    }
-
-    func diagnosticReport() -> String {
-        report(includeCrash: false, logLineLimit: 300, actionLimit: 50)
     }
 
     func report(includeCrash: Bool, logLineLimit: Int, actionLimit: Int) -> String {

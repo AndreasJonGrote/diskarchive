@@ -11,7 +11,7 @@ struct ObjectRowOnlineStatusChip: View {
     let isOnline: Bool
 
     var body: some View {
-        Text(isOnline ? "Online" : "Offline")
+        Text(isOnline ? LayoutCopy.chipOnline : LayoutCopy.chipOffline)
             .font(.system(size: 11, weight: .semibold))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)

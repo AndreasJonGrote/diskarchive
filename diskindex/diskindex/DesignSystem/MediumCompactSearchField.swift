@@ -9,13 +9,13 @@ import SwiftUI
 
 struct MediumCompactSearchField: View {
     @Binding var text: String
-    var placeholder: String = "Suchen…"
+    var placeholder: String = LayoutCopy.searchPlaceholderCompact
     var width: CGFloat = DesignSearchField.mediumCompactWidth
     var focus: FocusState<Bool>.Binding?
 
     init(
         text: Binding<String>,
-        placeholder: String = "Suchen…",
+        placeholder: String = LayoutCopy.searchPlaceholderCompact,
         width: CGFloat = DesignSearchField.mediumCompactWidth,
         focus: FocusState<Bool>.Binding? = nil
     ) {

@@ -67,7 +67,7 @@ struct SearchFilterPopover: View {
         VStack(alignment: .leading, spacing: 8) {
             groupHeader("DATEIENDUNG")
 
-            MediumSidebarSearchField(text: $extensionInput, placeholder: "Endung eingeben, z. B. jpg", icon: "FileTypeGeneric") {
+            MediumSidebarSearchField(text: $extensionInput, placeholder: LayoutCopy.searchPlaceholderExtension, icon: "FileTypeGeneric") {
                 if filters.wrappedValue.addCustomExtension(extensionInput) {
                     extensionInput = ""
                 }
@@ -107,7 +107,7 @@ struct SearchFilterPopover: View {
         return VStack(alignment: .leading, spacing: 8) {
             groupHeader("MEDIUM")
 
-            MediumSidebarSearchField(text: $mediumFilterQuery, placeholder: "Medium suchen…")
+            MediumSidebarSearchField(text: $mediumFilterQuery, placeholder: LayoutCopy.searchPlaceholderMedium)
 
             Toggle(isOn: Binding(
                 get: { filters.wrappedValue.selectAllMedia },

@@ -8,10 +8,10 @@ import Foundation
 extension Medium {
     var dashboardSpecLine: String {
         if indexStatus == .error {
-            return "Kein Zugriff, in den Systemeinstellungen freigeben"
+            return LayoutCopy.mediumNoAccess
         }
         if indexStatus == .pending, fileCount == 0 {
-            return "\(type.displayName) · \(totalCapacityLabel) · noch nicht indiziert"
+            return "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumNotIndexedYet)"
         }
         return specLine
     }

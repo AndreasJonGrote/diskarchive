@@ -68,7 +68,7 @@ struct ColumnFolderContents<Row: View>: View {
                     .padding(.horizontal, 8)
                     .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-                .scrollIndicators(.never)
+                .scrollIndicators(.automatic)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

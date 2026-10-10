@@ -62,17 +62,35 @@ import Testing
 
         let create = Process()
         create.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
-        create.arguments = ["create", "-size", "32m", "-fs", "MS-DOS FAT32", "-volname", "BULKTEST", image.path]
+        create.arguments = ["create", "-size", "64m", "-fs", "MS-DOS FAT32", "-volname", "BULKTEST", image.path]
+        let createOut = Pipe()
+        let createErr = Pipe()
+        create.standardOutput = createOut
+        create.standardError = createErr
         try create.run()
         create.waitUntilExit()
-        guard create.terminationStatus == 0 else { return }
+        guard create.terminationStatus == 0 else {
+            let out = String(data: createOut.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            let err = String(data: createErr.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            Issue.record("hdiutil create fehlgeschlagen: \(out)\(err)")
+            return
+        }
 
         let attach = Process()
         attach.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")
         attach.arguments = ["attach", "-nobrowse", "-mountpoint", mountPoint.path, image.path]
+        let attachOut = Pipe()
+        let attachErr = Pipe()
+        attach.standardOutput = attachOut
+        attach.standardError = attachErr
         try attach.run()
         attach.waitUntilExit()
-        guard attach.terminationStatus == 0 else { return }
+        guard attach.terminationStatus == 0 else {
+            let out = String(data: attachOut.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            let err = String(data: attachErr.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            Issue.record("hdiutil attach fehlgeschlagen: \(out)\(err)")
+            return
+        }
         defer {
             let detach = Process()
             detach.executableURL = URL(fileURLWithPath: "/usr/bin/hdiutil")

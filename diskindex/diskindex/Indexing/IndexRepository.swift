@@ -22,7 +22,6 @@ final class IndexRepository {
     private var loadGenerations: [String: UInt] = [:]
     private let cacheFolderLimit = 30
     #if DEBUG
-    private var simulationLoadTasks: [String: Task<Void, Never>] = [:]
     private(set) static var loadSessionsStartedForTesting = 0
     private(set) static var requestLoadCallsForTesting = 0
 
@@ -57,11 +56,6 @@ final class IndexRepository {
 
     /// Nur Cache/Ladezustand lesen — kein Nachladen aus dem View-Aufbau (109).
     func children(mediumID: UUID, path: [String]) -> [IndexedItem] {
-        #if DEBUG
-        if ColumnStateSimulation.isSimulationMedium(mediumID) {
-            return simulationChildrenReadOnly(mediumID: mediumID, path: path)
-        }
-        #endif
         let key = cacheKey(mediumID, path)
         if let cached = cache[key] { return cached }
         if loading.contains(key) { return [] }
@@ -71,10 +65,6 @@ final class IndexRepository {
     func requestLoad(mediumID: UUID, path: [String]) {
         #if DEBUG
         Self.requestLoadCallsForTesting += 1
-        if ColumnStateSimulation.isSimulationMedium(mediumID) {
-            requestSimulationLoad(mediumID: mediumID, path: path)
-            return
-        }
         #endif
         let key = cacheKey(mediumID, path)
         if loading.contains(key) { return }
@@ -133,12 +123,6 @@ final class IndexRepository {
     }
 
     func invalidate(mediumID: UUID, path: [String]) {
-        #if DEBUG
-        if ColumnStateSimulation.isSimulationMedium(mediumID),
-           ColumnStateSimulation.isLoadingColumnPath(path) {
-            return
-        }
-        #endif
         let key = cacheKey(mediumID, path)
         stale.insert(key)
         loading.remove(key)
@@ -162,10 +146,6 @@ final class IndexRepository {
 
     /// Beenden: Demo-Lade-Tasks und laufende Ordner-Ladevorgänge abbrechen.
     func prepareForTermination() {
-        #if DEBUG
-        for task in simulationLoadTasks.values { task.cancel() }
-        simulationLoadTasks.removeAll()
-        #endif
         for key in loading {
             bumpLoadGeneration(key)
         }
@@ -203,26 +183,6 @@ final class IndexRepository {
     /// Tests lesen einen Ordner, ohne auf den Cache-Task zu warten.
     func loadChildren(mediumID: UUID, path: [String]) async -> [IndexedItem] {
         let key = cacheKey(mediumID, path)
-        #if DEBUG
-        if ColumnStateSimulation.isSimulationMedium(mediumID) {
-            if ColumnStateSimulation.isLoadingColumnPath(path) {
-                requestSimulationLoad(mediumID: mediumID, path: path)
-                while loading.contains(key),
-                      (loadingLoaded[key] ?? 0) < ColumnStateSimulation.simulatedLoadingFrozenCount {
-                    await Task.yield()
-                }
-                return []
-            }
-            if loading.contains(key) {
-                while loading.contains(key) {
-                    await Task.yield()
-                }
-                return cache[key] ?? []
-            }
-            requestSimulationLoad(mediumID: mediumID, path: path)
-            return cache[key] ?? simulationChildrenReadOnly(mediumID: mediumID, path: path)
-        }
-        #endif
         requestLoad(mediumID: mediumID, path: path)
         while loading.contains(key) {
             await Task.yield()
@@ -325,60 +285,4 @@ final class IndexRepository {
     private func cacheKey(_ mediumID: UUID, _ path: [String]) -> String {
         ([mediumID.uuidString] + path).joined(separator: "\u{0}")
     }
-
-    #if DEBUG
-    // MARK: - Spalten-Zustände (Demo)
-
-    private func simulationChildrenReadOnly(mediumID: UUID, path: [String]) -> [IndexedItem] {
-        let key = cacheKey(mediumID, path)
-        if loading.contains(key) { return [] }
-        if let cached = cache[key] { return cached }
-        if path.isEmpty {
-            return ColumnStateSimulation.rootItems(mediumID: mediumID)
-        }
-        return ColumnStateSimulation.children(mediumID: mediumID, path: path) ?? []
-    }
-
-    private func requestSimulationLoad(mediumID: UUID, path: [String]) {
-        let key = cacheKey(mediumID, path)
-        if ColumnStateSimulation.isLoadingColumnPath(path) {
-            startSimulationLoadingColumn(mediumID: mediumID, key: key)
-            return
-        }
-        if cache[key] != nil || loading.contains(key) { return }
-        if path.isEmpty {
-            remember(key, ColumnStateSimulation.rootItems(mediumID: mediumID))
-            return
-        }
-        if let simulated = ColumnStateSimulation.children(mediumID: mediumID, path: path) {
-            remember(key, simulated)
-        } else {
-            remember(key, [])
-        }
-    }
-
-    private func startSimulationLoadingColumn(mediumID: UUID, key: String) {
-        simulationLoadTasks[key]?.cancel()
-        _ = loading.insert(key)
-        cache[key] = nil
-        cacheOrder.removeAll { $0 == key }
-        bumpLoadGeneration(key)
-        simulationLoadTasks[key] = Task {
-            await loadSimulationLoadingColumn(mediumID: mediumID, key: key)
-            simulationLoadTasks[key] = nil
-        }
-    }
-
-    private func loadSimulationLoadingColumn(mediumID: UUID, key: String) async {
-        loadingTotals[key] = ColumnStateSimulation.simulatedLoadingTotal
-        loadingLoaded[key] = 0
-        for loaded in ColumnStateSimulation.simulatedLoadingSteps {
-            guard loading.contains(key) else { return }
-            loadingLoaded[key] = loaded
-            try? await Task.sleep(for: .milliseconds(280))
-        }
-        loadingLoaded[key] = ColumnStateSimulation.simulatedLoadingFrozenCount
-        // Demo: Ladehinweis bleibt sichtbar (kein `remember`, `loading` bleibt gesetzt).
-    }
-    #endif
 }

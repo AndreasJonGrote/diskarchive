@@ -95,11 +95,11 @@ private struct ObjectResultsTableHeader: View {
     var body: some View {
         HStack(spacing: 0) {
             Color.clear.frame(width: ObjectTableColumns.icon)
-            header("Name", column: .name).frame(width: columns.name, alignment: .leading)
-            header("Datum", column: .date).frame(width: ObjectTableColumns.date, alignment: .leading)
-            header("Speichermedium", column: .medium).frame(width: ObjectTableColumns.medium, alignment: .leading)
-            header("Pfad", column: .path).frame(width: columns.path, alignment: .leading)
-            header("Status", column: .status).frame(width: ObjectTableColumns.status, alignment: .trailing)
+            header(LayoutCopy.tableName, column: .name).frame(width: columns.name, alignment: .leading)
+            header(LayoutCopy.tableDate, column: .date).frame(width: ObjectTableColumns.date, alignment: .leading)
+            header(LayoutCopy.tableMedium, column: .medium).frame(width: ObjectTableColumns.medium, alignment: .leading)
+            header(LayoutCopy.tablePath, column: .path).frame(width: columns.path, alignment: .leading)
+            header(LayoutCopy.tableStatus, column: .status).frame(width: ObjectTableColumns.status, alignment: .trailing)
         }
         .padding(.horizontal, ObjectTableColumns.horizontalPadding)
         .padding(.vertical, 10)

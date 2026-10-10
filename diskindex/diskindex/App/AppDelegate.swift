@@ -34,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         #endif
         guard !Self.isRunningUnitTests else { return }
-        UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
+        AppDefaults.current.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
         NSWindow.allowsAutomaticWindowTabbing = false
         DiskIndexLog.shared.start()
         launchKind = AppLaunch.kind(
@@ -74,8 +74,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         UNUserNotificationCenter.current().delegate = self
         SystemNotice.logAuthorizationStatus()
-        if NoticePermission.shouldRequest(arguments: CommandLine.arguments, defaults: .standard) {
-            UserDefaults.standard.set(true, forKey: NoticePermission.askedKey)
+        if NoticePermission.shouldRequest(arguments: CommandLine.arguments, defaults: AppDefaults.current) {
+            AppDefaults.current.set(true, forKey: NoticePermission.askedKey)
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         }
         #if DEBUG
@@ -181,11 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// XCTest startet die App als Testhost. Einzelinstanz und der Launch-Agent würden diese Kopie beenden.
-    private static var isRunningUnitTests: Bool {
-        let environment = ProcessInfo.processInfo.environment
-        return environment["XCTestConfigurationFilePath"] != nil
-            || environment["XCTestSessionIdentifier"] != nil
-    }
+    private static var isRunningUnitTests: Bool { RuntimeEnvironment.isRunningTests }
 
     /// Mehrere Bundle-Kopien (DerivedData, alte Builds) oder ein Direktstart der Binärdatei umgehen die
     /// macOS-Sperre. Release und login/--background: neue übergibt und beendet sich.

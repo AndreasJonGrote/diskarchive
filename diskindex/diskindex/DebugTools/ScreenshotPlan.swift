@@ -76,31 +76,6 @@ enum ScreenshotPixels {
         return true
     }
 
-    /// Mindestens ein Pixel nahe Vorschlags-Rot (#FF0000).
-    static func containsProposalRed(_ rep: NSBitmapImageRep) -> Bool {
-        guard let data = rep.bitmapData else { return false }
-        let width = rep.pixelsWide
-        let height = rep.pixelsHigh
-        let row = rep.bytesPerRow
-        let samples = rep.samplesPerPixel
-        guard width > 2, height > 2, samples >= 3 else { return false }
-        let step = max(1, min(20, width / 8))
-        var y = 0
-        while y < height {
-            var x = 0
-            while x < width {
-                let offset = y * row + x * samples
-                let r = data[offset]
-                let g = data[offset + 1]
-                let b = data[offset + 2]
-                if r > 200, r > g + 40, r > b + 40 { return true }
-                x += step
-            }
-            y += step
-        }
-        return false
-    }
-
     /// Genug unterschiedliche Pixel für sichtbaren Zeilentext (nicht nur Fläche/Rahmen).
     static func hasDistinctInk(_ rep: NSBitmapImageRep) -> Bool {
         guard let data = rep.bitmapData else { return false }

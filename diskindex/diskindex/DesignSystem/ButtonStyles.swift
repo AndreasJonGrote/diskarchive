@@ -45,11 +45,6 @@ enum DesignButtonSize {
     var compactFooterHorizontalPadding: CGFloat { 12 }
 }
 
-enum DesignButtonMetrics {
-    static let standardHeight = DesignButtonSize.standard.height
-    static let compactHeight = DesignButtonSize.compact.height
-}
-
 struct PrimaryButtonStyle: ButtonStyle {
     var size: DesignButtonSize = .standard
 
@@ -83,37 +78,6 @@ struct SecondaryButtonStyle: ButtonStyle {
             .foregroundStyle(DesignColor.text)
             .background(configuration.isPressed ? DesignColor.neutral100 : Color.clear)
             .designControlBorder(DesignBorder.secondaryControlBorderColor)
-            .contentShape(RoundedRectangle(cornerRadius: DesignRadius.sm))
-    }
-}
-
-struct DestructiveButtonStyle: ButtonStyle {
-    var size: DesignButtonSize = .standard
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: size.fontSize, weight: .semibold))
-            .padding(.horizontal, size.horizontalPadding)
-            .padding(.vertical, size.verticalPadding)
-            .frame(height: size.height)
-            .foregroundStyle(DesignColor.stateError)
-            .background(configuration.isPressed ? DesignColor.chipFill(DesignColor.stateError) : Color.clear)
-            .designControlBorder(DesignColor.chipBorder(DesignColor.stateError))
-    }
-}
-
-struct GhostButtonStyle: ButtonStyle {
-    var size: DesignButtonSize = .standard
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: size.fontSize, weight: .semibold))
-            .padding(.horizontal, size.horizontalPadding)
-            .padding(.vertical, size.verticalPadding)
-            .frame(height: size.height)
-            .foregroundStyle(DesignColor.control)
-            .background(configuration.isPressed ? DesignColor.control.opacity(0.08) : Color.clear)
-            .clipShape(RoundedRectangle(cornerRadius: DesignRadius.sm))
             .contentShape(RoundedRectangle(cornerRadius: DesignRadius.sm))
     }
 }

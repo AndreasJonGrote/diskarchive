@@ -93,7 +93,7 @@ struct MenuBarConnectedMediumRow: View {
         if let fraction {
             indexingToggle(fraction: fraction)
         } else if rowHovered {
-            MenuBarGhostButton(title: "Neu indizieren", isEnabled: reindexAllowed) {
+            MenuBarGhostButton(title: LayoutCopy.reindex, isEnabled: reindexAllowed) {
                 appState.reindexMedium(id: medium.id)
             }
         }
@@ -104,14 +104,14 @@ struct MenuBarConnectedMediumRow: View {
         case .indexed:
             IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexActivityAt ?? medium.lastIndexedAt)
         case .error:
-            "Kein Zugriff, in den Systemeinstellungen freigeben"
+            LayoutCopy.mediumNoAccess
         case .pending:
             if medium.decision == .undecided {
-                "Entscheidung ausstehend"
+                LayoutCopy.mediumDecisionPending
             } else if medium.hasIndex {
                 LayoutCopy.indexingInProgress
             } else {
-                "Wird indiziert"
+                LayoutCopy.indexingInProgress
             }
         case .indexing:
             ""

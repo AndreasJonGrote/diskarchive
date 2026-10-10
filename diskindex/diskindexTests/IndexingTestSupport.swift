@@ -76,6 +76,7 @@ struct ScanHarness {
         ignoreHidden: Bool = true,
         patterns: [String] = [],
         volume: VolumeInfo? = nil,
+        limits: IndexingRunLimits = .standard,
         shouldHalt: @escaping @Sendable () async -> ScanHalt = { .none },
         onProgress: @escaping @Sendable (IndexProgress) async -> Void = { _ in }
     ) async throws -> IndexRunOutcome {
@@ -84,7 +85,7 @@ struct ScanHarness {
             access: access,
             mediumUUID: mediumID,
             volume: volume ?? self.volume(at: "/Volumes/T"),
-            configuration: ScanConfiguration(maxDepth: maxDepth, ignoreHiddenFiles: ignoreHidden, excludedPatterns: patterns),
+            configuration: ScanConfiguration(maxDepth: maxDepth, ignoreHiddenFiles: ignoreHidden, excludedPatterns: patterns, limits: limits),
             fromScratch: fromScratch,
             token: UUID(),
             shouldHalt: shouldHalt,

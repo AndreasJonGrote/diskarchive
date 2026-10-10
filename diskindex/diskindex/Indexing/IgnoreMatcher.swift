@@ -41,16 +41,6 @@ nonisolated struct IgnoreMatcher: Sendable, Equatable {
     }
 }
 
-nonisolated struct IndexingRunLimits: Sendable, Equatable {
-    var parallelDirectoryReads: Int = 1
-    var batchEntryLimit: Int = 5_000
-    var directoryChunkSize: Int = 2_000
-    var directoryStallTimeout: TimeInterval = 30
-    var consecutiveTimeoutLimit: Int = 3
-
-    static let standard = IndexingRunLimits()
-}
-
 nonisolated struct ScanConfiguration: Sendable, Equatable {
     /// `nil` = „5+“, keine Grenze.
     var maxDepth: Int?
@@ -126,11 +116,6 @@ nonisolated enum IndexSchedule {
     }
 }
 
-nonisolated enum IndexingLimits {
-    /// Produktions-Standard; Tests überschreiben über `ScanConfiguration.limits`.
-    static var standard: IndexingRunLimits { .standard }
-}
-
 struct DirectoryReadStalled: Error {}
 
 struct DirectoryIndexInterrupted: Error {
@@ -146,23 +131,4 @@ nonisolated enum ScanHalt: Sendable, Equatable {
 nonisolated enum IndexRunPhase: Sendable, Equatable {
     case counting
     case indexing
-}
-
-nonisolated struct IndexProgress: Sendable, Equatable {
-    var phase: IndexRunPhase = .indexing
-    var ratio: Double
-    var filesStored: Int
-    var filesDiscovered: Int
-    var entriesTotal: Int = 0
-    var entriesCompleted: Int = 0
-    var countingCount: Int = 0
-    var finished: Bool
-}
-
-nonisolated struct IndexRunOutcome: Sendable, Equatable {
-    var status: StoredIndexStatus
-    var readErrors: Int
-    var progress: [Double]
-    var completedDepths: [Int]
-    var firstIndexedAt: Date?
 }

@@ -223,12 +223,12 @@ final class MenuBarController: NSObject {
 
     private func showContextMenu(for button: NSStatusBarButton, event: NSEvent) {
         let menu = NSMenu()
-        let openItem = NSMenuItem(title: "Disk Archive anzeigen", action: #selector(openMainWindow), keyEquivalent: "")
+        let openItem = NSMenuItem(title: LayoutCopy.menuBarShowApp, action: #selector(openMainWindow), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
         menu.addItem(.separator())
         // „Freigabe ausstehend“ zählt als an.
-        let launchItem = NSMenuItem(title: "Automatisch bei Systemstart", action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
+        let launchItem = NSMenuItem(title: LayoutCopy.menuBarLaunchAtLogin, action: #selector(toggleLaunchAtLogin), keyEquivalent: "")
         launchItem.target = self
         launchItem.state = (appState?.launchAtLoginState ?? .off) != .off ? .on : .off
         menu.addItem(launchItem)
@@ -254,7 +254,7 @@ final class MenuBarController: NSObject {
         menu.addItem(proposalExportItem)
         #endif
         menu.addItem(.separator())
-        let logItem = NSMenuItem(title: "Protokoll im Finder zeigen", action: #selector(revealLog), keyEquivalent: "")
+        let logItem = NSMenuItem(title: LayoutCopy.menuBarRevealLog, action: #selector(revealLog), keyEquivalent: "")
         logItem.target = self
         menu.addItem(logItem)
         #if DEBUG
@@ -263,7 +263,7 @@ final class MenuBarController: NSObject {
         menu.addItem(crashItem)
         #endif
         menu.addItem(.separator())
-        let quitItem = NSMenuItem(title: "Disk Archive beenden", action: #selector(quitApp), keyEquivalent: "")
+        let quitItem = NSMenuItem(title: LayoutCopy.menuBarQuit, action: #selector(quitApp), keyEquivalent: "")
         quitItem.target = self
         menu.addItem(quitItem)
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)

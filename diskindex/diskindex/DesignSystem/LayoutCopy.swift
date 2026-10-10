@@ -45,8 +45,6 @@ nonisolated enum LayoutCopy {
 
     static var languageTitle: String { L10n.string("copy.settings.language.title") }
     static var languageText: String { L10n.string("copy.settings.language.text") }
-    static var languageGerman: String { L10n.string("copy.settings.language.german") }
-    static var languageEnglish: String { L10n.string("copy.settings.language.english") }
 
     static var autostartTitle: String { L10n.string("copy.settings.autostart.title") }
     static var autostartText: String { L10n.string("copy.settings.autostart.text") }
@@ -117,7 +115,6 @@ nonisolated enum LayoutCopy {
     static var no: String { L10n.string("copy.no") }
 
     static var noticesTitle: String { L10n.string("copy.settings.notices.title") }
-    static var noticesText: String { L10n.string("copy.settings.notices.text") }
     static var noticesTextLead: String { L10n.string("copy.settings.notices.text_lead") }
     static var noticesTextTail: String { L10n.string("copy.settings.notices.text_tail") }
     static var noticesSystemAndPauses: String { L10n.string("copy.settings.notices.system_and_pauses") }
@@ -157,7 +154,6 @@ nonisolated enum LayoutCopy {
 
     static var total: String { L10n.string("copy.medium.total") }
     static var usedFree: String { L10n.string("copy.medium.used_free") }
-    static var filesFolders: String { L10n.string("copy.medium.files_folders") }
     static var files: String { L10n.string("copy.medium.files") }
     static var folders: String { L10n.string("copy.medium.folders") }
     static var lastSeen: String { L10n.string("copy.medium.last_seen") }
@@ -199,11 +195,9 @@ nonisolated enum LayoutCopy {
     static var indexingInProgress: String { L10n.string("copy.column.indexing_in_progress") }
     static var folderPendingIndexingBody: String { L10n.string("copy.column.folder_pending_body") }
     static var folderNotIndexedTitle: String { L10n.string("copy.column.folder_not_indexed_title") }
-    static var uncapturedContentNotCaptured: String { L10n.string("copy.column.uncaptured_title") }
     static var uncapturedScanDepthHint: String { L10n.string("copy.column.uncaptured_scan_depth") }
     static var changeScanDepth: String { L10n.string("copy.column.change_scan_depth") }
     static var folderLoadingManyObjects: String { L10n.string("copy.column.folder_loading_many") }
-    static var folderLoadingProgressExample: String { L10n.string("copy.column.folder_loading_progress_example") }
 
     static func folderLoadingProgress(loaded: Int, total: Int) -> String {
         L10n.format(

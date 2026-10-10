@@ -44,8 +44,8 @@ enum ObjectCountFormatting {
     /// „1 Objekt“ / „1.234 Objekte“; bei aktivem Filter „x von y Objekten“.
     static func label(filtered: Int, total: Int) -> String {
         if filtered != total {
-            return "\(DisplayNumberFormat.groupedInteger(filtered)) von \(DisplayNumberFormat.groupedInteger(total)) Objekten"
+            return LayoutCopy.objectFiltered(DisplayNumberFormat.groupedInteger(filtered), DisplayNumberFormat.groupedInteger(total))
         }
-        return filtered == 1 ? "1 Objekt" : "\(DisplayNumberFormat.groupedInteger(filtered)) Objekte"
+        return filtered == 1 ? LayoutCopy.objectOne : LayoutCopy.objectMany(DisplayNumberFormat.groupedInteger(filtered))
     }
 }

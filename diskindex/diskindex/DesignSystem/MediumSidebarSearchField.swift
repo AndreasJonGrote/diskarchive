@@ -7,7 +7,7 @@ import SwiftUI
 
 struct MediumSidebarSearchField: View {
     @Binding var text: String
-    var placeholder: String = "Medium suchen…"
+    var placeholder: String = LayoutCopy.searchPlaceholderMedium
     /// Template-Asset links im Feld; Dateiendungs-Feld nutzt `FileTypeGeneric` (Review K1 zu 32.2).
     var icon: String = "IconMagnifyingGlass"
     /// Enter (z. B. Endung übernehmen). Ohne Handler filtert das Feld nur live.

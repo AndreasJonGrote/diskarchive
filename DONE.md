@@ -71,4 +71,13 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 
 | 195 a, b | `MustScanSubDirs` an/unter dem Einhängepunkt → Abgleich, außerhalb ignoriert; `.counts` verwirft keine geplante Spalten-Invalidierung mehr (Sabotagen von Claude nachgestellt: rot ✓) | 10.10. (Claude-Lauf 383 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-10b.md` |
 
-**Offen:** Version 0.2 (bekannte Fehler, Liste in TODO.md A). 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+| 197 | FAT-Test meldet Fehler sichtbar, Abbild 64m (lief vorher nie) | 10.10. (Claude-Lauf 380 Tests seriell grün, 0 Warnungen; Ersatz-Agent) | `archiv/todo-stand-2026-10-10d.md` |
+| 198 | Systemscrollleisten: senkrecht je Spalte, waagerecht über der Statusleiste (beide Stile getestet) | 10.10. | ebenda |
+| 199 | Detail-Spalte nur bei Datei oder Mehrfachauswahl | 10.10. | ebenda |
+| 200 | Demo-Medium „Spalten-Zustände (Demo)“ entfernt, Tests auf echte Daten | 10.10. | ebenda |
+
+| 201 | Toter Code, nur von Tests benutzte Logik und Doppeltes entfernt; `RuntimeEnvironment`, `IndexRunTypes` | 10.10. (Claude-Lauf 387 Tests zweimal seriell grün, 0 Warnungen; Ersatz-Agent) | `archiv/todo-stand-2026-10-10e.md` |
+| 202 | Fehlergrund aus dem Fehlerobjekt bis in den Dialog | 10.10. | ebenda |
+| 203 | Englisch vollständig (72 neue Schlüssel, `docs/englisch-neu.md`), Zahlen und Uhrzeit nach App-Sprache, Quell-Scan-Test | 10.10. | ebenda |
+
+**Offen:** 205 (Tests schreiben in echte Einstellungen); 204 und F9 warten auf den Nutzer. 196 (Messwerkzeug) liegt im Backlog unter 0.3.

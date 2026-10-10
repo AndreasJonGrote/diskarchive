@@ -17,7 +17,6 @@ import Testing
         #expect(DesignButtonSize.compact.height == 24.4)
         #expect(ConfirmButton.layoutHeight == DesignButtonSize.standard.height)
         #expect(PrimaryButtonStyle().size.height == SecondaryButtonStyle().size.height)
-        #expect(DestructiveButtonStyle().size.height == DesignButtonSize.standard.height)
     }
 
     @Test func confirmButtonWidthUsesLongestStageLabel() {

@@ -18,7 +18,7 @@ struct SettingsGeneralTab: View {
     private var launchAtLogin: LaunchAtLogin.State { appState.launchAtLoginState }
     @State private var noticePreview: DiskNotice?
     /// Beobachteter Zustand — UserDefaults-Binding allein zeichnet den Toggle nicht neu (Aufgabe 142).
-    @AppStorage(IssueConsent.autoSendKey) private var autoSendCrashReports = false
+    @AppStorage(IssueConsent.autoSendKey, store: AppDefaults.current) private var autoSendCrashReports = false
 
     var body: some View {
         let settings = appState.appSettingsBinding

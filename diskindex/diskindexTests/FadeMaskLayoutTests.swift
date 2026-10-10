@@ -64,7 +64,7 @@ struct FadeMaskLayoutTests {
         #expect(state.sidebarWidth == 420)
 
         let app = AppState()
-        let long = "Spalten-Zustände (Demo) — sehr langer Medienname"
+        let long = "Ein sehr langer Medienname für die Seitenleiste (Überlänge)"
         let row = ColumnBrowserRow(
             title: long,
             isSelected: true,

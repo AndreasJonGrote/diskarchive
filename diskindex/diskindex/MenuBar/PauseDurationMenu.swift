@@ -166,10 +166,7 @@ struct PauseDurationMenuContent: View {
     }
 
     private func untilLabel(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "de_DE")
-        formatter.dateFormat = "HH:mm"
-        return "bis \(formatter.string(from: date)) Uhr"
+        LayoutCopy.menuPauseUntil(DisplayTimeFormat.clock(date))
     }
 }
 

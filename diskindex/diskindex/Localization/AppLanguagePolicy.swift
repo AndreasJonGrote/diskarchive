@@ -14,7 +14,7 @@ nonisolated enum AppLanguagePolicy {
     private static let lock = NSRecursiveLock()
     private static var activeDisplayLanguage: AppDisplayLanguage?
 
-    static func resolvedDisplayLanguage(fallbackDefaults: UserDefaults = .standard) -> AppDisplayLanguage {
+    static func resolvedDisplayLanguage(fallbackDefaults: UserDefaults = AppDefaults.current) -> AppDisplayLanguage {
         lock.lock()
         defer { lock.unlock() }
         return activeDisplayLanguage ?? AppSettings.load(from: fallbackDefaults).displayLanguage

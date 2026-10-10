@@ -20,15 +20,15 @@ nonisolated enum SearchAgeFilter: String, CaseIterable, Identifiable, Sendable {
 
     var label: String {
         switch self {
-        case .last24Hours: "Letzte 24 Stunden"
-        case .last2Days: "Letzte 2 Tage"
-        case .lastWeek: "Letzte Woche"
-        case .lastMonth: "Letzter Monat"
-        case .last3Months: "3 Monate"
-        case .last6Months: "6 Monate"
-        case .last9Months: "9 Monate"
-        case .lastYear: "Letztes Jahr"
-        case .older: "Älter"
+        case .last24Hours: LayoutCopy.ageLast24Hours
+        case .last2Days: LayoutCopy.ageLast2Days
+        case .lastWeek: LayoutCopy.ageLastWeek
+        case .lastMonth: LayoutCopy.ageLastMonth
+        case .last3Months: LayoutCopy.ageLast3Months
+        case .last6Months: LayoutCopy.ageLast6Months
+        case .last9Months: LayoutCopy.ageLast9Months
+        case .lastYear: LayoutCopy.ageLastYear
+        case .older: LayoutCopy.ageOlder
         }
     }
 
@@ -69,15 +69,15 @@ nonisolated enum SearchFileTypeFilter: String, CaseIterable, Identifiable, Senda
     var label: String {
         switch self {
         case .pdf: "PDF"
-        case .text: "Text"
-        case .documents: "Dokumente"
-        case .image: "Bild"
-        case .video: "Video"
-        case .audio: "Audio"
-        case .archive: "Archiv"
-        case .programs: "Programme"
-        case .scripts: "Skripte"
-        case .folder: "Ordner"
+        case .text: LayoutCopy.kindText
+        case .documents: LayoutCopy.kindDocuments
+        case .image: LayoutCopy.kindImage
+        case .video: LayoutCopy.kindVideo
+        case .audio: LayoutCopy.kindAudio
+        case .archive: LayoutCopy.kindArchive
+        case .programs: LayoutCopy.kindPrograms
+        case .scripts: LayoutCopy.kindScripts
+        case .folder: LayoutCopy.kindFolder
         }
     }
 

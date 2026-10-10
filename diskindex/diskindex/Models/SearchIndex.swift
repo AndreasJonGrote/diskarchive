@@ -200,9 +200,9 @@ enum FavoritesConnectionFilter: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .all: "Alle"
-        case .online: "Online"
-        case .offline: "Offline"
+        case .all: LayoutCopy.scopeAll
+        case .online: LayoutCopy.chipOnline
+        case .offline: LayoutCopy.chipOffline
         }
     }
 

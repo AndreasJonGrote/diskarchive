@@ -550,46 +550,6 @@ private enum ScreenshotFixture {
         default:
             break
         }
-
-        if variant == "07-inhalte-geladen" {
-            let demo = ColumnStateSimulation.makeMedium()
-            app.media = [demo]
-            let projects = ColumnStateSimulation.FolderName.projects
-            let loading = ColumnStateSimulation.FolderName.loadingContents
-            let loadingItem = IndexedItem(
-                id: IndexedItem.stableID(mediumID: demo.id, rowID: 99),
-                rowID: 99,
-                name: loading,
-                kind: .folder,
-                parentPath: [projects],
-                modifiedAt: Date(),
-                sizeBytes: nil,
-                lastSeenAt: Date(),
-                listedAt: Date()
-            )
-            let rootProjects = IndexedItem(
-                id: IndexedItem.stableID(mediumID: demo.id, rowID: 98),
-                rowID: 98,
-                name: projects,
-                kind: .folder,
-                parentPath: [],
-                modifiedAt: Date(),
-                sizeBytes: nil,
-                lastSeenAt: Date(),
-                listedAt: Date()
-            )
-            app.indexRepository.seedScreenshotCache(mediumID: demo.id, entries: [
-                ([], [rootProjects]),
-                ([projects], [loadingItem]),
-                ([projects, loading], []),
-            ])
-            app.mainWindowDestination = .columnBrowser
-            app.columnBrowserState.selectedMediumID = demo.id
-            app.columnBrowserState.pathStack = [projects, loading]
-            var selection = ColumnSelection()
-            selection.replace(id: loadingItem.id, column: 1)
-            app.columnBrowserState.selection = selection
-        }
     }
 
     static func contextFolderTarget(_ app: AppState) -> ObjectContextTarget {

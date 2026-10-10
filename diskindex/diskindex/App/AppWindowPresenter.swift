@@ -43,7 +43,7 @@ enum AppWindowPresenter {
             backing: .buffered,
             defer: false
         )
-        window.title = "Disk Archive"
+        window.title = LayoutCopy.diskIndex
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
         window.isOpaque = true

@@ -32,25 +32,18 @@ struct ColumnVerticalLayoutTests {
     }
 
     @Test(arguments: [NSAppearance.Name.aqua, .darkAqua])
-    func demoMediumColumnsStartAtTop(_ appearance: NSAppearance.Name) async {
+    func twoColumnsWithSelectionStartAtTop(_ appearance: NSAppearance.Name) async {
         let app = AppState()
-        let demo = ColumnStateSimulation.makeMedium()
-        app.media = [demo]
-        let projects = ColumnStateSimulation.FolderName.projects
-        let root = ColumnStateSimulation.rootItems(mediumID: demo.id)
-        let children = ColumnStateSimulation.children(mediumID: demo.id, path: [projects]) ?? []
-        app.indexRepository.seedScreenshotCache(mediumID: demo.id, entries: [
-            ([], root),
-            ([projects], children),
-        ])
+        let medium = studioBackup()
+        app.media = [medium]
+        let catalog = studioCatalog(mediumID: medium.id)
+        app.indexRepository.seedScreenshotCache(mediumID: medium.id, entries: catalog.entries)
         app.mainWindowDestination = .columnBrowser
-        app.columnBrowserState.selectedMediumID = demo.id
-        app.columnBrowserState.pathStack = [projects]
-        if let first = children.first {
-            var selection = ColumnSelection()
-            selection.replace(id: first.id, column: 1)
-            app.columnBrowserState.selection = selection
-        }
+        app.columnBrowserState.selectedMediumID = medium.id
+        app.columnBrowserState.pathStack = ["Rechnungen"]
+        var selection = ColumnSelection()
+        selection.replace(id: catalog.rechnungen2021, column: 1)
+        app.columnBrowserState.selection = selection
         let bitmap = await renderBrowser(app, appearance: appearance)
         assertColumnsSitAtTop(bitmap, columnCount: 2)
     }

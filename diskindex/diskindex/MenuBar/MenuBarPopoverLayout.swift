@@ -15,15 +15,12 @@ enum MenuBarPopoverLayout {
     static let idleContentHorizontalInset: CGFloat = 12
     /// Wie Mockup: `color-mix(text 7%)` — Automatisches Indizieren + Aktions-Fuß.
     static var footerBandBackground: Color { DesignColor.text.opacity(0.07) }
-    /// Rechter Button-Trailing = Panel-Trailing − 12 pt Innenabstand (Button klein).
-    static let footerOpenAppTextInset: CGFloat = panelHorizontalInset + 12
 
     static let headerHeight: CGFloat = 50
     static let contentTopPadding: CGFloat = 12
     static let contentBottomPadding: CGFloat = 8
     static let sectionLabelHeight: CGFloat = 24
     static let rowHeightStandard: CGFloat = 56
-    static let rowHeightIndexing: CGFloat = 64
     static let footerAutoIndexHeight: CGFloat = 48
     static let footerOpenAppVerticalPadding: CGFloat = 12
     /// `SecondaryButtonStyle(compactFooter:)`: 12 pt Semibold (~16 pt Zeile) + 4×12 pt.
@@ -50,14 +47,6 @@ enum MenuBarPopoverLayout {
 
     static func pauseMenuHeight(paused: Bool) -> CGFloat {
         paused ? pauseMenuHeightWhenPaused : pauseMenuHeightWhenChoosing
-    }
-
-    static func pauseMenuVerticalOffset(paused: Bool) -> CGFloat {
-        pauseMenuHeight(paused: paused) - pauseMenuAnchorFromBottom
-    }
-
-    static func pausePanelExtension(paused: Bool) -> CGFloat {
-        max(0, pauseMenuHeight(paused: paused) - pauseMenuAnchorFromBottom)
     }
 
     // Suchzustand (3b) — Mockup `padding: var(--space-4)`, Gruppen-`gap: var(--space-3)`.

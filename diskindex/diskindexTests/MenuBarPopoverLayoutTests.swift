@@ -12,7 +12,6 @@ import Testing
     @Test func panelHorizontalInsetMatchesLayout() {
         #expect(MenuBarPopoverLayout.panelHorizontalInset == 16)
         #expect(MenuBarPopoverLayout.idleContentHorizontalInset == 12)
-        #expect(MenuBarPopoverLayout.footerOpenAppTextInset == 28)
         #expect(MenuBarPopoverLayout.searchVerticalPadding == 16)
     }
 
@@ -87,17 +86,5 @@ import Testing
     @Test func searchFooterHeightOnlyWhenResultsExist() {
         #expect(MenuBarPopoverLayout.searchActionFooterHeight(totalCount: 0) == 0)
         #expect(MenuBarPopoverLayout.searchActionFooterHeight(totalCount: 9) == MenuBarPopoverLayout.footerOpenAppHeight)
-    }
-
-    @Test func pauseMenuOverlapsPanelByAnchor() {
-        let choosing = MenuBarPopoverLayout.pausePanelExtension(paused: false)
-        #expect(choosing == MenuBarPopoverLayout.pauseMenuHeightWhenChoosing - MenuBarPopoverLayout.pauseMenuAnchorFromBottom)
-        let paused = MenuBarPopoverLayout.pausePanelExtension(paused: true)
-        #expect(paused == MenuBarPopoverLayout.pauseMenuHeightWhenPaused - MenuBarPopoverLayout.pauseMenuAnchorFromBottom)
-    }
-
-    @Test func pauseVerticalOffsetPlacesTopAboveAnchor() {
-        #expect(MenuBarPopoverLayout.pauseMenuVerticalOffset(paused: false) > 0)
-        #expect(MenuBarPopoverLayout.pauseMenuVerticalOffset(paused: true) > MenuBarPopoverLayout.pauseMenuVerticalOffset(paused: false))
     }
 }

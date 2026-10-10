@@ -166,7 +166,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     init(
         endpoint: URL = ReportTarget.endpoint,
         directory: URL? = nil,
-        defaults: UserDefaults = .standard,
+        defaults: UserDefaults = AppDefaults.current,
         session: URLSession? = nil,
         releaseBuild: Bool = false,
         now: @escaping () -> Date = { Date() },

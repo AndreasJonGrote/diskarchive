@@ -283,9 +283,6 @@ struct ColumnBrowserView: View {
     }
 
     private func sidebarContextTarget(for medium: Medium) -> ObjectContextTarget? {
-        #if DEBUG
-        if ColumnStateSimulation.isSimulationMedium(medium.id) { return nil }
-        #endif
         return ObjectContextTarget.fromMedium(medium)
     }
 
@@ -324,6 +321,8 @@ struct ColumnBrowserView: View {
                 : 0
             let horizontalOverflow = folderWidth + detailWidth > geometry.size.width + 0.5
             let scrollInset = horizontalOverflow ? horizontalScrollIndicatorInset : 0
+            // Bei Overflow wird die ScrollView um die Scrollerbreite kürzer: im Legacy-Stil
+            // hängt SwiftUI den Scroller unten an (Rahmen = Zuteilung + Scrollerbreite).
             ScrollViewReader { proxy in
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: 0) {
@@ -344,19 +343,22 @@ struct ColumnBrowserView: View {
                             EmptyStateView(title: EmptyStateCopy.noMediumTitle, message: EmptyStateCopy.noMediumMessage)
                         }
                     }
-                    .padding(.bottom, scrollInset)
                     // Inhalt = Spaltensumme, mind. sichtbare Breite. minHeight = Viewport, sonst zentriert
                     // der horizontale ScrollView kurze Spalten senkrecht (Aufgabe 143).
                     .frame(
                         minWidth: geometry.size.width,
-                        minHeight: geometry.size.height,
+                        minHeight: max(0, geometry.size.height - scrollInset),
                         maxHeight: .infinity,
                         alignment: .topLeading
                     )
                     .animation(nil, value: columnResizePreview?.width)
                 }
                 .scrollIndicators(.automatic)
-                .contentMargins(.bottom, scrollInset, for: .scrollIndicators)
+                .frame(
+                    maxWidth: .infinity,
+                    maxHeight: max(0, geometry.size.height - scrollInset),
+                    alignment: .topLeading
+                )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .onChange(of: appState.columnBrowserState.pathStack) { _, _ in
                     scrollToTrailingColumn(
@@ -376,7 +378,10 @@ struct ColumnBrowserView: View {
         }
     }
 
-    private var horizontalScrollIndicatorInset: CGFloat { 14 }
+    private var horizontalScrollIndicatorInset: CGFloat { Self.legacyScrollerThickness }
+
+    private static let legacyScrollerThickness: CGFloat =
+        NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy)
 
     private func scrollToTrailingColumn(
         proxy: ScrollViewProxy,
@@ -399,13 +404,8 @@ struct ColumnBrowserView: View {
         in geometry: GeometryProxy,
         folderColumns: [ColumnBrowserFolderColumn]
     ) -> Bool {
-        if appState.columnBrowserState.selection.isMultiple
-            || singleSelectedFile(in: folderColumns) != nil {
-            return true
-        }
-        let depth = folderColumns.count
-        let folderWidth = totalFolderColumnsWidth(depth: depth)
-        return folderWidth >= geometry.size.width
+        appState.columnBrowserState.selection.isMultiple
+            || singleSelectedFile(in: folderColumns) != nil
     }
 
     /// Statusfläche füllt die Restbreite (Aufgabe 139) — kein fester Ordnerspaltenrahmen.
@@ -460,7 +460,6 @@ struct ColumnBrowserView: View {
                         isLoading: true,
                         loaded: progress.loaded,
                         total: progress.total,
-                        loadingTiming: demoLoadingColumnTiming(mediumID: medium.id, path: column.path),
                         onLoadingHintVisible: { visible in
                             publishLoadingHint(visible, medium: medium, path: column.path)
                         }
@@ -476,7 +475,6 @@ struct ColumnBrowserView: View {
                         isLoading: false,
                         loaded: progress.loaded,
                         total: progress.total,
-                        loadingTiming: demoLoadingColumnTiming(mediumID: medium.id, path: column.path),
                         onLoadingHintVisible: { visible in
                             publishLoadingHint(visible, medium: medium, path: column.path)
                         }
@@ -802,16 +800,6 @@ struct ColumnBrowserView: View {
             parts.append(folder.name)
         }
         return parts.joined(separator: " › ")
-    }
-
-    private func demoLoadingColumnTiming(mediumID: UUID, path: [String]) -> DelayedLoadingTiming {
-        #if DEBUG
-        if ColumnStateSimulation.isSimulationMedium(mediumID),
-           ColumnStateSimulation.isLoadingColumnPath(path) {
-            return ColumnStateSimulation.demoLoadingHintTiming
-        }
-        #endif
-        return .standard
     }
 
     private func columnHeaderBase(medium: Medium, column: ColumnBrowserFolderColumn) -> String {

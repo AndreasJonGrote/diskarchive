@@ -31,7 +31,8 @@ struct ColumnAutoScrollTests {
 private enum ColumnAutoScrollTestSupport {
     static func runOverflowSelectionScrollsTrailing() async throws {
         let app = deepColumnApp()
-        let size = CGSize(width: 1120, height: 600)
+        // 4 Ordnerspalten à 230 pt = 920 pt: 1040 − 200 (Seitenleiste) lässt echten Überlauf ohne Detail-Spalte (199).
+        let size = CGSize(width: 1040, height: 600)
         let session = PixelProbe.open(
             ColumnBrowserView().environment(app).environment(\.colorScheme, .light).frame(width: size.width, height: size.height),
             size: size,

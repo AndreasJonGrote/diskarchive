@@ -12,7 +12,7 @@ import SwiftUI
 
 // MARK: - Modell
 
-private struct ContextMenuEntry: Identifiable {
+struct ContextMenuEntry: Identifiable {
     let id: String
     let title: String
     let icon: String
@@ -42,11 +42,11 @@ private func contextMenuGroups(for targets: [ObjectContextTarget], appState: App
         let isShowingContent = appState.mainWindowDestination == .columnBrowser
             && (columnBrowser.selectedMediumID ?? appState.registryMedia.first?.id) == target.mediumID
         groups.append([
-            ContextMenuEntry(id: "showContent", title: "Inhalt anzeigen", icon: "IconColumns", isEnabled: !isShowingContent) {
+            ContextMenuEntry(id: "showContent", title: LayoutCopy.contextShowContent, icon: "IconColumns", isEnabled: !isShowingContent) {
                 MediumNavigation.openColumnBrowser(for: target.mediumID, appState: appState)
                 MenuBarPopoverDismiss.openMainWindow(appState: appState)
             },
-            ContextMenuEntry(id: "details", title: "Details", icon: "IconFadersHorizontal") {
+            ContextMenuEntry(id: "details", title: LayoutCopy.contextDetails, icon: "IconFadersHorizontal") {
                 MediumNavigation.openDetails(for: target.mediumID, appState: appState)
                 MenuBarPopoverDismiss.openMainWindow(appState: appState)
             },
@@ -55,14 +55,14 @@ private func contextMenuGroups(for targets: [ObjectContextTarget], appState: App
 
     return groups + [
         [
-            ContextMenuEntry(id: "finder", title: "Im Finder anzeigen", icon: "IconArrowSquareOut", isEnabled: target.isMediumOnline) {
+            ContextMenuEntry(id: "finder", title: LayoutCopy.contextShowInFinder, icon: "IconArrowSquareOut", isEnabled: target.isMediumOnline) {
                 appState.revealInFinder(target)
             },
         ],
         [
             ContextMenuEntry(
                 id: "favorite",
-                title: "Als Favorit markieren",
+                title: LayoutCopy.contextFavorite,
                 icon: isFavorite ? "IconBookmarkSimpleDuotone" : "IconBookmarkSimple",
                 iconColor: isFavorite ? DesignColor.favorite : nil,
                 checkColor: isFavorite ? DesignColor.favorite : nil
@@ -71,13 +71,13 @@ private func contextMenuGroups(for targets: [ObjectContextTarget], appState: App
             },
         ],
         [
-            ContextMenuEntry(id: "searchName", title: "Nach Namen suchen", icon: "IconMagnifyingGlass") {
+            ContextMenuEntry(id: "searchName", title: LayoutCopy.contextSearchName, icon: "IconMagnifyingGlass") {
                 appState.openSearch(withQuery: target.name)
                 MenuBarPopoverDismiss.openMainWindow(appState: appState)
             },
             ContextMenuEntry(
                 id: "searchExtension",
-                title: "Nach Dateiendung suchen",
+                title: LayoutCopy.contextSearchExtension,
                 icon: "IconFileMagnifyingGlass",
                 isEnabled: target.fileExtension != nil
             ) {
@@ -90,7 +90,7 @@ private func contextMenuGroups(for targets: [ObjectContextTarget], appState: App
         [
             ContextMenuEntry(
                 id: "ignoreName",
-                title: "Dateinamen ignorieren",
+                title: LayoutCopy.contextIgnoreName,
                 icon: "IconProhibit",
                 iconColor: ignoresName ? DesignColor.stateError : nil,
                 checkColor: ignoresName ? DesignColor.stateError : nil,
@@ -100,7 +100,7 @@ private func contextMenuGroups(for targets: [ObjectContextTarget], appState: App
             },
             ContextMenuEntry(
                 id: "ignoreType",
-                title: "Dateitypen ignorieren",
+                title: LayoutCopy.contextIgnoreType,
                 icon: "IconProhibit",
                 iconColor: ignoresType ? DesignColor.stateError : nil,
                 checkColor: ignoresType ? DesignColor.stateError : nil,
@@ -115,7 +115,7 @@ private func contextMenuGroups(for targets: [ObjectContextTarget], appState: App
 }
 
 @MainActor
-private func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppState) -> [[ContextMenuEntry]] {
+func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppState) -> [[ContextMenuEntry]] {
     let plan = ContextMenuPlan.multiple(
         targets: targets,
         favorites: targets.map { appState.isFavorite($0) },
@@ -125,12 +125,12 @@ private func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appStat
     let extensions = IgnoreBatch.extensionPatterns(of: targets)
     return [
         [
-            ContextMenuEntry(id: "finder", title: "Im Finder anzeigen", icon: "IconArrowSquareOut", isEnabled: false) {},
+            ContextMenuEntry(id: "finder", title: LayoutCopy.contextShowInFinder, icon: "IconArrowSquareOut", isEnabled: false) {},
         ],
         [
             ContextMenuEntry(
                 id: "favorite",
-                title: "Als Favorit markieren",
+                title: LayoutCopy.contextFavorite,
                 icon: plan.favoriteChecked ? "IconBookmarkSimpleDuotone" : "IconBookmarkSimple",
                 iconColor: plan.favoriteChecked ? DesignColor.favorite : nil,
                 checkColor: plan.favoriteChecked ? DesignColor.favorite : nil
@@ -139,13 +139,13 @@ private func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appStat
             },
         ],
         [
-            ContextMenuEntry(id: "searchName", title: "Nach Namen suchen", icon: "IconMagnifyingGlass", isEnabled: false) {},
-            ContextMenuEntry(id: "searchExtension", title: "Nach Dateiendung suchen", icon: "IconFileMagnifyingGlass", isEnabled: false) {},
+            ContextMenuEntry(id: "searchName", title: LayoutCopy.contextSearchName, icon: "IconMagnifyingGlass", isEnabled: false) {},
+            ContextMenuEntry(id: "searchExtension", title: LayoutCopy.contextSearchExtension, icon: "IconFileMagnifyingGlass", isEnabled: false) {},
         ],
         [
             ContextMenuEntry(
                 id: "ignoreName",
-                title: "Dateinamen ignorieren",
+                title: LayoutCopy.contextIgnoreName,
                 icon: "IconProhibit",
                 iconColor: plan.ignoreNameChecked ? DesignColor.stateError : nil,
                 checkColor: plan.ignoreNameChecked ? DesignColor.stateError : nil
@@ -154,7 +154,7 @@ private func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appStat
             },
             ContextMenuEntry(
                 id: "ignoreType",
-                title: "Dateitypen ignorieren",
+                title: LayoutCopy.contextIgnoreType,
                 icon: "IconProhibit",
                 iconColor: plan.ignoreTypeChecked ? DesignColor.stateError : nil,
                 checkColor: plan.ignoreTypeChecked ? DesignColor.stateError : nil,

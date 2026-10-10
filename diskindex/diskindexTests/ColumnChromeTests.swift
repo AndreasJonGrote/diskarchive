@@ -2,7 +2,7 @@
 //  ColumnChromeTests.swift
 //  diskindexTests
 //
-//  Aufgabe 152 — Markierung, Scrollbalken, Demo-Ladehinweis.
+//  Aufgabe 152 / 200 — Markierung, Ladehinweis (echte Testdaten).
 //
 
 import AppKit
@@ -15,7 +15,7 @@ extension WindowTestGroup {
 struct ColumnChromeTests {
     @Test(arguments: [NSAppearance.Name.aqua, .darkAqua])
     func selectedPathRowsStayFullColor(_ appearance: NSAppearance.Name) async {
-        let app = demoApp(path: [ColumnStateSimulation.FolderName.projects], selectPending: true)
+        let app = chromeApp(path: [ChromeNames.projects], selectFirstChild: true)
         let scheme: ColorScheme = appearance == .darkAqua ? .dark : .light
         let bitmap = await PixelProbe.render(
             ColumnBrowserView().environment(app).environment(\.colorScheme, scheme).frame(width: 1280, height: 800),
@@ -36,42 +36,27 @@ struct ColumnChromeTests {
         }
     }
 
-    @Test func folderColumnHidesScrollTrack() async {
-        let bitmap = await scrolledColumnBitmap()
-        let sidebar = DesignSpacing.columnBrowserSidebarWidth
-        let width = DesignSpacing.columnBrowserColumnWidth
-        let edge = sidebar + width
-        let ground = PixelProbe.color(in: bitmap, at: CGPoint(x: edge - 40, y: 400))
-        var odd = 0
-        for y in stride(from: 36, to: 520, by: 2) {
-            let sample = PixelProbe.color(in: bitmap, at: CGPoint(x: edge - 8, y: CGFloat(y)))
-            if !same(sample, ground, tolerance: 0.2) { odd += 1 }
-        }
-        #expect(odd < 8)
-    }
-
-    /// Aufgabe 172 a: auch mit klassischen Rollbalken („Rollbalken: immer“) keine Spur.
-    @Test func folderColumnHidesScrollTrackWithLegacyScrollers() async {
-        let bitmap = await scrolledColumnBitmap(forceLegacyScrollers: true)
-        let edge = DesignSpacing.columnBrowserSidebarWidth + DesignSpacing.columnBrowserColumnWidth
-        let ground = PixelProbe.color(in: bitmap, at: CGPoint(x: edge - 40, y: 400))
-        var odd = 0
-        for y in stride(from: 36, to: 520, by: 2) {
-            let sample = PixelProbe.color(in: bitmap, at: CGPoint(x: edge - 8, y: CGFloat(y)))
-            if !same(sample, ground, tolerance: 0.2) { odd += 1 }
-        }
-        #expect(odd < 8)
-    }
-
-    @Test func demoLoadingHintAppearsImmediately() async {
-        let projects = ColumnStateSimulation.FolderName.projects
-        let loading = ColumnStateSimulation.FolderName.loadingContents
-        let app = demoApp(path: [projects, loading], selectPending: false)
-        let bitmap = await PixelProbe.render(
-            ColumnBrowserView().environment(app).environment(\.colorScheme, .light).frame(width: 1280, height: 800),
-            size: CGSize(width: 1280, height: 800),
+    @Test func loadingHintAppearsAfterDelay() async throws {
+        let app = chromeApp(path: [ChromeNames.projects, ChromeNames.loading], selectFirstChild: false)
+        let mediumID = try #require(app.columnBrowserState.selectedMediumID)
+        app.indexRepository.setLoadingForUITest(
+            mediumID: mediumID,
+            path: [ChromeNames.projects, ChromeNames.loading],
+            loading: true
+        )
+        let size = CGSize(width: 1280, height: 800)
+        let session = PixelProbe.open(
+            ColumnBrowserView().environment(app).environment(\.colorScheme, .light).frame(width: size.width, height: size.height),
+            size: size,
             appearance: .aqua
         )
+        defer { session.close() }
+        await PixelProbe.settleOpenWindow(session)
+        // Standard-Verzögerung des Ladehinweises: 1 s.
+        try await Task.sleep(for: .milliseconds(1400))
+        session.window.contentView?.layoutSubtreeIfNeeded()
+        session.window.display()
+        let bitmap = session.bitmap()
         let sidebar = DesignSpacing.columnBrowserSidebarWidth
         let column = DesignSpacing.columnBrowserColumnWidth
         let body = CGRect(x: sidebar + column * 2 + 16, y: 36, width: 180, height: 90)
@@ -82,108 +67,65 @@ struct ColumnChromeTests {
         #expect(same(left, right))
     }
 
-    private func demoApp(path: [String], selectPending: Bool) -> AppState {
-        let app = AppState()
-        let demo = ColumnStateSimulation.makeMedium()
-        app.media = [demo]
-        let projects = ColumnStateSimulation.FolderName.projects
-        let root = ColumnStateSimulation.rootItems(mediumID: demo.id)
-        let children = ColumnStateSimulation.children(mediumID: demo.id, path: [projects]) ?? []
-        app.indexRepository.seedScreenshotCache(mediumID: demo.id, entries: [
-            ([], root),
-            ([projects], children),
-        ])
-        app.mainWindowDestination = .columnBrowser
-        app.columnBrowserState.selectedMediumID = demo.id
-        app.columnBrowserState.pathStack = path
-        if path == [ColumnStateSimulation.FolderName.projects, ColumnStateSimulation.FolderName.loadingContents] {
-            app.indexRepository.requestLoad(mediumID: demo.id, path: path)
-        }
-        if selectPending, let pending = children.first {
-            var selection = ColumnSelection()
-            selection.replace(id: pending.id, column: 1)
-            app.columnBrowserState.selection = selection
-        }
-        return app
+    private enum ChromeNames {
+        static let projects = "Projekte"
+        static let pending = "Wird indiziert"
+        static let loading = "Inhalte werden geladen"
     }
 
-    func scrolledColumnBitmap(forceLegacyScrollers: Bool = false) async -> NSBitmapImageRep {
+    private func chromeApp(path: [String], selectFirstChild: Bool) -> AppState {
         let app = AppState()
-        let mediumID = UUID()
         var medium = Medium(
-            id: mediumID,
-            name: "Liste",
-            type: .ssd,
+            id: UUID(),
+            name: "Chrome",
+            type: .usb,
             connectionStatus: .connected,
             indexStatus: .indexed,
             allowIndexing: true,
             autoIndexPaused: false,
             capacityTotalBytes: 1_000,
             capacityUsedBytes: 100,
-            fileCount: 200,
-            folderCount: 0,
+            fileCount: 3,
+            folderCount: 3,
             lastSeenAt: Date(),
             firstIndexedAt: Date(),
             lastIndexedAt: Date(),
             isForgotten: false,
             indexingProgress: 1
         )
-        medium.completedDepth = 2
-        let items = (0..<200).map { index in
+        medium.completedDepth = 5
+        func folder(_ rowID: Int64, _ name: String, _ parent: [String]) -> IndexedItem {
             IndexedItem(
-                id: IndexedItem.stableID(mediumID: mediumID, rowID: Int64(index + 1)),
-                rowID: Int64(index + 1),
-                name: "Datei \(index)",
-                kind: .file,
-                parentPath: [],
+                id: IndexedItem.stableID(mediumID: medium.id, rowID: rowID),
+                rowID: rowID,
+                name: name,
+                kind: .folder,
+                parentPath: parent,
                 modifiedAt: Date(),
-                sizeBytes: 10,
+                sizeBytes: nil,
                 lastSeenAt: Date(),
                 listedAt: Date()
             )
         }
+        let root = [folder(1, ChromeNames.projects, [])]
+        let children = [
+            folder(2, ChromeNames.pending, [ChromeNames.projects]),
+            folder(3, ChromeNames.loading, [ChromeNames.projects]),
+        ]
         app.media = [medium]
-        app.indexRepository.seedScreenshotCache(mediumID: mediumID, entries: [([], items)])
-        app.columnBrowserState.selectedMediumID = mediumID
-        let host = NSHostingView(
-            rootView: ColumnBrowserView()
-                .environment(app)
-                .environment(\.colorScheme, .light)
-                .frame(width: 1280, height: 800)
-        )
-        host.appearance = NSAppearance(named: .aqua)
-        host.frame = NSRect(x: 0, y: 0, width: 1280, height: 800)
-        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        window.appearance = host.appearance
-        window.contentView = host
-        let previousAppAppearance = NSApp.appearance
-        NSApp.appearance = host.appearance
-        window.orderFrontRegardless()
-        try? await Task.sleep(for: .milliseconds(300))
-        host.layoutSubtreeIfNeeded()
-        if forceLegacyScrollers {
-            applyLegacyScrollerStyle(to: host)
-            #expect(legacyScrollerCount(in: host) > 0)
+        app.indexRepository.seedScreenshotCache(mediumID: medium.id, entries: [
+            ([], root),
+            ([ChromeNames.projects], children),
+        ])
+        app.mainWindowDestination = .columnBrowser
+        app.columnBrowserState.selectedMediumID = medium.id
+        app.columnBrowserState.pathStack = path
+        if selectFirstChild, let first = children.first {
+            var selection = ColumnSelection()
+            selection.replace(id: first.id, column: 1)
+            app.columnBrowserState.selection = selection
         }
-        window.display()
-        let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds)
-            ?? NSBitmapImageRep(
-                bitmapDataPlanes: nil,
-                pixelsWide: 1,
-                pixelsHigh: 1,
-                bitsPerSample: 8,
-                samplesPerPixel: 4,
-                hasAlpha: true,
-                isPlanar: false,
-                colorSpaceName: .deviceRGB,
-                bytesPerRow: 0,
-                bitsPerPixel: 0
-            )!
-        host.cacheDisplay(in: host.bounds, to: rep)
-        window.orderOut(nil)
-        NSApp.appearance = previousAppAppearance
-        return rep
+        return app
     }
 
     /// Rechte Seite der ersten Zeile (ohne Glyphen) = Auswahlfläche, nicht abgedunkelt.
@@ -200,28 +142,6 @@ struct ColumnChromeTests {
             y += 2
         }
         return false
-    }
-
-    private func applyLegacyScrollerStyle(to view: NSView) {
-        if let scroll = view as? NSScrollView {
-            scroll.verticalScroller?.scrollerStyle = .legacy
-            scroll.horizontalScroller?.scrollerStyle = .legacy
-        }
-        for subview in view.subviews {
-            applyLegacyScrollerStyle(to: subview)
-        }
-    }
-
-    private func legacyScrollerCount(in view: NSView) -> Int {
-        var count = 0
-        if let scroll = view as? NSScrollView {
-            if scroll.verticalScroller?.scrollerStyle == .legacy { count += 1 }
-            if scroll.horizontalScroller?.scrollerStyle == .legacy { count += 1 }
-        }
-        for subview in view.subviews {
-            count += legacyScrollerCount(in: subview)
-        }
-        return count
     }
 
     private func same(_ a: NSColor, _ b: NSColor, tolerance: CGFloat = 0.08) -> Bool {

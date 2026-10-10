@@ -414,7 +414,10 @@ import Testing
     @Test func multipleMenuDisablesFinderAndSearch() {
         let targets = [target("a.mp3", .file), target("b.txt", .file)]
         let plan = ContextMenuPlan.multiple(targets: targets, favorites: [false, false], ignored: [])
-        #expect(plan.titles == [
+        // Einträge des echten Menüs (nicht eine zweite Titelliste im Plan).
+        let entries = multipleContextMenuGroups(targets, appState: AppState()).flatMap { $0 }
+        #expect(entries.map(\.id) == ["finder", "favorite", "searchName", "searchExtension", "ignoreName", "ignoreType"])
+        #expect(entries.map(\.title) == [
             "Im Finder anzeigen", "Als Favorit markieren", "Nach Namen suchen",
             "Nach Dateiendung suchen", "Dateinamen ignorieren", "Dateitypen ignorieren",
         ])

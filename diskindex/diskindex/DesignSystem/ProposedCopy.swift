@@ -13,10 +13,10 @@ nonisolated enum ProposalCopySettings {
 
     static var highlightProposalCopy: Bool {
         get {
-            if UserDefaults.standard.object(forKey: highlightKey) == nil { return true }
-            return UserDefaults.standard.bool(forKey: highlightKey)
+            if AppDefaults.current.object(forKey: highlightKey) == nil { return true }
+            return AppDefaults.current.bool(forKey: highlightKey)
         }
-        set { UserDefaults.standard.set(newValue, forKey: highlightKey) }
+        set { AppDefaults.current.set(newValue, forKey: highlightKey) }
     }
 }
 
@@ -60,7 +60,7 @@ nonisolated enum ProposalCopyPresentation {
 
 struct ProposedCopyModifier: ViewModifier {
     @Environment(\.forcesProposalCopyHighlight) private var forcesHighlight
-    @AppStorage(ProposalCopySettings.highlightKey) private var highlightFromDefaults = true
+    @AppStorage(ProposalCopySettings.highlightKey, store: AppDefaults.current) private var highlightFromDefaults = true
     var baseColor: Color?
 
     private var highlightsProposalCopy: Bool {
@@ -107,18 +107,6 @@ extension Text {
         }
         #endif
         self.init(string)
-    }
-}
-
-struct ProposedCopyText: View {
-    let string: String
-    var font: Font = .body
-    var baseColor: Color?
-
-    var body: some View {
-        Text(string)
-            .font(font)
-            .proposedCopy(baseColor: baseColor)
     }
 }
 

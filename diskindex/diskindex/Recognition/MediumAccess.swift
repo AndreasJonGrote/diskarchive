@@ -54,10 +54,6 @@ enum MediumAccessResult: Sendable, Equatable {
 }
 
 nonisolated struct DirectMediumAccess: MediumAccess {
-    private static let resourceKeys: Set<URLResourceKey> = [
-        .isDirectoryKey, .isPackageKey, .isSymbolicLinkKey, .isHiddenKey, .fileSizeKey, .contentModificationDateKey,
-    ]
-
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult {
         let url = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
         do {

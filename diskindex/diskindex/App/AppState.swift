@@ -175,7 +175,7 @@ final class AppState {
             loadPause(from: defaults)
             loadPruneDeadline()
         } else {
-            settingsDefaults = .standard
+            settingsDefaults = AppDefaults.current
             persistsSettings = false
         }
         indexRepository.scope = IndexScope.from(appSettings)

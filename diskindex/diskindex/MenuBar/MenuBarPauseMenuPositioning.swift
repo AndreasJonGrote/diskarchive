@@ -110,14 +110,4 @@ enum MenuBarPauseMenuPositioning {
         return CGPoint(x: arrowCenterX, y: origin.y + windowHeight - 1)
     }
 
-    static func arrowTipAlignsWithToggle(_ result: Result, input: Input) -> Bool {
-        let tip = result.arrowTip
-        guard tip.x >= input.toggleMinX - 1, tip.x <= input.toggleMaxX + 1 else { return false }
-        if result.opensAbove {
-            return abs(tip.y - input.toggleTopY) <= 2
-        }
-        // Menü-Oberkante bleibt bei gap+arrowRise unter dem Schalter; Spitze sitzt oben im Headroom.
-        let maxBelow = input.gapBelowToggle + input.arrowRise - arrowHeadroom + 1
-        return tip.y >= input.toggleBottomY - maxBelow && tip.y <= input.toggleBottomY + 2
-    }
 }

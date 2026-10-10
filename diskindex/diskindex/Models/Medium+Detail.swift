@@ -27,11 +27,7 @@ extension Medium {
 
     /// Spaltenansicht-Fußzeile: „1,3 TB frei von 2 TB“.
     var freeOfTotalLabel: String {
-        "\(ByteCountFormatter.storage.string(fromByteCount: freeBytes)) frei von \(totalCapacityLabel)"
-    }
-
-    var filesFoldersLabel: String {
-        "\(filesLabel) / \(foldersLabel)"
+        LayoutCopy.mediumFreeOfTotal(ByteCountFormatter.storage.string(fromByteCount: freeBytes), totalCapacityLabel)
     }
 
     var filesLabel: String {

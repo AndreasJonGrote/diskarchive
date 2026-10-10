@@ -18,7 +18,6 @@ nonisolated enum DesignColor {
     static let stateIgnored = pair(light: 0xEDA12D, dark: 0xEDA12D)
     static let filterSearch = pair(light: 0x3986E4, dark: 0x65A7FA)
     static let favorite = pair(light: 0x9D69D2, dark: 0xB98CEA)
-    static let settingsActive = pair(light: 0x00B5B5, dark: 0x00BFC0)
     static let stateOff = pair(light: 0x868686, dark: 0x929292)
 
     static let bg = pair(light: 0xF3F2F2, dark: 0x1F1F1F)

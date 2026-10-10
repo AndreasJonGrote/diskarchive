@@ -54,19 +54,12 @@ struct RestCoverageTests {
         #expect(AppSettings().scanDepth == 5)
     }
 
-    @Test func progressNeverFallsAndStopsAtNinetyNine() {
-        #expect(IndexRunGuard.nextProgress(previous: 0.4, proposed: 0.2, finished: false) == 0.4)
-        #expect(IndexRunGuard.nextProgress(previous: 0.4, proposed: 1, finished: false) == 0.99)
-        #expect(IndexRunGuard.nextProgress(previous: 0.4, proposed: 1, finished: true) == 1)
-        #expect(IndexRunGuard.resumeDepth(completed: 2) == 2)
+    @Test func threeConsecutiveTimeoutsSetPending() {
         #expect(IndexRunGuard.shouldPending(consecutiveTimeouts: 3))
         #expect(!IndexRunGuard.shouldPending(consecutiveTimeouts: 2))
     }
 
-    @Test func failureReasonsStayGeneric() {
-        #expect(IndexFailureReason.classify("permission denied") == .permission)
-        #expect(IndexFailureReason.classify("no space left") == .diskSpace)
-        #expect(IndexFailureReason.classify("sqlite disk I/O") == .database)
+    @Test func failureReasonLinesStayGeneric() {
         #expect(IndexFailureReason.unknown.line == nil)
         #expect(IndexFailureReason.permission.line?.contains("/") == false)
     }

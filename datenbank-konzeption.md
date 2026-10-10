@@ -95,4 +95,6 @@ Die Reihenfolge richtet sich danach, was spätere Entscheidungen beeinflusst und
 
 ## Stichtag
 
-Sobald eine andere Person die App herunterlädt, brauchen Schemaänderungen echte Migrationen mit Sicherungskopie. Bis dahin: Schema neu definieren, alte Datenbank verwerfen, neu aufbauen.
+**Ab 0.4 nur noch erweitern (Nutzer 10.10.):** Die Struktur aus 0.3 ist so gebaut, dass spätere Funktionen (Metadaten, EXIF, Vorschaubilder, Prüfsummen) **nur neue Tabellen oder neue Spalten hinzufügen**, nie bestehende umbauen. Die Baumtabelle enthält nur den Baum und die Grunddaten aus dem Dateisystem (Name, Endung, Größe, Änderungsdatum); alles Weitere kommt erst nach 0.4 als eigene Tabelle dazu. Auf **anderen Rechnern** (ab 0.4) wird nie etwas gelöscht: ein Update erweitert die Datenbank einmalig beim Start, die App funktioniert danach mit den vorhandenen Daten weiter. Auf dem **Mac des Nutzers** darf bis 1.0 alles gelöscht werden.
+
+Daraus folgt für 0.3: Alles, was sich später nur durch **Umbau** ändern ließe (Architektur, Zuschnitt der Baumtabelle, Konvention der Nebentabellen, Schlüssel), muss jetzt stimmen. Metadaten, EXIF, Vorschaubilder und Prüfsummen existieren in 0.3 noch **nicht**; die Struktur muss sie nur später ohne Umbau aufnehmen können.

@@ -8,6 +8,21 @@ import Testing
 @testable import diskindex
 
 @Suite struct MenuBarPauseMenuPositioningTests {
+    /// Prüf-Prädikat: Pfeilspitze sitzt auf dem Schalter (zuvor in der App, nur von Tests benutzt).
+    private func arrowTipAlignsWithToggle(
+        _ result: MenuBarPauseMenuPositioning.Result,
+        input: MenuBarPauseMenuPositioning.Input
+    ) -> Bool {
+        let tip = result.arrowTip
+        guard tip.x >= input.toggleMinX - 1, tip.x <= input.toggleMaxX + 1 else { return false }
+        if result.opensAbove {
+            return abs(tip.y - input.toggleTopY) <= 2
+        }
+        // Menü-Oberkante bleibt bei gap+arrowRise unter dem Schalter; Spitze sitzt oben im Headroom.
+        let maxBelow = input.gapBelowToggle + input.arrowRise - MenuBarPauseMenuPositioning.arrowHeadroom + 1
+        return tip.y >= input.toggleBottomY - maxBelow && tip.y <= input.toggleBottomY + 2
+    }
+
     private func sampleInput(
         toggleBottomY: CGFloat,
         toggleTopY: CGFloat,
@@ -47,7 +62,7 @@ import Testing
         #expect(result.origin.x == input.toggleMaxX - MenuBarPopoverLayout.pauseMenuWidth)
         #expect(result.origin.x + MenuBarPopoverLayout.pauseMenuWidth == input.toggleMaxX)
         #expect(result.origin.y == 400 - 4 - 6 - contentH)
-        #expect(MenuBarPauseMenuPositioning.arrowTipAlignsWithToggle(result, input: input))
+        #expect(arrowTipAlignsWithToggle(result, input: input))
     }
 
     @Test func menuFlipsAboveWhenNoRoomBelow() {
@@ -62,6 +77,6 @@ import Testing
 
         #expect(result.opensAbove)
         #expect(result.origin.y == input.toggleTopY - 1)
-        #expect(MenuBarPauseMenuPositioning.arrowTipAlignsWithToggle(result, input: input))
+        #expect(arrowTipAlignsWithToggle(result, input: input))
     }
 }

@@ -144,7 +144,7 @@ struct MenuBarPopoverView: View {
         if total > 0 {
             MenuBarPopoverActionFooter {
                 popoverCompactSecondaryButton(
-                    total == 1 ? "1 Ergebnis anzeigen" : "Alle \(total) Ergebnisse anzeigen"
+                    total == 1 ? LayoutCopy.menuShowOneResult : LayoutCopy.menuShowAllResults(total)
                 ) {
                     appState.openSearch(withQuery: appState.popoverSearchText)
                     MenuBarPopoverDismiss.openMainWindow(destination: .search, appState: appState)

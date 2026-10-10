@@ -21,6 +21,7 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
     private var root = Node()
     private let lock = NSLock()
     private(set) var listed: [String] = []
+    private var rootError: Error?
 
     init(mountPath: String) {
         self.mountPath = mountPath
@@ -90,9 +91,25 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
 
+    /// Das Lesen des Wurzelordners schlägt mit genau diesem Fehler fehl (Fehlergrund-Tests, 202).
+    func failRoot(with error: Error) {
+        lock.lock()
+        defer { lock.unlock() }
+        rootError = error
+    }
+
+    private func injectedRootError() -> Error? {
+        lock.lock()
+        defer { lock.unlock() }
+        return rootError
+    }
+
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
         let path = url.standardizedFileURL.path
         let node = recordListing(path)
+        if path == URL(fileURLWithPath: mountPath).standardizedFileURL.path, let injected = injectedRootError() {
+            throw injected
+        }
         guard let node else { throw CocoaError(.fileReadNoSuchFile) }
         if node.unreadable { throw CocoaError(.fileReadNoPermission) }
         return node.children.map { name, child in

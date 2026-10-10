@@ -30,7 +30,7 @@ struct AllowIndexingBinaryGroup: View, Equatable {
                 onChange(value == .first)
             }
         )
-        BinaryButtonGroup(firstTitle: "Ja", secondTitle: "Nein", selection: selection)
+        BinaryButtonGroup(firstTitle: LayoutCopy.binaryYes, secondTitle: LayoutCopy.binaryNo, selection: selection)
             .transaction { $0.animation = nil }
             .id(mediumID)
     }

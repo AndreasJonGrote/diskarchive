@@ -39,9 +39,6 @@ nonisolated struct GlobalPause: Equatable, Codable {
 nonisolated enum PauseNoticeCopy {
     static func began(until: Date?, now: Date) -> String {
         guard let until else { return LayoutCopy.noticePauseForever }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "de_DE")
-        formatter.dateFormat = "HH:mm"
-        return LayoutCopy.noticePauseUntil(time: formatter.string(from: until))
+        return LayoutCopy.noticePauseUntil(time: DisplayTimeFormat.clock(until))
     }
 }

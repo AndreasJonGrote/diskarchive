@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import GRDB
 import UserNotifications
 
 /// Dieselbe Meldungsart höchstens alle 5 Sekunden. Die andere Art ist unabhängig.
@@ -128,7 +129,7 @@ enum SystemNotice {
     ) {
         guard durationSeconds > NoticeCopy.minimumVisibleSeconds else { return }
         let count = DisplayNumberFormat.groupedInteger(objectCount)
-        let body = "Medium „\(name)“ ist vollständig indiziert – \(count) Objekte"
+        let body = LayoutCopy.noticeIndexedComplete(name, count)
         post(body: body, settings: settings, event: .indexed, kind: "indexed")
     }
 
@@ -137,7 +138,7 @@ enum SystemNotice {
     static func postFavoritesOnline(name: String, favoriteCount: Int, settings: AppSettings) {
         guard favoriteCount > 0 else { return }
         let count = DisplayNumberFormat.groupedInteger(favoriteCount)
-        let body = "Medium „\(name)“ mit \(count) Favoriten ist online"
+        let body = LayoutCopy.noticeFavoritesOnline(name, count)
         post(body: body, settings: settings, event: .favorites, kind: "favorites")
     }
 
@@ -261,26 +262,52 @@ nonisolated enum IndexFailureReason: Equatable {
         case .permission:
             return LayoutCopy.permissionLine
         case .disconnected:
-            return "Die Verbindung zum Medium wurde unterbrochen."
+            return LayoutCopy.failureDisconnected
         case .timeout:
-            return "Das Medium reagiert nicht."
+            return LayoutCopy.failureTimeout
         case .diskSpace:
-            return "Auf diesem Mac ist nicht genug Speicherplatz frei."
+            return LayoutCopy.failureDiskSpace
         case .database:
-            return "Der Index konnte nicht gespeichert werden."
+            return LayoutCopy.failureDatabase
         case .unknown:
             return nil
         }
     }
 
-    static func classify(_ message: String) -> IndexFailureReason {
-        let lower = message.lowercased()
-        if lower.contains("permission") || lower.contains("zugriff") || lower.contains("not permitted") { return .permission }
-        if lower.contains("space") || lower.contains("speicherplatz") || lower.contains("disk full") { return .diskSpace }
-        if lower.contains("timeout") || lower.contains("zeit") { return .timeout }
-        if lower.contains("database") || lower.contains("sqlite") { return .database }
-        if lower.contains("unmount") || lower.contains("disconnect") || lower.contains("unterbrochen") { return .disconnected }
-        return .unknown
+    /// Grund aus dem Fehlerobjekt (POSIX-/Cocoa-Code, SQLite-Code, Store-Fehler), nie aus Text.
+    static func classify(_ error: Error) -> IndexFailureReason {
+        if error is DirectoryReadStalled { return .timeout }
+        if let store = error as? IndexStoreError {
+            return store == .directoryWriteFailed ? .database : .unknown
+        }
+        if let database = error as? DatabaseError {
+            return database.resultCode == .SQLITE_FULL ? .diskSpace : .database
+        }
+        guard let code = posixCode(of: error) else { return .unknown }
+        switch code {
+        case EACCES, EPERM: return .permission
+        case ENXIO, ENODEV, ENOENT: return .disconnected
+        case ENOSPC: return .diskSpace
+        default: return .unknown
+        }
+    }
+
+    private static func posixCode(of error: Error) -> Int32? {
+        if let posix = error as? POSIXError { return Int32(posix.errorCode) }
+        let ns = error as NSError
+        if ns.domain == NSPOSIXErrorDomain { return Int32(ns.code) }
+        if ns.domain == NSCocoaErrorDomain {
+            switch CocoaError.Code(rawValue: ns.code) {
+            case .fileReadNoPermission, .fileWriteNoPermission: return EACCES
+            case .fileNoSuchFile, .fileReadNoSuchFile: return ENOENT
+            case .fileWriteOutOfSpace: return ENOSPC
+            default: break
+            }
+        }
+        if let underlying = ns.userInfo[NSUnderlyingErrorKey] as? Error {
+            return posixCode(of: underlying)
+        }
+        return nil
     }
 }
 

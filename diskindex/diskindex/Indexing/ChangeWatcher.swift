@@ -110,15 +110,6 @@ final class ChangeWatcher {
         volumes.removeAll()
     }
 
-    /// Beenden der App: alle FSEvents-Streams schließen, Cursor sichern.
-    func stopAll() async {
-        cursorTimer?.cancel()
-        cursorTimer = nil
-        for id in Array(tasks.keys) {
-            await stop(mediumID: id)
-        }
-    }
-
     func isWatching(mediumID: UUID) -> Bool {
         tasks[mediumID] != nil
     }

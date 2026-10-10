@@ -26,11 +26,6 @@ enum ColumnFolderOpenState: Equatable {
         folderListedAt: Date? = nil,
         folderUnreadable: Bool = false
     ) -> ColumnFolderOpenState {
-        #if DEBUG
-        if let simulated = ColumnStateSimulation.resolveOpenState(mediumID: medium.id, folderName: folderName) {
-            return simulated
-        }
-        #endif
         if folderUnreadable {
             return .uncaptured(.unreadable)
         }

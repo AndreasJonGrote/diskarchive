@@ -106,13 +106,13 @@ enum MediumChip {
         let stillShowing = displayedFraction != nil
         if !medium.hasIndex {
             if medium.decision.refusesIndexing {
-                return Presentation(text: "Nicht erlaubt", dashed: false, offlineGray: true, error: false, spinner: false)
+                return Presentation(text: LayoutCopy.chipNotAllowed, dashed: false, offlineGray: true, error: false, spinner: false)
             }
-            return Presentation(text: "Ausstehend", dashed: true, offlineGray: false, error: false, spinner: false)
+            return Presentation(text: LayoutCopy.chipPending, dashed: true, offlineGray: false, error: false, spinner: false)
         }
         if medium.indexStatus == .error {
             return Presentation(
-                text: connected ? "Fehler" : "Fehler, offline",
+                text: connected ? LayoutCopy.chipError : LayoutCopy.chipErrorOffline,
                 dashed: !connected,
                 offlineGray: !connected,
                 error: connected,
@@ -122,10 +122,10 @@ enum MediumChip {
         let complete = medium.indexStatus == .indexed && !stillShowing
         if !connected {
             if complete {
-                return Presentation(text: "Offline", dashed: true, offlineGray: true, error: false, spinner: false)
+                return Presentation(text: LayoutCopy.chipOffline, dashed: true, offlineGray: true, error: false, spinner: false)
             }
             return Presentation(
-                text: "\(percent) % indiziert, offline",
+                text: LayoutCopy.chipPercentIndexedOffline(percent),
                 dashed: true,
                 offlineGray: true,
                 error: false,
@@ -133,11 +133,11 @@ enum MediumChip {
             )
         }
         if complete {
-            return Presentation(text: "Online", dashed: false, offlineGray: false, error: false, spinner: false)
+            return Presentation(text: LayoutCopy.chipOnline, dashed: false, offlineGray: false, error: false, spinner: false)
         }
         let spinner = (medium.indexStatus == .indexing || stillShowing) && !globalAutoIndexPaused
         return Presentation(
-            text: "\(percent) % indiziert",
+            text: LayoutCopy.chipPercentIndexed(percent),
             dashed: true,
             offlineGray: false,
             error: false,

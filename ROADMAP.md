@@ -57,7 +57,7 @@ Bereiche (Nutzer): Live-Überwachung, Indizieren, nicht angezeigte Dinge, Glitch
 
 ## 0.3 — Neue Datenbankstruktur
 
-**Ziel:** Das Fundament für die kommenden Funktionen (Metadaten, Thumbnails, Prüfsummen), skalierbar gedacht. Siehe [datenbank-konzeption.md](datenbank-konzeption.md).
+**Ziel:** Das Fundament für die kommenden Funktionen (Metadaten, Thumbnails, Prüfsummen), skalierbar gedacht. **Prüfmaßstab (Nutzer 10.10.):** Jede spätere Funktion lässt sich **nur durch Hinzufügen** (neue Tabelle `item_<funktion>` oder neue Spalte) einbauen, ohne bestehende Tabellen umzubauen; die Baumtabelle enthält nur Baum und Grunddaten und bleibt bei sehr großen Datenmengen schnell. Siehe [datenbank-konzeption.md](datenbank-konzeption.md).
 
 **Warum hier:** Danach gibt es Beta-Tester (0.4). Ab dann braucht jede Schemaänderung eine echte Migration. **0.3 ist die letzte Version, in der die Datenbank frei verworfen und neu gebaut werden darf.**
 
@@ -91,7 +91,7 @@ Schritte (aus der Konzeption, in dieser Reihenfolge):
 - **Mindest-macOS 14:** Laufzeittest auf macOS 14 (z. B. VM).
 - **Fehlerbericht** mit echten Protokollzeilen getestet (Datenschutz).
 - **Update-Prozess durch Ersetzen der App:** Bundle-ID und Datenordner gleich lassen, Einzelinstanz-Übergabe bei neuerer Version, Launch Agent beim Start neu registrieren.
-- **Ab jetzt echte Migrationen:** Sicherungskopie vor jeder Migration, Schutz vor Rückschritt (GRDB `hasBeenSuperseded`, Namen prüfen).
+- **Ab jetzt nur noch erweitern (Nutzer 10.10.):** Auf anderen Rechnern wird nie etwas gelöscht. Spätere Versionen fügen nur Tabellen oder Spalten hinzu (einmalig beim Start), mit Sicherungskopie davor und Schutz vor Rückschritt (GRDB `hasBeenSuperseded`). Auf dem Mac des Nutzers darf bis 1.0 alles gelöscht werden.
 
 **Fertig, wenn [Vorschlag]:**
 - Keine bekannten Fehler offen.

@@ -18,7 +18,6 @@ nonisolated struct DelayedLoadingTiming: Sendable, Equatable {
 @MainActor
 @Observable
 final class DelayedLoadingState {
-    typealias Timing = DelayedLoadingTiming
 
     private(set) var showsHint = false
     private(set) var loadedCount = 0

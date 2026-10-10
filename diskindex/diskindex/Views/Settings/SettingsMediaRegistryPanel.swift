@@ -71,17 +71,17 @@ struct SettingsMediaRegistryPanel: View {
 
     private var registryHeader: some View {
         HStack(spacing: 0) {
-            sortHeader("Name", column: .name)
+            sortHeader(LayoutCopy.tableName, column: .name)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            sortHeader("Typ", column: .type)
+            sortHeader(LayoutCopy.tableType, column: .type)
                 .frame(width: RegistryTableLayout.typeWidth, alignment: .leading)
 
-            TableSortHeader.label("Status", isActive: false)
+            TableSortHeader.label(LayoutCopy.tableStatus, isActive: false)
                 .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
                 .padding(.trailing, 6)
 
-            sortHeader("Indizieren", column: .indexing)
+            sortHeader(LayoutCopy.index, column: .indexing)
                 .frame(width: RegistryTableLayout.indexingWidth, alignment: .trailing)
 
             Color.clear

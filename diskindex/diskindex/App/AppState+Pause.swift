@@ -10,7 +10,7 @@ import SwiftUI
 extension AppState {
     var pauseSnapshot: GlobalPause { storedPause }
 
-    func loadPause(from defaults: UserDefaults = .standard, now: Date = Date()) {
+    func loadPause(from defaults: UserDefaults = AppDefaults.current, now: Date = Date()) {
         if let data = defaults.data(forKey: Self.pauseKey),
            let decoded = try? JSONDecoder().decode(GlobalPause.self, from: data) {
             storedPause = decoded
@@ -20,7 +20,7 @@ extension AppState {
         schedulePauseExpiryCheck(now: now)
     }
 
-    func pauseIndexing(until date: Date?, defaults: UserDefaults = .standard, now: Date = Date()) {
+    func pauseIndexing(until date: Date?, defaults: UserDefaults = AppDefaults.current, now: Date = Date()) {
         storedPause.pause(until: date)
         globalAutoIndexPaused = true
         savePause(defaults)
@@ -33,7 +33,7 @@ extension AppState {
         )
     }
 
-    func resumeIndexing(defaults: UserDefaults = .standard) {
+    func resumeIndexing(defaults: UserDefaults = AppDefaults.current) {
         let wasPaused = storedPause.isPaused
         storedPause.resume()
         globalAutoIndexPaused = false
@@ -49,7 +49,7 @@ extension AppState {
         )
     }
 
-    func refreshGlobalPause(now: Date = Date(), defaults: UserDefaults = .standard) {
+    func refreshGlobalPause(now: Date = Date(), defaults: UserDefaults = AppDefaults.current) {
         guard storedPause.refresh(now: now) else { return }
         globalAutoIndexPaused = false
         savePause(defaults)
@@ -83,7 +83,7 @@ extension AppState {
         }
     }
 
-    func presentIndexingFailure(mediumID: UUID, name: String, reason: IndexFailureReason, now: Date = Date(), defaults: UserDefaults = .standard) {
+    func presentIndexingFailure(mediumID: UUID, name: String, reason: IndexFailureReason, now: Date = Date(), defaults: UserDefaults = AppDefaults.current) {
         var counts = (try? JSONDecoder().decode([String: FailureCount].self, from: defaults.data(forKey: Self.failureCountsKey) ?? Data())) ?? [:]
         var count = counts[mediumID.uuidString] ?? FailureCount(shown: 0, hourStart: now)
         if now.timeIntervalSince(count.hourStart) >= 3_600 {

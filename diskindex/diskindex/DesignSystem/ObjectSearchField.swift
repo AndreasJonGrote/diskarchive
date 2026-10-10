@@ -10,7 +10,7 @@ import SwiftUI
 struct ObjectSearchField: View {
     @Binding var text: String
     @FocusState.Binding var isFocused: Bool
-    var placeholder: String = "Objekte suchen…"
+    var placeholder: String = LayoutCopy.searchPlaceholderObjects
     var width: CGFloat = DesignSearchField.objectWidth
     var onSubmit: (() -> Void)?
 

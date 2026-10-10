@@ -166,7 +166,7 @@ extension AppState {
         appSettings.notifyIndexed = true
         appSettings.notifyFavorites = true
         appSettings.appearance.apply()
-        IssueConsent.setAutoSendEnabled(false, defaults: .standard)
+        IssueConsent.setAutoSendEnabled(false, defaults: AppDefaults.current)
         SystemNotice.post(body: ProposalCopy.noticeDefaultsApplied, settings: appSettings)
     }
 
@@ -228,14 +228,9 @@ extension AppState {
         registryMedia.filter(\.isBrowsable)
     }
 
-    /// Nur die Spaltenansicht. Das Demo-Medium steht nicht in `media`.
+    /// Nur die Spaltenansicht.
     var columnBrowserMedia: [Medium] {
-        #if DEBUG
-        if ColumnStateSimulation.shouldInjectIntoMediaList() {
-            return indexedMedia + [ColumnStateSimulation.makeMedium()]
-        }
-        #endif
-        return indexedMedia
+        indexedMedia
     }
 
     func loadStoredMedia() async {

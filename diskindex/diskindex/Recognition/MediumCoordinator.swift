@@ -419,14 +419,7 @@ final class MediumCoordinator {
         return max(0, volume.volumeTotalBytes - free)
     }
 
-    private static var isRunningUnitTests: Bool {
-        let environment = ProcessInfo.processInfo.environment
-        if environment["XCTestConfigurationFilePath"] != nil { return true }
-        if environment["XCTestSessionIdentifier"] != nil { return true }
-        if environment["XCTestBundlePath"] != nil { return true }
-        if environment["XCTestInjectionFrameworkPath"] != nil { return true }
-        return NSClassFromString("XCTestCase") != nil
-    }
+    private static var isRunningUnitTests: Bool { RuntimeEnvironment.isRunningTests }
 }
 
 extension StoredMedium {
