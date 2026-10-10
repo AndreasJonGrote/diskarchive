@@ -82,4 +82,8 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 
 | 205 | Tests mit eigener Einstellungsdatei (`AppDefaults.current`), echte Datei aufgeräumt | 10.10. (Claude-Lauf 390 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-10f.md` |
 
-**Offen:** F11, F12 klein; 204 und F9 warten auf den Nutzer. 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+| 206 | Vorlauf: Ebene 1 und 2 vor der Zählung gespeichert (1 TB nach Sekunden sichtbar) | 10.10. (Claude-Lauf 393 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-10g.md` |
+| 207 | Debug-Prototypen und Diagnosefenster entfernt, 26 Übersetzungsschlüssel weg | 10.10. | ebenda |
+| 208 | Testläufe räumen fremde Test-Einstellungsdateien auf; F11 geklärt (Test wartete nicht auf den Dialog) | 10.10. | ebenda |
+
+**Offen:** 209 (Vorlauf zeigt Zählanzeige). 196 (Messwerkzeug) liegt im Backlog unter 0.3.

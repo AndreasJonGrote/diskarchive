@@ -56,7 +56,7 @@ private final class PreludeRecorder: @unchecked Sendable {
 
         let outcome = try await harness.run(access: access, maxDepth: nil, onProgress: { progress in
             recorder.note(progress)
-            if progress.phase == .counting {
+            if progress.phase == .counting, progress.countingCount > 0 {
                 let names = (try? await harness.names()) ?? []
                 let total = (try? await store.medium(uuid: mediumID))?.scanTotal ?? -1
                 recorder.setFirstCounting(names: names, storedTotal: total)
@@ -64,7 +64,7 @@ private final class PreludeRecorder: @unchecked Sendable {
         })
         #expect(outcome.status == .indexed)
 
-        // Beim ersten Zählereignis: Ebene 1 und 2 gespeichert, Zählung noch nicht fertig, tiefere Ebenen noch nicht.
+        // Beim ersten Zählereignis der Zählphase (countingCount > 0): Ebene 1 und 2 gespeichert, Zählung noch nicht fertig, tiefere Ebenen noch nicht.
         let first = try #require(recorder.first)
         #expect(first.names.isSuperset(of: ["a", "b", "c.txt", "a1", "a2", "top.txt", "b1"]))
         #expect(!first.names.contains("deep1.txt"))
@@ -86,5 +86,73 @@ private final class PreludeRecorder: @unchecked Sendable {
         let ratios = events.map(\.ratio)
         #expect(zip(ratios, ratios.dropFirst()).allSatisfy { $0 <= $1 })
         #expect(outcome.progress.last == 1)
+    }
+
+    /// Aufgabe 209: Der Vorlauf zeigt von Beginn an die Zählanzeige.
+    @Test func firstEventIsTheCountingDisplayBeforeAnythingIsStored() async throws {
+        let harness = try await ScanHarness.make()
+        let access = MemoryVolume(mountPath: "/Volumes/T")
+        access.file("a/a1/deep.txt")
+        access.file("b.txt")
+        let recorder = FirstEventRecorder()
+        _ = try await harness.run(access: access, maxDepth: nil, onProgress: { progress in
+            guard !recorder.hasFirst else { return }
+            let names = (try? await harness.names()) ?? ["?"]
+            recorder.setFirst(phase: progress.phase, count: progress.countingCount, names: names)
+        })
+        let first = try #require(recorder.first)
+        #expect(first.phase == .counting)
+        #expect(first.count == 0)
+        #expect(first.names.isEmpty)
+    }
+
+    @MainActor
+    @Test func mediumShowsTheCountingPhaseWhileThePreludeRuns() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-prelude-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
+        let store = IndexStore(database: database)
+        let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "VORLAUF", type: .usb, decision: .index)
+        try await store.upsertMedium(medium)
+        let access = MemoryVolume(mountPath: "/Volumes/T")
+        for index in 0..<30 { access.file("d\(index)/e/f.txt") }
+        access.slowListing(fromDepth: 0)
+        let app = AppState(store: store)
+        await app.loadStoredMedia()
+        app.globalAutoIndexPaused = false
+        app.heldForSleep = false
+        let service = IndexingService(store: store, access: access, appState: app)
+        let volume = ScanHarness(store: store, mediumID: medium.uuid).volume(at: "/Volumes/T")
+        service.start(mediumUUID: medium.uuid, volume: volume, fromScratch: true)
+        let showsCounting = await waitUntil(timeout: 10) {
+            app.medium(with: medium.uuid)?.indexRunPhase == .counting
+        }
+        #expect(showsCounting)
+        #expect(app.medium(with: medium.uuid)?.indexProgressPercent == 0)
+        await service.waitUntilIdle(medium.uuid)
+    }
+}
+
+private final class FirstEventRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: (phase: IndexRunPhase, count: Int, names: Set<String>)?
+
+    var hasFirst: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return stored != nil
+    }
+
+    func setFirst(phase: IndexRunPhase, count: Int, names: Set<String>) {
+        lock.lock()
+        defer { lock.unlock() }
+        if stored == nil { stored = (phase, count, names) }
+    }
+
+    var first: (phase: IndexRunPhase, count: Int, names: Set<String>)? {
+        lock.lock()
+        defer { lock.unlock() }
+        return stored
     }
 }

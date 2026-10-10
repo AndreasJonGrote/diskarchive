@@ -168,6 +168,17 @@ nonisolated struct DirectoryIndexer: Sendable {
                 // Vorlauf (README 4): erst Ebene 1 und 2 über die normale Ebenen-Schleife schreiben,
                 // danach den ganzen Baum zählen.
                 needsCounting = true
+                // Anzeige wie in der Zählphase („0 % indiziert“ mit Spinner), solange der Vorlauf läuft.
+                await onProgress(IndexProgress(
+                    phase: .counting,
+                    ratio: 0,
+                    filesStored: 0,
+                    filesDiscovered: 0,
+                    entriesTotal: 0,
+                    entriesCompleted: 0,
+                    countingCount: 0,
+                    finished: false
+                ))
             }
         } else if scanTotal <= 0 {
             scanTotal = max(entriesCompleted, 1)
