@@ -141,9 +141,9 @@ struct SearchFilterPopover: View {
                 }
             }
 
-            Text(proposal: ProposalCopy.mediumFilterCount(filtered: filtered.count, total: allMedia.count))
+            Text(LayoutCopy.mediumFilterCount(filtered.count, allMedia.count))
                 .font(.system(size: 10))
-                .proposedCopy(baseColor: DesignColor.text.opacity(0.45))
+                .foregroundStyle(DesignColor.text.opacity(0.45))
         }
         .frame(width: 200, alignment: .leading)
     }

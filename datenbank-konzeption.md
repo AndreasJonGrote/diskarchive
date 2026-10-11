@@ -75,7 +75,38 @@ Die Reihenfolge richtet sich danach, was spätere Entscheidungen beeinflusst und
 - Messung mit 1 Mio. Einträgen und mit vielen Medien, bevor entschieden wird.
 - Schwelle, ab der ein Umbau als gelungen gilt.
 
+## Ist-Stand (Claude, 11.10., echte Datenbank des Nutzers: 1 Medium, 1,6 Mio. Einträge, 1,38 GB)
+
+Datei: `~/Library/Application Support/Disk Archive/index.sqlite` (+ `-wal`, `-shm`). Schema aus 9 Migrationen (`v1` … `v9-item-children-order`, Code: `Storage/IndexDatabase.swift`).
+
+| Tabelle | Funktion | Größe |
+|---|---|---|
+| `medium` | ein Eintrag je Speichermedium: Kennung, Name, Typ, Kapazität, Entscheidung, Status, Zähler, Überwachungsstand (FSEvents), Zeitstempel | klein |
+| `item` | **eine Zeile je Datei/Ordner, alle Medien zusammen**: Baum (`mediumID`, `parentID`, `depth`, `path`), Dateidaten (`name`, `ext`, `sizeBytes`, `modifiedAt`, `isFolder`, `isPackage`, `fileID`), Scanner-Buchhaltung (`lastSeenAt`, `removedAt`, `contentStamp`, `listedAt`, `unreadable`), Nutzer (`isFavorite`) | 359 MB |
+| `item_fts` (+ `_data`, `_idx`, `_docsize`, `_config`) | Volltextsuche auf `name` (FTS5, Trigramm, verweist auf `item`) | **484 MB** |
+| `grdb_migrations` | welche Schema-Schritte gelaufen sind | klein |
+
+Indizes auf `item`: `item_path` (184 MB), `item_children` (119 MB, Spaltenansicht), `item_identity` (111 MB, eindeutig je Ordner+Name), `item_modified` (54 MB), `item_parent` (25 MB), `item_ext` (22 MB), `item_removed` (19 MB). Spalte `path` allein: 143 MB Text.
+
+**Auffällig:** Die Suche (Trigramm-Index) ist der größte Block, größer als die Daten selbst. Pfad als Text + Pfad-Index ≈ 330 MB, obwohl der Pfad aus `parentID` ableitbar ist. `item` mischt vier Arten von Daten (Baum, Datei, Buchhaltung, Nutzer).
+
+## Beschluss Nutzer 11.10.: Status je Eintrag statt Prüfung beim Lesen
+
+Jeder Eintrag bekommt einen **Status**: normal `sichtbar`; `zu-löschen`, wenn eine Regel ihn ausschließt.
+- Ändert der Nutzer eine Regel (Ausschluss, unsichtbare Dateien, Artefakte, Scan-Tiefe), sucht ein **Hintergrundlauf ohne zu blockieren** die betroffenen Einträge (in Blöcken, so viel wie möglich per SQL: Endung, Name, Tiefe, `.`-Präfix) und setzt sie auf `zu-löschen`.
+- **Eine Stunde nach der letzten Regeländerung** werden alle `zu-löschen`-Einträge entfernt (der Zähler startet bei jeder Änderung neu, wie heute `pruneAt`); „Index jetzt bereinigen“ sofort.
+- Wird eine Regel vor dem Löschen zurückgenommen, setzt derselbe Lauf die Einträge wieder auf `sichtbar`.
+- Alle Lesewege (Spalten, Suche, Zahl, Favoriten) filtern nur noch `status = sichtbar` in SQL; keine Namensprüfung in Swift mehr.
+- **Warteschlange (Nutzer 11.10.):** Jede Regeländerung (z. B. jeder neue Chip in der Ignorierliste) legt einen Auftrag in eine **Warteschlange** im Hintergrund; die Aufträge werden der Reihe nach abgearbeitet. In der Regel ist sie nach 2–4 s leer, also bevor der Nutzer aus den Einstellungen zurück in Spalten oder Suche ist. Blockiert wird praktisch nie; im Zweifel dauert der erste Blick nach den Einstellungen etwas länger.
+- **Während die Warteschlange läuft:** Die Suche **wartet** und wirkt, als dauere sie länger; keine Prüfung in Swift. Die **Spaltenansicht** zeigt in der Zeit den Ladehinweis „Inhalte werden geladen“ (Nutzer 11.10.: gut, passiert ja nur einmal). Ab 0.5 gibt es einen **Wartescreen der Suche** (neues Layout); die Suche braucht dafür einen Zustand „Suche läuft“, der dieses Warten umfasst.
+- **Pflicht: zuverlässig weiter (Nutzer 11.10.).** Suche und Spalten müssen **sicher mitbekommen**, wann die Warteschlange leer ist, und dann sofort starten; nie in einem Wartezustand hängen bleiben. Umsetzung über ein Ereignis „Warteschlange leer“ (wie die bestehenden `IndexChange`-Meldungen), nicht über Abfragen in Abständen. Zusätzlich eine Sicherung: Endet ein Auftrag mit Fehler oder wird die App beendet, gilt die Warteschlange als leer (offene Aufträge laufen beim nächsten Start weiter), damit nichts dauerhaft wartet. Test-Pflicht: Suche während laufender Warteschlange startet, Warteschlange endet (auch mit Fehler) → Ergebnis erscheint ohne weitere Nutzeraktion.
+**Zeitpunkt:** Teil des Schema-Umbaus in 0.3 (neue Spalte in der Baumtabelle). Bis dahin überbrückt Aufgabe 216.
+
 ## Hinweise aus der Prüfung des Codes
+
+- **Trefferzahl mit Bereich (Messung 211, 11.10.):** 1,2 Mio. Treffer zählen dauert 4,4 s, weil Artefakt-Regeln und Namensmuster in Swift geprüft werden (ohne Bereich 0,16 s). Für 0.3: Einstufung (versteckt, Artefakt, ausgeschlossen) **beim Scannen** als Spalte/Flag speichern, dann zählt reines SQL.
+- **Suchindex (Messung Claude 11.10., 1,6 Mio. Einträge):** seltenes Wort `LIKE` 136 ms warm / 1.643 ms kalt, FTS-Trigramm 21–25 ms; häufiges Wort beide ~150–280 ms. FTS-Trigramm belegt 484 MB.
+- **Beschluss Nutzer 11.10.: Teilwortsuche bleibt Pflicht, umgesetzt mit `LIKE '%…%'`, ohne vorher zerlegten Suchindex (kein FTS/Trigramm).** Folgen: Datenbank rund ein Drittel kleiner, Suche wächst linear mit der Zahl der Einträge (hochgerechnet 9 Mio. ≈ 0,8 s warm, kalt mehrere Sekunden). Gegenmittel, in 0.3 zu prüfen und mit 196 zu messen: (1) **schmale Namenstabelle** (nur `id`, `name` bzw. kleingeschriebener Name), damit `LIKE` nur wenige MB statt der ganzen Zeilen liest; (2) `LIMIT 500` beendet die Suche bei häufigen Begriffen früh, nur die Trefferzahl braucht den ganzen Durchlauf (läuft nachgereicht, 215); (3) Popover-Suche mit kurzer Wartezeit nach dem Tippen (z. B. 250 ms) und Abbruch der vorigen Suche; (4) Ziel aus der Messung ableiten (Vorschlag: Ergebnisliste < 300 ms bei 9 Mio. Einträgen, warm).
 
 - Der Scanner schreibt mit UPDATE oder INSERT, nie mit INSERT OR REPLACE. Die `item.id` bleibt stabil, Seitentabellen überstehen jeden Neu-Scan.
 - `item_fts` ist eine externe FTS5-Tabelle auf `item.name`. `name` und `id` müssen in `item` bleiben.

@@ -14,13 +14,18 @@ import Testing
         minimumHintVisible: .milliseconds(20)
     )
 
+    /// Großer Abstand statt Millisekunden-Rennen: Das Laden ist sofort fertig, die Verzögerung beträgt 400 ms,
+    /// danach wird 600 ms gewartet. Last im Parallellauf kann den Test nicht mehr kippen (F21).
     @Test func fastLoadNeverShowsHint() async {
-        let state = DelayedLoadingState(timing: fastTiming)
+        let state = DelayedLoadingState(timing: DelayedLoadingTiming(
+            delayBeforeHint: .milliseconds(400),
+            minimumHintVisible: .milliseconds(20)
+        ))
         state.beginLoading(total: 10)
-        try? await Task.sleep(for: .milliseconds(10))
         state.finishLoading()
-        try? await Task.sleep(for: .milliseconds(80))
         #expect(!state.showsHint)
+        try? await Task.sleep(for: .milliseconds(600))
+        #expect(!state.showsHint, "der Hinweis darf nach schnellem Laden nie erscheinen")
     }
 
     @Test func slowLoadShowsHintAfterDelay() async {

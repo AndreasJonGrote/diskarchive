@@ -83,4 +83,27 @@ nonisolated extension LayoutCopy {
     static var tableDate: String { L10n.string("copy.table.date") }
     static var tableMedium: String { L10n.string("copy.table.medium") }
     static var tablePath: String { L10n.string("copy.table.path") }
+
+    static var popoverNoneConnected: String { L10n.string("copy.hint.popover_none_connected") }
+    static var searchInProgress: String { L10n.string("copy.search.in_progress") }
+    static var noResultsForFilters: String { L10n.string("copy.search.no_results_for_filters") }
+    static func noResults(_ a0: String) -> String { L10n.format("copy.search.no_results_for", a0) }
+    static func popoverNoHits(_ a0: String) -> String { L10n.format("copy.search.popover_no_hits", a0) }
+    static var noFavoritesForFilters: String { L10n.string("copy.favorites.none_for_filters") }
+    static var noFavoritedObjects: String { L10n.string("copy.favorites.none") }
+    static var resetAllFiltersHelp: String { L10n.string("copy.filter.reset_all") }
+    static var filterLinkedWithAnd: String { L10n.string("copy.filter.linked_with_and") }
+    static var filterLinkWithAnd: String { L10n.string("copy.filter.link_with_and") }
+    static var filterScopeFavorites: String { L10n.string("copy.filter.scope_favorites") }
+    static func filterScopeMedium(_ a0: String) -> String { L10n.format("copy.filter.scope_medium", a0) }
+    static func mediumFilterCount(_ a0: Int, _ a1: Int) -> String { L10n.format("copy.filter.medium_count", a0, a1) }
+    static var clearSearchAccessibility: String { L10n.string("copy.a11y.clear_search") }
+    static var showDetailsHelp: String { L10n.string("copy.registry.show_details") }
+    static var openSystemSettingsForPermission: String { L10n.string("copy.settings.open_system_settings") }
+    static var folderUnreadable: String { L10n.string("copy.folder.unreadable") }
+    static var folderExcluded: String { L10n.string("copy.folder.excluded") }
+    static var folderChangeExclusions: String { L10n.string("copy.folder.change_exclusions") }
+    static var noticeForgetAll: String { L10n.string("copy.notice.forget_all") }
+    static var noticePrune: String { L10n.string("copy.notice.prune") }
+    static var noticeDefaultsApplied: String { L10n.string("copy.notice.defaults_applied") }
 }

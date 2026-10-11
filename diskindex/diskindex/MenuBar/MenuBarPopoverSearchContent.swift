@@ -42,11 +42,9 @@ struct MenuBarPopoverSearchContent: View {
             }
 
             if results.totalCount == 0 {
-                Text(proposal: ProposalCopy.popoverNoHits(
-                    for: query.trimmingCharacters(in: .whitespacesAndNewlines)
-                ))
+                Text(LayoutCopy.popoverNoHits(query.trimmingCharacters(in: .whitespacesAndNewlines)))
                 .font(.system(size: 12.5))
-                .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+                .foregroundStyle(DesignColor.text.opacity(0.55))
             }
         }
         .padding(.horizontal, MenuBarPopoverLayout.searchHorizontalPadding)

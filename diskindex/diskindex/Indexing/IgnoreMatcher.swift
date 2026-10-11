@@ -62,6 +62,9 @@ nonisolated struct ScanConfiguration: Sendable, Equatable {
 nonisolated struct IndexScope: Sendable, Equatable {
     var maxDepth: Int?
     var matcher: IgnoreMatcher
+    /// Namensregeln gegen jede Zeile prüfen? Nur nötig, solange nach einer Regeländerung eine Bereinigung aussteht:
+    /// der Scanner nimmt ausgeschlossene Dateien gar nicht erst auf. Sonst reines SQL (Tiefe immer).
+    var checksNames = true
 
     static let revealAll = IndexScope(
         maxDepth: nil,
@@ -70,17 +73,19 @@ nonisolated struct IndexScope: Sendable, Equatable {
 
     func hides(name: String, depth: Int) -> Bool {
         if let maxDepth, depth > maxDepth { return true }
+        guard checksNames else { return false }
         return matcher.shouldSkip(name: name, isHidden: name.hasPrefix("."))
     }
 
-    static func from(_ settings: AppSettings) -> IndexScope {
+    static func from(_ settings: AppSettings, pruneAwaiting: Bool = true) -> IndexScope {
         IndexScope(
             maxDepth: settings.indexedMaxDepth,
             matcher: IgnoreMatcher(
                 ignoreHiddenFiles: settings.ignoreHiddenFiles,
                 excludedPatterns: settings.excludedPatterns,
                 artifactsIgnored: settings.artifactsIgnored
-            )
+            ),
+            checksNames: pruneAwaiting
         )
     }
 }

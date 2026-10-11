@@ -53,13 +53,16 @@ struct ReindexGateTests {
             MediumDetailModalView(mediumID: id).environment(app).frame(width: 540, height: 420, alignment: .top),
             size: CGSize(width: 540, height: 420)
         )
-        return (contrast(popover, x0: 220, x1: 336, y0: 12, y1: 44), contrast(detail, x0: 290, x1: 370, y0: 328, y1: 352))
+        // Bereich relativ zur Bitmap (Knopf „Neu indizieren“ rechts in der Zeile), unabhängig von Punkt- und Pixeleinheiten.
+        return (contrast(popover, x0: popover.size.width * 0.73, x1: popover.size.width * 0.97, y0: popover.size.height * 0.3, y1: popover.size.height * 0.72), contrast(detail, x0: 290, x1: 370, y0: 328, y1: 352))
     }
 
     private func row(app: AppState, id: UUID) -> some View {
         MenuBarConnectedMediumRow(medium: app.media[0], forceHover: true)
             .environment(app)
+            .environment(\.colorScheme, .light)
             .frame(width: 340, height: 56)
+            .background(Color.white)
     }
 
     private func medium(id: UUID, indexing: Bool, lastIndexedAt: Date?) -> Medium {

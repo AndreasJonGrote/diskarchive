@@ -232,24 +232,6 @@ final class MenuBarController: NSObject {
         launchItem.target = self
         launchItem.state = (appState?.launchAtLoginState ?? .off) != .off ? .on : .off
         menu.addItem(launchItem)
-        #if DEBUG
-        menu.addItem(.separator())
-        let proposalHighlightItem = NSMenuItem(
-            title: ProposalCopy.debugHighlightProposalCopy,
-            action: #selector(toggleProposalCopyHighlight),
-            keyEquivalent: ""
-        )
-        proposalHighlightItem.target = self
-        proposalHighlightItem.state = ProposalCopySettings.highlightProposalCopy ? .on : .off
-        menu.addItem(proposalHighlightItem)
-        let proposalExportItem = NSMenuItem(
-            title: ProposalCopy.debugExportProposalCopy,
-            action: #selector(exportProposalCopy),
-            keyEquivalent: ""
-        )
-        proposalExportItem.target = self
-        menu.addItem(proposalExportItem)
-        #endif
         menu.addItem(.separator())
         let logItem = NSMenuItem(title: LayoutCopy.menuBarRevealLog, action: #selector(revealLog), keyEquivalent: "")
         logItem.target = self
@@ -296,14 +278,6 @@ final class MenuBarController: NSObject {
     }
 
     #if DEBUG
-    @objc private func toggleProposalCopyHighlight() {
-        ProposalCopySettings.highlightProposalCopy.toggle()
-        NotificationCenter.default.post(name: .proposalCopyHighlightDidChange, object: nil)
-    }
-
-    @objc private func exportProposalCopy() {
-        ProposalCopyExporter.exportAndReveal()
-    }
     #endif
 
     private func applyArrowCursor(to button: NSStatusBarButton) {

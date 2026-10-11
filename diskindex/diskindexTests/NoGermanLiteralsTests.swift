@@ -1,5 +1,5 @@
 //
-//  ProposalCopyTests.swift
+//  NoGermanLiteralsTests.swift
 //  diskindexTests
 //
 
@@ -7,23 +7,7 @@ import Foundation
 import Testing
 @testable import diskindex
 
-struct ProposalCopyTests {
-    @Test func proposalStringsDoNotAppearInLayoutHTML() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let html = try String(contentsOf: root.appendingPathComponent("layout/Disk Index App.dc.html"), encoding: .utf8)
-        let plain = stripHTML(html)
-        var offenders: [String] = []
-        for entry in ProposalCopy.catalog {
-            if plain.contains(entry.text) {
-                offenders.append(entry.name)
-            }
-        }
-        #expect(offenders.isEmpty, "gehört nach LayoutCopy: \(offenders.joined(separator: ", "))")
-    }
-
+struct NoGermanLiteralsTests {
     @Test func noGermanLiteralsOutsideCopySources() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -39,8 +23,6 @@ struct ProposalCopyTests {
         var hits: [String] = []
         let skipFiles = Set([
             "LayoutCopy.swift",
-            "ProposalCopy.swift",
-            "ProposedCopy.swift",
             "EmptyStateView.swift",
         ])
         for base in targets {
@@ -63,7 +45,7 @@ struct ProposalCopyTests {
                 }
             }
         }
-        #expect(hits.isEmpty, "deutsche Literale außerhalb ProposalCopy/LayoutCopy: \(hits.joined(separator: " | "))")
+        #expect(hits.isEmpty, "deutsche Literale außerhalb LayoutCopy: \(hits.joined(separator: " | "))")
     }
 
     private let auditExceptions: Set<String> = [
@@ -72,10 +54,4 @@ struct ProposalCopyTests {
         "!",
         "Disk Index",
     ]
-
-    private func stripHTML(_ html: String) -> String {
-        html
-            .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-    }
 }

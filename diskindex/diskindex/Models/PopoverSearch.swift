@@ -50,7 +50,7 @@ enum PopoverSearch {
             filters: filters,
             media: media,
             maxDepth: appState.appSettings.indexedMaxDepth,
-            scope: IndexScope.from(appState.appSettings)
+            scope: appState.indexScope
         )
         return grouped(match: match, media: media)
     }

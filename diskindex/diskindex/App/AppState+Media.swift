@@ -154,7 +154,7 @@ extension AppState {
                 }
             }
         }
-        SystemNotice.post(body: ProposalCopy.noticeForgetAll, settings: appSettings)
+        SystemNotice.post(body: LayoutCopy.noticeForgetAll, settings: appSettings)
     }
 
     func applyFactoryDefaults() {
@@ -167,7 +167,7 @@ extension AppState {
         appSettings.notifyFavorites = true
         appSettings.appearance.apply()
         IssueConsent.setAutoSendEnabled(false, defaults: AppDefaults.current)
-        SystemNotice.post(body: ProposalCopy.noticeDefaultsApplied, settings: appSettings)
+        SystemNotice.post(body: LayoutCopy.noticeDefaultsApplied, settings: appSettings)
     }
 
     func reportIndexStoreOpenFailure() {

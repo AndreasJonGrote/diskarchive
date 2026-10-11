@@ -86,4 +86,18 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | 207 | Debug-Prototypen und Diagnosefenster entfernt, 26 Übersetzungsschlüssel weg | 10.10. | ebenda |
 | 208 | Testläufe räumen fremde Test-Einstellungsdateien auf; F11 geklärt (Test wartete nicht auf den Dialog) | 10.10. | ebenda |
 
-**Offen:** 209 (Vorlauf zeigt Zählanzeige). 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+| 209 | Vorlauf zeigt die Zählanzeige (ein `.counting`-Ereignis zu Beginn) | 11.10. (Claude-Lauf 395 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11.md` |
+
+| 210 | Kein Phasen-Blinken beim Abgleich, Spinner dreht überall (Winkel aus der Zeit) | 11.10. (Claude-Lauf 407 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11b.md` |
+| 211 | Suche: Zahl ohne Obergrenze, kein Flackern (alte Ergebnisse bleiben, Neustart höchstens alle 2 s), X leert | 11.10. | ebenda |
+| 212 | Scrollleisten in Suche (Breite per Preference statt GeometryReader), großen Ordnern, Einstellungen (Wächter) | 11.10. | ebenda |
+| 213 | Prozent im Popover rechtsbündig | 11.10. | ebenda |
+| 214 | Rote Vorschlagstexte sind normale Texte (de/en), Rot-Mechanismus entfernt | 11.10. | ebenda |
+
+| 215 | Suche: Ergebnisse sofort, Trefferzahl nachgereicht („–“ bis dahin), neue Suche bricht alte Zählung ab | 11.10. (Claude-Lauf 411 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11c.md` |
+| 216 | Namensprüfung nur bei ausstehender Bereinigung (`IndexScope.checksNames`), sonst reines SQL (0,4 s statt 4,4 s) | 11.10. | ebenda |
+
+| 217 | Wackeltest `fastLoadNeverShowsHint` robust (5/5 parallel grün) | 11.10. (Claude-Lauf 416 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11d.md` |
+| 218 | Ergebnistabelle (Suche, Favoriten) über die ganze Breite, Status rechts; eigenes `ObjectTableRowLayout` statt Breitenmessung (Rückschritt aus 212) | 11.10. | ebenda |
+
+**Offen:** nichts freigegeben; Alltagstest des Nutzers. Danach 0.3 (Start mit 196). 196 (Messwerkzeug) liegt im Backlog unter 0.3.

@@ -31,6 +31,25 @@ enum IndexChange: Sendable, Equatable {
     }
 }
 
+/// Thread-sicherer Zähler für die Namensprüfung in Swift (Lesezugriffe laufen außerhalb des Actors).
+nonisolated final class NameCheckCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var total = 0
+
+    func add(_ count: Int) {
+        guard count > 0 else { return }
+        lock.lock()
+        total += count
+        lock.unlock()
+    }
+
+    var value: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return total
+    }
+}
+
 actor IndexStore {
     func checkpoint() {
         try? pool.write { db in
@@ -48,6 +67,9 @@ actor IndexStore {
     var directoryWritesFail = false
     /// Tests: Leseabfragen für Kinder werfen (Aufgabe 109).
     var childrenReadsFail = false
+    var searchCountDelay: Duration?
+    /// Zählt Zeilen, deren Name in Swift gegen `IndexScope` geprüft wurde (Tests: ohne ausstehende Bereinigung 0).
+    nonisolated let nameChecks = NameCheckCounter()
     private let changesContinuation: AsyncStream<IndexChangeEvent>.Continuation
     let changes: AsyncStream<IndexChangeEvent>
     private(set) var changeGeneration = 0
@@ -58,6 +80,11 @@ actor IndexStore {
     /// Tests schalten den nächsten Schreibfehler ein, ohne die Ebene abzuschließen.
     func setDirectoryWritesFailing(_ failing: Bool) {
         directoryWritesFail = failing
+    }
+
+    /// Tests: `searchCount` braucht künstlich länger (Ergebnisse erscheinen vor der Zahl, 215).
+    func setSearchCountDelay(_ delay: Duration?) {
+        searchCountDelay = delay
     }
 
     /// Tests: `children`/`childrenPage`/`childCount` werfen einen Speicherfehler.
@@ -497,16 +524,18 @@ actor IndexStore {
     }
 
     func counts(mediumUUID: UUID, scope: IndexScope? = nil) async throws -> (files: Int, folders: Int) {
-        try await pool.read { db in
+        let counter = nameChecks
+        return try await pool.read { db in
             guard let mediumID = try IndexSQL.mediumRowID(db, uuid: mediumUUID) else {
                 return (files: 0, folders: 0)
             }
-            if let scope {
+            if let scope, scope.checksNames {
                 let rows = try Row.fetchAll(
                     db,
                     sql: "SELECT name, isFolder, depth FROM item WHERE mediumID = ? AND removedAt IS NULL",
                     arguments: [mediumID]
                 )
+                counter.add(rows.count)
                 var files = 0
                 var folders = 0
                 for row in rows {
@@ -517,14 +546,16 @@ actor IndexStore {
                 }
                 return (files: files, folders: folders)
             }
+            // Reines SQL; die Tiefe des Bereichs gilt weiterhin.
+            let depthClause = scope?.maxDepth.map { " AND depth <= \($0)" } ?? ""
             let files = try Int.fetchOne(
                 db,
-                sql: "SELECT COUNT(*) FROM item WHERE mediumID = ? AND isFolder = 0 AND removedAt IS NULL",
+                sql: "SELECT COUNT(*) FROM item WHERE mediumID = ? AND isFolder = 0 AND removedAt IS NULL" + depthClause,
                 arguments: [mediumID]
             ) ?? 0
             let folders = try Int.fetchOne(
                 db,
-                sql: "SELECT COUNT(*) FROM item WHERE mediumID = ? AND isFolder = 1 AND removedAt IS NULL",
+                sql: "SELECT COUNT(*) FROM item WHERE mediumID = ? AND isFolder = 1 AND removedAt IS NULL" + depthClause,
                 arguments: [mediumID]
             ) ?? 0
             return (files: files, folders: folders)

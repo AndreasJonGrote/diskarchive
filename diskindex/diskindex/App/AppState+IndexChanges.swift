@@ -52,6 +52,10 @@ extension AppState {
         settingsSaveTask = nil
         pauseExpiryTask?.cancel()
         pauseExpiryTask = nil
+        searchCountTask?.cancel()
+        searchCountTask = nil
+        trailingLiveSearch?.cancel()
+        trailingLiveSearch = nil
         for task in pendingMediumWrites.values { task.cancel() }
         pendingMediumWrites.removeAll()
         for task in trailingIndexReload.values { task.cancel() }
@@ -85,6 +89,8 @@ extension AppState {
     func runSearch() async {
         searchGeneration += 1
         let generation = searchGeneration
+        searchCountTask?.cancel()
+        searchCountTask = nil
         let query = searchState.submittedQuery
         let filters = searchState.filters
         let hasCriteria = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || filters.hasActiveFilters
@@ -93,32 +99,97 @@ extension AppState {
             searchState.isSearchInProgress = false
             return
         }
+        // Alte Ergebnisse bleiben sichtbar, bis die neuen da sind (kein Flackern).
         searchState.isSearchInProgress = true
-        searchMatch = SearchMatch()
-        let match = await SearchIndex.matching(
+        let scope = indexScope
+        var match = await SearchIndex.matching(
             store: indexStore,
             query: query,
             filters: filters,
             media: indexedMedia,
             maxDepth: appSettings.indexedMaxDepth,
-            scope: IndexScope.from(appSettings)
+            scope: scope,
+            withCount: false
         )
         guard generation == searchGeneration else { return }
-        var stored = match
-        if filters.hasActiveFilters {
-            stored.unfilteredItemCount = await SearchIndex.unfilteredItemCount(
-                store: indexStore,
-                query: query,
-                media: indexedMedia,
-                maxDepth: appSettings.indexedMaxDepth,
-                scope: IndexScope.from(appSettings)
-            )
+        // Gleiche Anfrage (z. B. Neustart durch Live-Meldung): bisherige Zahl bleibt stehen; neue Anfrage: „–“.
+        let request = SearchCountRequest(query: query, filters: filters)
+        let countPending = match.itemCount == nil
+        if match.itemCount == nil, request == lastCountedSearch {
+            match.itemCount = searchMatch.itemCount
+            match.unfilteredItemCount = searchMatch.unfilteredItemCount
+        } else if match.itemCount == nil {
+            match.unfilteredItemCount = nil
         } else {
-            stored.unfilteredItemCount = match.itemCount
+            match.unfilteredItemCount = filters.hasActiveFilters ? nil : match.itemCount
         }
-        guard generation == searchGeneration else { return }
-        searchMatch = stored
+        searchMatch = match
         searchState.isSearchInProgress = false
+        // Ergebnisse stehen; die Zahl(en) kommen in einer eigenen Aufgabe nach.
+        let needsCount = countPending || filters.hasActiveFilters
+        guard needsCount else {
+            lastCountedSearch = request
+            return
+        }
+        searchCountTask = Task { [weak self] in
+            guard let self else { return }
+            let media = self.indexedMedia
+            let depth = self.appSettings.indexedMaxDepth
+            var itemCount = match.itemCount
+            if countPending {
+                let counted = await SearchIndex.count(
+                    store: self.indexStore, query: query, filters: filters, media: media, maxDepth: depth, scope: scope
+                )
+                guard !Task.isCancelled, generation == self.searchGeneration else { return }
+                itemCount = counted
+                self.searchMatch.itemCount = counted
+            }
+            if filters.hasActiveFilters {
+                let unfiltered = await SearchIndex.unfilteredItemCount(
+                    store: self.indexStore, query: query, media: media, maxDepth: depth, scope: scope
+                )
+                guard !Task.isCancelled, generation == self.searchGeneration else { return }
+                self.searchMatch.unfilteredItemCount = unfiltered
+            } else {
+                self.searchMatch.unfilteredItemCount = itemCount
+            }
+            self.lastCountedSearch = request
+        }
+    }
+
+    /// Tests: wartet, bis die nachgereichte Trefferzahl da (oder verworfen) ist.
+    func waitForSearchCount() async {
+        var task = searchCountTask
+        while let current = task {
+            await current.value
+            let next = searchCountTask
+            task = next == current ? nil : next
+        }
+    }
+
+    /// Suche nach einer Live-Meldung: Während ein Medium indiziert wird höchstens alle 2 s neu (die Meldungen
+    /// kommen im Takt des Fortschritts). Eine vom Nutzer abgeschickte Suche läuft immer sofort (`runSearch`).
+    func runSearchAfterLiveChange() async {
+        let interval = Duration.seconds(2)
+        guard media.contains(where: { $0.indexStatus == .indexing }) else {
+            await runSearch()
+            return
+        }
+        let now = ContinuousClock.now
+        if let last = lastLiveSearchAt, last.duration(to: now) < interval {
+            guard trailingLiveSearch == nil else { return }
+            let wait = interval - last.duration(to: now)
+            trailingLiveSearch = Task { [weak self] in
+                try? await Task.sleep(for: wait)
+                guard !Task.isCancelled, let self else { return }
+                self.trailingLiveSearch = nil
+                self.lastLiveSearchAt = .now
+                if self.mainWindowDestination == .search { await self.runSearch() }
+            }
+            return
+        }
+        lastLiveSearchAt = now
+        await runSearch()
     }
 
     func reloadFavorites() async {
@@ -128,7 +199,7 @@ extension AppState {
             store: indexStore,
             media: indexedMedia,
             maxDepth: appSettings.indexedMaxDepth,
-            scope: IndexScope.from(appSettings)
+            scope: indexScope
         )
         guard generation == favoriteGeneration else { return }
         favoriteObjects = objects
@@ -138,6 +209,12 @@ extension AppState {
         popoverGeneration += 1
         let generation = popoverGeneration
         let query = popoverSearchText
+        // Leeres Feld (auch nach dem X): keine Suche, auch nicht über Filter der Hauptsuche.
+        if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            popoverResults = PopoverSearchResults()
+            NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
+            return
+        }
         Task {
             let results = await PopoverSearch.results(query: query, appState: self)
             await MainActor.run {
@@ -239,7 +316,7 @@ extension AppState {
         }
         if refreshLists {
             await reloadFavoritesIfVisible()
-            if mainWindowDestination == .search { await runSearch() }
+            if mainWindowDestination == .search { await runSearchAfterLiveChange() }
             if !popoverSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 schedulePopoverSearch()
             }

@@ -54,7 +54,7 @@ struct RegistryTableRow: View {
             .buttonStyle(.plainFullHit)
             .pointerCursor()
             .frame(width: RegistryTableLayout.detailActionWidth, alignment: .trailing)
-            .help(ProposalCopy.prefixIfNeeded(ProposalCopy.showDetailsHelp))
+            .help(LayoutCopy.showDetailsHelp)
         }
         .font(.system(size: 13))
         .padding(.horizontal, RegistryTableLayout.horizontalPadding)

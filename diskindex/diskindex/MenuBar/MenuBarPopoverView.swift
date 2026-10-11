@@ -116,9 +116,9 @@ struct MenuBarPopoverView: View {
     private func connectedRows(media: [Medium]) -> some View {
         VStack(spacing: 0) {
             if media.isEmpty {
-                Text(proposal: EmptyStateCopy.popoverNoneConnected)
+                Text(EmptyStateCopy.popoverNoneConnected)
                     .font(.system(size: 12))
-                    .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+                    .foregroundStyle(DesignColor.text.opacity(0.55))
                     .padding(.horizontal, MenuBarPopoverLayout.idleContentHorizontalInset)
                     .frame(maxWidth: .infinity, minHeight: MenuBarPopoverLayout.emptyStateHeight, alignment: .leading)
             } else {

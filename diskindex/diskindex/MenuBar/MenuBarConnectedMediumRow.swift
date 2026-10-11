@@ -45,10 +45,10 @@ struct MenuBarConnectedMediumRow: View {
                 .onTapGesture { openColumnBrowserFromPopover() }
 
                 if reservesTrailingSlot {
-                    ZStack(alignment: .trailing) {
+                    ZStack(alignment: .center) {
                         trailingSlot(fraction: fraction)
                     }
-                    .frame(width: trailingSlotWidth, height: 24.4, alignment: .center)
+                    .frame(width: trailingSlotWidth, height: 24.4, alignment: .trailing)
                 }
             }
         }

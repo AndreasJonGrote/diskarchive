@@ -25,14 +25,20 @@ struct SearchResultItem: Identifiable, Hashable {
     }
 }
 
+/// Anfrage, für die zuletzt gezählt wurde (gleiche Anfrage: Zahl bleibt beim Neustart stehen).
+struct SearchCountRequest: Equatable {
+    var query: String
+    var filters: SearchFilters
+}
+
 struct SearchMatch {
     var media: [Medium] = []
     var items: [SearchResultItem] = []
-    /// Trefferzahl aus der Zählabfrage, nicht die Länge der angezeigten Seite.
-    var itemCount = 0
-    var unfilteredItemCount = 0
+    /// Trefferzahl aus der Zählabfrage, nicht die Länge der angezeigten Seite. `nil` = wird noch gezählt (Anzeige „–“).
+    var itemCount: Int? = 0
+    var unfilteredItemCount: Int? = 0
 
-    var totalCount: Int { media.count + itemCount }
+    var totalCount: Int { media.count + (itemCount ?? items.count) }
     var isEmpty: Bool { totalCount == 0 }
 }
 
@@ -45,7 +51,8 @@ enum SearchIndex {
         filters: SearchFilters,
         media: [Medium],
         maxDepth: Int?,
-        scope: IndexScope? = nil
+        scope: IndexScope? = nil,
+        withCount: Bool = true
     ) async -> SearchMatch {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if query.isEmpty, !filters.hasActiveFilters {
@@ -55,13 +62,19 @@ enum SearchIndex {
         let scoped = scopedFilters(filters, media: media)
         let started = ContinuousClock.now
         let stored: [StoredItem]
-        let itemCount: Int
+        var itemCount: Int?
         if let store {
             do {
                 let rows = try await store.search(query: query, filters: scoped, limit: pageLimit, maxDepth: maxDepth, scope: scope)
-                let count = try await store.searchCount(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)
+                let counted: Int?
+                if withCount {
+                    counted = try await store.searchCount(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)
+                } else {
+                    // Zahl kommt später (`SearchIndex.count`); eine leere Seite heißt 0 Treffer.
+                    counted = rows.isEmpty ? 0 : nil
+                }
                 stored = rows
-                itemCount = count
+                itemCount = counted
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
                     DiskIndexLog.shared.record(.index, .error, "search \(error)")
@@ -94,6 +107,20 @@ enum SearchIndex {
             }
         }
         return SearchMatch(media: matchedMedia, items: items, itemCount: itemCount)
+    }
+
+    /// Trefferzahl allein — wird nach der Ergebnisliste nachgereicht.
+    static func count(
+        store: IndexStore?,
+        query: String,
+        filters: SearchFilters,
+        media: [Medium],
+        maxDepth: Int?,
+        scope: IndexScope? = nil
+    ) async -> Int {
+        guard let store else { return 0 }
+        let scoped = scopedFilters(filters, media: media)
+        return (try? await store.searchCount(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)) ?? 0
     }
 
     static func unfilteredItemCount(store: IndexStore?, query: String, media: [Medium], maxDepth: Int?, scope: IndexScope? = nil) async -> Int {

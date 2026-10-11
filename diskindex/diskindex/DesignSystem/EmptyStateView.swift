@@ -101,7 +101,7 @@ struct EmptyStateView: View {
 enum EmptyStateCopy {
     static var noMediumTitle: String { LayoutCopy.emptyNoMediaTitle }
     static var noMediumMessage: String { LayoutCopy.emptyNoMediaMessage }
-    static var popoverNoneConnected: String { ProposalCopy.popoverNoneConnected }
+    static var popoverNoneConnected: String { LayoutCopy.popoverNoneConnected }
     static var noFavoritesTitle: String { LayoutCopy.emptyNoFavoritesTitle }
     static var noFavoritesMessage: String { LayoutCopy.emptyNoFavoritesMessage }
 }

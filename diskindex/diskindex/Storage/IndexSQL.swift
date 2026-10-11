@@ -457,7 +457,7 @@ nonisolated enum IndexSQL {
         return result
     }
 
-    static func searchRequest(query: String, filters: SearchFilters, limit: Int?, maxDepth: Int? = nil) -> IndexSearchRequest {
+    static func searchRequest(query: String, filters: SearchFilters, limit: Int?, maxDepth: Int? = nil, ordered: Bool = true) -> IndexSearchRequest {
         var sql = """
             SELECT item.*, medium.uuid AS mediumUUID
             FROM item JOIN medium ON medium.id = item.mediumID
@@ -509,7 +509,9 @@ nonisolated enum IndexSQL {
             arguments += [maxDepth]
         }
 
-        sql += " ORDER BY item.name COLLATE NOCASE, item.id"
+        if ordered {
+            sql += " ORDER BY item.name COLLATE NOCASE, item.id"
+        }
         if let limit {
             sql += " LIMIT ?"
             arguments += [limit]

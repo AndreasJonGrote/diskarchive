@@ -32,7 +32,8 @@ struct MainWindowToolbar: View {
             ObjectSearchField(
                 text: $searchQuery,
                 isFocused: $isSearchFocused,
-                onSubmit: onSearchSubmit
+                onSubmit: onSearchSubmit,
+                onClear: { appState.clearObjectSearch() }
             )
         }
         .padding(.horizontal, 16)

@@ -21,12 +21,9 @@ enum ScreenshotRunner {
             let dark = name.hasSuffix("dunkel")
             let appearance = NSAppearance(named: dark ? .darkAqua : .aqua)
             NSApp.appearance = appearance
-            let highlightVorschlag = name.contains("-vorschlag")
-            ProposalCopySettings.highlightProposalCopy = highlightVorschlag
             configure(fixture, name: name)
             let root = screenshotView(name: name, appState: fixture)
                 .environment(fixture)
-                .environment(\.forcesProposalCopyHighlight, highlightVorschlag)
                 .frame(width: 1280, height: 800)
             let needsRows = baseNeedsColumnRows(name)
             guard let rep = capture(root, appearance: appearance, requireColumnRows: needsRows),

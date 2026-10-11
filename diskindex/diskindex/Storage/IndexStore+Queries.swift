@@ -108,6 +108,8 @@ extension IndexStore {
         }
         let filtered: [StoredItem]
         if let scope {
+            // Mit `checksNames == false` prüft `hides` nur die Tiefe (Zahlenvergleich, keine Namensregeln).
+            if scope.checksNames { nameChecks.add(rows.count) }
             filtered = rows.filter { !scope.hides(name: $0.name, depth: $0.depth) }
         } else {
             filtered = rows

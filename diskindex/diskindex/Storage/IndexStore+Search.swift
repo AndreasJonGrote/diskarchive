@@ -17,18 +17,65 @@ extension IndexStore {
         let rows = try await pool.read { db in
             try IndexSQL.items(db, sql: request.sql, arguments: request.arguments)
         }
-        guard let scope else { return rows }
+        // Tiefe steht schon im SQL; Namen nur prüfen, solange eine Bereinigung aussteht.
+        guard let scope, scope.checksNames else { return rows }
+        nameChecks.add(rows.count)
         return rows.filter { !scope.hides(name: $0.name, depth: $0.depth) }
     }
 
+    /// Genaue Zahl der Treffer, ohne Obergrenze. Tiefe und die festen Ausschlüsse (`._…`, Systemordner, versteckte
+    /// Namen) als SQL-Bedingung; Artefakt-Regeln und Namensmuster über einen Cursor (nur Name und Tiefe, kein Array).
     func searchCount(query: String, filters: SearchFilters, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> Int {
-        if scope != nil {
-            return try await search(query: query, filters: filters, limit: 50_000, maxDepth: maxDepth, scope: scope).count
-        }
+        #if DEBUG
+        if let delay = searchCountDelay { try await Task.sleep(for: delay) }
+        #endif
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        let request = IndexSQL.searchRequest(query: trimmed, filters: filters, limit: nil, maxDepth: maxDepth)
+        let request = IndexSQL.searchRequest(
+            query: trimmed,
+            filters: filters,
+            limit: nil,
+            maxDepth: scope?.maxDepth ?? maxDepth,
+            ordered: false
+        )
+        guard let scope, scope.checksNames else {
+            // Kein Bereich oder keine ausstehende Bereinigung: reines SQL (Tiefe steht schon in der Anfrage).
+            return try await pool.read { db in
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM (\(request.sql))", arguments: request.arguments) ?? 0
+            }
+        }
+        var conditions = ["name NOT LIKE '.\\_%' ESCAPE '\\'"]
+        let always = IgnoreMatcher.alwaysSkipped.sorted()
+        conditions.append("name NOT IN (\(always.map { _ in "?" }.joined(separator: ",")))")
+        if scope.matcher.ignoreHiddenFiles {
+            conditions.append("name NOT LIKE '.%'")
+        }
+        let arguments = request.arguments + StatementArguments(always)
+        let whereClause = conditions.joined(separator: " AND ")
+        let counter = nameChecks
+        let needsSwiftCheck = scope.matcher.artifactsIgnored || !scope.matcher.excludedPatterns.isEmpty
         return try await pool.read { db in
-            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM (\(request.sql))", arguments: request.arguments) ?? 0
+            if !needsSwiftCheck {
+                return try Int.fetchOne(
+                    db,
+                    sql: "SELECT COUNT(*) FROM (\(request.sql)) WHERE \(whereClause)",
+                    arguments: arguments
+                ) ?? 0
+            }
+            let cursor = try Row.fetchCursor(
+                db,
+                sql: "SELECT name, depth FROM (\(request.sql)) WHERE \(whereClause)",
+                arguments: arguments
+            )
+            var count = 0
+            var checked = 0
+            while let row = try cursor.next() {
+                let name: String = row["name"]
+                let depth: Int = row["depth"]
+                checked += 1
+                if !scope.hides(name: name, depth: depth) { count += 1 }
+            }
+            counter.add(checked)
+            return count
         }
     }
 
@@ -85,7 +132,8 @@ extension IndexStore {
             sql += " ORDER BY item.name COLLATE NOCASE, item.id"
             return try IndexSQL.items(db, sql: sql, arguments: arguments)
         }
-        guard let scope else { return rows }
+        guard let scope, scope.checksNames else { return rows }
+        nameChecks.add(rows.count)
         return rows.filter { !scope.hides(name: $0.name, depth: $0.depth) }
     }
 

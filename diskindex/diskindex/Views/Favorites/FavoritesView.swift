@@ -37,11 +37,11 @@ struct FavoritesView: View {
                 }
 
                 ObjectResultsTable(results: favoriteObjects) {
-                    Text(proposal: filters.hasActiveObjectFilters
-                        ? ProposalCopy.noFavoritesForFilters
-                        : ProposalCopy.noFavoritedObjects)
+                    Text(filters.hasActiveObjectFilters
+                        ? LayoutCopy.noFavoritesForFilters
+                        : LayoutCopy.noFavoritedObjects)
                         .font(.system(size: 13))
-                        .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+                        .foregroundStyle(DesignColor.text.opacity(0.55))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 48)
                 }

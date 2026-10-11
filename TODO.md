@@ -6,7 +6,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 1. **Nur Aufgaben aus „A. Jetzt“**, in der dort stehenden Reihenfolge. „B. Backlog“ und alles andere nicht anfassen, auch nicht „vorbereiten“.
 2. **Nach jedem Paket anhalten** (Zeile „HALT“). Erst weiterarbeiten, wenn Claude in A. freigegeben hat.
-3. **Nichts erfinden.** Kein Feature, Text, Schalter, Screen ohne Vorgabe in README oder Layout. Fehlt etwas: Frage unter die Aufgabe schreiben („Frage:“), nicht bauen. Nötige Texte ohne Layout-Vorlage nur als rote Vorschläge (`ProposalCopy`).
+3. **Nichts erfinden.** Kein Feature, Text, Schalter, Screen ohne Vorgabe in README oder Layout. Fehlt etwas: Frage unter die Aufgabe schreiben („Frage:“), nicht bauen. Nötige Texte ohne Layout-Vorlage (ab 11.10., Nutzer): normal über `L10n`/`LayoutCopy` mit de und en anlegen und im Status als „Neue Texte:“ auflisten; der Nutzer prüft sie. Keine roten Vorschläge mehr.
 4. **Layout und README sind schreibgeschützt** für Cursor (auch `AGENTS.md`, `archiv/`). Abweichung gefunden → als „Frage:“ melden, nicht selbst „angleichen“.
 5. **Diese Datei:** Cursor ändert nur das Feld „Status“ der jeweiligen Aufgabe (höchstens 5 Zeilen: was, welche Dateien, Abweichung). Keine Reviewblöcke, keine neuen Aufgaben, nichts umsortieren, nichts löschen. Claude räumt auf.
 6. **Keine Selbstfreigabe.** Cursor schreibt „Bereit zur Prüfung“, nie „fertig“. Nur Claude verschiebt nach DONE.md.
@@ -34,9 +34,9 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 **Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
 
-**Stand 10.10.:** **Abgenommen bis 208. Freigegeben: 209 (klein). HALT nach 209.**
+**Stand 11.10.:** Abgenommen bis 218 (siehe DONE.md). **Zurzeit keine Aufgabe freigegeben.** Nächste Fehler kommen aus dem Alltagstest des Nutzers.
 
-**Claude-Prüfung 10.10. (6):** 206–208 **abgenommen** (206 mit Nacharbeit 209). Claude: 0 Warnungen, **393 Tests seriell grün**. `StickProgressTests` (erster Sprung bis 6 %) ist so in Ordnung. Volltext: `archiv/todo-stand-2026-10-10g.md`.
+**Claude-Prüfung 11.10. (4):** 217, 218 **abgenommen**. Claude: 0 Warnungen, **416 Tests seriell grün**, App 10:13:52 aktuell. 218 sauber gelöst (eigenes `Layout` statt Messung). Volltext: `archiv/todo-stand-2026-10-11d.md`.
 
 **Arbeitsregeln je Aufgabe (gelten zusätzlich zu den 23 Regeln):**
 - **R1 Nur die genannten Stellen ändern.** Jede Aufgabe nennt Datei und Zeile. Andere Dateien nur, wenn die Aufgabe es sagt. Keine „Verbesserungen nebenbei“.
@@ -59,14 +59,24 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F11 | `serviceRunPassesTheReasonToTheDialog` fällt im **parallelen** Lauf selten aus (2× gesehen, Meldung nicht erfasst; seriell 10/10 grün) | Agent 10.10. | beobachten; beim nächsten Ausfall Meldung sichern |
 | F12 | Jeder Testlauf hinterlässt eine Datei `~/Library/Preferences/app.diskarchive.tests.<pid>.plist` (16 Stück am 10.10.) | Claude-Prüfung 10.10. | **behoben** 10.10. (208) |
 | F9 | Stresstest 1 TB (Nutzer 10.10.): erster Lauf zeigt **2 Minuten nichts** (Start 10:13:02, „ebene 1 fertig“ 10:15:02), weil die **Zählphase** (README 4) erst den ganzen Baum liest, bevor Ebene 1 geschrieben wird. Widerspricht „Schichten: erste Ebene sofort sichtbar“ | Claude, Protokoll 10.10. | **behoben** 10.10. (206, Nacharbeit 209) |
+| F13 | Beim Abgleich nach dem Start blinkt die Prozentzahl im Dashboard grün/rot: der Hintergrund-Nachzähler (`DirectoryIndexer` ~Z. 146 `Task { runCountingPhase(… onProgress: onProgress) }`) meldet `.counting`, die Ebenen-Schleife gleichzeitig `.indexing` → Phase springt | Nutzer 11.10., Claude-Ursache | **behoben** 11.10. (210) |
+| F14 | Spinner im Dashboard-Chip dreht sich nicht (steht in `TimelineView`, die 30× pro Sekunde neu zeichnet; `IndexingSpinnerRing` nutzt `repeatForever` aus `onAppear`) | Nutzer 11.10. | **behoben** 11.10. (210) |
+| F15 | Suche zählt höchstens 50.000 (`IndexStore.searchCount` mit `scope` holt `limit: 50_000` und zählt in Swift); „.html“ ergibt 50.000 statt ca. 1,6 Mio. | Nutzer 11.10. | **behoben** 11.10. (211) |
+| F16 | Suchergebnisse flackern im Takt des Fortschritts (`runSearch` leert `searchMatch` vor jeder neuen Suche; jede Live-Meldung startet die Suche neu) | Nutzer 11.10. | **behoben** 11.10. (211) |
+| F17 | X im Suchfeld leert das Feld, aber nicht die Suche | Nutzer 11.10. | **behoben** 11.10. (211) |
+| F18 | Scrollleisten fehlen in der Ergebnisliste der Suche, in Einstellungen → Speichermedien und in sehr großen Ordnern (`ColumnFolderTableView` ~Z. 26 `hasVerticalScroller = false`) | Nutzer 11.10. | **behoben** 11.10. (212) |
+| F19 | Prozentzahl im Menüleisten-Popover nicht rechtsbündig | Nutzer 11.10. (Foto) | **behoben** 11.10. (213) |
+| F20 | Rote Vorschlagstexte gelten als festgelegt (Nutzer 11.10.: „setze alle roten Texte als gesetzt“) | Nutzer 11.10. | **behoben** 11.10. (214) |
+| F21 | `DelayedLoadingStateTests.fastLoadNeverShowsHint` wackelt parallel (10 ms gegen 50 ms) | Agent 11.10. | **behoben** 11.10. (217) |
+| F22 | Ergebnistabelle (Suche, vermutlich auch Favoriten) nutzt die Fensterbreite nicht: Name und Pfad stehen auf Mindestbreite (160/140), Status nicht rechts, rechts große Leerfläche. **Rückschritt aus 212** (Breite per Preference gemessen, kommt offenbar als 0 an) | Nutzer 11.10. (Foto) | **behoben** 11.10. (218) |
+| F23 | Weitere Tests mit kurzem `Task.sleep` (< 200 ms), mögliche Wackler unter Last: `ChangeWatcherTests`, `ColumnCacheTests`, `ColumnLiveRenameTests`, `IndexStoreTests`, `SurfaceStoreTests`, `SurfaceTestSupport`, `WindowTestGroupStoreCacheTests` | Agent 11.10. (217) | beobachten; erst bei einem Ausfall angehen |
 | F2 | Live-Überwachung am echten Stick nach 195 bestätigen: Umbenennen, neuer Ordner, Kopieren, Spalte bleibt sichtbar und aktualisiert sich | Nutzer 09.10. | **bestätigt** 10.10. (erster Test lief mit veraltetem Sabotage-Build → Regel 23) |
 
 Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meldet.
 
 ---
 
-**209. Vorlauf zeigt die Zählanzeige.** Nacharbeit zu 206 b: Im Vorlauf sendet `noteIndexing` nichts (`if needsCounting { return }`, `DirectoryIndexer.swift` ~Z. 115). Damit bleibt `Medium.indexRunPhase` auf `.indexing` (Vorgabe in `Medium.swift` ~Z. 63), der Chip zeigt also **nicht** die Zählanzeige (`StatusChip.usesProposalCountingLabel`). Soll: Zu Beginn des Vorlaufs **ein** Ereignis `IndexProgress(phase: .counting, ratio: 0, countingCount: 0, …)`, danach wie heute. Test: erstes `onProgress`-Ereignis eines Laufs ohne gespeicherte Gesamtzahl hat `phase == .counting`, und `appState.medium(…)?.indexRunPhase == .counting`, solange der Vorlauf läuft. Sabotage: Ereignis weg → rot ✓. Seriell, Warnungen 0, Regel 23.
-Status: `DirectoryIndexer.run`: zu Beginn des Vorlaufs ein Ereignis `IndexProgress(phase: .counting, ratio: 0, countingCount: 0 …)`, danach unverändert. Tests `IndexPreludeTests.firstEventIsTheCountingDisplayBeforeAnythingIsStored` (erstes Ereignis `.counting`, Zähler 0, Store noch leer) und `mediumShowsTheCountingPhaseWhileThePreludeRuns` (`indexRunPhase == .counting`, 0 %); Sabotage Ereignis weg: rot ✓. `levelsOneAndTwoAreStoredBeforeCountingStarts` wertet jetzt das erste Zählereignis mit `countingCount > 0` aus (das Startereignis kommt vor dem Speichern). Seriell 395 Tests grün, Warnungen 0, Build 00:07:58, jüngste Swift 00:03:21 (`find` leer). Bereit zur Prüfung.
+---
 
 ---
 

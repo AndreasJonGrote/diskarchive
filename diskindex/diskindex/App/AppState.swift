@@ -24,7 +24,7 @@ final class AppState {
     var appSettings = AppSettings() {
         didSet {
             let newScope = IndexScope.from(appSettings)
-            indexRepository.scope = newScope
+            indexRepository.scope = indexScope
             guard settingsReady, appSettings != oldValue else { return }
             if persistsSettings {
                 if oldValue.displayLanguage != appSettings.displayLanguage {
@@ -85,7 +85,9 @@ final class AppState {
     let persistsSettings: Bool
     var settingsSaveTask: Task<Void, Never>?
     var settingsReady = false
-    private(set) var pruneAt: Date?
+    private(set) var pruneAt: Date? {
+        didSet { indexRepository.scope = indexScope }
+    }
     static let pruneAtKey = "diskindex.pruneAt"
     var pendingMediumWrites: [UUID: Task<Void, Never>] = [:]
     var changeLoop: Task<Void, Never>?
@@ -104,6 +106,10 @@ final class AppState {
     /// Menüleisten-Spinner: nur bei tatsächlich laufender Indizierung (nicht DB-Status allein).
     var menuBarIndexingSpinnerIDs: Set<UUID> = []
     var searchGeneration = 0
+    var lastLiveSearchAt: ContinuousClock.Instant?
+    var trailingLiveSearch: Task<Void, Never>?
+    var searchCountTask: Task<Void, Never>?
+    var lastCountedSearch: SearchCountRequest?
     var popoverGeneration = 0
     var favoriteGeneration = 0
     static let pauseKey = "diskindex.globalPause"
@@ -178,7 +184,7 @@ final class AppState {
             settingsDefaults = AppDefaults.current
             persistsSettings = false
         }
-        indexRepository.scope = IndexScope.from(appSettings)
+        indexRepository.scope = indexScope
         AppLanguagePolicy.noteActiveDisplayLanguage(appSettings.displayLanguage)
         settingsReady = true
     }
@@ -248,6 +254,22 @@ final class AppState {
     func submitObjectSearch() {
         searchState.submittedQuery = searchState.query
         enterSearch()
+    }
+
+    /// Eine Quelle für den Bereich, den Suche, Spalten und Favoriten anwenden.
+    /// Namensprüfung nur, solange eine Bereinigung aussteht (`pruneAt`); sonst reines SQL.
+    var indexScope: IndexScope { IndexScope.from(appSettings, pruneAwaiting: pruneAt != nil) }
+
+    /// X im Objekt-Suchfeld: Feld und Suche leeren (Leerzustand wie beim ersten Öffnen); laufende Suche verwerfen.
+    func clearObjectSearch() {
+        searchState.query = ""
+        searchState.submittedQuery = ""
+        searchGeneration += 1
+        searchCountTask?.cancel()
+        searchCountTask = nil
+        lastCountedSearch = nil
+        searchMatch = SearchMatch()
+        searchState.isSearchInProgress = false
     }
 
     /// Vollständig programmatisch gesetzter Begriff (Kontextmenü, Popover) — wird sofort abgeschickt.
@@ -322,7 +344,7 @@ final class AppState {
             indexRepository.invalidateAll()
             await reloadFavorites()
             if mainWindowDestination == .search { await runSearch() }
-            SystemNotice.post(body: ProposalCopy.noticePrune, settings: appSettings)
+            SystemNotice.post(body: LayoutCopy.noticePrune, settings: appSettings)
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
             DiskIndexLog.shared.record(.index, .error, "index prune \(error)")

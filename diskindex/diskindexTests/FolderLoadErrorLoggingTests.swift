@@ -38,7 +38,7 @@ import Testing
         let repository = IndexRepository(store: store)
         _ = await repository.loadChildren(mediumID: medium.uuid, path: [])
 
-        #expect(repository.folderLoadError(mediumID: medium.uuid, path: []) == ProposalCopy.folderUnreadable)
+        #expect(repository.folderLoadError(mediumID: medium.uuid, path: []) == LayoutCopy.folderUnreadable)
         #expect(repository.children(mediumID: medium.uuid, path: []).isEmpty)
         #expect(tracked.contains(where: { $0.contains("children") }))
         #expect(!tracked.contains(where: { $0.contains("CancellationError") }))

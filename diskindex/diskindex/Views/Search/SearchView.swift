@@ -66,8 +66,8 @@ struct SearchView: View {
             HStack(spacing: 8) {
                 ProgressView()
                     .controlSize(.small)
-                Text(proposal: ProposalCopy.searchInProgress)
-                    .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+                Text(LayoutCopy.searchInProgress)
+                    .foregroundStyle(DesignColor.text.opacity(0.55))
             }
             .font(.system(size: 13))
             .frame(maxWidth: .infinity)
@@ -75,13 +75,13 @@ struct SearchView: View {
         } else if match.media.isEmpty {
             Group {
                 if submittedQuery.isEmpty {
-                    Text(proposal: ProposalCopy.noResultsForFilters)
+                    Text(LayoutCopy.noResultsForFilters)
                 } else {
-                    Text(proposal: ProposalCopy.noResults(for: submittedQuery))
+                    Text(LayoutCopy.noResults(submittedQuery))
                 }
             }
             .font(.system(size: 13))
-            .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+            .foregroundStyle(DesignColor.text.opacity(0.55))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 48)

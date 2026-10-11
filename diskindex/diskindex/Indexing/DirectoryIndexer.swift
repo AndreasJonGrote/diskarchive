@@ -152,7 +152,8 @@ nonisolated struct DirectoryIndexer: Sendable {
                         configuration: configuration,
                         token: token,
                         shouldHalt: shouldHalt,
-                        onProgress: onProgress
+                        // Nur `scanTotal` aktualisieren; Phase und Fortschritt meldet allein die Ebenen-Schleife.
+                        onProgress: { _ in }
                     )
                     if recount > 0 {
                         do {

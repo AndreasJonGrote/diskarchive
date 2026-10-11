@@ -34,7 +34,7 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 - **0.3 Datenbank:** erst Messwerkzeug (synthetisch 1 Mio. Einträge auf einem Medium, 9 Mio. auf 300 Medien), dann Entscheidung nach [datenbank-konzeption.md](datenbank-konzeption.md). Claude-Empfehlung (offen bis zur Messung): eine gemeinsame Datei, schlanke `item`-Tabelle (Baum + Felder, nach denen gesucht oder gefiltert wird: Name, Endung, Größe, Änderungsdatum), Nebentabellen `item_<funktion>` für alles, was nur in Details gebraucht wird. Muss vor den neuen Funktionen stehen.
 - **0.4 Voraussetzungen für die Weitergabe [Annahme]:** Developer-ID-Signatur und Notarisierung, Download-Seite, Versions-Check (`GET …/api/version/` existiert), Beta-Verfallsdatum, zentrale Stelle „Darf der Nutzer das?“ (immer ja), Test auf macOS 14, Fehlerbericht mit echten Protokollzeilen, Update durch Ersetzen der App (Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe, Launch-Agent neu registrieren).
 - **Funktionen 0.5 bis 0.9 sind Entwürfe (Nutzer 10.10.):** Jede muss **vor dem Start einzeln besprochen** werden (Umfang, Last, Layout, Grenzen). Die Angaben unten sind Ausgangspunkte, keine Beschlüsse.
-- **Ab 0.5 kommen neue Layouts** dazu; Claude übersetzt sie wie bisher in Aufgaben.
+- **Ab 0.5 kommen neue Layouts** dazu; Claude übersetzt sie wie bisher in Aufgaben. Darunter ein **Wartescreen der Suche** (Nutzer 11.10.), der auch das Warten auf den Markierungslauf nach Regeländerungen abdeckt (siehe `datenbank-konzeption.md`, „Status je Eintrag“).
 - **0.5 Metadaten:** je Dateityp (Felder in datenbank-konzeption.md), als zweiter Durchgang nach dem Index, damit das Indizieren so schnell bleibt.
 - **0.6 Vorschaubilder [offen, zu besprechen]:** mit **Abschalter** (global und je Medium), eigene Datei mit Obergrenze. **Größe: 250 px lange Seite** (Nutzer 10.10.; 400 px wären problematisch: etwa 20 KB je Bild, 5.000 Fotos ca. 100 MB). Bei 250 px etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB, 100.000 Fotos ca. 1 GB (Überschlag, nicht gemessen). Zu klären: Schärfe auf Retina-Anzeige in der Detailspalte.
 - **0.7 CSV-Export:** noch nicht ausgearbeitet **[offen]** (Was wird exportiert, welche Spalten, Trennzeichen und Kodierung für deutsches Excel, Metadaten dabei?).
@@ -45,6 +45,7 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 
 ## Spaltenansicht: Scrollen (Nutzer 09.10.)
 
+- **Gilt für alle langen Listen (Nutzer 11.10.):** Suche, Einstellungen → Speichermedien, sehr große Ordner.
 - **Systemleisten zulassen (Nutzer 10.10.):** Scrollleisten kommen vom System (Overlay oder dauerhaft, je nach Systemeinstellung) und werden nicht unterdrückt. **Jede Ordnerspalte** zeigt bei vielen Einträgen ihre **eigene senkrechte Leiste** am rechten Rand der Spalte (wie die Einstellungen). Sie liegt innerhalb der Spalte, nie auf der Trennlinie oder der Nachbarspalte; im dauerhaften Stil wird der Text davor gekürzt, nicht überdeckt.
 - **Waagerechte Scrollleiste** liegt **im Spaltenbereich über der Statusleiste** und überdeckt sie nie; die letzte Zeile bleibt lesbar. Gilt in beiden Stilen.
 - **Kein Demo-Medium mehr (Nutzer 10.10.):** „Spalten-Zustände (Demo)“ entfällt; die Layouts der Spaltenzustände sind abgenommen.
@@ -52,6 +53,8 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 - **Automatisch nach rechts:** Öffnet eine Nutzeraktion (Datei wählen, Ordner öffnen, Pfeiltaste) die Details-Spalte oder eine neue Spalte außerhalb der Sicht, springt die Ansicht so weit nach rechts, dass sie ganz sichtbar ist (kurz, 0,2 s). Nie bei Live-Änderungen oder Nachladen.
 
 ## Verhältnis zum Layout
+
+**Vorschlagstexte (Nutzer 11.10.):** Alle bisher rot markierten Vorschlagstexte gelten als festgelegt; die rote Markierung entfällt. Neue Texte ohne Layout-Vorlage legt der Umsetzer normal an und listet sie zur Prüfung auf.
 
 Maßgeblich für Optik, Farben, Icons, Screen-Struktur und **alle Texte** sind [layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html) (Sektionen 00–15) und [layout/Farbschema.dc.html](layout/Farbschema.dc.html). Bei Widerspruch zwischen Layout und Konzept gilt das **Konzept** (außer reine Optik), das Layout wird angepasst. Jede Abweichung der App von Text oder Aufbau des Layouts ist ein Fehler.
 

@@ -13,6 +13,8 @@ struct ObjectSearchField: View {
     var placeholder: String = LayoutCopy.searchPlaceholderObjects
     var width: CGFloat = DesignSearchField.objectWidth
     var onSubmit: (() -> Void)?
+    /// X im Feld: leert das Feld; der Aufrufer leert zusätzlich die Suche.
+    var onClear: (() -> Void)?
 
     @State private var frameInWindow: ObjectSearchFieldWindowFrame = .init()
 
@@ -36,6 +38,7 @@ struct ObjectSearchField: View {
             if showsClearButton {
                 SearchFieldClearButton {
                     text = ""
+                    onClear?()
                 }
                 .padding(.trailing, 6)
             }

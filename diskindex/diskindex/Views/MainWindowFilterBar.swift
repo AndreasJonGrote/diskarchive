@@ -37,9 +37,9 @@ struct MainWindowFilterBar: View {
             Spacer(minLength: 8)
 
             if let scope = filterScopeLabel {
-                Text(proposal: scope)
+                Text(scope)
                     .font(.system(size: 11.5, weight: .semibold))
-                    .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+                    .foregroundStyle(DesignColor.text.opacity(0.55))
             }
         }
         .padding(.horizontal, 16)
@@ -136,14 +136,14 @@ struct MainWindowFilterBar: View {
         .buttonStyle(.plainFullHit)
         .pointerCursor()
         .padding(.leading, -underlap)
-        .help(ProposalCopy.resetAllFiltersHelp)
-        .accessibilityLabel(ProposalCopy.prefixIfNeeded(ProposalCopy.resetAllFiltersHelp))
+        .help(LayoutCopy.resetAllFiltersHelp)
+        .accessibilityLabel(LayoutCopy.resetAllFiltersHelp)
     }
 
     /// Verknüpfung Dateityp ⇄ Alter (Aufgabe 33.1 / 86): nur sichtbar wenn Und wirken kann; inaktiv = Oder, aktiv = Und.
     private func combineButton(filters: Binding<SearchFilters>) -> some View {
         let isAnd = filters.wrappedValue.combineWithAnd
-        let label = isAnd ? ProposalCopy.filterLinkedWithAnd : ProposalCopy.filterLinkWithAnd
+        let label = isAnd ? LayoutCopy.filterLinkedWithAnd : LayoutCopy.filterLinkWithAnd
         let shape = RoundedRectangle(cornerRadius: DesignRadius.sm)
 
         return Button {
@@ -162,19 +162,19 @@ struct MainWindowFilterBar: View {
         }
         .buttonStyle(.plainFullHit)
         .pointerCursor()
-        .help(ProposalCopy.prefixIfNeeded(label))
-        .accessibilityLabel(ProposalCopy.prefixIfNeeded(label))
+        .help(label)
+        .accessibilityLabel(label)
     }
 
     /// Wirkungsbereich rechts in der Leiste: Suche global (kein Label), sonst Ordner bzw. Favoriten.
     private var filterScopeLabel: String? {
         switch appState.mainWindowDestination {
         case .favorites:
-            return ProposalCopy.filterScopeFavorites
+            return LayoutCopy.filterScopeFavorites
         case .columnBrowser:
             guard let mediumID = appState.columnBrowserState.selectedMediumID,
                   let medium = appState.medium(with: mediumID) else { return nil }
-            return ProposalCopy.filterScopeMedium(name: medium.name)
+            return LayoutCopy.filterScopeMedium(medium.name)
         default:
             return nil
         }

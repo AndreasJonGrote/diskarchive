@@ -28,19 +28,38 @@ struct StatusFooterBar<Content: View>: View {
 
 /// Nur „N Objekte“ rechts (Suche, Favoriten).
 struct ObjectCountFooter: View {
-    let filtered: Int
-    let total: Int
+    let filtered: Int?
+    let total: Int?
+
+    init(filtered: Int, total: Int) {
+        self.filtered = filtered
+        self.total = total
+    }
+
+    /// `nil` = Zahl wird noch gezählt: „–“.
+    init(filtered: Int?, total: Int?) {
+        self.filtered = filtered
+        self.total = total
+    }
 
     var body: some View {
         StatusFooterBar {
             Spacer(minLength: 0)
-            Text(ObjectCountFormatting.label(filtered: filtered, total: total))
+            Text(label)
                 .padding(.horizontal, 16)
         }
+    }
+
+    private var label: String {
+        guard let filtered, let total else { return ObjectCountFormatting.pendingLabel }
+        return ObjectCountFormatting.label(filtered: filtered, total: total)
     }
 }
 
 enum ObjectCountFormatting {
+    /// Zahl noch nicht da (Suche zählt im Hintergrund).
+    static let pendingLabel = "–"
+
     /// „1 Objekt“ / „1.234 Objekte“; bei aktivem Filter „x von y Objekten“.
     static func label(filtered: Int, total: Int) -> String {
         if filtered != total {

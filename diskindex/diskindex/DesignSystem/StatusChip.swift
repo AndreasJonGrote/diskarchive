@@ -58,26 +58,14 @@ struct StatusChip: View {
         .clipShape(RoundedRectangle(cornerRadius: DesignRadius.sm))
     }
 
-    private var usesProposalCountingLabel: Bool {
-        medium.indexStatus == .indexing && medium.indexRunPhase == .counting
-    }
-
     @ViewBuilder
     private func chipLabel(_ kind: MediumChip.Presentation, color: Color) -> some View {
         let font = Font.system(size: 10, weight: medium.indexStatus == .error ? .bold : .regular)
-        if usesProposalCountingLabel {
-            Text(kind.text)
-                .font(font)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .proposedCopy(baseColor: color)
-        } else {
-            Text(kind.text)
-                .font(font)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(color)
-        }
+        Text(kind.text)
+            .font(font)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(color)
     }
 
     private func roleColor(_ kind: MediumChip.Presentation) -> Color {

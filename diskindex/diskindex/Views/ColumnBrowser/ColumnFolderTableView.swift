@@ -10,7 +10,6 @@ import SwiftUI
 
 struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
     @Environment(AppState.self) private var appState
-    @Environment(\.forcesProposalCopyHighlight) private var forcesProposalCopyHighlight
 
     let items: [IndexedItem]
     let selectedIDs: Set<UUID>
@@ -22,8 +21,10 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let scroll = NSScrollView()
-        // Auch bei klassischen Rollbalken (Maus angeschlossen) keine Spur; Rad und Trackpad scrollen weiter.
-        scroll.hasVerticalScroller = false
+        // Systemleiste wie in allen langen Listen (README „Spaltenansicht: Scrollen“): Overlay oder dauerhaft nach
+        // Systemeinstellung, nur bei Überlänge.
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
         scroll.hasHorizontalScroller = false
         scroll.borderType = .noBorder
         scroll.drawsBackground = false
@@ -93,12 +94,10 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
 
     private func makeRowBuilder() -> (IndexedItem) -> AnyView {
         let appState = appState
-        let forcesHighlight = forcesProposalCopyHighlight
         return { item in
             AnyView(
                 row(item)
                     .environment(appState)
-                    .environment(\.forcesProposalCopyHighlight, forcesHighlight)
                     .frame(maxWidth: .infinity, alignment: .leading)
             )
         }

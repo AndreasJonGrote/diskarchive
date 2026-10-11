@@ -20,6 +20,6 @@ struct SearchFieldClearButton: View {
         }
         .buttonStyle(.plainFullHit)
         .pointerCursor()
-        .accessibilityLabel(ProposalCopy.prefixIfNeeded(ProposalCopy.clearSearchAccessibility))
+        .accessibilityLabel(LayoutCopy.clearSearchAccessibility)
     }
 }

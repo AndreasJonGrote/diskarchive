@@ -15,11 +15,11 @@ struct UncapturedFolderContextHint: View {
             UncapturedFolderScanDepthHint()
         case .excluded:
             HStack(alignment: .firstTextBaseline, spacing: 0) {
-                Text(proposal: ProposalCopy.folderExcluded)
+                Text(LayoutCopy.folderExcluded)
                     .font(.system(size: 11))
-                    .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+                    .foregroundStyle(DesignColor.text.opacity(0.55))
                 Text(" ")
-                Button(ProposalCopy.prefixIfNeeded("Ausschlüsse ändern")) {
+                Button(LayoutCopy.folderChangeExclusions) {
                     MediumNavigation.openSettings(appState: appState, tab: .files)
                 }
                 .buttonStyle(.plainFullHit)
@@ -29,9 +29,9 @@ struct UncapturedFolderContextHint: View {
                 .pointerCursor()
             }
         case .unreadable:
-            Text(proposal: ProposalCopy.folderUnreadable)
+            Text(LayoutCopy.folderUnreadable)
                 .font(.system(size: 11))
-                .proposedCopy(baseColor: DesignColor.text.opacity(0.55))
+                .foregroundStyle(DesignColor.text.opacity(0.55))
         }
     }
 }

@@ -27,6 +27,42 @@ struct ObjectTableColumns {
         name = max(Self.nameMin, half)
         path = max(Self.pathMin, half)
     }
+
+    /// Breiten der sechs Zellen (Icon, Name, Datum, Medium, Pfad, Status) bei gegebener Breite **innerhalb** des
+    /// seitlichen Innenabstands.
+    static func cellWidths(contentWidth: CGFloat) -> [CGFloat] {
+        let columns = ObjectTableColumns(totalWidth: contentWidth + 2 * horizontalPadding)
+        return [icon, columns.name, date, medium, columns.path, status]
+    }
+}
+
+/// Verteilt die Breite der Tabellenzeile auf die Spalten: Name und Pfad teilen den freien Platz, die übrigen sind
+/// fest. Die Breite kommt vom Layout-System (nicht aus einer Messung), daher gilt sie auch in einer `ScrollView`
+/// und im Legacy-Stil (Leistenbreite ist schon abgezogen).
+struct ObjectTableRowLayout: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let fixedMinimum = ObjectTableColumns.cellWidths(contentWidth: 0).reduce(0, +)
+        let width = proposal.width ?? fixedMinimum
+        let widths = ObjectTableColumns.cellWidths(contentWidth: width)
+        var height: CGFloat = 0
+        for (index, subview) in subviews.enumerated() where index < widths.count {
+            height = max(height, subview.sizeThatFits(ProposedViewSize(width: widths[index], height: nil)).height)
+        }
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let widths = ObjectTableColumns.cellWidths(contentWidth: bounds.width)
+        var x = bounds.minX
+        for (index, subview) in subviews.enumerated() where index < widths.count {
+            subview.place(
+                at: CGPoint(x: x, y: bounds.minY),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: widths[index], height: bounds.height)
+            )
+            x += widths[index]
+        }
+    }
 }
 
 struct ObjectResultsTable<Placeholder: View>: View {
@@ -38,22 +74,22 @@ struct ObjectResultsTable<Placeholder: View>: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        GeometryReader { proxy in
-            let columns = ObjectTableColumns(totalWidth: proxy.size.width)
-            let rows = sortedResults
+        let rows = sortedResults
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    ObjectResultsTableHeader(columns: columns, sort: sort)
-                    if rows.isEmpty {
-                        placeholder()
-                    } else {
-                        ForEach(rows) { result in
-                            ObjectResultRow(result: result, columns: columns, isLast: result.id == rows.last?.id)
-                        }
+        // Kein `GeometryReader` um die ScrollView (212: im Legacy-Stil läge die Leiste hinter dem Fensterrand) und keine
+        // Breitenmessung (218: kam als 0 an). Die Spaltenbreiten bestimmt `ObjectTableRowLayout` aus der Zeilenbreite.
+        ScrollView {
+            VStack(spacing: 0) {
+                ObjectResultsTableHeader(sort: sort)
+                if rows.isEmpty {
+                    placeholder()
+                } else {
+                    ForEach(rows) { result in
+                        ObjectResultRow(result: result, isLast: result.id == rows.last?.id)
                     }
                 }
             }
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -89,16 +125,15 @@ extension SearchSort {
 }
 
 private struct ObjectResultsTableHeader: View {
-    let columns: ObjectTableColumns
     var sort: Binding<SearchSort>?
 
     var body: some View {
-        HStack(spacing: 0) {
+        ObjectTableRowLayout {
             Color.clear.frame(width: ObjectTableColumns.icon)
-            header(LayoutCopy.tableName, column: .name).frame(width: columns.name, alignment: .leading)
+            header(LayoutCopy.tableName, column: .name).frame(maxWidth: .infinity, alignment: .leading)
             header(LayoutCopy.tableDate, column: .date).frame(width: ObjectTableColumns.date, alignment: .leading)
             header(LayoutCopy.tableMedium, column: .medium).frame(width: ObjectTableColumns.medium, alignment: .leading)
-            header(LayoutCopy.tablePath, column: .path).frame(width: columns.path, alignment: .leading)
+            header(LayoutCopy.tablePath, column: .path).frame(maxWidth: .infinity, alignment: .leading)
             header(LayoutCopy.tableStatus, column: .status).frame(width: ObjectTableColumns.status, alignment: .trailing)
         }
         .padding(.horizontal, ObjectTableColumns.horizontalPadding)
@@ -122,7 +157,6 @@ private struct ObjectResultsTableHeader: View {
 private struct ObjectResultRow: View {
     @Environment(AppState.self) private var appState
     let result: SearchResultItem
-    let columns: ObjectTableColumns
     let isLast: Bool
 
     @State private var isHovered = false
@@ -132,7 +166,7 @@ private struct ObjectResultRow: View {
             appState.contextMenuHighlightObjectID = nil
             MediumNavigation.openObject(result, appState: appState)
         } label: {
-            HStack(spacing: 0) {
+            ObjectTableRowLayout {
                 FileTypeIcon(
                     kind: result.item.fileKind,
                     size: 16,
@@ -146,7 +180,7 @@ private struct ObjectResultRow: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
-                .frame(width: columns.name, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(result.date?.formatted(date: .abbreviated, time: .omitted) ?? "—")
                     .foregroundStyle(DesignColor.text.opacity(0.55))
@@ -161,7 +195,7 @@ private struct ObjectResultRow: View {
                     .foregroundStyle(DesignColor.text.opacity(0.55))
                     .lineLimit(1)
                     .truncationMode(.head)
-                    .frame(width: columns.path, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 ObjectRowOnlineStatusChip(isOnline: result.isOnline)
                     .frame(width: ObjectTableColumns.status, alignment: .trailing)

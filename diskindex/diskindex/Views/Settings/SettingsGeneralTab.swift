@@ -107,8 +107,8 @@ struct SettingsGeneralTab: View {
                     Button {
                         LaunchAtLogin.openSystemSettings()
                     } label: {
-                        Text(proposal: ProposalCopy.openSystemSettingsForPermission)
-                            .proposedCopy(baseColor: DesignColor.stateIgnored)
+                        Text(LayoutCopy.openSystemSettingsForPermission)
+                            .foregroundStyle(DesignColor.stateIgnored)
                     }
                     .buttonStyle(.plainFullHit)
                     .font(.system(size: 11.5))

@@ -245,7 +245,7 @@ struct ScaleMeasurementTests {
             maxDepth: nil
         )
         let searched = searchStart.duration(to: .now)
-        return "spalte-500000 speichern=\(stored) laden=\(loaded) suche=\(searched) treffer=\(match.itemCount) seite=\(match.items.count) ram-vorher=\(before) ram-nachher=\(after)"
+        return "spalte-500000 speichern=\(stored) laden=\(loaded) suche=\(searched) treffer=\(match.itemCount ?? -1) seite=\(match.items.count) ram-vorher=\(before) ram-nachher=\(after)"
     }
 
     private func syntheticVolume() -> VolumeInfo {

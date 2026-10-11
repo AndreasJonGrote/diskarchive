@@ -54,6 +54,23 @@ struct EnglishLocalizationTests {
         }
     }
 
+    /// Aufgabe 214: frühere Vorschlagstexte sind normale Texte (de unverändert, en neu).
+    @Test func formerProposalTextsAreLocalized() {
+        L10n.$languageOverride.withValue(.german) {
+            #expect(LayoutCopy.searchInProgress == "Suche läuft…")
+            #expect(LayoutCopy.noResults("abc") == "Keine Ergebnisse für „abc“")
+            #expect(LayoutCopy.mediumFilterCount(2, 5) == "2 von 5 Medien")
+            #expect(LayoutCopy.folderChangeExclusions == "Ausschlüsse ändern")
+        }
+        L10n.$languageOverride.withValue(.english) {
+            #expect(LayoutCopy.searchInProgress == "Searching…")
+            #expect(LayoutCopy.noResults("abc") == "No results for “abc”")
+            #expect(LayoutCopy.mediumFilterCount(2, 5) == "2 of 5 media")
+            #expect(LayoutCopy.folderChangeExclusions == "Change Exclusions")
+            #expect(LayoutCopy.noticePrune == "Index cleaned up.")
+        }
+    }
+
     @Test func noticeBodyAndNumbersFollowTheLanguage() throws {
         func body(_ language: AppDisplayLanguage) -> String? {
             let previous = SystemNotice.testPostHandler
@@ -84,8 +101,6 @@ struct EnglishLocalizationTests {
 
     /// Ausnahmen: Datei (Teilpfad) + Textstück der Zeile, jeweils mit Grund.
     private static let exceptions: [(file: String, fragment: String, reason: String)] = [
-        ("DesignSystem/ProposalCopy.swift", "", "Vorschlagstexte (rot), warten auf Layout/Nutzer — Frage in TODO 203"),
-        ("Views/ColumnBrowser/UncapturedFolderContextHint.swift", "prefixIfNeeded", "Vorschlagstext (rot) über ProposalCopy"),
         ("App/AppDelegate.swift", "logger.", "Protokollzeile, kein UI"),
         ("App/LaunchAtLogin.swift", "logger.", "Protokollzeile, kein UI"),
         ("App/CrashReportText.swift", "Disk Archive Bericht", "technischer Absturzbericht (Entwickler)"),

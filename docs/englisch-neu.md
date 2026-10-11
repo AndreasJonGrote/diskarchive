@@ -76,3 +76,30 @@ Nutzer prüft. Deutsch unverändert wie in der App vor 203. Schlüssel in `diski
 | `copy.table.date` | Datum | Date |
 | `copy.table.medium` | Speichermedium | Storage medium |
 | `copy.table.path` | Pfad | Path |
+
+## Aufgabe 214 (frühere rote Vorschlagstexte, jetzt normale Texte)
+
+| Schlüssel | Deutsch | Englisch |
+|---|---|---|
+| `copy.hint.popover_none_connected` | Kein Speichermedium angeschlossen | No storage medium connected |
+| `copy.search.in_progress` | Suche läuft… | Searching… |
+| `copy.search.no_results_for_filters` | Keine Treffer für die gesetzten Filter | No matches for the current filters |
+| `copy.search.no_results_for` | Keine Ergebnisse für „%1$@“ | No results for “%1$@” |
+| `copy.search.popover_no_hits` | Keine Treffer für „%1$@“ | No matches for “%1$@” |
+| `copy.favorites.none_for_filters` | Keine Favoriten für die gesetzten Filter | No favorites for the current filters |
+| `copy.favorites.none` | Keine favorisierten Objekte | No favorite items |
+| `copy.filter.reset_all` | Alle Filter zurücksetzen | Reset All Filters |
+| `copy.filter.linked_with_and` | Filter mit „Und“ verknüpft | Filters combined with “And” |
+| `copy.filter.link_with_and` | Filter mit „Und“ verknüpfen | Combine Filters with “And” |
+| `copy.filter.scope_favorites` | In Favoriten | In Favorites |
+| `copy.filter.scope_medium` | In „%1$@“ | In “%1$@” |
+| `copy.filter.medium_count` | %1$lld von %2$lld Medien | %1$lld of %2$lld media |
+| `copy.a11y.clear_search` | Suche leeren | Clear Search |
+| `copy.registry.show_details` | Details anzeigen | Show Details |
+| `copy.settings.open_system_settings` | In den Systemeinstellungen freigeben | Allow in System Settings |
+| `copy.folder.unreadable` | Inhalt konnte nicht gelesen werden | Contents could not be read |
+| `copy.folder.excluded` | Ordner ist ausgeschlossen | Folder is excluded |
+| `copy.folder.change_exclusions` | Ausschlüsse ändern | Change Exclusions |
+| `copy.notice.forget_all` | Alle Speichermedien wurden vergessen. | All storage media were forgotten. |
+| `copy.notice.prune` | Index bereinigt. | Index cleaned up. |
+| `copy.notice.defaults_applied` | Voreinstellungen angewendet. | Default settings applied. |
