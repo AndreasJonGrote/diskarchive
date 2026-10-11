@@ -104,4 +104,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 
 | 196 | Messwerkzeug Datenbank (`IndexBenchTests`, `DA_BENCH=1`, `Werkzeuge/db-messung.sh`), Messung „vorher“ S1 1 Mio. / S2 8,6 Mio. | 11.10. (Claude-Lauf 423 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11g.md` |
 
-**Offen:** 220 (Versionsnummer); Schema-Entwurf 0.3 zur Freigabe. 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+| 220 | Version 0.2.0, Build-Nummer automatisch (Zeitstempel) | 11.10. (Claude-Lauf 425 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11h.md` |
+
+**Offen:** Schema-Entwurf 0.3 zur Freigabe; Versionsanzeige (Frage an den Nutzer). 196 (Messwerkzeug) liegt im Backlog unter 0.3.

@@ -34,7 +34,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 **Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
 
-**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **0.2 eingefroren (Nutzer 11.10.: Start 0.3).** Fehler aus dem Alltagstest kommen weiter hierher und haben Vorrang. **196 abgenommen. Freigegeben: 220 (Versionsnummer). HALT nach 220.** Schema-Entwurf 0.3 wartet auf Freigabe des Nutzers.
+**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **0.2 eingefroren (Nutzer 11.10.: Start 0.3).** Fehler aus dem Alltagstest kommen weiter hierher und haben Vorrang. **220 abgenommen. Zurzeit keine Aufgabe freigegeben.** Schema-Entwurf 0.3 wartet auf Freigabe des Nutzers.
 
 **Claude-Prüfung 11.10. (5):** 219 **abgenommen**. Claude: 0 Warnungen, **421 Tests seriell grün**, App 11:02:12 aktuell. Datenbank öffnet in `Task.detached`, Verdrahtung danach auf dem Hauptfaden, `quick_check` nur bei Bedarf im Hintergrund. Volltext: `archiv/todo-stand-2026-10-11e.md`.
 
@@ -83,12 +83,7 @@ Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meld
 
 **196 abgenommen (Claude 11.10.):** 0 Warnungen, 423 Tests seriell grün, App 18:58:57 aktuell. Ergebnisse: `Werkzeuge/messung/2026-10-11-vorher.md`. Rest von g): `DebugTools/ColumnLoadBench.swift` und `Werkzeuge/column-load-bench.sh` löscht der Nutzer (Agent durfte nicht).
 
-**220. Versionsnummer 0.2.0 (Nutzer 11.10.).** Nach 196 bearbeiten.
-a) `MARKETING_VERSION` überall (App, Tests, Debug, Release; `project.pbxproj` ~Z. 452, 489, 512, 533, 552) von `1.0` auf **`0.2.0`**. Schema ab jetzt immer drei Stellen `n.n.n` (0.3.0, 0.3.1 …).
-b) `CURRENT_PROJECT_VERSION` (Build-Nummer) erhöht sich **automatisch** bei jedem Build (z. B. Skript-Phase vor dem Kompilieren aus `git rev-list --count HEAD` oder Zeitstempel; nur lesendes Git ist erlaubt). Kein Commit nötig.
-c) **Nur melden, nichts bauen:** „Frage:“ mit allen Stellen, an denen die App die Version heute zeigt oder sendet (Protokoll `start version=`, Fehlerbericht `app{version,build}`, Einstellungen?, Info-Fenster?).
-d) Test: `Bundle.main` liefert `0.2.0` und eine Build-Nummer > 1. Seriell, Warnungen 0, Regel 23.
-Status:
+**220 abgenommen (Claude 11.10.):** `MARKETING_VERSION` 0.2.0 überall, Build-Nummer = Zeitstempel `jjjjMMtthhmm` (Skript-Phase, gebaute App: 0.2.0 / 202610111927, Signatur gültig), 425 Tests seriell grün, 0 Warnungen. Version erscheint heute nur in Protokoll, Fehler- und Absturzbericht.
 
 ---
 
