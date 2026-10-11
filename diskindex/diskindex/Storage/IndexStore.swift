@@ -93,7 +93,10 @@ actor IndexStore {
     }
     #endif
 
+    nonisolated let database: IndexDatabase
+
     init(database: IndexDatabase) {
+        self.database = database
         pool = database.pool
         let pair = AsyncStream.makeStream(of: IndexChangeEvent.self, bufferingPolicy: .unbounded)
         changes = pair.stream

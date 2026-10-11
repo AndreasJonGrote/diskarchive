@@ -172,6 +172,7 @@ extension AppState {
 
     func reportIndexStoreOpenFailure() {
         indexStoreOpenFailed = true
+        storeReady = false
         indexStoreOpenFailureAlert = true
     }
 

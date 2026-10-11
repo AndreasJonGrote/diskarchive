@@ -10,8 +10,10 @@ import GRDB
 
 nonisolated final class IndexDatabase: Sendable {
     let pool: DatabasePool
+    let fileURL: URL
 
     init(fileURL: URL) throws {
+        self.fileURL = fileURL
         let folder = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         if FileManager.default.fileExists(atPath: fileURL.path) {
@@ -28,7 +30,6 @@ nonisolated final class IndexDatabase: Sendable {
         }
         pool = try DatabasePool(path: fileURL.path, configuration: configuration)
         try Self.migrator.migrate(pool)
-        try Self.ensureHealthy(pool: pool, fileURL: fileURL)
         FilePrivacy.restrict(folder)
     }
 
@@ -55,7 +56,9 @@ nonisolated final class IndexDatabase: Sendable {
         try queue.close()
     }
 
-    private static func ensureHealthy(pool: DatabasePool, fileURL: URL) throws {
+    /// `PRAGMA quick_check` über die ganze Datei (Sekunden bis Minuten bei großen Indizes): läuft nicht mehr im Init,
+    /// sondern im Hintergrund nach dem Start (`IntegrityCheckPolicy`, Aufgabe 219).
+    func runIntegrityCheck() throws {
         let result = try pool.read { db in
             try String.fetchOne(db, sql: "PRAGMA quick_check")
         }
@@ -84,12 +87,7 @@ nonisolated final class IndexDatabase: Sendable {
     }
 
     static func openDefault() throws -> IndexDatabase {
-        let url = try storeFileURL()
-        do {
-            return try IndexDatabase(fileURL: url)
-        } catch DatabaseCareError.unhealthy {
-            return try IndexDatabase(fileURL: url)
-        }
+        try IndexDatabase(fileURL: storeFileURL())
     }
 
     /// Zahl der Medien und der noch vorhandenen Objekte. „nicht lesbar“, wenn die Datei fehlt oder die Abfrage scheitert.

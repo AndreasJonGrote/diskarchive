@@ -19,7 +19,11 @@ struct MainWindowHostView: View {
     var body: some View {
         ZStack {
             MainWindowScreenScaffold {
-                screenContent
+                if appState.isStoreLoading {
+                    StoreLoadingView()
+                } else {
+                    screenContent
+                }
             }
             .id(appState.appSettings.displayLanguage)
 

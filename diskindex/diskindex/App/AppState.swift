@@ -81,6 +81,11 @@ final class AppState {
     var popoverResults = PopoverSearchResults()
     let indexRepository: IndexRepository
     private(set) var indexStore: IndexStore?
+    /// `true`, sobald die Datenbank offen und angehängt ist (Aufgabe 219). Davor zeigen Fenster und Popover den Ladezustand.
+    var storeReady = false
+    /// Der Start öffnet die Datenbank gerade (vom `AppDelegate` gesetzt); ohne Start (Tests, Vorschau) bleibt es `false`.
+    var storeOpening = false
+    var isStoreLoading: Bool { storeOpening && !storeReady && !indexStoreOpenFailed }
     let settingsDefaults: UserDefaults
     let persistsSettings: Bool
     var settingsSaveTask: Task<Void, Never>?
@@ -191,6 +196,7 @@ final class AppState {
 
     func attach(store: IndexStore) {
         indexStore = store
+        storeReady = true
         indexRepository.replaceStore(store)
     }
 

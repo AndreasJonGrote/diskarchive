@@ -276,20 +276,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startMediumRecognition() {
         let appState = AppDelegateBridge.appState
-        let store: IndexStore
-        do {
-            store = try IndexStore.openDefault()
-        } catch {
-            DiskIndexLog.shared.record(.store, .error, "open \(error)")
-            recognitionLogger.error("Index konnte nicht geöffnet werden: \(error.localizedDescription, privacy: .public)")
-            appState.reportIndexStoreOpenFailure()
-            if launchKind == .login {
-                postIndexStoreOpenFailureNotification()
-            } else {
-                AppWindowPresenter.openMain(appState: appState)
-            }
-            return
+        appState.storeOpening = true
+        StartupSequence.run(
+            previousRunUnclean: DiskIndexLog.shared.previousRunUnclean,
+            defaults: AppDefaults.current,
+            open: { try IndexStore.openDefault() },
+            wire: { [weak self] store in self?.wireStore(store, appState: appState) },
+            onFailure: { [weak self] error in self?.handleStoreFailure(error, appState: appState) }
+        )
+    }
+
+    private func handleStoreFailure(_ error: Error, appState: AppState) {
+        DiskIndexLog.shared.record(.store, .error, "open \(error)")
+        recognitionLogger.error("Index konnte nicht geöffnet werden: \(error.localizedDescription, privacy: .public)")
+        mediumCoordinator?.stop()
+        appState.reportIndexStoreOpenFailure()
+        if launchKind == .login {
+            postIndexStoreOpenFailureNotification()
+        } else {
+            AppWindowPresenter.openMain(appState: appState)
         }
+    }
+
+    private func wireStore(_ store: IndexStore, appState: AppState) {
+        mediumCoordinator?.stop()
         appState.clearIndexStoreOpenFailure()
         let access = DirectMediumAccess()
         let service = IndexingService(store: store, access: access, appState: appState)

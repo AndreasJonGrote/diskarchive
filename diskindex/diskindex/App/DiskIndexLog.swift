@@ -35,6 +35,8 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     private var logFD: Int32 = -1
     private var startedAt = Date()
     private(set) var shouldShowCrashDialog = false
+    /// Der Lauf davor endete ohne „app terminate ok“ (Aufgabe 219: dann `quick_check`).
+    private(set) var previousRunUnclean = false
     /// Fehler aus Speicher, Index, Überwachung und Medien (Aufgabe 61). Nicht im Signal-Handler setzen.
     var onTrackedError: ((String, String) -> Void)?
     private var crumbs = [UInt8](repeating: 0, count: 50 * 240)
@@ -78,6 +80,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         } else if existed {
             let resolved = tail?.contains("app terminate ok") == true || tail?.contains("app crash reported") == true
             if !resolved {
+                previousRunUnclean = true
                 record(.app, .info, "previous run ended without clean exit")
             }
         }

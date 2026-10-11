@@ -20,10 +20,7 @@ struct MenuBarPopoverView: View {
     var body: some View {
         let coreHeight = MenuBarPopoverLayout.corePanelHeight(appState: appState)
 
-        popoverBody(
-            searchText: appState.popoverSearchTextBinding,
-            isPaused: appState.globalAutoIndexPausedBinding
-        )
+        popoverContent
         .id(appState.appSettings.displayLanguage)
         .frame(width: MenuBarPopoverLayout.panelWidth, height: coreHeight, alignment: .top)
         .menuBarPopoverChrome()
@@ -45,6 +42,18 @@ struct MenuBarPopoverView: View {
             appState.popoverSearchText = ""
             appState.popoverPauseMenuOpen = false
             searchFocused = false
+        }
+    }
+
+    @ViewBuilder
+    private var popoverContent: some View {
+        if appState.isStoreLoading {
+            StoreLoadingView()
+        } else {
+            popoverBody(
+                searchText: appState.popoverSearchTextBinding,
+                isPaused: appState.globalAutoIndexPausedBinding
+            )
         }
     }
 

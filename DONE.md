@@ -100,4 +100,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | 217 | Wackeltest `fastLoadNeverShowsHint` robust (5/5 parallel grün) | 11.10. (Claude-Lauf 416 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11d.md` |
 | 218 | Ergebnistabelle (Suche, Favoriten) über die ganze Breite, Status rechts; eigenes `ObjectTableRowLayout` statt Breitenmessung (Rückschritt aus 212) | 11.10. | ebenda |
 
+| 219 | Startreihenfolge: Symbol sofort, Datenbank im Hintergrund, `quick_check` nur nach unsauberem Ende oder alle 7 Tage | 11.10. (Claude-Lauf 421 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11e.md` |
+
 **Offen:** nichts freigegeben; Alltagstest des Nutzers. Danach 0.3 (Start mit 196). 196 (Messwerkzeug) liegt im Backlog unter 0.3.

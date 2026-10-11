@@ -34,9 +34,9 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 **Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
 
-**Stand 11.10.:** Abgenommen bis 218 (siehe DONE.md). **Zurzeit keine Aufgabe freigegeben.** Nächste Fehler kommen aus dem Alltagstest des Nutzers.
+**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **Zurzeit keine Aufgabe freigegeben.** Messung Start mit echter Datenbank: Nutzer startet zweimal, Claude liest das Protokoll.
 
-**Claude-Prüfung 11.10. (4):** 217, 218 **abgenommen**. Claude: 0 Warnungen, **416 Tests seriell grün**, App 10:13:52 aktuell. 218 sauber gelöst (eigenes `Layout` statt Messung). Volltext: `archiv/todo-stand-2026-10-11d.md`.
+**Claude-Prüfung 11.10. (5):** 219 **abgenommen**. Claude: 0 Warnungen, **421 Tests seriell grün**, App 11:02:12 aktuell. Datenbank öffnet in `Task.detached`, Verdrahtung danach auf dem Hauptfaden, `quick_check` nur bei Bedarf im Hintergrund. Volltext: `archiv/todo-stand-2026-10-11e.md`.
 
 **Arbeitsregeln je Aufgabe (gelten zusätzlich zu den 23 Regeln):**
 - **R1 Nur die genannten Stellen ändern.** Jede Aufgabe nennt Datei und Zeile. Andere Dateien nur, wenn die Aufgabe es sagt. Keine „Verbesserungen nebenbei“.
@@ -70,9 +70,11 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F21 | `DelayedLoadingStateTests.fastLoadNeverShowsHint` wackelt parallel (10 ms gegen 50 ms) | Agent 11.10. | **behoben** 11.10. (217) |
 | F22 | Ergebnistabelle (Suche, vermutlich auch Favoriten) nutzt die Fensterbreite nicht: Name und Pfad stehen auf Mindestbreite (160/140), Status nicht rechts, rechts große Leerfläche. **Rückschritt aus 212** (Breite per Preference gemessen, kommt offenbar als 0 an) | Nutzer 11.10. (Foto) | **behoben** 11.10. (218) |
 | F23 | Weitere Tests mit kurzem `Task.sleep` (< 200 ms), mögliche Wackler unter Last: `ChangeWatcherTests`, `ColumnCacheTests`, `ColumnLiveRenameTests`, `IndexStoreTests`, `SurfaceStoreTests`, `SurfaceTestSupport`, `WindowTestGroupStoreCacheTests` | Agent 11.10. (217) | beobachten; erst bei einem Ausfall angehen |
+| F24 | Start: Wartekreisel („Spinning Ball“), Menüleistensymbol erst nach Sekunden. Protokoll 11.10.: `app launch` 10:24:53 → `store open ok` 10:25:12 = **19 s** (kalt), zweiter Start 3,3 s. Ursache: `IndexStore.openDefault()` läuft **synchron auf dem Hauptfaden** (`AppDelegate.startMediumRecognition` ~Z. 279) und `IndexDatabase` macht bei jedem Öffnen `PRAGMA quick_check` über die ganze Datei (1,4 GB; `Storage/IndexDatabase.swift` ~Z. 60) | Nutzer 11.10., Claude-Ursache | **behoben** 11.10. (219); Messung mit echter DB durch Claude aus dem Protokoll |
 | F2 | Live-Überwachung am echten Stick nach 195 bestätigen: Umbenennen, neuer Ordner, Kopieren, Spalte bleibt sichtbar und aktualisiert sich | Nutzer 09.10. | **bestätigt** 10.10. (erster Test lief mit veraltetem Sabotage-Build → Regel 23) |
 
 Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meldet.
+
 
 ---
 
