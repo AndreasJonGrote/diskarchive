@@ -13,6 +13,7 @@ Gilt zusammen mit [README.md](README.md) (Konzept), [TODO.md](TODO.md) (offene A
 | **0.1 Beta** | **jetzt** | Kern läuft auf echten Daten, Fehler sind noch bekannt |
 | **0.2** | alle bekannten Fehler beheben | danach gibt es keine offenen Probleme |
 | **0.3** | neue Datenbankstruktur | letzte Version mit freiem Verwerfen der Datenbank |
+| **0.3.1** | API-Warteschlange | ein Weg ins Netz; Versions-Check und Sperre kommen mit dem Update-Modal in 0.4 |
 | **0.4** | letzte Fixes, **Beta für Beta-Tester** | erste Weitergabe nach außen |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
@@ -78,6 +79,12 @@ Schritte (aus der Konzeption, in dieser Reihenfolge):
 
 ---
 
+## 0.3.1 — API-Warteschlange (Nutzer 11.10.)
+
+Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Ordner), später Update-, Versions- und Lizenz-Check. Online → sofort leeren (auch auf macOS-Meldung „Netz wieder da“); offline → Ping alle 60 s. Versions-Check, Beta-Sperre und Update-Modal kommen in **0.4**. Details: `datenbank-konzeption.md`.
+
+---
+
 ## 0.4 — Letzte Fixes, Beta für Beta-Tester
 
 **Ziel:** Die erste Version, die andere Menschen bekommen. **Alle Probleme sind erledigt.**
@@ -85,7 +92,7 @@ Schritte (aus der Konzeption, in dieser Reihenfolge):
 **Voraussetzungen für die Weitergabe [Vorschlag]** (ohne diese kann kein Tester die App starten oder erreicht später keine neue Version):
 - **Signatur und Notarisierung:** Developer ID Application, `notarytool`, Stapeln. Heute signiert Release mit "Apple Development".
 - **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (`/download`).
-- **Versions-Check** in dieser Version (sonst erreicht man die Tester später nicht): `version.json` auf der Domain mit Kanal beta/stable, Hintergrundabfrage, Dialog "Neue Version verfügbar" einmal je Version, Link nur auf die eigene Domain, Schalter in den Einstellungen. Datenschutztext. README 8 und 9 ("Kein Netzwerkcode außer dem Bericht") anpassen.
+- **Versions-Check mit Update-Modal und Beta-Sperre** (Nutzer 11.10.; Regeln in `datenbank-konzeption.md`: Vergleich `n.n`, Beta bei API ≥ 1.0 → 7 Tage, frisch installiert sofort, keine Entsperrung, 1 Monat ohne API → gesperrt, gesperrt = 100 % nur ansehen). Bisheriger Plan dazu: (sonst erreicht man die Tester später nicht): `version.json` auf der Domain mit Kanal beta/stable, Hintergrundabfrage, Dialog "Neue Version verfügbar" einmal je Version, Link nur auf die eigene Domain, Schalter in den Einstellungen. Datenschutztext. README 8 und 9 ("Kein Netzwerkcode außer dem Bericht") anpassen.
 - **Beta-Verfallsdatum** (60 bis 90 Tage nach dem Build) mit freundlicher Meldung.
 - **Zentrale Stelle "Darf der Nutzer das?"** (`FeatureAccess`), in der Beta immer "ja". Vorbereitung für 0.9.
 - **Mindest-macOS 14:** Laufzeittest auf macOS 14 (z. B. VM).

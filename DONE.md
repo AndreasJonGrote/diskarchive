@@ -102,4 +102,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 
 | 219 | Startreihenfolge: Symbol sofort, Datenbank im Hintergrund, `quick_check` nur nach unsauberem Ende oder alle 7 Tage | 11.10. (Claude-Lauf 421 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11e.md` |
 
-**Offen:** nichts freigegeben; Alltagstest des Nutzers. Danach 0.3 (Start mit 196). 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+| 196 | Messwerkzeug Datenbank (`IndexBenchTests`, `DA_BENCH=1`, `Werkzeuge/db-messung.sh`), Messung „vorher“ S1 1 Mio. / S2 8,6 Mio. | 11.10. (Claude-Lauf 423 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11g.md` |
+
+**Offen:** 220 (Versionsnummer); Schema-Entwurf 0.3 zur Freigabe. 196 (Messwerkzeug) liegt im Backlog unter 0.3.

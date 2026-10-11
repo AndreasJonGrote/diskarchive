@@ -34,7 +34,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 **Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
 
-**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **Zurzeit keine Aufgabe freigegeben.** Messung Start mit echter Datenbank: Nutzer startet zweimal, Claude liest das Protokoll.
+**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **0.2 eingefroren (Nutzer 11.10.: Start 0.3).** Fehler aus dem Alltagstest kommen weiter hierher und haben Vorrang. **196 abgenommen. Freigegeben: 220 (Versionsnummer). HALT nach 220.** Schema-Entwurf 0.3 wartet auf Freigabe des Nutzers.
 
 **Claude-Prüfung 11.10. (5):** 219 **abgenommen**. Claude: 0 Warnungen, **421 Tests seriell grün**, App 11:02:12 aktuell. Datenbank öffnet in `Task.detached`, Verdrahtung danach auf dem Hauptfaden, `quick_check` nur bei Bedarf im Hintergrund. Volltext: `archiv/todo-stand-2026-10-11e.md`.
 
@@ -70,11 +70,25 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F21 | `DelayedLoadingStateTests.fastLoadNeverShowsHint` wackelt parallel (10 ms gegen 50 ms) | Agent 11.10. | **behoben** 11.10. (217) |
 | F22 | Ergebnistabelle (Suche, vermutlich auch Favoriten) nutzt die Fensterbreite nicht: Name und Pfad stehen auf Mindestbreite (160/140), Status nicht rechts, rechts große Leerfläche. **Rückschritt aus 212** (Breite per Preference gemessen, kommt offenbar als 0 an) | Nutzer 11.10. (Foto) | **behoben** 11.10. (218) |
 | F23 | Weitere Tests mit kurzem `Task.sleep` (< 200 ms), mögliche Wackler unter Last: `ChangeWatcherTests`, `ColumnCacheTests`, `ColumnLiveRenameTests`, `IndexStoreTests`, `SurfaceStoreTests`, `SurfaceTestSupport`, `WindowTestGroupStoreCacheTests` | Agent 11.10. (217) | beobachten; erst bei einem Ausfall angehen |
-| F24 | Start: Wartekreisel („Spinning Ball“), Menüleistensymbol erst nach Sekunden. Protokoll 11.10.: `app launch` 10:24:53 → `store open ok` 10:25:12 = **19 s** (kalt), zweiter Start 3,3 s. Ursache: `IndexStore.openDefault()` läuft **synchron auf dem Hauptfaden** (`AppDelegate.startMediumRecognition` ~Z. 279) und `IndexDatabase` macht bei jedem Öffnen `PRAGMA quick_check` über die ganze Datei (1,4 GB; `Storage/IndexDatabase.swift` ~Z. 60) | Nutzer 11.10., Claude-Ursache | **behoben** 11.10. (219); Messung mit echter DB durch Claude aus dem Protokoll |
+| F24 | Start: Wartekreisel („Spinning Ball“), Menüleistensymbol erst nach Sekunden. Protokoll 11.10.: `app launch` 10:24:53 → `store open ok` 10:25:12 = **19 s** (kalt), zweiter Start 3,3 s. Ursache: `IndexStore.openDefault()` läuft **synchron auf dem Hauptfaden** (`AppDelegate.startMediumRecognition` ~Z. 279) und `IndexDatabase` macht bei jedem Öffnen `PRAGMA quick_check` über die ganze Datei (1,4 GB; `Storage/IndexDatabase.swift` ~Z. 60) | Nutzer 11.10., Claude-Ursache | **behoben** 11.10. (219); gemessen: Datenbank offen 17–31 ms, bereit nach 0,1–0,25 s (vorher 3–19 s); Prüfung 3,5 s im Hintergrund |
+| F25 | Bereinigen nach geringerer Scan-Tiefe extrem langsam (Messung 196: S1 nach 15 min nichts entfernt, S2 479 Einträge/s ≈ 1,6 h); vermutlich `DELETE … WHERE path …` ohne `mediumID` → Suchhilfe `item_path` greift nicht | Agent 11.10. (196) | **löst 0.3** (Status-Flag, kein Pfad); bis dahin Scan-Tiefe nicht verringern |
+| F26 | Großes WAL nach langem Schreiben: erstes Öffnen danach 116 s (S2) | Agent 11.10. (196) | **in 0.3** regelmäßig `wal_checkpoint(TRUNCATE)` nach Läufen, `journal_size_limit` |
 | F2 | Live-Überwachung am echten Stick nach 195 bestätigen: Umbenennen, neuer Ordner, Kopieren, Spalte bleibt sichtbar und aktualisiert sich | Nutzer 09.10. | **bestätigt** 10.10. (erster Test lief mit veraltetem Sabotage-Build → Regel 23) |
 
 Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meldet.
 
+
+
+### Version 0.3 — Neue Datenbankstruktur (begonnen 11.10.)
+
+**196 abgenommen (Claude 11.10.):** 0 Warnungen, 423 Tests seriell grün, App 18:58:57 aktuell. Ergebnisse: `Werkzeuge/messung/2026-10-11-vorher.md`. Rest von g): `DebugTools/ColumnLoadBench.swift` und `Werkzeuge/column-load-bench.sh` löscht der Nutzer (Agent durfte nicht).
+
+**220. Versionsnummer 0.2.0 (Nutzer 11.10.).** Nach 196 bearbeiten.
+a) `MARKETING_VERSION` überall (App, Tests, Debug, Release; `project.pbxproj` ~Z. 452, 489, 512, 533, 552) von `1.0` auf **`0.2.0`**. Schema ab jetzt immer drei Stellen `n.n.n` (0.3.0, 0.3.1 …).
+b) `CURRENT_PROJECT_VERSION` (Build-Nummer) erhöht sich **automatisch** bei jedem Build (z. B. Skript-Phase vor dem Kompilieren aus `git rev-list --count HEAD` oder Zeitstempel; nur lesendes Git ist erlaubt). Kein Commit nötig.
+c) **Nur melden, nichts bauen:** „Frage:“ mit allen Stellen, an denen die App die Version heute zeigt oder sendet (Protokoll `start version=`, Fehlerbericht `app{version,build}`, Einstellungen?, Info-Fenster?).
+d) Test: `Bundle.main` liefert `0.2.0` und eine Build-Nummer > 1. Seriell, Warnungen 0, Regel 23.
+Status:
 
 ---
 
@@ -99,32 +113,11 @@ Siehe README, Abschnitt „Roadmap“ (0.4). Cursor arbeitet nicht daran; die Li
 
 ### Ohne feste Version (klein)
 
-- **V1. Versionsnummer.** `MARKETING_VERSION` von heute `1.0` auf **`0.1`** setzen (Debug und Release, App und Tests gleich), `CURRENT_PROJECT_VERSION` **automatisch erhöhen** (Build-Nummer, z. B. Build-Phase vor dem Kompilieren). **Keine Anzeige bauen:** Cursor meldet per „Frage:“, **wo** die Version heute in der App erscheint (Einstellungen, Fehlerbericht `app{version,build}`, Info-Fenster …).
 
 ### 0.3 — Neue Datenbankstruktur (Roadmap 0.3, `datenbank-konzeption.md`)
 
 Reihenfolge: (1) Messwerkzeug 196 und Messung „vorher“ → (2) Architektur entscheiden (eine Datei oder Datei je Medium plus Register) → (3) Konvention Seitentabellen (`item_<funktion>`, `itemID`, `ON DELETE CASCADE`, `srcSize`, `srcModifiedAt`, `extractorVersion`; Thumbnails in eigener Datei) → (4) Zuschnitt `item`/`medium` → (5) Schema neu, Abfragen umstellen (erst Schreib-, dann Lesewege, kleine Aufgaben mit Zwischenabnahme) → (6) Messung „nachher“ gegen die Schwelle → (7) Altlasten entfernen.
 
-**196. Messwerkzeug Datenbank (Roadmap 0.3, README; Grundlage: `datenbank-konzeption.md`, Empfehlung Schritt 1). Nur messen, nichts am App-Schema ändern.**
-*Zweck:* Zahlen für die Architektur-Entscheidung (eine Datei vs. Datei je Medium, Zuschnitt `item`, Pfad speichern oder berechnen). Dieser Lauf misst den **heutigen** Stand („vorher“).
-a) **Ort und Start:** neue Datei `diskindexTests/IndexBenchTests.swift`, Suite mit `.enabled(if: ProcessInfo.processInfo.environment["DA_BENCH"] == "1")` → im normalen Lauf **übersprungen**. Start: `TEST_RUNNER_DA_BENCH=1 xcodebuild test -scheme diskindex -destination platform=macOS -only-testing:diskindexTests/IndexBenchTests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 3600`. Skript `Werkzeuge/db-messung.sh` mit genau diesem Aufruf. Kein Fenster (Regel 19).
-b) **Speicherplatz:** Datenbank im Temp-Ordner; **vorher** freien Platz prüfen — unter **15 GB** frei: Test bricht mit klarer Meldung ab (Mac des Nutzers hat ~25 GB frei). Nach dem Lauf Temp-Datenbank löschen.
-c) **Daten (synthetisch, reproduzierbar, fester Zufallsstartwert)** über die **echten** Schreibwege (`IndexStore.applyDirectories` in Blöcken wie der Indexer), nicht per Roh-SQL:
-- **S1:** 1 Medium, **1.000.000** Einträge, Tiefe bis 6; darunter Ordner mit genau 100, 5.000 und 50.000 Kindern.
-- **S2:** **300** Medien, zusammen **9.000.000** Einträge: 1 × 3 Mio., 20 × 200.000, Rest gleichmäßig.
-Namen realistisch (Länge 4–60, Umlaute, Leerzeichen), Endungen nach Verteilung (jpg 30 %, pdf 10 %, mov 5 %, txt 10 %, ohne 15 %, Rest gemischt), `modifiedAt` über 10 Jahre, `sizeBytes` 1 KB–4 GB.
-d) **Messen** (je Median aus 5 Läufen, Zeiten in ms), für S1 und S2:
-- Schreibdurchsatz beim Erzeugen (Einträge/s); zwei Medien **gleichzeitig** schreiben (Durchsatz je Medium und gesamt).
-- Öffnen der Datenbank kalt (`IndexDatabase` öffnen inkl. `quick_check`) — getrennt: Zeit mit und ohne `quick_check`.
-- Spaltenansicht: `childCount` + erste Seite `childrenPage` und **alle** Seiten für 100 / 5.000 / 50.000 Kinder.
-- Suche über alle Medien: `search` (Limit 500) und `searchCount` für einen häufigen Begriff (3 Zeichen) und einen seltenen (8 Zeichen); jeweils ohne Filter, mit Dateityp-Filter (pdf), mit Alters-Filter (letzte 30 Tage), mit beiden.
-- `favorites` bei 1.000 Favoriten verteilt über alle Medien.
-- `deleteMedium` für das 3-Mio.-Medium (S2) und anschließend Dateigröße vor/nach `incremental_vacuum`.
-- `pruneToMatch` nach Verringern der Scan-Tiefe um 1.
-- Größe: Datenbankdatei, WAL, Anteil `item`, Indizes, `item_fts` (`dbstat` bzw. `PRAGMA page_count`), und **Bytes der Spalte `path`** gesamt (`SUM(LENGTH(path))`).
-e) **Ausgabe:** `Werkzeuge/messung/2026-10-<TT>-vorher.md` (Tabelle je Messpunkt, Rechner, macOS, Laufzeit gesamt) und dieselben Werte als `.json`. Die Datei kommt ins Repository (klein).
-f) Kein Sabotage-Nachweis nötig (Messung, kein Prüftest). Normaler serieller Lauf bleibt grün und **unverändert schnell** (Suite übersprungen); Warnungen 0.
-Status: (noch nicht freigegeben) — **Zusatz (Nutzer 10.10., 204 ja):** mit 196 die alte `DebugTools/ColumnLoadBench.swift` samt `#if BENCH`-Zweigen (`AppDelegate`, `SystemNotice`) entfernen.
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
 

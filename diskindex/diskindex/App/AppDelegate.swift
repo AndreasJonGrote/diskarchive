@@ -27,12 +27,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillFinishLaunching(_ notification: Notification) {
-        #if BENCH
-        if CommandLine.arguments.contains(ColumnLoadBench.argument) {
-            NSApp.setActivationPolicy(.accessory)
-            return
-        }
-        #endif
         guard !Self.isRunningUnitTests else { return }
         AppDefaults.current.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
         NSWindow.allowsAutomaticWindowTabbing = false
@@ -51,12 +45,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        #if BENCH
-        if CommandLine.arguments.contains(ColumnLoadBench.argument) {
-            ColumnLoadBench.run(arguments: CommandLine.arguments)
-            return
-        }
-        #endif
         guard !Self.isRunningUnitTests, !handedOff else { return }
         if launchKind == .login {
             NSApp.setActivationPolicy(.accessory)

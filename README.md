@@ -13,13 +13,14 @@
 
 ## Roadmap (Nutzer 10.10.)
 
-Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgeblich ist dieser Abschnitt.** Die Nummern sind die Versionsnummern der App (`MARKETING_VERSION`), Stand heute **0.1 Beta**.
+Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgeblich ist dieser Abschnitt.** Die Nummern sind die Versionsnummern der App (`MARKETING_VERSION`, ab 11.10. dreistellig `n.n.n`: 0.2.0, 0.3.0, 0.3.1 …; Aufgabe 220). **0.2 am 11.10. eingefroren, 0.3 begonnen** (Nutzer); Fehler aus dem Alltag haben weiter Vorrang.
 
 | Version | Inhalt |
 |---|---|
 | **0.1 Beta** | **jetzt** |
 | **0.2** | alle bekannten Fehler beheben (Live-Überwachung, Indizieren, nicht angezeigte Dinge, Glitches) |
 | **0.3** | neue Datenbankstruktur |
+| **0.3.1** | **API-Warteschlange** (Nutzer 11.10.): ein Weg ins Netz für Fehlerberichte (später Update-, Versions-, Lizenz-Check); online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Details: `datenbank-konzeption.md` |
 | **0.4** | letzte Fixes. **Beta für Beta-Tester.** Ab hier laden andere die App |
 | **0.5** | Metadaten und EXIF (Code und Design) |
 | **0.6** | Vorschaubilder |
@@ -30,8 +31,10 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 
 - **Grundsatz (Nutzer):** Mit 0.4 sind **alle Probleme erledigt**. Was Fehler ist, muss **in 0.2** gelöst sein. 0.3 und 0.4 sind Umbau und Politur. Neues, das kein Fehler ist, kommt ins Backlog der nächsten Version.
 - **Bis 1.0 keine Rücksicht auf vorhandene Daten (Nutzer 10.10.):** Datenbank, Einstellungen und Protokolle **auf dem Mac des Nutzers** dürfen jederzeit verändert, verworfen oder gelöscht werden; Agenten müssen dabei nicht vorsichtig sein. Für andere Rechner ab 0.4 siehe „Stichtag“.
+- **Nach 0.3 nur noch erweitern (Nutzer 11.10.):** Keine bestehende Tabelle wird mehr verändert; neue Funktionen über neue Schlüssel in `settings`/`storage_meta`/`item_meta` oder neue Tabellen (Beispiel: Scan-Tiefe je Medium = Schlüssel in `storage_meta`).
 - **Stichtag:** 0.3 ist die letzte Version, in der die Datenbank frei verworfen und neu gebaut werden darf. **Ab 0.4 nur noch erweitern (Nutzer 10.10.):** Die Struktur aus 0.3 ist so gebaut, dass spätere Funktionen (Metadaten, EXIF, Vorschaubilder, Prüfsummen) **nur neue Tabellen oder neue Spalten hinzufügen**, nie bestehende umbauen. Die Baumtabelle enthält nur den Baum und die Grunddaten aus dem Dateisystem (Name, Endung, Größe, Änderungsdatum); alles Weitere kommt erst nach 0.4 als eigene Tabelle dazu. Auf **anderen Rechnern** (ab 0.4) wird nie etwas gelöscht: ein Update erweitert die Datenbank einmalig beim Start, die App funktioniert danach mit den vorhandenen Daten weiter. Auf dem **Mac des Nutzers** darf bis 1.0 alles gelöscht werden. Vor jeder Erweiterung eine Sicherungskopie, Schutz vor Rückschritt (ältere App öffnet eine neuere Datenbank nicht).
 - **0.3 Datenbank:** erst Messwerkzeug (synthetisch 1 Mio. Einträge auf einem Medium, 9 Mio. auf 300 Medien), dann Entscheidung nach [datenbank-konzeption.md](datenbank-konzeption.md). Claude-Empfehlung (offen bis zur Messung): eine gemeinsame Datei, schlanke `item`-Tabelle (Baum + Felder, nach denen gesucht oder gefiltert wird: Name, Endung, Größe, Änderungsdatum), Nebentabellen `item_<funktion>` für alles, was nur in Details gebraucht wird. Muss vor den neuen Funktionen stehen.
+- **0.4 zusätzlich (Nutzer 11.10.):** Versions-Check gegen `api/version/` mit **Update-Modal**; Beta-Sperre (API ≥ 1.0: 7 Tage, frisch installiert sofort, keine Entsperrung), „API 1 Monat nicht erreicht“ → gesperrt; gesperrt = 100 % nur ansehen (auch Überwachung aus).
 - **0.4 Voraussetzungen für die Weitergabe [Annahme]:** Developer-ID-Signatur und Notarisierung, Download-Seite, Versions-Check (`GET …/api/version/` existiert), Beta-Verfallsdatum, zentrale Stelle „Darf der Nutzer das?“ (immer ja), Test auf macOS 14, Fehlerbericht mit echten Protokollzeilen, Update durch Ersetzen der App (Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe, Launch-Agent neu registrieren).
 - **Funktionen 0.5 bis 0.9 sind Entwürfe (Nutzer 10.10.):** Jede muss **vor dem Start einzeln besprochen** werden (Umfang, Last, Layout, Grenzen). Die Angaben unten sind Ausgangspunkte, keine Beschlüsse.
 - **Ab 0.5 kommen neue Layouts** dazu; Claude übersetzt sie wie bisher in Aufgaben. Darunter ein **Wartescreen der Suche** (Nutzer 11.10.), der auch das Warten auf den Markierungslauf nach Regeländerungen abdeckt (siehe `datenbank-konzeption.md`, „Status je Eintrag“).
@@ -39,7 +42,7 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 - **0.6 Vorschaubilder [offen, zu besprechen]:** mit **Abschalter** (global und je Medium), eigene Datei mit Obergrenze. **Größe: 250 px lange Seite** (Nutzer 10.10.; 400 px wären problematisch: etwa 20 KB je Bild, 5.000 Fotos ca. 100 MB). Bei 250 px etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB, 100.000 Fotos ca. 1 GB (Überschlag, nicht gemessen). Zu klären: Schärfe auf Retina-Anzeige in der Detailspalte.
 - **0.7 CSV-Export:** noch nicht ausgearbeitet **[offen]** (Was wird exportiert, welche Spalten, Trennzeichen und Kodierung für deutsches Excel, Metadaten dabei?).
 - **0.8 Duplikate:** über alle Medien, stufenweise (Größe → Anfang/Ende → volle Prüfsumme nur bei Treffern), nur im Hintergrund.
-- **0.9 Lizenz:** Stufen nach Medienzahl — **max. 1 / max. 50 / max. 250 Medien**. Technisch trägt die Datenbank 250 Medien; die Messung mit 300 Medien als Reserve ist in 0.3 vorgesehen **[prüfen: Messung steht noch aus]**; keine weitere Grenze nötig. In der Beta (0.1 bis 0.8) gibt es keine Grenze.
+- **0.9 Lizenz:** Stufen nach Medienzahl — **max. 1 / max. 50 / max. 250 Medien**. Die 250 ist **nur eine Lizenzgrenze**, keine Systemgrenze (Nutzer 11.10.): die App muss mehr Medien tragen (Messung 0.3 mit 300 und 1.000). In der Beta (0.1 bis 0.8) gibt es keine Grenze.
 
 **Offene Fragen Lizenz (vor 0.9 zu klären):** Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert beim Erreichen der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar aber wird nicht indiziert)? Was passiert bei Herabstufung mit mehr Medien als erlaubt (Index bleibt durchsuchbar, keine Aktualisierung)? Prüfung der Lizenz online über diskarchive.app oder offline per Schlüssel?
 
@@ -50,6 +53,7 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 - **Waagerechte Scrollleiste** liegt **im Spaltenbereich über der Statusleiste** und überdeckt sie nie; die letzte Zeile bleibt lesbar. Gilt in beiden Stilen.
 - **Kein Demo-Medium mehr (Nutzer 10.10.):** „Spalten-Zustände (Demo)“ entfällt; die Layouts der Spaltenzustände sind abgenommen.
 - **Detail-Spalte** nur bei gewählter Datei oder Mehrfachauswahl, auch wenn die Ordnerspalten breiter als das Fenster sind (Nutzer 10.10.).
+- **Sortierung (Nutzer 11.10., kommt mit 0.3):** wie im Finder – natürlich („Datei 2“ vor „Datei 10“), Umlaute wie ihr Stammlaut, **Ordner und Dateien gemischt nach Namen** (nicht mehr Ordner oben).
 - **Automatisch nach rechts:** Öffnet eine Nutzeraktion (Datei wählen, Ordner öffnen, Pfeiltaste) die Details-Spalte oder eine neue Spalte außerhalb der Sicht, springt die Ansicht so weit nach rechts, dass sie ganz sichtbar ist (kurz, 0,2 s). Nie bei Live-Änderungen oder Nachladen.
 
 ## Verhältnis zum Layout
@@ -203,7 +207,7 @@ Weitere Information (Dateizahl, „zuletzt gesehen …“, „Fehler vor 2 Std. 
 - Release akzeptiert nur `https`.
 
 ## 9. Plattform und Sicherheit
-- **Ohne App-Sandbox** (damit Medien automatisch lesbar sind), **Hardened Runtime** an, keine Ausnahmen. Datenbank und Protokoll sind nur für den Benutzer lesbar (700/600). Kein Netzwerkcode außer dem Bericht. Keine Verschlüsselung der Datenbank (FileVault schützt die Ruhedaten). Weitergabe braucht Developer-ID-Signatur und Notarisierung.
+- **Ohne App-Sandbox** (damit Medien automatisch lesbar sind), **Hardened Runtime** an, keine Ausnahmen. Datenbank und Protokoll sind nur für den Benutzer lesbar (700/600). Netzwerk nur über die API-Warteschlange (ab 0.3.1: Fehlerbericht, Versions-, Update-, Lizenz-Check) zu `diskarchive.app`. Keine Verschlüsselung der Datenbank (FileVault schützt die Ruhedaten). Weitergabe braucht Developer-ID-Signatur und Notarisierung.
 - Daten: SQLite (GRDB, WAL, Volltext FTS5), `~/Library/Application Support/Disk Index/`; Protokoll `~/Library/Logs/Disk Index/`.
 
 ## 10. Darstellung

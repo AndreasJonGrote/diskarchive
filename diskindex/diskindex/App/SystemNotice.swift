@@ -327,9 +327,6 @@ nonisolated enum NoticePermission {
         if arguments.contains(screenshotsArgument) || arguments.contains(AppLaunch.backgroundArgument) {
             return false
         }
-        #if BENCH
-        if arguments.contains(ColumnLoadBench.argument) { return false }
-        #endif
         return !defaults.bool(forKey: askedKey)
     }
 }
