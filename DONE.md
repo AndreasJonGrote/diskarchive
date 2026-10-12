@@ -112,5 +112,7 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | 231 | Schreibwege V3 (`IndexStoreV3`, `IndexWriting`), Status „verschwunden“, Lauf-Nummer, WAL kürzen | 11.10. (Claude-Lauf 463 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11k.md` |
 
 | 232 | Lesewege V3 (`IndexReading`), natürliche gemischte Sortierung, Pfad per Kette, parallele Suche über `slug`, Mediennamen | 11.10. (Claude-Lauf 477 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11l.md` |
+| 222 | Wackeltests stabilisiert (fester Spinner-Winkel im Test, Vertrag `==` statt Zeichenläufe) | 12.10. (Claude-Lauf 473 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-12.md` |
+| 233 | Umschalten: App nur noch V3 (`archive.sqlite`, Migration `0.3.0-schema`), alte Schicht entfernt, `lastSeenRun` weg, `unreadable` zurückgesetzt, nur `.app`/`.dmg`/`.pkg` = Programme, veraltete Zusatzdaten fallen, Bereinigen 100.000 in 1,5 s | 12.10. (Claude-Lauf 473 Tests seriell grün, 0 Warnungen, Regel 23 ✓) | `archiv/todo-stand-2026-10-12.md` |
 
-**Offen:** 222 (Wackeltests), 233 (Umschalten). 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+**Offen:** 233b (auto_vacuum), danach 234. 196 (Messwerkzeug) liegt im Backlog unter 0.3.
