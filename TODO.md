@@ -92,7 +92,8 @@ Status: `detachFromIndexStore`/`cancelChangeLoop`; Change-Loop wartet alten Task
 
 **c.0.3.2.004 — FSEvents / Watcher-Lebenszyklus (REPORT 6, 8, 9, 10).**
 Kein paralleles Schreiben Watcher↔Indexer ohne Token; Stream-Fehler → `continuation.finish`; Unmount → sauber stoppen/neu starten; Cursor nur bei erfolgreichem Reread speichern.
-Status:
+Status: LiveWiring stop vor Index, Watcher nur `onRunIndexed`; Engine deferred/apply-Fehler; flush `saveCursor` nur `.ok`; FSEvents `finish`, Unmount-Restart, Wake indexed. WatcherLifecycleTests. 489 seriell grün. Regel 23: App 12:27:39, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 6: `stopWatcherAndStartIndex`; Watcher nur `onRunIndexed`; `isIndexingActive`/`hasActiveIndexingToken` → deferred. REPORT 8: FSEvents Create/Start-Fehler → `continuation.finish`. REPORT 9: Unmount `saveCursor` + Restart wenn verbunden; Wake startet auch ohne `isWatching`. REPORT 10: flush `saveCursor` nur `.ok`; apply-Fehler → `needsFullReconcile`. Tests `WatcherLifecycleTests`. Regel 23: Binary 12:27:39, find -newer leer. Suite 489 nicht erneut. Keine Nacharbeit.
 
 **c.0.3.2.005 — Suche / Spalten Scope & Pagination (REPORT 11, 12, 19, 20).**
 Bei `checksNames`: LIMIT/Pagination nach sichtbaren Treffern; `childrenPage` bei leerer gefilterter Seite weiterblättern; `childCount` Scope beachten; `searchCount` bei Namensregeln entlasten.

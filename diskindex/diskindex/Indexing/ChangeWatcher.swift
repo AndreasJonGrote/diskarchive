@@ -27,6 +27,8 @@ final class ChangeWatcher {
     /// Voller ebenenweiser Abgleich. Zeilen bleiben erhalten (`fromScratch` setzt nur die Tiefe zurück).
     var onFullReconcile: ((UUID, VolumeInfo) -> Void)?
     var connectedVolumes: () -> [(id: UUID, volume: VolumeInfo)] = { [] }
+    /// Laufender Index-Lauf (LiveWiring setzt das); Flush ohne DB-Schreiben.
+    var isIndexingActive: (UUID) -> Bool = { _ in false }
     /// Produktion: 2 Sekunden. Tests setzen einen kürzeren Wert.
     var quietInterval: Duration = .seconds(2)
     /// Spätestens nach dieser Zeit wird trotz weiterer Ereignisse nachgelesen.
@@ -42,6 +44,7 @@ final class ChangeWatcher {
     private var mounts: [UUID: String] = [:]
     private var volumes: [UUID: VolumeInfo] = [:]
     private var cursorTimer: Task<Void, Never>?
+    private var watchGenerations: [UUID: Int] = [:]
     private let engine: ChangeWatcherEngine
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
@@ -67,7 +70,10 @@ final class ChangeWatcher {
         sources[mediumID] = source
         mounts[mediumID] = volume.mountPath
         volumes[mediumID] = volume
+        let generation = watchGenerations[mediumID, default: 0] + 1
+        watchGenerations[mediumID] = generation
         tasks[mediumID] = Task { [weak self] in
+            defer { Task { @MainActor in await self?.watchStreamEnded(mediumID, generation: generation) } }
             for await change in source.changes() {
                 guard let self else { return }
                 await self.ingest(mediumID, change)
@@ -116,6 +122,7 @@ final class ChangeWatcher {
 
     func stop(mediumID: UUID) async {
         DiskIndexLog.shared.record(.watcher, .info, "stop medium=\(mediumID)")
+        watchGenerations[mediumID, default: 0] += 1
         savedCursors[mediumID] = nil
         quietTasks[mediumID]?.cancel()
         quietTasks[mediumID] = nil
@@ -163,11 +170,41 @@ final class ChangeWatcher {
 
     private func handleStreamUnmount(mediumID: UUID) async {
         DiskIndexLog.shared.record(.watcher, .info, "stream unmount medium=\(mediumID)")
+        await saveCursor(mediumID: mediumID)
         quietTasks[mediumID]?.cancel()
         quietTasks[mediumID] = nil
         tasks[mediumID]?.cancel()
         tasks[mediumID] = nil
         sources[mediumID] = nil
+        await restartWatchIfConnected(mediumID: mediumID)
+    }
+
+    private func watchStreamEnded(_ mediumID: UUID, generation: Int) async {
+        guard watchGenerations[mediumID] == generation else { return }
+        tasks[mediumID] = nil
+        sources[mediumID] = nil
+    }
+
+    private func restartWatchIfConnected(mediumID: UUID) async {
+        guard tasks[mediumID] == nil else { return }
+        guard let pair = connectedVolumes().first(where: { $0.id == mediumID }) else { return }
+        let stored: StoredMedium?
+        do {
+            stored = try await store.medium(uuid: mediumID)
+        } catch {
+            if DiskIndexLog.isOperationalFailure(error) {
+                DiskIndexLog.shared.record(.store, .error, "store error medium restart \(error)")
+            }
+            return
+        }
+        guard let stored, stored.decision == .index else { return }
+        let cursor = cursors[mediumID]
+        start(
+            mediumID: mediumID,
+            volume: pair.volume,
+            resumeFSEventsUUID: cursor?.uuid ?? stored.fsEventsUUID,
+            resumeLastEventID: cursor?.eventID ?? stored.lastEventID ?? 0
+        )
     }
 
     private func ingest(_ mediumID: UUID, _ change: VolumeChange) async {
@@ -220,10 +257,14 @@ final class ChangeWatcher {
     }
 
     private func flush(_ mediumID: UUID) async {
+        guard let mount = mounts[mediumID] else { return }
+        if isIndexingActive(mediumID) {
+            scheduleDeferredFlush(mediumID)
+            return
+        }
         let events = pending[mediumID] ?? []
         pending[mediumID] = []
         pendingSince[mediumID] = nil
-        guard let mount = mounts[mediumID] else { return }
         let matcher = appState.appSettings.matcher
         let maxDepth = appState.appSettings.indexedMaxDepth
         appState.beginMediumLiveSync(mediumID)
@@ -235,10 +276,28 @@ final class ChangeWatcher {
             matcher: matcher,
             maxDepth: maxDepth
         )
-        if outcome == .needsFullReconcile, let volume = volumes[mediumID] {
-            onFullReconcile?(mediumID, volume)
+        switch outcome {
+        case .ok:
+            await saveCursor(mediumID: mediumID)
+        case .needsFullReconcile:
+            if let volume = volumes[mediumID] {
+                onFullReconcile?(mediumID, volume)
+            }
+        case .deferred:
+            pending[mediumID, default: []].formUnion(events)
+            scheduleDeferredFlush(mediumID)
         }
-        await saveCursor(mediumID: mediumID)
+    }
+
+    private func scheduleDeferredFlush(_ mediumID: UUID) {
+        guard quietTasks[mediumID] == nil else { return }
+        let interval = quietInterval
+        quietTasks[mediumID] = Task { [weak self] in
+            try? await Task.sleep(for: interval)
+            guard let self, !Task.isCancelled else { return }
+            self.quietTasks[mediumID] = nil
+            await self.flush(mediumID)
+        }
     }
 
     private func directoryToReread(_ path: String, mount: String, mediumID: UUID) -> String? {
@@ -350,11 +409,15 @@ nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked S
             DiskIndexLog.shared.record(.watcher, .info, "fsevents resume id=\(start.sinceEventID)")
         }
         let since = start.sinceEventID
-        guard let stream = FSEventStreamCreate(nil, Self.callback, &context, paths, since, 1.0, flags) else { return }
+        guard let stream = FSEventStreamCreate(nil, Self.callback, &context, paths, since, 1.0, flags) else {
+            continuation?.finish()
+            return
+        }
         self.stream = stream
         FSEventStreamSetDispatchQueue(stream, queue)
         if !FSEventStreamStart(stream) {
             close()
+            continuation?.finish()
         }
     }
 

@@ -19,6 +19,7 @@ actor ChangeWatcherEngine {
     enum Outcome: Sendable {
         case ok
         case needsFullReconcile
+        case deferred
     }
 
     func processPending(
@@ -28,6 +29,9 @@ actor ChangeWatcherEngine {
         matcher: IgnoreMatcher,
         maxDepth: Int?
     ) async -> Outcome {
+        if await store.hasActiveIndexingToken(mediumUUID: mediumID) {
+            return .deferred
+        }
         let eventPaths = Set(directories.map { URL(fileURLWithPath: $0).standardizedFileURL.path })
         var queue = Array(eventPaths)
         var seen = Set<String>()
@@ -118,6 +122,9 @@ actor ChangeWatcherEngine {
                     .map(\.name)
             )
             do {
+                if await store.hasActiveIndexingToken(mediumUUID: mediumID) {
+                    return .deferred
+                }
                 try await store.applyDirectories(
                     mediumUUID: mediumID,
                     batches: [(parentID: parentID, path: nil, depth: nil, entries: entries, finalize: true)],
@@ -126,6 +133,7 @@ actor ChangeWatcherEngine {
                 DiskIndexLog.shared.record(.watcher, .info, "reread entries=\(entries.count)", privateDetail: directory)
             } catch {
                 DiskIndexLog.shared.record(.watcher, .error, "reread \(error)", privateDetail: directory)
+                return .needsFullReconcile
             }
             let childDepth = relative.count + 1
             let withinDepth = maxDepth.map { childDepth < $0 } ?? true

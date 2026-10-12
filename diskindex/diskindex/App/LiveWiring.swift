@@ -42,8 +42,19 @@ enum LiveWiring {
     ) async {
         var count = 0
         for (id, volume) in coordinator.connectedVolumes() {
-            guard watcher.isWatching(mediumID: id) else { continue }
-            await watcher.stop(mediumID: id)
+            let stored: StoredMedium?
+            do {
+                stored = try await store.medium(uuid: id)
+            } catch {
+                if DiskIndexLog.isOperationalFailure(error) {
+                    DiskIndexLog.shared.record(.store, .error, "store error medium wake \(error)")
+                }
+                continue
+            }
+            guard let stored, stored.decision == .index, stored.indexStatus == .indexed else { continue }
+            if watcher.isWatching(mediumID: id) {
+                await watcher.stop(mediumID: id)
+            }
             await startWatching(id: id, volume: volume, store: store, watcher: watcher, appState: appState)
             count += 1
         }
@@ -63,8 +74,19 @@ enum LiveWiring {
         watcher.connectedVolumes = { [weak coordinator] in
             coordinator?.connectedVolumes() ?? []
         }
-        watcher.onFullReconcile = { [weak service] id, volume in
-            service?.start(mediumUUID: id, volume: volume, fromScratch: false)
+        watcher.isIndexingActive = { [weak service] id in
+            service?.isRunActive(id) ?? false
+        }
+        watcher.onFullReconcile = { [weak service, weak watcher] id, volume in
+            Task {
+                await stopWatcherAndStartIndex(
+                    watcher: watcher,
+                    service: service,
+                    id: id,
+                    volume: volume,
+                    fromScratch: false
+                )
+            }
         }
         service.onRunIndexed = { id, volume in
             Task { await startWatching(id, volume) }
@@ -78,20 +100,39 @@ enum LiveWiring {
         coordinator.onMediumDisappeared = { [weak watcher] id in
             await watcher?.stop(mediumID: id)
         }
-        coordinator.setIndexHandler { [weak service] id, volume in
-            service?.start(mediumUUID: id, volume: volume, fromScratch: false)
+        coordinator.setIndexHandler { [weak service, weak watcher] id, volume in
+            Task {
+                await stopWatcherAndStartIndex(
+                    watcher: watcher,
+                    service: service,
+                    id: id,
+                    volume: volume,
+                    fromScratch: false
+                )
+            }
         }
         coordinator.onReconcileRequested = { [weak service, weak watcher] id, volume in
             Task {
-                await watcher?.stop(mediumID: id)
-                await startWatching(id, volume)
-                service?.start(mediumUUID: id, volume: volume, fromScratch: false)
+                await stopWatcherAndStartIndex(
+                    watcher: watcher,
+                    service: service,
+                    id: id,
+                    volume: volume,
+                    fromScratch: false
+                )
             }
         }
-        appState.onReindexMedium = { [weak service, weak coordinator] id in
+        appState.onReindexMedium = { [weak service, weak watcher, weak coordinator] id in
             guard let volume = coordinator?.volume(for: id) else { return }
-            service?.start(mediumUUID: id, volume: volume, fromScratch: true)
-            Task { await startWatching(id, volume) }
+            Task {
+                await stopWatcherAndStartIndex(
+                    watcher: watcher,
+                    service: service,
+                    id: id,
+                    volume: volume,
+                    fromScratch: true
+                )
+            }
         }
         appState.onMediaForgotten = { [weak watcher, weak service, weak coordinator] ids in
             for id in ids {
@@ -119,5 +160,16 @@ enum LiveWiring {
             service?.pauseChanged()
             watcher?.pauseChanged()
         }
+    }
+
+    private static func stopWatcherAndStartIndex(
+        watcher: ChangeWatcher?,
+        service: IndexingService?,
+        id: UUID,
+        volume: VolumeInfo,
+        fromScratch: Bool
+    ) async {
+        await watcher?.stop(mediumID: id)
+        service?.start(mediumUUID: id, volume: volume, fromScratch: fromScratch)
     }
 }

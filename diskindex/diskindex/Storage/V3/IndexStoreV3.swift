@@ -461,6 +461,10 @@ actor IndexStoreV3 {
         indexingToken[mediumUUID] == token
     }
 
+    func hasActiveIndexingToken(mediumUUID: UUID) -> Bool {
+        indexingToken[mediumUUID] != nil
+    }
+
     func recordEventCursor(mediumUUID: UUID, fsEventsUUID: String?, lastEventID: Int64) async throws {
         #if DEBUG
         Self.recordEventCursorCallCount += 1

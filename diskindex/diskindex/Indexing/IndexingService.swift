@@ -32,6 +32,10 @@ final class IndexingService {
         self.coordinator = coordinator
     }
 
+    func isRunActive(_ mediumUUID: UUID) -> Bool {
+        tasks[mediumUUID] != nil
+    }
+
     func start(mediumUUID: UUID, volume: VolumeInfo, fromScratch: Bool) {
         if tasks[mediumUUID] != nil {
             guard fromScratch else {
