@@ -97,7 +97,8 @@ Status: LiveWiring stop vor Index, Watcher nur `onRunIndexed`; Engine deferred/a
 
 **c.0.3.2.005 — Suche / Spalten Scope & Pagination (REPORT 11, 12, 19, 20).**
 Bei `checksNames`: LIMIT/Pagination nach sichtbaren Treffern; `childrenPage` bei leerer gefilterter Seite weiterblättern; `childCount` Scope beachten; `searchCount` bei Namensregeln entlasten.
-Status:
+Status: `childrenPage` Cursor aus SQL-Zeilen; `visibleSearchHitIDs`/`searchHitPage`; `childCount` mit Scope; `searchCount` parallel bei checksNames. SearchScopePaginationTests. 492 seriell grün. Regel 23: App 12:40:03, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 11: `visibleSearchHitIDs` paginiert SQL bis genug sichtbare Treffer. REPORT 12: `nextCursor` aus `rows`, nicht `filtered`; IndexRepository läuft bei leerer Seite weiter. REPORT 19: `childCount` filtert bei `checksNames` / `maxDepth`. REPORT 20: `searchCount` bei `checksNames` parallel über `idRanges`. Tests `SearchScopePaginationTests`. Regel 23: Binary 12:40:03, find -newer leer. Suite 492 nicht erneut. Keine Nacharbeit.
 
 **c.0.3.2.006 — IndexingService finish / cancel / Recount (REPORT 13, 15, 26).**
 Token vor Spinner/Task-Clear; `cancel` detached-Task abbrechen; Hintergrund-Recount an Token/`shouldHalt` koppeln.

@@ -16,14 +16,25 @@ extension IndexStoreV3 {
 
     func childCount(mediumUUID: UUID, parentID: Int64?, scope: IndexScope? = nil) async throws -> Int {
         if childrenReadsFail { throw IndexStoreError.childrenReadFailed }
-        _ = scope
+        let counter = nameChecks
         return try await pool.read { db in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return 0 }
-            return try Int.fetchOne(
-                db,
-                sql: "SELECT COUNT(*) FROM items WHERE storageID = ? AND parentID IS ? AND status = 0",
-                arguments: [storageID, parentID]
-            ) ?? 0
+            if let scope, scope.checksNames {
+                let rows = try Row.fetchAll(
+                    db,
+                    sql: "SELECT name, depth FROM items WHERE storageID = ? AND parentID IS ? AND status = 0",
+                    arguments: [storageID, parentID]
+                )
+                counter.add(rows.count)
+                return rows.filter { !scope.hides(name: $0["name"], depth: $0["depth"]) }.count
+            }
+            var sql = "SELECT COUNT(*) FROM items WHERE storageID = ? AND parentID IS ? AND status = 0"
+            var arguments: StatementArguments = [storageID, parentID]
+            if let maxDepth = scope?.maxDepth {
+                sql += " AND depth <= ?"
+                arguments += [maxDepth]
+            }
+            return try Int.fetchOne(db, sql: sql, arguments: arguments) ?? 0
         }
     }
 
@@ -97,9 +108,9 @@ extension IndexStoreV3 {
             filtered = rows
         }
         let next: ItemChildrenCursor?
-        if filtered.count < limit {
+        if rows.count < limit {
             next = nil
-        } else if let last = filtered.last {
+        } else if let last = rows.last {
             next = ItemChildrenCursor(isFolder: last.isFolder, name: Slug.make(last.name), id: last.id)
         } else {
             next = nil
@@ -192,11 +203,14 @@ extension IndexStoreV3 {
         guard limit > 0 else { return [] }
         let depth = scope?.maxDepth ?? maxDepth
         let plan = try await pool.read { db in try SearchPlanV3.make(db, query: trimmed, filters: filters, maxDepth: depth) }
-        let hits = try await topHits(plan, limit: limit)
-        let rows = try await pool.read { db in try Self.items(db, ids: hits.map(\.id)) }
-        guard let scope, scope.checksNames else { return rows }
-        nameChecks.add(rows.count)
-        return rows.filter { !scope.hides(name: $0.name, depth: $0.depth) }
+        let ids: [Int64]
+        if let scope, scope.checksNames {
+            ids = try await visibleSearchHitIDs(plan: plan, limit: limit, scope: scope)
+        } else {
+            ids = try await topHits(plan, limit: limit).map(\.id)
+        }
+        guard !ids.isEmpty else { return [] }
+        return try await pool.read { db in try Self.items(db, ids: ids) }
     }
 
     /// Genaue Zahl der Treffer. Mit ausstehender Bereinigung (`checksNames`) prüft ein Cursor zusätzlich die Namen.
@@ -209,18 +223,50 @@ extension IndexStoreV3 {
         let depth = scope?.maxDepth ?? maxDepth
         let plan = try await pool.read { db in try SearchPlanV3.make(db, query: trimmed, filters: filters, maxDepth: depth) }
         if let scope, scope.checksNames {
-            return try await pool.read { db in
-                let cursor = try Row.fetchCursor(
-                    db, sql: "SELECT i.name, i.depth FROM items i WHERE \(plan.whereClause)", arguments: plan.statementArguments()
-                )
-                var count = 0
+            let ranges = try await idRanges()
+            if ranges.count <= 1 {
+                return try await pool.read { db in
+                    let cursor = try Row.fetchCursor(
+                        db, sql: "SELECT i.name, i.depth FROM items i WHERE \(plan.whereClause)", arguments: plan.statementArguments()
+                    )
+                    var count = 0
+                    var checked = 0
+                    while let row = try cursor.next() {
+                        checked += 1
+                        if !scope.hides(name: row["name"], depth: row["depth"]) { count += 1 }
+                    }
+                    counter.add(checked)
+                    return count
+                }
+            }
+            let pool = pool
+            return try await withThrowingTaskGroup(of: (count: Int, checked: Int).self) { group in
+                for range in ranges {
+                    group.addTask {
+                        try await pool.read { db in
+                            let cursor = try Row.fetchCursor(
+                                db,
+                                sql: "SELECT i.name, i.depth FROM items i WHERE \(plan.whereClause) AND i.id BETWEEN ? AND ?",
+                                arguments: plan.statementArguments(extra: [range.lowerBound.databaseValue, range.upperBound.databaseValue])
+                            )
+                            var count = 0
+                            var checked = 0
+                            while let row = try cursor.next() {
+                                checked += 1
+                                if !scope.hides(name: row["name"], depth: row["depth"]) { count += 1 }
+                            }
+                            return (count, checked)
+                        }
+                    }
+                }
+                var total = 0
                 var checked = 0
-                while let row = try cursor.next() {
-                    checked += 1
-                    if !scope.hides(name: row["name"], depth: row["depth"]) { count += 1 }
+                for try await part in group {
+                    total += part.count
+                    checked += part.checked
                 }
                 counter.add(checked)
-                return count
+                return total
             }
         }
         let ranges = try await idRanges()
@@ -289,13 +335,74 @@ extension IndexStoreV3 {
     /// Die ersten `limit` Treffer nach `(slug, id)`. Eine einzelne Abfrage: sie liest die Suchhilfe in Namensreihenfolge
     /// und hört nach `limit` Treffern auf (gemessen in 232: schneller als Teilabfragen). Nur die Zahl läuft parallel.
     private func topHits(_ plan: SearchPlanV3, limit: Int) async throws -> [(id: Int64, slug: String)] {
+        try await searchHitPage(plan: plan, after: nil, limit: limit)
+    }
+
+    private struct SearchHitCursor: Sendable, Equatable {
+        var slug: String
+        var id: Int64
+    }
+
+    /// SQL-Seite der Suche; Cursor auf `(slug, id)` wie in der Spalten-Pagination.
+    private func searchHitPage(
+        plan: SearchPlanV3,
+        after: SearchHitCursor?,
+        limit: Int
+    ) async throws -> [(id: Int64, slug: String)] {
         try await pool.read { db in
-            try Row.fetchAll(
+            let natural = "\"\(NaturalOrder.collationName)\""
+            if let after {
+                var hits: [(Int64, String)] = []
+                let sameSlug = try Row.fetchAll(
+                    db,
+                    sql: """
+                        SELECT i.id, i.slug FROM items i
+                        WHERE \(plan.whereClause) AND i.slug COLLATE \(natural) = ? AND i.id > ?
+                        ORDER BY i.slug COLLATE \(natural), i.id LIMIT ?
+                        """,
+                    arguments: plan.statementArguments(extra: [after.slug.databaseValue, after.id.databaseValue, limit.databaseValue])
+                )
+                hits += sameSlug.map { (id: $0["id"], slug: $0["slug"] as String) }
+                if hits.count < limit {
+                    let nextSlug = try Row.fetchAll(
+                        db,
+                        sql: """
+                            SELECT i.id, i.slug FROM items i
+                            WHERE \(plan.whereClause) AND i.slug COLLATE \(natural) > ?
+                            ORDER BY i.slug COLLATE \(natural), i.id LIMIT ?
+                            """,
+                        arguments: plan.statementArguments(extra: [after.slug.databaseValue, (limit - hits.count).databaseValue])
+                    )
+                    hits += nextSlug.map { (id: $0["id"], slug: $0["slug"] as String) }
+                }
+                return hits
+            }
+            return try Row.fetchAll(
                 db,
                 sql: Self.searchHitsSQL(whereClause: plan.whereClause),
                 arguments: plan.statementArguments(extra: [limit.databaseValue])
-            ).map { (id: $0["id"], slug: $0["slug"]) }
+            ).map { (id: $0["id"], slug: $0["slug"] as String) }
         }
+    }
+
+    /// Treffer bis `limit`, wenn Namensregeln in Swift geprüft werden (`checksNames`).
+    private func visibleSearchHitIDs(plan: SearchPlanV3, limit: Int, scope: IndexScope) async throws -> [Int64] {
+        var visible: [Int64] = []
+        var after: SearchHitCursor?
+        let pageSize = max(limit, 100)
+        while visible.count < limit {
+            let page = try await searchHitPage(plan: plan, after: after, limit: pageSize)
+            if page.isEmpty { break }
+            let rows = try await pool.read { db in try Self.items(db, ids: page.map(\.id)) }
+            nameChecks.add(rows.count)
+            for row in rows where !scope.hides(name: row.name, depth: row.depth) {
+                visible.append(row.id)
+                if visible.count >= limit { break }
+            }
+            if page.count < pageSize { break }
+            after = SearchHitCursor(slug: page[page.count - 1].slug, id: page[page.count - 1].id)
+        }
+        return visible
     }
 
     // MARK: Zeilen → StoredItem
