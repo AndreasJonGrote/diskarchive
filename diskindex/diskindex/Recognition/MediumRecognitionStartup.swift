@@ -35,6 +35,7 @@ enum MediumRecognitionStartup {
         startChangeLoop()
 
         Task {
+            await appState.hydrateSettingsFromStore()
             await appState.loadStoredMedia()
             DiskIndexLog.shared.record(.medium, .info, "loaded media=\(appState.media.count)")
         }

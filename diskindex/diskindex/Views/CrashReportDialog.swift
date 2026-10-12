@@ -46,7 +46,7 @@ struct CrashReportDialog: View {
                 .pointerCursor()
                 Spacer(minLength: 8)
                 Button(LayoutCopy.crashSend) {
-                    IssueConsent.setAutoSendEnabled(autoSend, defaults: AppDefaults.current)
+                    IssueConsent.setAutoSendEnabled(autoSend)
                     IssueReporter.shared.enqueue(kind: "crash")
                     onClose()
                 }

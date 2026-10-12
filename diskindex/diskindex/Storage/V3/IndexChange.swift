@@ -19,6 +19,8 @@ enum IndexChange: Sendable, Equatable {
     case layer(medium: UUID, depth: Int)
     case counts(UUID)
     case removed(UUID)
+    /// Regel-Warteschlange leer (234); UI darf Suche/Spalten fortsetzen.
+    case ruleReconcileIdle
 
     var mediumID: UUID {
         switch self {
@@ -26,6 +28,8 @@ enum IndexChange: Sendable, Equatable {
             return id
         case .layer(let id, _):
             return id
+        case .ruleReconcileIdle:
+            return UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
         }
     }
 }

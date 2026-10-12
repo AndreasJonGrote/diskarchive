@@ -254,6 +254,9 @@ final class IndexingService {
         if outcome.status == .indexed, let volume = runVolumes[mediumUUID] {
             onRunIndexed?(mediumUUID, volume)
         }
+        if outcome.status == .indexed {
+            appState.scheduleDatabaseMaintenance()
+        }
         runVolumes.removeValue(forKey: mediumUUID)
         if rerunAfterFinish.contains(mediumUUID) {
             rerunAfterFinish.remove(mediumUUID)

@@ -2,7 +2,7 @@
 //  PruneScopeTests.swift
 //  diskindexTests
 //
-//  Aufgabe 216 — Namensprüfung nur, solange eine Bereinigung aussteht (`AppState.pruneAt`).
+//  Aufgabe 216 / 234 — Namensregeln über DB-Status, nicht Swift-Filter.
 //
 
 import Foundation
@@ -20,7 +20,6 @@ struct PruneScopeTests {
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "PRUNE", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         var entries = (0..<20).map { ScannedEntry(name: "bericht-\($0).pdf", isFolder: false, sizeBytes: 1) }
-        // Liegt nur in der Datenbank, wenn die Regel erst nach dem Scan eingeschaltet wurde.
         entries.append(ScannedEntry(name: ".bericht-versteckt.pdf", isFolder: false, sizeBytes: 1))
         try await store.applyDirectories(
             mediumUUID: medium.uuid,
@@ -32,18 +31,14 @@ struct PruneScopeTests {
         await app.loadStoredMedia()
         app.mainWindowDestination = .search
         app.searchState.submittedQuery = "bericht"
+        app.appSettings.ignoreHiddenFiles = false
+        await app.waitForRuleReconcileIdle()
         return (app, store, medium)
-    }
-
-    /// Eine Einstellungsänderung startet selbst eine Suche (Hintergrund-Task); erst deren Ende abwarten.
-    private func settle() async {
-        try? await Task.sleep(for: .milliseconds(150))
     }
 
     @Test func withoutPendingPruneNoNameIsCheckedInSwift() async throws {
         let (app, store, medium) = try await appWithHiddenFile()
         app.appSettings.ignoreHiddenFiles = false
-        await settle()
         try #require(app.pruneAt == nil, "Ausgangslage: keine ausstehende Bereinigung")
         #expect(!app.indexScope.checksNames)
 
@@ -57,31 +52,26 @@ struct PruneScopeTests {
         #expect(app.searchMatch.itemCount == 21)
     }
 
-    @Test func pendingPruneHidesAffectedEntriesImmediatelyAndPruneRestoresPureSQL() async throws {
+    @Test func ruleChangeMarksStatusAndPrunePurgesWithoutSwiftChecks() async throws {
         let (app, store, medium) = try await appWithHiddenFile()
-        app.appSettings.ignoreHiddenFiles = false
-        await settle()
         await app.runSearch()
         await app.waitForSearchCount()
         #expect(app.searchMatch.itemCount == 21)
 
-        // Regel einschalten → Bereinigung steht aus → versteckter Eintrag sofort weg (Liste und Zahl).
         app.appSettings.ignoreHiddenFiles = true
         try #require(app.pruneAt != nil, "Regeländerung muss eine Bereinigung vormerken")
-        await settle()
-        #expect(app.indexScope.checksNames)
+        await app.waitForRuleReconcileIdle()
+        #expect(!app.indexScope.checksNames)
         let beforePending = store.nameChecks.value
         await app.runSearch()
         await app.waitForSearchCount()
         #expect(app.searchMatch.items.count == 20)
         #expect(app.searchMatch.itemCount == 20)
         #expect(!app.searchMatch.items.contains { $0.name.hasPrefix(".") })
-        #expect(store.nameChecks.value > beforePending)
+        #expect(store.nameChecks.value == beforePending)
 
-        // Nach der Bereinigung wieder reines SQL, gleiche Zahl.
         await app.pruneNow()
         try #require(app.pruneAt == nil)
-        #expect(!app.indexScope.checksNames)
         let beforePure = store.nameChecks.value
         await app.runSearch()
         await app.waitForSearchCount()
@@ -89,6 +79,7 @@ struct PruneScopeTests {
         #expect(store.nameChecks.value == beforePure)
         #expect(app.searchMatch.items.count == 20)
         #expect(app.searchMatch.itemCount == 20)
+        _ = medium
     }
 }
 }

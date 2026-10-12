@@ -187,7 +187,7 @@ extension AppState {
         appSettings.notifyIndexed = true
         appSettings.notifyFavorites = true
         appSettings.appearance.apply()
-        IssueConsent.setAutoSendEnabled(false, defaults: AppDefaults.current)
+        setAutoSendCrashReports(false)
         SystemNotice.post(body: LayoutCopy.noticeDefaultsApplied, settings: appSettings)
     }
 

@@ -71,6 +71,7 @@ nonisolated struct AppSettings: Equatable, Codable {
     var notifySystem: Bool = true
     var notifyIndexed: Bool = true
     var notifyFavorites: Bool = true
+    var autoSendCrashReports: Bool = false
     /// UI-Sprache (DE/EN). Erststart: OS-Erkennung; Wirkung vollständig nach Neustart.
     var displayLanguage: AppDisplayLanguage = AppDisplayLanguage.resolveFromOperatingSystem()
 
@@ -138,6 +139,7 @@ nonisolated struct AppSettings: Equatable, Codable {
         notifySystem = try container.decodeIfPresent(Bool.self, forKey: .notifySystem) ?? true
         notifyIndexed = try container.decodeIfPresent(Bool.self, forKey: .notifyIndexed) ?? true
         notifyFavorites = try container.decodeIfPresent(Bool.self, forKey: .notifyFavorites) ?? favoriteOnlineNotificationsEnabled
+        autoSendCrashReports = try container.decodeIfPresent(Bool.self, forKey: .autoSendCrashReports) ?? false
         displayLanguage = try container.decodeIfPresent(AppDisplayLanguage.self, forKey: .displayLanguage)
             ?? AppDisplayLanguage.resolveFromOperatingSystem()
     }
@@ -162,7 +164,7 @@ nonisolated struct AppSettings: Equatable, Codable {
         case scanDepth, favoriteOnlineNotificationsEnabled, ignoreHiddenFiles, artifactsIgnored
         case artifactDisabledCategories, artifactIncludePatterns // decode-only (121)
         case excludedPatterns, exclusionAddedAt, showFoldersRegardlessOfFilter, appearance
-        case notificationsEnabled, notifySystem, notifyIndexed, notifyFavorites, displayLanguage
+        case notificationsEnabled, notifySystem, notifyIndexed, notifyFavorites, autoSendCrashReports, displayLanguage
     }
 
     func save(to defaults: UserDefaults) {

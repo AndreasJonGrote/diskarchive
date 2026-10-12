@@ -71,13 +71,18 @@ nonisolated struct IndexScope: Sendable, Equatable {
         matcher: IgnoreMatcher(ignoreHiddenFiles: false, excludedPatterns: [], artifactsIgnored: false)
     )
 
-    func hides(name: String, depth: Int) -> Bool {
+    /// Regeln für Status-Reconcile und Bereinigung (234): unabhängig von `checksNames`.
+    func shouldHide(name: String, depth: Int) -> Bool {
         if let maxDepth, depth > maxDepth { return true }
-        guard checksNames else { return false }
         return matcher.shouldSkip(name: name, isHidden: name.hasPrefix("."))
     }
 
-    static func from(_ settings: AppSettings, pruneAwaiting: Bool = true) -> IndexScope {
+    func hides(name: String, depth: Int) -> Bool {
+        guard checksNames else { return false }
+        return shouldHide(name: name, depth: depth)
+    }
+
+    static func from(_ settings: AppSettings, pruneAwaiting: Bool = false) -> IndexScope {
         IndexScope(
             maxDepth: settings.indexedMaxDepth,
             matcher: IgnoreMatcher(
@@ -85,7 +90,7 @@ nonisolated struct IndexScope: Sendable, Equatable {
                 excludedPatterns: settings.excludedPatterns,
                 artifactsIgnored: settings.artifactsIgnored
             ),
-            checksNames: pruneAwaiting
+            checksNames: false
         )
     }
 }

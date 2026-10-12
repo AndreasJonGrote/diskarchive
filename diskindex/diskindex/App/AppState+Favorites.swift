@@ -33,6 +33,9 @@ extension AppState {
             Task {
                 do {
                     try await store.setFavorite(itemID: rowID, next)
+                    if next, let mount = mountPath?(target.mediumID) {
+                        try await store.storePartialChecksum(itemID: rowID, mountPath: mount)
+                    }
                 } catch {
                     guard DiskIndexLog.isOperationalFailure(error) else { return }
                     DiskIndexLog.shared.record(.store, .error, "setFavorite \(error)")
@@ -55,6 +58,12 @@ extension AppState {
         Task {
             do {
                 try await store.setFavorites(itemIDs: rowIDs, next)
+                if next {
+                    for object in objects {
+                        guard let rowID = object.rowID, let mount = mountPath?(object.mediumID) else { continue }
+                        try await store.storePartialChecksum(itemID: rowID, mountPath: mount)
+                    }
+                }
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
                 DiskIndexLog.shared.record(.store, .error, "setFavorites \(error)")

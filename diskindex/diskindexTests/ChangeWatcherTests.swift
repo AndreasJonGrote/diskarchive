@@ -41,7 +41,7 @@ extension WindowTestGroup {
         #expect(count == 1)
     }
 
-    @Test func deletedFileIsRemovedAndRestoredWithFavorite() async throws {
+    @Test func liveRenamePairKeepsRowAndFavoriteWithoutFileID() async throws {
         let rig = try await watchRig()
         let parent = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))
         try await rig.store.applyDirectory(
@@ -52,17 +52,70 @@ extension WindowTestGroup {
         )
         let file = try #require(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent).first)
         try await rig.store.setFavorite(itemID: file.id, true)
+        rig.access.listings["/Volumes/DISK/A"] = [
+            ListedDirectoryEntry(
+                name: "neu.txt",
+                isDirectory: false,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: 1,
+                modifiedAt: nil
+            ),
+        ]
+        rig.watcher.pathExistsForLiveRename = { $0 == "/Volumes/DISK/A/neu.txt" }
+        rig.watcher.quietInterval = .milliseconds(40)
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        rig.source.emit(
+            VolumeChange(path: "/Volumes/DISK/A/keep.txt", eventID: 20, itemRemoved: true, itemRenamed: true)
+        )
+        rig.source.emit(
+            VolumeChange(path: "/Volumes/DISK/A/neu.txt", eventID: 21, itemCreated: true, itemRenamed: true)
+        )
+        let back = try await waitFor(timeoutMs: 800) { () async throws -> StoredItem? in
+            guard let row = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent).first,
+                  row.name == "neu.txt",
+                  row.id == file.id,
+                  row.isFavorite else { return nil }
+            return row
+        }
+        #expect(back.id == file.id)
+    }
+
+    @Test func deletedFileIsRemovedAndRestoredWithFavorite() async throws {
+        let rig = try await watchRig()
+        let parent = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: parent,
+            entries: [ScannedEntry(name: "keep.txt", isFolder: false, sizeBytes: 1, fileID: "9001")],
+            seenAt: Date()
+        )
+        let file = try #require(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent).first)
+        try await rig.store.setFavorite(itemID: file.id, true)
         rig.access.listings["/Volumes/DISK/A"] = []
         rig.watcher.quietInterval = .milliseconds(30)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
-        rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/keep.txt", eventID: 3))
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/keep.txt", eventID: 3, itemRemoved: true))
         try await Task.sleep(for: .milliseconds(160))
         let remaining = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent)
         #expect(remaining.isEmpty)
-        rig.access.listings["/Volumes/DISK/A"] = [ListedDirectoryEntry(name: "keep.txt", isDirectory: false, isPackage: false, isSymbolicLink: false, isHidden: false, fileSize: 1, modifiedAt: nil)]
-        rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/keep.txt", eventID: 4))
+        rig.access.listings["/Volumes/DISK/A"] = [
+            ListedDirectoryEntry(
+                name: "keep.txt",
+                isDirectory: false,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: 1,
+                modifiedAt: nil,
+                fileID: 9001
+            ),
+        ]
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/keep.txt", eventID: 4, itemCreated: true))
         try await Task.sleep(for: .milliseconds(160))
         let back = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent)
+        #expect(back.first?.id == file.id)
         #expect(back.first?.isFavorite == true)
     }
 

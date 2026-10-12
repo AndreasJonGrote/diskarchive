@@ -64,6 +64,7 @@ struct IndexStoreV3Tests {
         case .layer(_, let depth): "layer \(depth)"
         case .counts: "counts"
         case .removed: "removed"
+        case .ruleReconcileIdle: "ruleReconcileIdle"
         }
     }
 

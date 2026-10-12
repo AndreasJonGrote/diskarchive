@@ -17,14 +17,17 @@ nonisolated enum ReportTarget {
 }
 
 nonisolated enum IssueConsent {
-    static let autoSendKey = "diskindex.autoSendCrashReports"
+    static let legacyAutoSendKey = "diskindex.autoSendCrashReports"
 
-    static func autoSendEnabled(defaults: UserDefaults) -> Bool {
-        defaults.bool(forKey: autoSendKey)
+    static func autoSendEnabled() -> Bool {
+        AppSettingsRuntimeCache.autoSendEnabled()
     }
 
-    static func setAutoSendEnabled(_ enabled: Bool, defaults: UserDefaults) {
-        defaults.set(enabled, forKey: autoSendKey)
+    static func setAutoSendEnabled(_ enabled: Bool) {
+        AppSettingsRuntimeCache.setAutoSend(enabled)
+        Task { @MainActor in
+            AppDelegateBridge.appState.setAutoSendCrashReports(enabled)
+        }
     }
 }
 

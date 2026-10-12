@@ -115,4 +115,10 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | 222 | Wackeltests stabilisiert (fester Spinner-Winkel im Test, Vertrag `==` statt Zeichenläufe) | 12.10. (Claude-Lauf 473 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-12.md` |
 | 233 | Umschalten: App nur noch V3 (`archive.sqlite`, Migration `0.3.0-schema`), alte Schicht entfernt, `lastSeenRun` weg, `unreadable` zurückgesetzt, nur `.app`/`.dmg`/`.pkg` = Programme, veraltete Zusatzdaten fallen, Bereinigen 100.000 in 1,5 s | 12.10. (Claude-Lauf 473 Tests seriell grün, 0 Warnungen, Regel 23 ✓) | `archiv/todo-stand-2026-10-12.md` |
 | 233b | `auto_vacuum = 2` auf neuer Datei (vor WAL, `prepareNewFile`), Test mit Sabotage | 12.10. (Claude: Build 0 Warnungen, 16 Schema-/Umschalt-Tests grün, 474 laut Agent; App von Claude neu gebaut 09:16) | `archiv/todo-stand-2026-10-12b.md` |
-**Offen:** 234 (Status-Flag und Warteschlange), danach 235–238; Cursor-Spur `c.0.3.2.*` in TODO A. (196 und 233b sind abgenommen.)
+| c.0.3.2.001–007 | Cursor-Spur 0.3.2 + REPORT (001=233b; 002/002b Erkennung/Dashboard; 003–007 REPORT) | 12.10. **Cursor auf Nutzerwunsch** (Code-Prüfungen; formelles Archiv durch Claude/Cloud nachziehbar) | TODO A. / Commits `ccd79ce`…`d7dc092` |
+| c.0.3.234 | Status-Flag + Regel-Warteschlange (F25); Spalten Ladehinweis | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.235 + 235b | fileID / Umbenennen-Verschieben; Nacharbeit Ereignispaare + partial | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.236 | Wartung Zeit+Zähler, WAL Truncate (F26), Leerlauf-Compaction | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.237 | App-Einstellungen in `settings` (JSON); Auto-Send; Sprache/Fenster weiter UD | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+
+**Offen / freigegeben:** **c.0.3.238** freigegeben (Cursor, Cloud aus); dann 0.3.1.

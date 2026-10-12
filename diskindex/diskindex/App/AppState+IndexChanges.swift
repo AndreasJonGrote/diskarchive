@@ -47,7 +47,10 @@ extension AppState {
         settingsSaveTask?.cancel()
         settingsSaveTask = nil
         guard persistsSettings else { return }
-        appSettings.save(to: settingsDefaults)
+        AppLanguagePolicy.saveDisplayLanguage(appSettings.displayLanguage, to: settingsDefaults)
+        if storeReady, indexStore != nil {
+            Task { await persistAppSettingsNow() }
+        }
     }
 
     /// Vor Prozessende: Hintergrund-Tasks stoppen, Einstellungen sichern, Spalten-Laden abbrechen.
@@ -72,6 +75,8 @@ extension AppState {
         pendingColumnInvalidateWholeMedium.removeAll()
         accumulatedItemRefreshPathKeys.removeAll()
         flushSettings()
+        cancelRuleReconcileForTermination()
+        cancelDatabaseMaintenanceForTermination()
         indexRepository.prepareForTermination()
         mediumLiveSyncIDs.removeAll()
         menuBarIndexingSpinnerIDs.removeAll()
@@ -111,6 +116,8 @@ extension AppState {
                 searchState.isSearchInProgress = false
             }
         }
+        await waitForRuleReconcileIdle()
+        guard generation == searchGeneration else { return }
         let scope = indexScope
         var match = await SearchIndex.matching(
             store: indexStore,
@@ -284,6 +291,8 @@ extension AppState {
             }
         case .removed:
             break
+        case .ruleReconcileIdle:
+            await resumeAfterRuleReconcile()
         }
     }
 
@@ -431,7 +440,7 @@ extension AppState {
         settingsSaveTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
             guard let self, !Task.isCancelled else { return }
-            self.appSettings.save(to: self.settingsDefaults)
+            await self.persistAppSettingsNow()
         }
     }
 

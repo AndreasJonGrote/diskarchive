@@ -430,10 +430,14 @@ struct ColumnBrowserView: View {
         let items = column.filteredItems
         let header = columnHeaderBase(medium: medium, column: column)
         let columnWidth = folderColumnWidth(for: column.columnIndex)
+        let ruleReconcileLoading = appState.isRuleReconcileQueueActive && column.special == nil
         let loadingContents = appState.indexRepository.isLoading(mediumID: medium.id, path: column.path)
+            || ruleReconcileLoading
         let progress = appState.indexRepository.loadingProgress(mediumID: medium.id, path: column.path)
         let pendingContents = showsPendingIndexingContent(in: column, medium: medium) && !loadingContents
         let statusRest = columnShowsStatusRestFill(medium: medium, column: column)
+        let listItems = ruleReconcileLoading ? [] as [IndexedItem] : items
+        let ruleReconcileHintTiming = DelayedLoadingTiming(delayBeforeHint: .zero, minimumHintVisible: .milliseconds(400))
 
         return VStack(alignment: .leading, spacing: 0) {
             ColumnBrowserColumnHeader(title: header, showsLoadingContents: false)
@@ -455,11 +459,12 @@ struct ColumnBrowserView: View {
                     ColumnFolderContents(
                         mediumID: medium.id,
                         path: column.path,
-                        filteredItems: items,
+                        filteredItems: listItems,
                         selectedIDs: [],
                         isLoading: true,
-                        loaded: progress.loaded,
-                        total: progress.total,
+                        loaded: ruleReconcileLoading ? 0 : progress.loaded,
+                        total: ruleReconcileLoading ? 0 : progress.total,
+                        loadingTiming: ruleReconcileLoading ? ruleReconcileHintTiming : .standard,
                         onLoadingHintVisible: { visible in
                             publishLoadingHint(visible, medium: medium, path: column.path)
                         }

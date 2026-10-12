@@ -26,6 +26,9 @@ final class AppState {
             let newScope = IndexScope.from(appSettings)
             indexRepository.scope = indexScope
             guard settingsReady, appSettings != oldValue else { return }
+            if oldValue.autoSendCrashReports != appSettings.autoSendCrashReports {
+                AppSettingsRuntimeCache.setAutoSend(appSettings.autoSendCrashReports)
+            }
             if persistsSettings {
                 if oldValue.displayLanguage != appSettings.displayLanguage {
                     AppLanguagePolicy.syncFromSettings(appSettings, defaults: settingsDefaults)
@@ -45,13 +48,10 @@ final class AppState {
             }
             let scopeChanged = IndexScope.from(oldValue) != newScope
             if scopeChanged {
-                indexRepository.invalidateAll()
-                Task { [weak self] in
-                    await self?.reloadFavorites()
-                    if self?.mainWindowDestination == .search {
-                        await self?.runSearch()
-                    }
+                if mainWindowDestination == .search {
+                    pendingSearchAfterRuleReconcile = true
                 }
+                enqueueRuleReconcile()
             }
         }
     }
@@ -94,6 +94,12 @@ final class AppState {
         didSet { indexRepository.scope = indexScope }
     }
     static let pruneAtKey = "diskindex.pruneAt"
+    var isRuleReconcileQueueActive = false
+    var ruleReconcileTask: Task<Void, Never>?
+    var ruleReconcileNeedsRerun = false
+    var ruleReconcileIdleWaiters: [CheckedContinuation<Void, Never>] = []
+    var databaseMaintenanceTask: Task<Void, Never>?
+    var pendingSearchAfterRuleReconcile = false
     var pendingMediumWrites: [UUID: Task<Void, Never>] = [:]
     var changeLoop: Task<Void, Never>?
     var lastChangeGeneration = 0
@@ -197,6 +203,9 @@ final class AppState {
     init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil) {
         indexStore = store
         indexRepository = IndexRepository(store: store)
+        if store != nil {
+            storeReady = true
+        }
         if let defaults {
             settingsDefaults = defaults
             persistsSettings = true
@@ -296,8 +305,8 @@ final class AppState {
     }
 
     /// Eine Quelle für den Bereich, den Suche, Spalten und Favoriten anwenden.
-    /// Namensprüfung nur, solange eine Bereinigung aussteht (`pruneAt`); sonst reines SQL.
-    var indexScope: IndexScope { IndexScope.from(appSettings, pruneAwaiting: pruneAt != nil) }
+    /// Bereich für Lesezugriffe; Namensregeln laufen über `status`, nicht Swift-Filter (234).
+    var indexScope: IndexScope { IndexScope.from(appSettings) }
 
     /// X im Objekt-Suchfeld: Feld und Suche leeren (Leerzustand wie beim ersten Öffnen); laufende Suche verwerfen.
     func clearObjectSearch() {
@@ -384,6 +393,7 @@ final class AppState {
             await reloadFavorites()
             if mainWindowDestination == .search { await runSearch() }
             SystemNotice.post(body: LayoutCopy.noticePrune, settings: appSettings)
+            scheduleDatabaseMaintenance()
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
             DiskIndexLog.shared.record(.index, .error, "index prune \(error)")

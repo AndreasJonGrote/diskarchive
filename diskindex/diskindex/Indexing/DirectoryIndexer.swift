@@ -212,7 +212,9 @@ nonisolated struct DirectoryIndexer: Sendable {
                 guard !batch.isEmpty else { return nil }
                 do {
                     let started = ContinuousClock.now
-                    try await store.applyDirectories(mediumUUID: mediumUUID, batches: batch, seenAt: seenAt)
+                    try await store.applyDirectories(
+                        mediumUUID: mediumUUID, batches: batch, seenAt: seenAt, mountPath: volume.mountPath
+                    )
                     DiskIndexLog.shared.perfIfSlow("applyDirectories", since: started)
                 } catch {
                     if error is CancellationError {
@@ -251,7 +253,8 @@ nonisolated struct DirectoryIndexer: Sendable {
                                 try await store.applyDirectories(
                                     mediumUUID: mediumUUID,
                                     batches: [(parentID: parent.id, path: parent.path ?? "/", depth: depth, entries: entries, finalize: false)],
-                                    seenAt: seenAt
+                                    seenAt: seenAt,
+                                    mountPath: volume.mountPath
                                 )
                                 entriesCompleted += entries.count
                                 await noteIndexing(finished: false)
@@ -624,7 +627,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 isPackage: entry.isPackage && !entry.isSymbolicLink,
                 sizeBytes: asFile && !entry.isPackage && !entry.isSymbolicLink ? entry.fileSize : nil,
                 modifiedAt: entry.modifiedAt,
-                fileID: nil
+                fileID: FileIdentity.scannedFileID(entry.fileID)
             )
         }
     }

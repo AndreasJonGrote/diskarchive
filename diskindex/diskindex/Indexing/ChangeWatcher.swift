@@ -13,6 +13,9 @@ struct VolumeChange: Sendable, Equatable {
     var mustScanSubDirs: Bool = false
     var rootChanged: Bool = false
     var unmounted: Bool = false
+    var itemCreated: Bool = false
+    var itemRemoved: Bool = false
+    var itemRenamed: Bool = false
 }
 
 protocol ChangeSource: Sendable {
@@ -31,6 +34,10 @@ final class ChangeWatcher {
     var isIndexingActive: (UUID) -> Bool = { _ in false }
     /// Produktion: 2 Sekunden. Tests setzen einen kürzeren Wert.
     var quietInterval: Duration = .seconds(2)
+    /// Tests ohne echte Dateien am Mount (235b Live-Paare).
+    nonisolated(unsafe) var pathExistsForLiveRename: @Sendable (String) -> Bool = {
+        FileManager.default.fileExists(atPath: $0)
+    }
     /// Spätestens nach dieser Zeit wird trotz weiterer Ereignisse nachgelesen.
     var maxQuietInterval: Duration = .seconds(30)
 
@@ -38,6 +45,7 @@ final class ChangeWatcher {
     private var sources: [UUID: any ChangeSource] = [:]
     private var quietTasks: [UUID: Task<Void, Never>] = [:]
     private var pending: [UUID: Set<String>] = [:]
+    private var pendingItemEvents: [UUID: [ItemPathEvent]] = [:]
     private var pendingSince: [UUID: ContinuousClock.Instant] = [:]
     private var cursors: [UUID: (uuid: String?, eventID: Int64)] = [:]
     private var savedCursors: [UUID: Int64] = [:]
@@ -111,6 +119,7 @@ final class ChangeWatcher {
         tasks.removeAll()
         sources.removeAll()
         pending.removeAll()
+        pendingItemEvents.removeAll()
         pendingSince.removeAll()
         mounts.removeAll()
         volumes.removeAll()
@@ -130,6 +139,7 @@ final class ChangeWatcher {
         tasks[mediumID] = nil
         sources[mediumID] = nil
         pending[mediumID] = nil
+        pendingItemEvents[mediumID] = nil
         pendingSince[mediumID] = nil
         await saveCursor(mediumID: mediumID)
         mounts[mediumID] = nil
@@ -232,6 +242,17 @@ final class ChangeWatcher {
             }
             return
         }
+        if change.itemCreated || change.itemRemoved || change.itemRenamed {
+            let std = URL(fileURLWithPath: change.path).standardizedFileURL.path
+            pendingItemEvents[mediumID, default: []].append(
+                ItemPathEvent(
+                    path: std,
+                    itemCreated: change.itemCreated,
+                    itemRemoved: change.itemRemoved,
+                    itemRenamed: change.itemRenamed
+                )
+            )
+        }
         guard let mount = mounts[mediumID],
               let directory = directoryToReread(change.path, mount: mount, mediumID: mediumID) else { return }
         pending[mediumID, default: []].insert(directory)
@@ -262,9 +283,24 @@ final class ChangeWatcher {
             scheduleDeferredFlush(mediumID)
             return
         }
-        let events = pending[mediumID] ?? []
+        var events = pending[mediumID] ?? []
         pending[mediumID] = []
+        let itemEvents = pendingItemEvents[mediumID] ?? []
+        pendingItemEvents[mediumID] = []
         pendingSince[mediumID] = nil
+        let exists = pathExistsForLiveRename
+        let pairs = LiveRenamePairs.pair(events: itemEvents, fileExists: exists)
+        for pair in pairs {
+            if (try? await store.applyLiveRename(
+                mediumUUID: mediumID,
+                mountPath: mount,
+                fromPath: pair.fromPath,
+                toPath: pair.toPath
+            )) == true {
+                events.insert(parentDirectory(pair.fromPath, mount: mount))
+                events.insert(parentDirectory(pair.toPath, mount: mount))
+            }
+        }
         let matcher = appState.appSettings.matcher
         let maxDepth = appState.appSettings.indexedMaxDepth
         appState.beginMediumLiveSync(mediumID)
@@ -285,8 +321,16 @@ final class ChangeWatcher {
             }
         case .deferred:
             pending[mediumID, default: []].formUnion(events)
+            pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
             scheduleDeferredFlush(mediumID)
         }
+    }
+
+    private func parentDirectory(_ path: String, mount: String) -> String {
+        let mountPath = URL(fileURLWithPath: mount).standardizedFileURL.path
+        var parent = (URL(fileURLWithPath: path).standardizedFileURL.path as NSString).deletingLastPathComponent
+        if parent.count < mountPath.count { parent = mountPath }
+        return parent
     }
 
     private func scheduleDeferredFlush(_ mediumID: UUID) {
@@ -438,7 +482,10 @@ nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked S
                 fileSystemUUID: fileSystemUUID,
                 mustScanSubDirs: flag & FSEventStreamEventFlags(kFSEventStreamEventFlagMustScanSubDirs) != 0,
                 rootChanged: flag & FSEventStreamEventFlags(kFSEventStreamEventFlagRootChanged) != 0,
-                unmounted: flag & FSEventStreamEventFlags(kFSEventStreamEventFlagUnmount) != 0
+                unmounted: flag & FSEventStreamEventFlags(kFSEventStreamEventFlagUnmount) != 0,
+                itemCreated: flag & FSEventStreamEventFlags(kFSEventStreamEventFlagItemCreated) != 0,
+                itemRemoved: flag & FSEventStreamEventFlags(kFSEventStreamEventFlagItemRemoved) != 0,
+                itemRenamed: flag & FSEventStreamEventFlags(kFSEventStreamEventFlagItemRenamed) != 0
             ))
         }
     }

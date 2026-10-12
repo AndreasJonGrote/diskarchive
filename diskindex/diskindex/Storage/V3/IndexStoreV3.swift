@@ -146,12 +146,86 @@ actor IndexStoreV3 {
         deleteMediumFailUUIDs = uuids
     }
 
+    /// Tests: `reconcileScopeToStatus` künstlich verlangsamen (234).
+    var reconcileBatchDelay: Duration?
+
+    func setReconcileBatchDelay(_ delay: Duration?) {
+        reconcileBatchDelay = delay
+    }
+
+    /// Tests: Reconcile wirft einmal fehl.
+    var reconcileShouldFail = false
+
+    func setReconcileShouldFail(_ fail: Bool) {
+        reconcileShouldFail = fail
+    }
+
     nonisolated(unsafe) static var recordEventCursorCallCount = 0
     #endif
 
     func checkpoint() {
         try? pool.writeWithoutTransaction { db in
-            try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
+            try DatabaseMaintenance.truncateWriteAheadLog(db)
+        }
+    }
+
+    // MARK: App-Einstellungen (237)
+
+    func loadPersistedAppSettings() async -> PersistedAppSettings? {
+        try? await pool.read { db in try SettingsPersistence.readAppSettings(db) }
+    }
+
+    func savePersistedAppSettings(_ settings: PersistedAppSettings) async throws {
+        try await pool.write { db in
+            try SettingsPersistence.writeAppSettings(db, settings)
+        }
+    }
+
+    // MARK: Wartung (236)
+
+    func recordMaintenanceDebt(_ rows: Int) async {
+        guard rows > 0 else { return }
+        try? await pool.write { db in
+            try DatabaseMaintenance.addDebt(db, rows: rows)
+        }
+    }
+
+    func maintenanceDebt() async -> Int {
+        (try? await pool.read { db in
+            try DatabaseMaintenance.readDebt(db)
+        }) ?? 0
+    }
+
+    func hasAnyActiveIndexingToken() -> Bool {
+        !indexingToken.isEmpty
+    }
+
+    func runCompactionIfNeeded(minDebt: Int = MaintenancePolicy.changeThreshold) async {
+        let debt = await maintenanceDebt()
+        guard debt >= minDebt else { return }
+        let started = ContinuousClock.now
+        var freelistBefore = 0
+        do {
+            try await pool.writeWithoutTransaction { db in
+                freelistBefore = try DatabaseMaintenance.freelistCount(db)
+                try DatabaseMaintenance.runIncrementalVacuum(db)
+                try DatabaseMaintenance.truncateWriteAheadLog(db)
+            }
+            try await pool.write { db in
+                try DatabaseMaintenance.setDebt(db, 0)
+                try DatabaseMaintenance.setLastCompaction(db, atSeconds: SchemaTime.seconds(Date()))
+            }
+            let ms = Int(started.duration(to: .now) / Duration.milliseconds(1))
+            let freelistAfter = try? await pool.read { db in try DatabaseMaintenance.freelistCount(db) } ?? freelistBefore
+            DiskIndexLog.shared.record(
+                .index,
+                .info,
+                "index maintenance debt=\(debt) freelist=\(freelistBefore)->\(freelistAfter) ms=\(ms)"
+            )
+        } catch {
+            if DiskIndexLog.isOperationalFailure(error) {
+                DiskIndexLog.shared.record(.index, .error, "index maintenance \(error)")
+            }
         }
     }
 
@@ -258,11 +332,20 @@ actor IndexStoreV3 {
 
     // MARK: Ebenen
 
-    func applyDirectory(mediumUUID: UUID, parentID: Int64?, entries: [ScannedEntry], seenAt: Date) async throws {
+    func applyDirectory(
+        mediumUUID: UUID,
+        parentID: Int64?,
+        entries: [ScannedEntry],
+        seenAt: Date,
+        mountPath: String? = nil
+    ) async throws {
         let folderPath: [String] = try await pool.write { db -> [String] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
             let writer = try DirectoryWriterV3(db: db, storageID: storageID)
-            let step = try writer.apply(parentID: parentID, path: nil, depth: nil, entries: entries, seenAt: seenAt, finalize: true)
+            let step = try writer.apply(
+                parentID: parentID, path: nil, depth: nil, entries: entries, seenAt: seenAt, finalize: true,
+                mountPath: mountPath
+            )
             try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: seenAt, delta: step.delta)
             guard let parentID else { return [] }
             return try DirectoryWriterV3.segments(db, itemID: parentID)
@@ -274,7 +357,8 @@ actor IndexStoreV3 {
     func applyDirectories(
         mediumUUID: UUID,
         batches: [(parentID: Int64?, path: String?, depth: Int?, entries: [ScannedEntry], finalize: Bool)],
-        seenAt: Date
+        seenAt: Date,
+        mountPath: String? = nil
     ) async throws {
         do {
             if directoryWritesFail { throw IndexStoreError.directoryWriteFailed }
@@ -287,7 +371,8 @@ actor IndexStoreV3 {
                 for batch in batches {
                     let step = try writer.apply(
                         parentID: batch.parentID, path: batch.path, depth: batch.depth,
-                        entries: batch.entries, seenAt: seenAt, finalize: batch.finalize
+                        entries: batch.entries, seenAt: seenAt, finalize: batch.finalize,
+                        mountPath: mountPath
                     )
                     delta = delta + step.delta
                     parentPaths.append(step.parentPath)
@@ -446,10 +531,13 @@ actor IndexStoreV3 {
                 let total = try Int.fetchOne(db, sql: "SELECT fileCount + folderCount FROM storages WHERE id = ?", arguments: [storageID]) ?? 0
                 try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
             }
-            try Self.deleteGoneItems(db, storageID: storageID)
+            let deleted = try Self.deleteGoneItems(db, storageID: storageID)
+            if deleted > 0 {
+                try DatabaseMaintenance.addDebt(db, rows: deleted)
+            }
         }
         try? await pool.writeWithoutTransaction { db in
-            try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
+            try DatabaseMaintenance.truncateWriteAheadLog(db)
         }
         emit(.medium(mediumUUID))
         return true
@@ -459,10 +547,20 @@ actor IndexStoreV3 {
     /// abgearbeiteten Ereignis-Stapel. Liefert die Zahl der gelöschten Zeilen in `items`.
     @discardableResult
     func purgeGoneItems(mediumUUID: UUID) async throws -> Int {
-        try await pool.write { db in
+        let deleted = try await pool.write { db in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
-            return try Self.deleteGoneItems(db, storageID: storageID)
+            let count = try Self.deleteGoneItems(db, storageID: storageID)
+            if count > 0 {
+                try DatabaseMaintenance.addDebt(db, rows: count)
+            }
+            return count
         }
+        if deleted > 0 {
+            try? await pool.writeWithoutTransaction { db in
+                try DatabaseMaintenance.truncateWriteAheadLog(db)
+            }
+        }
+        return deleted
     }
 
     @discardableResult
@@ -537,105 +635,249 @@ actor IndexStoreV3 {
         }
     }
 
+    /// Live-Rename aus FSEvents-Paar (235b).
+    func applyLiveRename(mediumUUID: UUID, mountPath: String, fromPath: String, toPath: String) async throws -> Bool {
+        let folderPaths: [[String]] = try await pool.write { db -> [[String]] in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
+            let writer = try DirectoryWriterV3(db: db, storageID: storageID)
+            guard try writer.applyLivePathRename(
+                mountPath: mountPath,
+                fromAbsolute: fromPath,
+                toAbsolute: toPath,
+                seenAt: Date()
+            ) else { return [] }
+            var paths: [[String]] = []
+            if let fromParts = DirectoryWriterV3.relativeComponents(absolute: fromPath, mountPath: mountPath) {
+                paths.append(Array(fromParts.dropLast()))
+            }
+            if let toParts = DirectoryWriterV3.relativeComponents(absolute: toPath, mountPath: mountPath) {
+                paths.append(Array(toParts.dropLast()))
+            }
+            return paths
+        }
+        guard !folderPaths.isEmpty else { return false }
+        emit(.items(mediumUUID, folderPaths: folderPaths))
+        emit(.counts(mediumUUID))
+        return true
+    }
+
+    /// Favoriten ohne gespeicherte Teil-Prüfsumme (235b, nächstes Anschließen).
+    func backfillMissingFavoritePartials(mediumUUID: UUID, mountPath: String) async throws {
+        let itemIDs: [Int64] = try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT f.itemID FROM favorites f
+                    JOIN items i ON i.id = f.itemID
+                    LEFT JOIN item_checksum c ON c.itemID = f.itemID
+                    WHERE i.storageID = ? AND i.isFolder = 0 AND i.status = 0 AND c.partial IS NULL
+                    """,
+                arguments: [storageID]
+            )
+            return rows.map { $0["itemID"] as Int64 }
+        }
+        for itemID in itemIDs {
+            try await storePartialChecksum(itemID: itemID, mountPath: mountPath)
+        }
+    }
+
+    /// Teil-Prüfsumme für Favoriten (235); `mountPath` = Medienwurzel.
+    func storePartialChecksum(itemID: Int64, mountPath: String) async throws {
+        let fileURL: URL? = try await pool.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT i.isFolder, i.name FROM items i WHERE i.id = ? AND i.status = 0",
+                arguments: [itemID]
+            ) else { return nil }
+            let isFolder: Bool = row["isFolder"]
+            if isFolder { return nil }
+            let path = try DirectoryWriterV3.path(db, itemID: itemID)
+            let relative = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            guard !relative.isEmpty else { return nil }
+            var url = URL(fileURLWithPath: mountPath, isDirectory: true)
+            for part in relative.split(separator: "/") {
+                url.appendPathComponent(String(part))
+            }
+            return url
+        }
+        guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
+        guard let computed = try PartialChecksum.compute(at: fileURL) else { return }
+        let modified = try await pool.read { db in
+            try Int64.fetchOne(db, sql: "SELECT modifiedAt FROM items WHERE id = ?", arguments: [itemID])
+        }
+        let info = "\(computed.info)|\(modified ?? 0)"
+        try await pool.write { db in
+            try db.execute(
+                sql: """
+                    INSERT INTO item_checksum (itemID, partial, info) VALUES (?, ?, ?)
+                    ON CONFLICT(itemID) DO UPDATE SET partial = excluded.partial, info = excluded.info
+                    """,
+                arguments: [itemID, computed.partial, info]
+            )
+        }
+    }
+
     // MARK: Bereinigen
 
-    /// Löscht endgültig, was nicht mehr zur Sicht passt: erst nach Tiefe (`depth > n` per SQL, in Blöcken nach
-    /// Kennung), dann (nur bei ausstehender Bereinigung, `checksNames`) nach Namensregeln (in Blöcken in Swift).
-    /// Jeder Aufruf macht da weiter, wo der vorige aufgehört hat (`maxBatches`). Liefert die Zahl gelöschter Zeilen.
-    func pruneToMatch(_ scope: IndexScope, batchSize: Int = 5_000, maxBatches: Int? = nil) async throws -> Int {
+    /// Setzt `status` je Eintrag passend zum Scope (sichtbar vs. zu-löschen), ohne Zeilen zu löschen (234).
+    func reconcileScopeToStatus(_ scope: IndexScope, batchSize: Int = 5_000, maxBatches: Int? = nil) async throws -> Int {
+        if reconcileShouldFail {
+            reconcileShouldFail = false
+            throw CocoaError(.fileWriteUnknown)
+        }
         let started = ContinuousClock.now
-        var removed = 0
+        var changed = 0
         var batches = 0
-        var depthDone = scope.maxDepth == nil
         var cursor: Int64 = 0
         var touched = Set<Int64>()
+        let visible = ItemStatus.visible.rawValue
+        let toDelete = ItemStatus.toDelete.rawValue
 
-        while !depthDone {
+        while true {
             if let maxBatches, batches >= maxBatches { break }
+            if let delay = reconcileBatchDelay { try await Task.sleep(for: delay) }
             let afterID = cursor
-            let maxDepth = scope.maxDepth ?? Int.max
-            let step: (deleted: Int, last: Int64?, storages: Set<Int64>) = try await pool.write { db in
+            let step: (updated: Int, last: Int64?, storages: Set<Int64>) = try await pool.write { db in
                 let rows = try Row.fetchAll(
                     db,
-                    sql: "SELECT id, storageID FROM items WHERE id > ? AND depth > ? ORDER BY id LIMIT ?",
-                    arguments: [afterID, maxDepth, batchSize]
+                    sql: "SELECT id, storageID, name, depth, status FROM items WHERE id > ? AND status IN (?, ?) ORDER BY id LIMIT ?",
+                    arguments: [afterID, visible, toDelete, batchSize]
                 )
                 guard let last: Int64 = rows.last?["id"] else { return (0, nil, []) }
-                let deleted = try Self.deleteItems(db, ids: rows.map { $0["id"] })
-                return (deleted, last, Set(rows.map { $0["storageID"] as Int64 }))
+                var hideIDs: [Int64] = []
+                var showIDs: [Int64] = []
+                var storages = Set<Int64>()
+                for row in rows {
+                    let id: Int64 = row["id"]
+                    let storageID: Int64 = row["storageID"]
+                    let name: String = row["name"]
+                    let depth: Int = row["depth"]
+                    let status: Int = row["status"]
+                    let shouldHide = scope.shouldHide(name: name, depth: depth)
+                    if shouldHide, status == visible {
+                        hideIDs.append(id)
+                        storages.insert(storageID)
+                    } else if !shouldHide, status == toDelete {
+                        showIDs.append(id)
+                        storages.insert(storageID)
+                    }
+                }
+                let hidden = try Self.setItemStatus(db, ids: hideIDs, status: toDelete)
+                let shown = try Self.setItemStatus(db, ids: showIDs, status: visible)
+                let updated = hidden + shown
+                return (updated, last, storages)
             }
             batches += 1
-            removed += step.deleted
+            changed += step.updated
             touched.formUnion(step.storages)
-            if let last = step.last { cursor = last } else { depthDone = true }
-        }
-
-        if depthDone, scope.checksNames {
-            var nameCursor: Int64 = 0
-            while true {
-                if let maxBatches, batches >= maxBatches { break }
-                let afterID = nameCursor
-                let step: (deleted: Int, last: Int64?, storages: Set<Int64>) = try await pool.write { db in
-                    let rows = try Row.fetchAll(
-                        db,
-                        sql: "SELECT id, storageID, name, depth FROM items WHERE id > ? ORDER BY id LIMIT ?",
-                        arguments: [afterID, batchSize]
-                    )
-                    guard let last: Int64 = rows.last?["id"] else { return (0, nil, []) }
-                    let hidden = rows.filter { scope.hides(name: $0["name"], depth: $0["depth"]) }
-                    let deleted = try Self.deleteItems(db, ids: hidden.map { $0["id"] })
-                    return (deleted, last, Set(hidden.map { $0["storageID"] as Int64 }))
-                }
-                batches += 1
-                removed += step.deleted
-                touched.formUnion(step.storages)
-                guard let last = step.last else { break }
-                nameCursor = last
-            }
+            guard let last = step.last else { break }
+            cursor = last
+            await Task.yield()
         }
 
         if !touched.isEmpty || scope.maxDepth != nil {
-            let maxDepth = scope.maxDepth
-            let touchedStorages = touched
-            let uuids: [UUID] = try await pool.write { db in
-                var uuids: [UUID] = []
-                let ids = try Int64.fetchAll(db, sql: "SELECT id FROM storages")
-                let activityAt = Date()
-                for id in ids where touchedStorages.contains(id) {
-                    try Self.commitMediumMeta(db: db, storageID: id, activityAt: activityAt, forceRecount: true)
-                    if let data = try Data.fetchOne(db, sql: "SELECT uuid FROM storages WHERE id = ?", arguments: [id]),
-                       let uuid = MediumCodecV3.uuid(data) { uuids.append(uuid) }
-                }
-                if let maxDepth {
-                    let touchedIDs = ids.filter { touchedStorages.contains($0) }
-                    if !touchedIDs.isEmpty {
-                        let placeholders = Array(repeating: "?", count: touchedIDs.count).joined(separator: ", ")
-                        var arguments = StatementArguments(touchedIDs)
-                        arguments += [maxDepth]
-                        try db.execute(
-                            sql: """
-                                UPDATE items SET contentStamp = NULL
-                                WHERE storageID IN (\(placeholders)) AND isFolder = 1 AND depth = ? AND status = 0
-                                """,
-                            arguments: arguments
-                        )
-                    }
-                    for id in touchedIDs {
-                        let current = try MediumCodecV3.metaValue(db, id, .completedDepth).flatMap(Int.init) ?? 0
-                        if current > maxDepth { try MediumCodecV3.setMeta(db, id, .completedDepth, value: String(maxDepth)) }
-                    }
-                }
-                return uuids
-            }
-            for uuid in uuids { emit(.counts(uuid)) }
-        }
-        try? await pool.writeWithoutTransaction { db in
-            try db.execute(sql: "PRAGMA incremental_vacuum")
-            try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
+            try await applyReconcileMeta(touchedStorages: touched, maxDepth: scope.maxDepth)
         }
         let ms = Int(started.duration(to: .now) / Duration.milliseconds(1))
-        DiskIndexLog.shared.record(.index, .info, "index prune removed=\(removed) ms=\(ms)")
+        DiskIndexLog.shared.record(.index, .info, "index reconcile status=\(changed) ms=\(ms)")
+        return changed
+    }
+
+    /// Löscht alle Einträge mit `status = zu-löschen` endgültig (234).
+    func purgeMarkedItems(batchSize: Int = 5_000, maxBatches: Int? = nil) async throws -> Int {
+        let started = ContinuousClock.now
+        var removed = 0
+        var batches = 0
+        var cursor: Int64 = 0
+        let toDelete = ItemStatus.toDelete.rawValue
+
+        while true {
+            if let maxBatches, batches >= maxBatches { break }
+            let afterID = cursor
+            let step: (deleted: Int, last: Int64?) = try await pool.write { db in
+                let ids = try Int64.fetchAll(
+                    db,
+                    sql: "SELECT id FROM items WHERE status = ? AND id > ? ORDER BY id LIMIT ?",
+                    arguments: [toDelete, afterID, batchSize]
+                )
+                guard let last = ids.last else { return (0, nil) }
+                let deleted = try Self.deleteItems(db, ids: ids)
+                return (deleted, last)
+            }
+            batches += 1
+            removed += step.deleted
+            guard let last = step.last else { break }
+            cursor = last
+        }
+        if removed > 0 {
+            try? await pool.write { db in
+                try DatabaseMaintenance.addDebt(db, rows: removed)
+            }
+            try? await pool.writeWithoutTransaction { db in
+                try DatabaseMaintenance.compactAfterLargeDelete(db)
+            }
+        }
+        let ms = Int(started.duration(to: .now) / Duration.milliseconds(1))
+        DiskIndexLog.shared.record(.index, .info, "index purge marked=\(removed) ms=\(ms)")
         return removed
+    }
+
+    /// Markiert passend zum Scope und löscht danach `zu-löschen` (Button „Index jetzt bereinigen“, Frist).
+    func pruneToMatch(_ scope: IndexScope, batchSize: Int = 5_000, maxBatches: Int? = nil) async throws -> Int {
+        _ = try await reconcileScopeToStatus(scope, batchSize: batchSize, maxBatches: maxBatches)
+        return try await purgeMarkedItems(batchSize: batchSize, maxBatches: maxBatches)
+    }
+
+    private func applyReconcileMeta(touchedStorages: Set<Int64>, maxDepth: Int?) async throws {
+        let uuids: [UUID] = try await pool.write { db in
+            var uuids: [UUID] = []
+            let ids = try Int64.fetchAll(db, sql: "SELECT id FROM storages")
+            let activityAt = Date()
+            for id in ids where touchedStorages.contains(id) {
+                try Self.commitMediumMeta(db: db, storageID: id, activityAt: activityAt, forceRecount: true)
+                if let data = try Data.fetchOne(db, sql: "SELECT uuid FROM storages WHERE id = ?", arguments: [id]),
+                   let uuid = MediumCodecV3.uuid(data) { uuids.append(uuid) }
+            }
+            if let maxDepth {
+                let touchedIDs = ids.filter { touchedStorages.contains($0) }
+                if !touchedIDs.isEmpty {
+                    let placeholders = Array(repeating: "?", count: touchedIDs.count).joined(separator: ", ")
+                    var arguments = StatementArguments(touchedIDs)
+                    arguments += [maxDepth]
+                    try db.execute(
+                        sql: """
+                            UPDATE items SET contentStamp = NULL
+                            WHERE storageID IN (\(placeholders)) AND isFolder = 1 AND depth = ? AND status = 0
+                            """,
+                        arguments: arguments
+                    )
+                }
+                for id in touchedIDs {
+                    let current = try MediumCodecV3.metaValue(db, id, .completedDepth).flatMap(Int.init) ?? 0
+                    if current > maxDepth { try MediumCodecV3.setMeta(db, id, .completedDepth, value: String(maxDepth)) }
+                }
+            }
+            return uuids
+        }
+        for uuid in uuids { emit(.counts(uuid)) }
+    }
+
+    private nonisolated static func setItemStatus(_ db: Database, ids: [Int64], status: Int) throws -> Int {
+        guard !ids.isEmpty else { return 0 }
+        var updated = 0
+        var offset = 0
+        while offset < ids.count {
+            let chunk = Array(ids[offset..<min(offset + 1_000, ids.count)])
+            let marks = Array(repeating: "?", count: chunk.count).joined(separator: ",")
+            try db.execute(
+                sql: "UPDATE items SET status = ? WHERE id IN (\(marks))",
+                arguments: StatementArguments([status] + chunk)
+            )
+            updated += db.changesCount
+            offset += 1_000
+        }
+        return updated
     }
 
     /// Löscht die Einträge (die Zusatztabellen folgen per Kaskade) und liefert die Zahl der gelöschten Einträge.

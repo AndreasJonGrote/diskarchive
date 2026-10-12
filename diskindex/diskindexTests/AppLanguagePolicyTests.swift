@@ -15,9 +15,8 @@ import Testing
         defaults.removePersistentDomain(forName: suite)
 
         let settings = AppLanguagePolicy.bootstrap(defaults: defaults)
-        #expect(defaults.data(forKey: AppSettings.persistenceKey) != nil)
-        let loaded = AppSettings.load(from: defaults)
-        #expect(loaded.displayLanguage == settings.displayLanguage)
+        #expect(defaults.string(forKey: AppLanguagePolicy.displayLanguageKey) == settings.displayLanguage.rawValue)
+        #expect(AppLanguagePolicy.loadDisplayLanguage(from: defaults) == settings.displayLanguage)
     }
 
     @Test func applyAppleLanguagesSetsPrimaryAndFallback() {
@@ -45,7 +44,7 @@ import Testing
             AppLanguagePolicy.syncFromSettings(settings, defaults: defaults)
             #expect(AppLanguagePolicy.resolvedDisplayLanguage(fallbackDefaults: defaults) == .english)
             #expect(L10n.string("copy.settings.tab.general") == "General")
-            #expect(AppSettings.load(from: defaults).displayLanguage == .english)
+            #expect(AppLanguagePolicy.loadDisplayLanguage(from: defaults) == .english)
         }
     }
 }

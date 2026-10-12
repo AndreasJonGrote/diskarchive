@@ -46,6 +46,7 @@ nonisolated struct ListedDirectoryEntry: Sendable, Equatable {
     var isHidden: Bool
     var fileSize: Int64?
     var modifiedAt: Date?
+    var fileID: Int64?
 }
 
 enum MediumAccessResult: Sendable, Equatable {

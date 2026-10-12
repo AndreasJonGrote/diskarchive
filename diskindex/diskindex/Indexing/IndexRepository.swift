@@ -13,6 +13,8 @@ final class IndexRepository {
     private var cache: [String: [IndexedItem]] = [:]
     private var cacheOrder: [String] = []
     var scope = IndexScope.revealAll
+    /// Regel-Warteschlange (234): keine neuen Spalten-Ladevorgänge starten.
+    var blocksLoadsForRuleReconcile = false
     private var loading: Set<String> = []
     private var loadingLoaded: [String: Int] = [:]
     private var loadingTotals: [String: Int] = [:]
@@ -63,6 +65,7 @@ final class IndexRepository {
     }
 
     func requestLoad(mediumID: UUID, path: [String]) {
+        if blocksLoadsForRuleReconcile { return }
         #if DEBUG
         Self.requestLoadCallsForTesting += 1
         #endif

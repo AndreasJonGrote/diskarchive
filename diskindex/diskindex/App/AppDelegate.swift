@@ -32,6 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !Self.isRunningUnitTests else { return }
         AppDefaults.current.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
         NSWindow.allowsAutomaticWindowTabbing = false
+        AppSettingsRuntimeCache.bootstrapBeforeStoreOpen()
         DiskIndexLog.shared.start()
         launchKind = AppLaunch.kind(
             arguments: CommandLine.arguments,

@@ -144,7 +144,7 @@ nonisolated enum BulkDirectoryReader {
         switch mode {
         case .fullMetadata:
             attrList.commonattr = attrBit(ATTR_CMN_RETURNED_ATTRS) | attrBit(ATTR_CMN_NAME)
-                | attrBit(ATTR_CMN_OBJTYPE) | attrBit(ATTR_CMN_MODTIME)
+                | attrBit(ATTR_CMN_OBJTYPE) | attrBit(ATTR_CMN_FILEID) | attrBit(ATTR_CMN_MODTIME)
             attrList.fileattr = attrBit(ATTR_FILE_DATALENGTH)
         case .nameAndTypeOnly:
             attrList.commonattr = attrBit(ATTR_CMN_RETURNED_ATTRS) | attrBit(ATTR_CMN_NAME) | attrBit(ATTR_CMN_OBJTYPE)
@@ -245,6 +245,13 @@ nonisolated enum BulkDirectoryReader {
             modifiedAt = Date(timeIntervalSince1970: TimeInterval(sec) + TimeInterval(nsec) / 1_000_000_000)
         }
 
+        var fileID: Int64?
+        if mode == .fullMetadata, commonReturned & attrgroupBit(ATTR_CMN_FILEID) != 0 {
+            guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
+            offset += MemoryLayout<UInt64>.size
+            fileID = Int64(bitPattern: raw)
+        }
+
         var dataLength: UInt64 = 0
         if mode == .fullMetadata, fileReturned & attrgroupBit(ATTR_FILE_DATALENGTH) != 0 {
             guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
@@ -275,7 +282,8 @@ nonisolated enum BulkDirectoryReader {
             isSymbolicLink: isSymlink,
             isHidden: isHidden,
             fileSize: fileSize,
-            modifiedAt: modifiedAt
+            modifiedAt: modifiedAt,
+            fileID: isSymlink ? nil : fileID
         )
     }
 
@@ -329,6 +337,7 @@ nonisolated enum BulkDirectoryReader {
             var modifiedAt: Date?
             var isPackage = false
             var isSymlink = false
+            var fileID: Int64?
             if isDirectory.boolValue {
                 if let values = try? child.resourceValues(forKeys: [.isPackageKey, .isHiddenKey, .contentModificationDateKey, .isSymbolicLinkKey]) {
                     isPackage = values.isPackage == true
@@ -341,6 +350,12 @@ nonisolated enum BulkDirectoryReader {
                 modifiedAt = values.contentModificationDate
                 if values.isHidden == true { isHidden = true }
             }
+            if !isSymlink {
+                var statInfo = stat()
+                if stat(child.path, &statInfo) == 0 {
+                    fileID = Int64(statInfo.st_ino)
+                }
+            }
             entries.append(
                 ListedDirectoryEntry(
                     name: name,
@@ -349,7 +364,8 @@ nonisolated enum BulkDirectoryReader {
                     isSymbolicLink: isSymlink,
                     isHidden: isHidden,
                     fileSize: fileSize,
-                    modifiedAt: modifiedAt
+                    modifiedAt: modifiedAt,
+                    fileID: fileID
                 )
             )
         }

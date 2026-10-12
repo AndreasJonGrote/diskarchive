@@ -172,11 +172,16 @@ final class MediumCoordinator {
             let name = fresh.name
             let isFavoriteMedium = fresh.isFavorite
             // Nicht den Anschlusspfad blockieren.
+            let mountPath = volume.mountPath
             Task { @MainActor [weak self] in
                 await self?.notifyFavoritesOnlineIfNeeded(
                     mediumID: mediumID,
                     name: name,
                     isFavoriteMedium: isFavoriteMedium
+                )
+                try? await self?.store.backfillMissingFavoritePartials(
+                    mediumUUID: mediumID,
+                    mountPath: mountPath
                 )
             }
         }

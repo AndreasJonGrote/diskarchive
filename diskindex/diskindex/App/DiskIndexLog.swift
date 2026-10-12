@@ -71,7 +71,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         lock.unlock()
         let crashText = (try? String(contentsOf: crashFileURL, encoding: .utf8)) ?? ""
         if crashText.contains("CRASH") {
-            if IssueConsent.autoSendEnabled(defaults: AppDefaults.current) {
+            if IssueConsent.autoSendEnabled() {
                 IssueReporter.shared.enqueue(kind: "crash")
                 consumeCrashMarker()
             } else {

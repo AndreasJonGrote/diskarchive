@@ -9,6 +9,7 @@ import Foundation
 
 nonisolated enum AppLanguagePolicy {
     static let appleLanguagesKey = "AppleLanguages"
+    static let displayLanguageKey = "diskindex.displayLanguage"
 
     /// Laufende UI-Sprache (sofort für `L10n`); parallel zu persistierten `AppSettings`.
     private static let lock = NSRecursiveLock()
@@ -17,7 +18,24 @@ nonisolated enum AppLanguagePolicy {
     static func resolvedDisplayLanguage(fallbackDefaults: UserDefaults = AppDefaults.current) -> AppDisplayLanguage {
         lock.lock()
         defer { lock.unlock() }
-        return activeDisplayLanguage ?? AppSettings.load(from: fallbackDefaults).displayLanguage
+        if let activeDisplayLanguage { return activeDisplayLanguage }
+        return loadDisplayLanguage(from: fallbackDefaults) ?? AppDisplayLanguage.resolveFromOperatingSystem()
+    }
+
+    static func loadDisplayLanguage(from defaults: UserDefaults) -> AppDisplayLanguage? {
+        if let raw = defaults.string(forKey: displayLanguageKey),
+           let language = AppDisplayLanguage(rawValue: raw) {
+            return language
+        }
+        if let data = defaults.data(forKey: AppSettings.persistenceKey),
+           let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) {
+            return decoded.displayLanguage
+        }
+        return nil
+    }
+
+    static func saveDisplayLanguage(_ language: AppDisplayLanguage, to defaults: UserDefaults) {
+        defaults.set(language.rawValue, forKey: displayLanguageKey)
     }
 
     static func noteActiveDisplayLanguage(_ language: AppDisplayLanguage) {
@@ -33,14 +51,13 @@ nonisolated enum AppLanguagePolicy {
         return try body()
     }
 
-    /// Erststart: OS-Sprache speichern und `AppleLanguages` setzen (Neustart wirkt vollständig; siehe docs/Lokalisierung.md).
+    /// Erststart: OS-Sprache in UserDefaults (237: nicht in SQLite).
     @discardableResult
     static func bootstrap(defaults: UserDefaults) -> AppSettings {
-        let hadSavedSettings = defaults.data(forKey: AppSettings.persistenceKey) != nil
-        let settings = AppSettings.load(from: defaults)
-        if !hadSavedSettings {
-            settings.save(to: defaults)
-        }
+        var settings = AppSettings()
+        settings.displayLanguage = loadDisplayLanguage(from: defaults)
+            ?? AppDisplayLanguage.resolveFromOperatingSystem()
+        saveDisplayLanguage(settings.displayLanguage, to: defaults)
         noteActiveDisplayLanguage(settings.displayLanguage)
         applyAppleLanguages(settings.displayLanguage, defaults: defaults)
         return settings
@@ -56,6 +73,6 @@ nonisolated enum AppLanguagePolicy {
     static func syncFromSettings(_ settings: AppSettings, defaults: UserDefaults) {
         noteActiveDisplayLanguage(settings.displayLanguage)
         applyAppleLanguages(settings.displayLanguage, defaults: defaults)
-        settings.save(to: defaults)
+        saveDisplayLanguage(settings.displayLanguage, to: defaults)
     }
 }

@@ -111,12 +111,15 @@ struct IndexPruneTests {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let suite = "diskindex-prune-restart-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
+        var persisted = PersistedAppSettings()
+        persisted.scanDepth = 2
+        try await harness.store.savePersistedAppSettings(persisted)
         let app = AppState(store: harness.store, defaults: defaults)
-        app.appSettings.scanDepth = 2
-        app.flushSettings()
+        await app.hydrateSettingsFromStore()
         app.armPrune(now: start)
 
         let restored = AppState(store: harness.store, defaults: defaults)
+        await restored.hydrateSettingsFromStore()
         #expect(restored.appSettings.indexedMaxDepth == 2)
         #expect(restored.pruneAt == start.addingTimeInterval(3_600))
         await restored.pruneIfDue(now: start.addingTimeInterval(10))
@@ -162,13 +165,6 @@ struct IndexPruneTests {
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         let suite = "diskindex-prune-button-\(UUID().uuidString)"
         let app = AppState(store: harness.store, defaults: UserDefaults(suiteName: suite)!)
-        var settings = app.appSettings
-        settings.scanDepth = 1
-        settings.ignoreHiddenFiles = true
-        settings.artifactsIgnored = true
-        settings.excludedPatterns = ["*.pdf"]
-        app.appSettings = settings
-
         let root = try await harness.store.children(mediumUUID: medium.uuid, parentID: nil)
         #expect(root.isEmpty)
         try await harness.store.applyDirectory(
@@ -190,6 +186,13 @@ struct IndexPruneTests {
             entries: [ScannedEntry(name: "inside.txt", isFolder: false)],
             seenAt: Date()
         )
+        var settings = app.appSettings
+        settings.scanDepth = 1
+        settings.ignoreHiddenFiles = true
+        settings.artifactsIgnored = true
+        settings.excludedPatterns = ["*.pdf"]
+        app.appSettings = settings
+        await app.waitForRuleReconcileIdle()
         let visible = try await harness.store.children(
             mediumUUID: medium.uuid,
             parentID: nil,

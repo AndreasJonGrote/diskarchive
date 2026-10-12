@@ -62,24 +62,32 @@ extension WindowTestGroup {
         #expect(medium.autoIndexPaused == true)
     }
 
-    @Test func settingsSurviveRestartAndReset() {
+    @Test func settingsSurviveRestartAndReset() async throws {
+        let harness = try StoreHarness.make()
         let suite = "diskindex-settings-\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         let app = AppState(defaults: defaults)
+        app.attach(store: harness.store)
+        await app.hydrateSettingsFromStore()
         app.appSettings.scanDepth = 2
         app.appSettings.ignoreHiddenFiles = false
         app.appSettings.excludedPatterns = ["Cache"]
-        app.flushSettings()
+        await app.persistAppSettingsNow()
         let restored = AppState(defaults: defaults)
+        restored.attach(store: harness.store)
+        await restored.hydrateSettingsFromStore()
         #expect(restored.appSettings.scanDepth == 2)
         #expect(restored.appSettings.ignoreHiddenFiles == false)
         #expect(restored.appSettings.excludedPatterns == ["Cache"])
         restored.appSettings.resetGeneral()
         restored.appSettings.resetIgnoredObjects()
-        restored.flushSettings()
+        await restored.persistAppSettingsNow()
         let cleared = AppState(defaults: defaults)
-        #expect(cleared.appSettings == AppSettings())
+        cleared.attach(store: harness.store)
+        await cleared.hydrateSettingsFromStore()
+        #expect(cleared.appSettings.scanDepth == AppSettings.defaultScanDepth)
+        #expect(cleared.appSettings.excludedPatterns == AppSettings.defaultExcludedPatterns)
         defaults.removePersistentDomain(forName: suite)
     }
 

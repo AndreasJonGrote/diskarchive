@@ -128,7 +128,8 @@ actor ChangeWatcherEngine {
                 try await store.applyDirectories(
                     mediumUUID: mediumID,
                     batches: [(parentID: parentID, path: nil, depth: nil, entries: entries, finalize: true)],
-                    seenAt: Date()
+                    seenAt: Date(),
+                    mountPath: mount
                 )
                 DiskIndexLog.shared.record(.watcher, .info, "reread entries=\(entries.count)", privateDetail: directory)
             } catch {
@@ -172,7 +173,7 @@ actor ChangeWatcherEngine {
             isPackage: entry.isPackage && !entry.isSymbolicLink,
             sizeBytes: asFile && !entry.isPackage && !entry.isSymbolicLink ? entry.fileSize : nil,
             modifiedAt: entry.modifiedAt,
-            fileID: nil
+            fileID: FileIdentity.scannedFileID(entry.fileID)
         )
     }
 }

@@ -1,0 +1,114 @@
+//
+//  RuleReconcileQueueTests.swift
+//  diskindexTests
+//
+//  Regel-Warteschlange und Status-Flags (234).
+//
+
+import Foundation
+import Testing
+@testable import diskindex
+
+extension WindowTestGroup {
+@Suite @MainActor
+struct RuleReconcileQueueTests {
+    private func appWithHiddenFile() async throws -> (AppState, IndexStoreV3, StoredMedium) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-rulequeue-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
+        let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "RULE", type: .usb, decision: .index)
+        try await store.upsertMedium(medium)
+        var entries = (0..<20).map { ScannedEntry(name: "bericht-\($0).pdf", isFolder: false, sizeBytes: 1) }
+        entries.append(ScannedEntry(name: ".bericht-versteckt.pdf", isFolder: false, sizeBytes: 1))
+        try await store.applyDirectories(
+            mediumUUID: medium.uuid,
+            batches: [(parentID: nil, path: "/", depth: 1, entries: entries, finalize: false)],
+            seenAt: Date()
+        )
+        try await store.completeLayer(mediumUUID: medium.uuid, depth: 1)
+        let app = AppState(store: store)
+        await app.loadStoredMedia()
+        app.mainWindowDestination = .search
+        app.searchState.submittedQuery = "bericht"
+        app.appSettings.ignoreHiddenFiles = false
+        await app.waitForRuleReconcileIdle()
+        return (app, store, medium)
+    }
+
+    @Test func searchDuringQueueCompletesAfterIdle() async throws {
+        let (app, store, _) = try await appWithHiddenFile()
+        await app.runSearch()
+        await app.waitForSearchCount()
+        #expect(app.searchMatch.itemCount == 21)
+
+        await store.setReconcileBatchDelay(.milliseconds(120))
+        app.appSettings.ignoreHiddenFiles = true
+        try #require(app.isRuleReconcileQueueActive || app.pruneAt != nil)
+
+        let searchTask = Task { await app.runSearch() }
+        try? await Task.sleep(for: .milliseconds(30))
+        #expect(app.searchState.isSearchInProgress)
+
+        await app.waitForRuleReconcileIdle()
+        await searchTask.value
+        await app.waitForSearchCount()
+        #expect(app.searchMatch.itemCount == 20)
+        #expect(!app.searchMatch.items.contains { $0.name.hasPrefix(".") })
+    }
+
+    @Test func queueErrorDoesNotHangSearch() async throws {
+        let (app, store, _) = try await appWithHiddenFile()
+        await store.setReconcileShouldFail(true)
+        app.appSettings.ignoreHiddenFiles = true
+        await app.waitForRuleReconcileIdle()
+        #expect(!app.isRuleReconcileQueueActive)
+
+        await app.runSearch()
+        #expect(!app.searchState.isSearchInProgress)
+        #expect(!app.isRuleReconcileQueueActive)
+    }
+
+    @Test func noSwiftNameChecksAfterReconcile() async throws {
+        let (app, store, medium) = try await appWithHiddenFile()
+        app.appSettings.ignoreHiddenFiles = false
+        await app.runSearch()
+        let baseline = store.nameChecks.value
+
+        app.appSettings.ignoreHiddenFiles = true
+        await app.waitForRuleReconcileIdle()
+        #expect(!app.indexScope.checksNames)
+
+        await app.runSearch()
+        await app.waitForSearchCount()
+        _ = try await store.children(mediumUUID: medium.uuid, parentID: nil, scope: app.indexScope)
+        #expect(store.nameChecks.value == baseline)
+    }
+
+    @Test func ruleReconcileClearsColumnCacheWhileActive() async throws {
+        let (app, store, medium) = try await appWithHiddenFile()
+        app.mainWindowDestination = .columnBrowser
+        app.columnBrowserState.selectedMediumID = medium.uuid
+        app.indexRepository.requestLoad(mediumID: medium.uuid, path: [])
+        try await Task.sleep(for: .milliseconds(80))
+        #expect(!app.indexRepository.children(mediumID: medium.uuid, path: []).isEmpty)
+
+        await store.setReconcileBatchDelay(.milliseconds(200))
+        app.appSettings.ignoreHiddenFiles = true
+        try #require(app.isRuleReconcileQueueActive)
+        #expect(app.indexRepository.children(mediumID: medium.uuid, path: []).isEmpty)
+        await app.waitForRuleReconcileIdle()
+    }
+
+    @Test func sabotageChecksNamesWouldIncrementCounter() async throws {
+        let (app, store, medium) = try await appWithHiddenFile()
+        app.appSettings.ignoreHiddenFiles = true
+        await app.waitForRuleReconcileIdle()
+        let baseline = store.nameChecks.value
+        var sabotage = app.indexScope
+        sabotage.checksNames = true
+        _ = try await store.children(mediumUUID: medium.uuid, parentID: nil, scope: sabotage)
+        #expect(store.nameChecks.value > baseline, "Sabotage: checksNames darf nach Reconcile nicht aktiv sein")
+    }
+}
+}

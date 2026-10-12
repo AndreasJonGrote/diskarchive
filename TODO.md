@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** (siehe [DONE.md](DONE.md)). **Freigegeben: 233b. HALT nach 233b.**
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235/235b** + **236** + **237** (Spur, Cursor statt Cloud). **Freigegeben: c.0.3.238** (dann **c.0.3.1.001**). **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat. Nach jeder Aufgabe HALT („Bereit zur Prüfung“).
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -46,7 +46,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F11 | beobachten (`serviceRunPassesTheReasonToTheDialog`, parallel selten rot) |
 | F23 | beobachten (kurze `Task.sleep` in mehreren Suites) |
 | F25 | löst **234** (Status-Flag statt Bereich-Bereinigen) |
-| F26 | löst **236** (WAL kürzen / Wartung) |
+| F26 | **erledigt** in **c.0.3.236** (WAL Truncate + Leerlauf-Wartung) |
 
 Weitere Alltagfehler trägt Claude hier ein.
 
@@ -59,61 +59,68 @@ c) Kopfkommentar `SchemaV3.swift` Z. 5 („Die App benutzt es noch nicht“) kor
 d) Seriell, Warnungen 0, **Regel 23**.
 Status: SchemaV3.swift: auto_vacuum vor WAL + prepareNewFile(DatabaseQueue); Kopfkommentar korrigiert. Test freshFileHasIncrementalAutoVacuumAndWAL. Sabotage (alte Reihenfolge): rot ✓. 474 Tests seriell grün 08:40, Warnungen 0. Regel 23: App 08:40:58, SchemaV3.swift 08:34:43 (find -newer leer). Bereit zur Prüfung.
 
-#### Cursor-Spur (Schlüssel `c.0.3.2.NNN` = Cursor · Version 0.3.2 · Aufgabe). Claude pflegt Abnahmen später in DONE/README. Nur notiert — Freigabe je Aufgabe durch Nutzer/Claude.
+#### Cursor-Spur (Schlüssel `c.<Version>.<Nr>` = Cursor · Zielversion · Aufgabe).
+**Autorisierung (Nutzer in diesem Chat):** Cloud/Claude-Verweise bleiben. **Cloud fällt aus → Cursor übernimmt** hier Prüfung / Abnahme / Freigabe — **nur in diesem Block**, und **nur nach Code-Prüfung** (kein bloßes Umschreiben).
 
-**c.0.3.2.001 — 233b nachprüfen und abschließen (aus A.233b).**
-Gegenprüfung am Code (12.10.): `SchemaV3.prepareNewFile` + `auto_vacuum` vor WAL; Test `freshFileHasIncrementalAutoVacuumAndWAL`; Kopfkommentar ok. Status stand „Bereit zur Prüfung“.
-a) Suite erneut: `SchemaV3Tests` + seriell voll, Warnungen 0, **Regel 23** belegen.
-b) Bei Grün: Status „Bereit zur Prüfung“ belassen bzw. Belege aktualisieren; nach Nutzer-/Claude-OK → DONE (Claude).
-c) Bei Rot: Ursache beheben, Sabotage rot ✓, neuer Status.
-Status: 233b-Code ok (prepareNewFile, Test freshFile…). Seriell: SchemaV3Tests 11 grün, 476 grün 11:06, Warnungen 0. Nebenfix MediumDecisionTests (undecided vor enqueue, 0.3.2-Badge). Regel 23: App 11:06:52, find -newer leer. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. 11:17:** Code a/c bestätigt (`prepareNewFile`, auto_vacuum vor WAL, Kopfkommentar). `SchemaV3Tests` 11/11 inkl. `freshFileHasIncrementalAutoVacuumAndWAL` grün 11:11. Suite seriell: **470 bestanden, 6 übersprungen, 0 fehlgeschlagen** (totalTestCount 476) 11:12–11:17, Warnungen 0. Regel 23: Build Debug App **11:17:20**, `find … -newer` leer. Keine Nacharbeit an 233b. Abnahme → DONE (Claude/Nutzer).
+**Abnahme Cursor (Nutzerwunsch) 12.10. — erneut am Code geprüft:**
+- **c.0.3.2.001 / 233b:** `SchemaV3.prepareNewFile` + `auto_vacuum` vor WAL — **gelöst** (DONE 233b; Commit-Spur bis `6b0c724`/`bd933bd`).
+- **c.0.3.2.002 + 002b:** Stapel-Dialoge, `decision == .index`, Dashboard-Meta, REPORT 16/17 (`hasIndex ? .indexed : .pending` in `applyChoice`) — **Produktcode gelöst**. Offen nur Doku/Layout (e / Nutzer), blockiert Folgeaufgaben nicht.
+- **c.0.3.2.003–007:** REPORT-Fixes in Commits `ccd79ce`…`d7dc092` — Stichproben am Code (`detachFromIndexStore`, `stopWatcherAndStartIndex`, `visibleSearchHitIDs`, `backgroundRecount`, Quit-`checkpoint`, `asMedium.autoIndexPaused`) — **gelöst**.
+- **c.0.3.234:** Status-Queue + Spalten-Nacharbeit am Working Tree geprüft (`reconcileScopeToStatus`, `invalidateAll` beim Queue-Start, `ruleReconcileLoading` → leere Liste + `FolderContentsLoadingHint` mit `delayBeforeHint: .zero`, Test `ruleReconcileClearsColumnCacheWhileActive`); Binary **14:39:45**, find -newer leer — **gelöst**.
 
-**c.0.3.2.002 — Erkennungs-Dialoge stapeln + keine Indizierung ohne Ja + Dashboard-Meta (Roadmap 0.3.2; REPORT 7/16/17).**
-Kein Layout-Vorlauf. Layout 02/04 wird später nachgezogen.
-a) **Mehrere Modals:** Pro Medium `undecided` ein eigenes Panel; Versatz nach unten rechts, neuestes vorne und unten; jedes Panel nur für seine ID; Schließen ohne Ja/Nein lässt Medium `undecided` (Queue/Badge bleiben).
-b) **Keine Indizierung ohne explizites Ja:** Lauf/Reindex/Watcher nur bei `decision == .index`. Ja nur über Erkennungs-Dialog **oder** Einstellungen → Speichermedien / Medium-Details. Nein: Lauf canceln, Watcher stoppen (REPORT 7). Popover: kein „Neu indizieren“ bei `undecided`.
-c) REPORT **17:** „Nicht indizieren“ setzt nicht `indexStatus = .indexed` ohne Index. REPORT **16:** Latch `requestedIndex` bei Pause-No-Op bereinigen.
-d) **Dashboard-Kachel:** Meta unten — Belegung links, „Zuletzt indiziert“ / „Zuletzt gesehen“ rechts; Uhr auch im Absolut-Modus.
-e) README-Konzept §2 + Roadmap 0.3.2 / Layout-Reminder anpassen (Stapel + Indizierungsregel; „erst Layout“ streichen).
-f) Tests (zwei Medien → zwei Dialoge; ohne Ja kein Lauf; Ja in Einstellungen startet), Sabotage rot ✓, seriell, Regel 23.
-Status: Multi-Panel (`AppWindowPresenter`, `NewMediumDialogWindowHost`); `onMediumDecisionChanged`/`LiveWiring`; REPORT 16/17. Tests: NewMediumStackTests, MediumRecognition, DashboardLastSeen. 481 seriell grün 11:31, Warnungen 0. Regel 23: App 11:31:51. Frage: README §2/ROADMAP 0.3.2 (e) — Claude. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** a) Multi-Panel + Versatz unten rechts (`syncNewMediumPanels`/`placeNewMediumPanel`, Offset 24) ok; Schließen = `dismissed` + Queue bleibt. b) Guards `decision == .index`, `onMediumDecisionChanged` → cancel/stop bzw. `requestIndexingAfterDecision`, Popover ohne Reindex bei undecided — ok; REPORT 16 `clearIndexRequest` bei Pause — ok. d) Dashboard-Meta ok. e) README/ROADMAP noch alt („erst Layout“) — offen für Claude. **c) REPORT 17 nicht erledigt:** `MediumCoordinator.applyChoice` berechnet `hasIndex`, setzt aber weiter `indexStatus = .indexed`; Test `dontIndexWithoutIndexKeepsPendingStatus` erwartet `.pending`. Dialog-Fallback in `NewMediumDetectedDialog` ist korrekt, der Store-Pfad nicht. → Nacharbeit **c.0.3.2.002b**. Suite/Regel-23-Zahlen des Status nicht erneut gelaufen (Passwort-Dialoge).
+**c.0.3.2.001 — 233b nachprüfen und abschließen (aus A.233b).** — **ABGENOMMEN** (gelöst; siehe DONE 233b).
+**c.0.3.2.002 / 002b — Erkennung/Dashboard + REPORT 17.** — **ABGENOMMEN** (Produktcode gelöst; README/Layout weiter „Offen, ohne Cursor“).
+**c.0.3.2.003 … 007 — REPORT-Fixes.** — **ABGENOMMEN** (gelöst; Commits `ccd79ce`…`d7dc092`).
 
-**c.0.3.2.002b — REPORT 17 nachziehen (aus Prüfung 002).**
-In `MediumCoordinator.applyChoice` bei `allowIndexing == false`: `indexStatus = hasIndex ? .indexed : .pending` (oder Status unverändert lassen, wenn kein Index). `hasIndex` nicht tot liegen lassen. Test `dontIndexWithoutIndexKeepsPendingStatus` muss grün sein; Sabotage (immer `.indexed`) → rot ✓. Seriell betroffen Suites, **kein** xcodebuild mit Signatur-Prompts ohne Freigabe; Regel 23 wenn gebaut.
-Status: `MediumCoordinator.applyChoice` Z. 326: `hasIndex ? .indexed : .pending`. MediumCoordinatorTests+NewMediumStackTests 17 grün; Sabotage rot ✓. Regel 23: App 11:40:19, find -newer leer. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** Fix bestätigt — `applyChoice` Z. 325–326 nutzt `hasIndex ? .indexed : .pending`. Test `dontIndexWithoutIndexKeepsPendingStatus` passt zum Code. Dialog-Fallback in `NewMediumDetectedDialog` weiterhin konsistent. Regel 23: App 11:40:19, `MediumCoordinator.swift` 11:40:11, `find -newer` leer. Suite-Zahlen des Status nicht erneut gelaufen. Keine Nacharbeit. Abnahme mit 002 → Claude/Nutzer.
+**c.0.3.234 — Status-Flag und Warteschlange (Original **234**, F25).** — **ABGENOMMEN**
+Ersetzt Bereichs-Bereinigen; Suche wartet; Spalten Ladehinweis; Idle-Event (`datenbank-konzeption.md`).
+**Abnahme Cursor (Nutzerwunsch) 12.10.:** Code + Spalten-Nacharbeit geprüft und **gelöst**. Regel 23: Binary 14:39:45. Gibt Frei für **235…1.001**.
 
-**c.0.3.2.003 — Store-Öffnen / Retry / Integrität (REPORT 2, 3, 4, 5, 22, 28).**
-Teardown bei Integritätsfehler wie Beenden; Change-Loop an neuen Store binden; vor `wireStore` alte Indexer/Watcher stoppen; Startup-Task single-flight; Retry mit Lade-UI; `indexStore`/`changeLoop` zurücksetzen.
-Status: `detachFromIndexStore`/`cancelChangeLoop`; Change-Loop wartet alten Task ab; AppDelegate single-flight + `stopLiveServicesBeforeRewire`; Integritäts-`onFailure` vollständig; Retry `clearIndexStoreOpenFailure`. StoreStartupLifecycleTests. 485 seriell grün. Regel 23: App 12:07:28, find -newer leer. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 2/28: `handleStoreFailure` bei ready Store → `stopLiveServicesBeforeRewire` + `prepareForTermination` + `detachFromIndexStore`. REPORT 3: `startChangeLoop` cancel + `await previous` + neuer Store. REPORT 4: `wireStore` stoppt Live-Dienste zuerst. REPORT 5: `storeStartupTask`/`storeStartupGeneration`. REPORT 22: Retry `clearIndexStoreOpenFailure` → `isStoreLoading`. Tests `StoreStartupLifecycleTests` decken Restart/Detach/Retry/Integrität ab. Regel 23: App 12:07:28, find -newer leer. Suite 485 nicht erneut gelaufen. Keine Nacharbeit.
+**c.0.3.235 — Umbenennen/Verschieben erkennen (Original **235**).** — **ABGENOMMEN** (mit **235b**)
+`fileID` erst erfassen; APFS/HFS+ verbinden; Ereignispaare live; FAT ±1 h; Teil-Prüfsumme Favoriten (`datenbank-konzeption.md`).
+**Abnahme Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10.:** Kern 235 + Nacharbeit 235b am Code geprüft — **gelöst**.
 
-**c.0.3.2.004 — FSEvents / Watcher-Lebenszyklus (REPORT 6, 8, 9, 10).**
-Kein paralleles Schreiben Watcher↔Indexer ohne Token; Stream-Fehler → `continuation.finish`; Unmount → sauber stoppen/neu starten; Cursor nur bei erfolgreichem Reread speichern.
-Status: LiveWiring stop vor Index, Watcher nur `onRunIndexed`; Engine deferred/apply-Fehler; flush `saveCursor` nur `.ok`; FSEvents `finish`, Unmount-Restart, Wake indexed. WatcherLifecycleTests. 489 seriell grün. Regel 23: App 12:27:39, find -newer leer. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 6: `stopWatcherAndStartIndex`; Watcher nur `onRunIndexed`; `isIndexingActive`/`hasActiveIndexingToken` → deferred. REPORT 8: FSEvents Create/Start-Fehler → `continuation.finish`. REPORT 9: Unmount `saveCursor` + Restart wenn verbunden; Wake startet auch ohne `isWatching`. REPORT 10: flush `saveCursor` nur `.ok`; apply-Fehler → `needsFullReconcile`. Tests `WatcherLifecycleTests`. Regel 23: Binary 12:27:39, find -newer leer. Suite 489 nicht erneut. Keine Nacharbeit.
+**c.0.3.235b — Nacharbeit 235 (Prüfung 235).** — **ABGENOMMEN**
+a) Ereignispaare live; b) Teil-Prüfsumme verbinden; c) Seriell / Regel 23.
+Status: Live-Paare (`LiveRenamePairs`, `applyLiveRename` vor Flush); FAT-`partial` + `backfillMissingFavoritePartials`; Tests inkl. Sabotage. **509/509** seriell. Regel 23: Binary 17:03:11. **Bereit zur Prüfung.**
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10. (Code, ohne xcodebuild):**
+- **a ok:** Flags → `pendingItemEvents`; `flush` → `LiveRenamePairs.pair` → `applyLiveRename`/`applyLivePathRename` **vor** Eltern-Reread; Test `liveRenamePairKeepsRowAndFavoriteWithoutFileID`.
+- **b ok:** `matchGoneCandidate` → `verifyPartialMatch`/`disambiguateWithPartial`; `backfillMissingFavoritePartials` beim Anschließen (`MediumCoordinator`); Tests `fatPartialDisambiguatesGoneCandidates` + Sabotage `partialMatchingEnabled=false` rot ✓.
+- Regel 23: Binary **17:03:11**, find -newer leer. Suite 509 nicht erneut. **Keine Nacharbeit.** Abnahme **235+235b**.
 
-**c.0.3.2.005 — Suche / Spalten Scope & Pagination (REPORT 11, 12, 19, 20).**
-Bei `checksNames`: LIMIT/Pagination nach sichtbaren Treffern; `childrenPage` bei leerer gefilterter Seite weiterblättern; `childCount` Scope beachten; `searchCount` bei Namensregeln entlasten.
-Status: `childrenPage` Cursor aus SQL-Zeilen; `visibleSearchHitIDs`/`searchHitPage`; `childCount` mit Scope; `searchCount` parallel bei checksNames. SearchScopePaginationTests. 492 seriell grün. Regel 23: App 12:40:03, find -newer leer. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 11: `visibleSearchHitIDs` paginiert SQL bis genug sichtbare Treffer. REPORT 12: `nextCursor` aus `rows`, nicht `filtered`; IndexRepository läuft bei leerer Seite weiter. REPORT 19: `childCount` filtert bei `checksNames` / `maxDepth`. REPORT 20: `searchCount` bei `checksNames` parallel über `idRanges`. Tests `SearchScopePaginationTests`. Regel 23: Binary 12:40:03, find -newer leer. Suite 492 nicht erneut. Keine Nacharbeit.
+**c.0.3.236 — Wartung Zeit + Zähler, WAL kürzen (Original **236**, F26).** — **ABGENOMMEN**
+Wartungs-Schleife (Zeit + Zähler); WAL nach Läufen kürzen. Voraussetzung **233b**/`c.0.3.2.001` (auto_vacuum) erledigt.
+Status: `DatabaseMaintenance` + Store-Schuld/Compaction; gemeinsames WAL-Truncate; Leerlauf-Worker nach Index/Bereinigung/Regeln; Tests inkl. Sabotage. Seriell **512/512** grün, Regel 23. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10. (Code, ohne xcodebuild):**
+- **Zähler ok:** Schuld `maintenanceChangeDebt` (N=10 000), `addDebt` bei `finishIndexing`/`purgeGone`/`purgeMarked`; Leerlauf-Worker (`scheduleDatabaseMaintenance` nach Index/Regeln/Prune) → `runCompactionIfNeeded` → `incremental_vacuum` + Truncate.
+- **Zeit ok:** Schadenprüfung weiter `IntegrityCheckPolicy` 7 Tage / Absturz (219); Compaction setzt `lastCompactionAt`.
+- **F26 / WAL ok:** `wal_checkpoint(TRUNCATE)` nach Lauf/`purgeGone`/Compaction/`checkpoint()`; `journal_size_limit` in SchemaV3.
+- Sabotage `incrementalVacuumEnabled=false` lässt Freelist stehen ✓. Regel 23: Binary **17:26:17**, find -newer leer. Suite 512 nicht erneut. **Keine Nacharbeit.**
 
-**c.0.3.2.006 — IndexingService finish / cancel / Recount (REPORT 13, 15, 26).**
-Token vor Spinner/Task-Clear; `cancel` detached-Task abbrechen; Hintergrund-Recount an Token/`shouldHalt` koppeln.
-Status: `finish` prüft Token vor Task/Spinner; `cancel` bricht Task ab, `await task?.value`, UI nur ohne Nachfolger; `publish` guard. DirectoryIndexer: `backgroundRecount` + defer-cancel, `setScanTotal` nur bei aktivem Token. Tests `IndexingFinishCancelTests` (3). 495 Tests serial grün; Debug-App 12:51:22. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 13: `finish` Token-`guard` vor Task/Spinner-Clear. REPORT 15: `cancel` → `task?.cancel()` + `await value`; UI/Task nur wenn kein Nachfolger-`runs`. REPORT 26: Recount als `backgroundRecount` + `defer` cancel; `setScanTotal` nur bei `indexingIsActive` (Recount + Zählphase). Tests `IndexingFinishCancelTests` (3). Regel 23: Binary 12:51:31, find -newer leer. Suite 495 nicht erneut. Keine Nacharbeit.
+**c.0.3.237 — Einstellungen in Tabelle `settings` (Original **237**).** — **ABGENOMMEN**
+App-Einstellungen in SQLite `settings` (außer Sprache, Fensterposition).
+**Antwort Cursor (Rückfrage):** Auto-Send mit in DB.
+Status: `PersistedAppSettings` + JSON-Key `appSettings`; Hydrate/Migration; Runtime-Cache vor Log; Auto-Send in DB; Sprache nur UserDefaults. Tests neu/angepasst. Seriell **515/515**, Regel 23. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10. (Code, ohne xcodebuild):**
+- **DB ok:** `SettingsPersistence` Key `appSettings` JSON; `hydrateSettingsFromStore` / `persistAppSettingsNow`; Legacy-Migration löscht UD-Keys; Tests Roundtrip + `migratesLegacyUserDefaultsIntoDatabase`.
+- **Ausnahmen ok:** Sprache nur `AppLanguagePolicy`/`displayLanguageKey` in UD; Fenster `setFrameAutosaveName` (nicht settings).
+- **Auto-Send ok:** in `PersistedAppSettings`; `AppSettingsRuntimeCache.bootstrapBeforeStoreOpen` vor `DiskIndexLog.start`; `IssueConsent` → Cache; UI über `appSettingsField`.
+- Regel 23: Binary **18:07:04**, find -newer leer. Suite 515 nicht erneut. **Keine Nacharbeit.**
 
-**c.0.3.2.007 — UI / Quit / Meta restlich (REPORT 14, 18, 21, 23, 24, 25, 27).**
-`isSearchInProgress` bei Abbruch; Depth-`contentStamp`/`completedDepth` nur betroffene Storages; `forgetAllMedia` weiterlaufen; Spalten-State Tab-Wechsel; Notification-Delegate Main; Quit-Checkpoint warten; `autoIndexPaused` aus DB.
-Status: REPORT 14 defer in `runSearch`; 18 prune-Meta nur `touchedStorages`; 21 `forgetAll` continue; 23 Spalten-Nav-Reset; 24 Delegate `@MainActor`; 25 sync `checkpoint`; 27 `asMedium` paused. Tests SearchBehavior, IndexPrune, SurfaceStore, UiQuitMetaTests. 499 serial grün. Regel 23: App 13:16:00, find -newer leer. Bereit zur Prüfung.
-**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 14: `runSearch` defer setzt `isSearchInProgress` bei gleicher Generation zurück. REPORT 18: `contentStamp`/`completedDepth` nur `touchedStorages` (IndexPrune: anderes Medium behält Tiefe). REPORT 21: `forgetAll` catch → `continue`. REPORT 23: Spalten-Nav-Reset beim Verlassen. REPORT 24: Notification-Delegate `Task { @MainActor }`. REPORT 25: sync `checkpoint()` in `prepareForAppTermination`. REPORT 27: `asMedium` übernimmt `autoIndexPaused`. Tests SearchBehavior/IndexPrune/SurfaceStore/UiQuitMeta. Regel 23: Binary 13:16:00, find -newer leer. Suite 499 nicht erneut. Keine Nacharbeit.
+**c.0.3.238 — Messung „nachher“ + Schema einfrieren (Original **238**, Bezug **196**).**
+Messung „nachher“ mit Werkzeug aus **196**, Vergleich gegen Schwelle; Schema einfrieren.
+**Freigabe Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10.:** Voraussetzung **237 abgenommen**. **196** in DONE. **Freigegeben zur Umsetzung.** HALT nach dieser Aufgabe.
+Status: freigegeben — Umsetzung ausstehend.
 
-### Offen, ohne Cursor
+**c.0.3.1.001 — API-Warteschlange (Original **0.3.1**, README / ROADMAP).**
+Tabelle `api_queue` nutzen; Fehlerbericht aus `outbox` (`IssueTracker`) hierher; online sofort leeren (macOS-Netzmeldung), offline Ping 60 s.
+**Freigabe Cursor (Nutzerwunsch) 12.10.:** **Freigegeben zur Umsetzung** (Aufgabe selbst noch offen).
+Status: freigegeben — Umsetzung ausstehend.
 
-- **Nutzer:** Layout 02 + 04 für 0.3.2 **nachziehen** (blockiert Code nicht; siehe c.0.3.2.002).
-- **Claude:** Nach Abnahme c.0.3.2.001 (233b) → DONE; Freigabe der nächsten `c.0.3.2.*`-Aufgabe.
+### Offen, ohne Cursor (Rest 0.3.2)
+
+- **Nutzer:** Layout 02 + 04 für **0.3.2** nachziehen (blockiert Code nicht; `c.0.3.2.002`).
+- **Claude** (Cloud; wenn wieder verfügbar) / **jetzt Cursor:** Spur **c.0.3.2.001–007** formell nach DONE/Archiv (Abnahme vorläufig **Cursor auf Nutzerwunsch** 12.10.); README §2 + ROADMAP 0.3.2 / Layout-Reminder (Punkt e aus 002).
 
 ---
 
@@ -121,13 +128,13 @@ Status: REPORT 14 defer in `runSearch`; 18 prune-Meta nur `touchedStorages`; 21 
 
 ### 0.3 — noch offen (Reihenfolge)
 
-- **234** Status-Flag und Warteschlange für Regeländerungen (ersetzt Bereinigen nach Bereich; F25).
-- **235** Umbenennen/Verschieben erkennen (`fileID` erst erfassen).
-- **236** Wartung (Zeit + Zähler), WAL nach Läufen kürzen (F26).
-- **237** Einstellungen in Tabelle `settings` (außer Sprache, Fensterposition).
-- **238** Messung „nachher“ mit 196 und Vergleich; Schema einfrieren.
-- **0.3.1** API-Warteschlange (README / ROADMAP).
-- **0.3.2** → Cursor-Spur **c.0.3.2.002** (gestapelte Dialoge, Indizierung nur nach Ja, Dashboard-Meta; Layout nachziehen).
+- **234** → **c.0.3.234** — **abgenommen/gelöst** in A/Spur (Cursor Nutzerwunsch).
+- **235** → **c.0.3.235** + **235b** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
+- **236** → **c.0.3.236** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus; F26).
+- **237** → **c.0.3.237** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
+- **238** → **c.0.3.238** (Messung „nachher“; **196**). *freigegeben in A/Spur — nächste Aufgabe*
+- **0.3.1** → **c.0.3.1.001** (API-Warteschlange). *freigegeben in A/Spur*
+- **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
