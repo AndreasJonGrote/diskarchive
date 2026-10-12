@@ -247,4 +247,16 @@ struct SchemaV3Tests {
         #expect(ItemStatus.visible.rawValue == 0 && ItemStatus.toDelete.rawValue == 1 && ItemStatus.gone.rawValue == 2)
         #expect(MetaSource.read.rawValue == 0 && MetaSource.user.rawValue == 1 && MetaSource.system.rawValue == 2)
     }
+
+    // Aufgabe 233b: neue Datei muss incremental auto_vacuum (2) und WAL haben.
+    @Test func freshFileHasIncrementalAutoVacuumAndWAL() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-v3-vacuum-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let pool = try SchemaV3.openPool(at: directory.appendingPathComponent("fresh.sqlite"))
+        let autoVacuum = try pool.read { db in try Int.fetchOne(db, sql: "PRAGMA auto_vacuum") }
+        #expect(autoVacuum == 2)
+        let journal = try pool.read { db in try String.fetchOne(db, sql: "PRAGMA journal_mode") }
+        #expect(journal == "wal")
+    }
 }

@@ -2,7 +2,7 @@
 //  SchemaV3.swift
 //  diskindex
 //
-//  Schema 0.3 (Aufgabe 230), Grundlage `datenbank-konzeption.md` → „Schema-Skizze“. Die App benutzt es noch nicht.
+//  Schema 0.3 (Aufgaben 230/233), Grundlage `datenbank-konzeption.md` → „Schema-Skizze“. Speichert in `archive.sqlite`.
 //  Kennungen `AUTOINCREMENT` (nie wiederverwendet), Verweise `ON DELETE CASCADE` (Ausnahme: `extID`/`keyID` zeigen auf
 //  Nachschlagetabellen, Löschen ist verboten, solange benutzt), Zeiten als Sekunden seit 1970.
 //
@@ -45,19 +45,33 @@ nonisolated enum SchemaV3 {
             db.add(collation: NaturalOrder.collation)
             try db.execute(sql: "PRAGMA foreign_keys = ON")
             guard !db.configuration.readonly else { return }
+            // Wirkt nur auf eine neue Datei (vor WAL und vor der ersten Tabelle): Platz mit `incremental_vacuum`.
+            try db.execute(sql: "PRAGMA auto_vacuum = INCREMENTAL")
             try db.execute(sql: "PRAGMA journal_mode = WAL")
             try db.execute(sql: "PRAGMA synchronous = NORMAL")
-            // Wirkt nur auf eine neue Datei (vor der ersten Tabelle): Platz wird mit `incremental_vacuum` zurückgegeben.
-            try db.execute(sql: "PRAGMA auto_vacuum = INCREMENTAL")
             try db.execute(sql: "PRAGMA journal_size_limit = \(journalSizeLimit)")
         }
         return configuration
+    }
+
+    /// Legt eine neue Datei mit `auto_vacuum = INCREMENTAL` an, bevor der Pool WAL einschaltet.
+    private static func prepareNewFile(at fileURL: URL) throws {
+        var configuration = Configuration()
+        configuration.prepareDatabase { db in
+            try db.execute(sql: "PRAGMA auto_vacuum = INCREMENTAL")
+        }
+        let queue = try DatabaseQueue(path: fileURL.path, configuration: configuration)
+        try queue.close()
     }
 
     /// Öffnet die Datei, legt sie bei Bedarf an und lässt den Migrator laufen.
     static func openPool(at fileURL: URL) throws -> DatabasePool {
         let folder = fileURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        // DatabasePool schaltet WAL selbst ein; `auto_vacuum` muss davor (und vor Tabellen) stehen.
+        if !FileManager.default.fileExists(atPath: fileURL.path) {
+            try prepareNewFile(at: fileURL)
+        }
         let pool = try DatabasePool(path: fileURL.path, configuration: makeConfiguration())
         try migrator.migrate(pool)
         FilePrivacy.restrict(folder)

@@ -115,7 +115,7 @@ a) Reihenfolge so ändern, dass eine **neue** Datei `PRAGMA auto_vacuum` = **2**
 b) Test: frische Datei über `SchemaV3.openPool` → `PRAGMA auto_vacuum` = 2 und `journal_mode` = wal. Sabotage (alte Reihenfolge) → rot ✓.
 c) Kopfkommentar `SchemaV3.swift` Z. 5 („Die App benutzt es noch nicht“) korrigieren.
 d) Seriell, Warnungen 0, **Regel 23**.
-Status:
+Status: SchemaV3.swift: auto_vacuum vor WAL + prepareNewFile(DatabaseQueue); Kopfkommentar korrigiert. Test freshFileHasIncrementalAutoVacuumAndWAL. Sabotage (alte Reihenfolge): rot ✓. 474 Tests seriell grün 08:40, Warnungen 0. Regel 23: App 08:40:58, SchemaV3.swift 08:34:43 (find -newer leer). Bereit zur Prüfung.
 
 ---
 
