@@ -106,6 +106,11 @@ extension AppState {
         }
         // Alte Ergebnisse bleiben sichtbar, bis die neuen da sind (kein Flackern).
         searchState.isSearchInProgress = true
+        defer {
+            if generation == searchGeneration {
+                searchState.isSearchInProgress = false
+            }
+        }
         let scope = indexScope
         var match = await SearchIndex.matching(
             store: indexStore,

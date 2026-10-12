@@ -24,6 +24,10 @@ actor IndexStoreV3 {
     var childrenReadsFail = false
     /// Tests: `searchCount` braucht künstlich länger (Ergebnisse erscheinen vor der Zahl, 215).
     var searchCountDelay: Duration?
+    /// Tests: `search` braucht künstlich länger (Abbruch / Generationswechsel, 007).
+    var searchQueryDelay: Duration?
+    /// Tests: `deleteMedium` schlägt für diese UUIDs fehl (forgetAll, 007).
+    var deleteMediumFailUUIDs: Set<UUID> = []
     /// Zählt Zeilen, deren Name in Swift gegen `IndexScope` geprüft wurde (Tests: ohne ausstehende Bereinigung 0).
     nonisolated let nameChecks = NameCheckCounter()
     /// Zahl der Bereiche der parallelen Suche; `nil` = Kerne − 1 (mindestens 2), 1 = eine einzelne Abfrage.
@@ -132,6 +136,16 @@ actor IndexStoreV3 {
         searchCountDelay = delay
     }
 
+    /// Tests: `search` braucht künstlich länger.
+    func setSearchQueryDelay(_ delay: Duration?) {
+        searchQueryDelay = delay
+    }
+
+    /// Tests: `deleteMedium` für UUIDs fehlschlagen lassen.
+    func setDeleteMediumFailUUIDs(_ uuids: Set<UUID>) {
+        deleteMediumFailUUIDs = uuids
+    }
+
     nonisolated(unsafe) static var recordEventCursorCallCount = 0
     #endif
 
@@ -223,6 +237,9 @@ actor IndexStoreV3 {
 
     /// Einziger harter Löschweg. Alles Zugehörige fällt über `ON DELETE CASCADE` mit. Bereits gelöscht → kein Fehler.
     func deleteMedium(uuid: UUID) async throws {
+        if deleteMediumFailUUIDs.contains(uuid) {
+            throw CocoaError(.fileWriteUnknown)
+        }
         do {
             let deleted = try await pool.write { db -> Bool in
                 try db.execute(sql: "DELETE FROM storages WHERE uuid = ?", arguments: [MediumCodecV3.data(uuid)])
@@ -590,11 +607,20 @@ actor IndexStoreV3 {
                        let uuid = MediumCodecV3.uuid(data) { uuids.append(uuid) }
                 }
                 if let maxDepth {
-                    try db.execute(
-                        sql: "UPDATE items SET contentStamp = NULL WHERE isFolder = 1 AND depth = ? AND status = 0",
-                        arguments: [maxDepth]
-                    )
-                    for id in ids {
+                    let touchedIDs = ids.filter { touchedStorages.contains($0) }
+                    if !touchedIDs.isEmpty {
+                        let placeholders = Array(repeating: "?", count: touchedIDs.count).joined(separator: ", ")
+                        var arguments = StatementArguments(touchedIDs)
+                        arguments += [maxDepth]
+                        try db.execute(
+                            sql: """
+                                UPDATE items SET contentStamp = NULL
+                                WHERE storageID IN (\(placeholders)) AND isFolder = 1 AND depth = ? AND status = 0
+                                """,
+                            arguments: arguments
+                        )
+                    }
+                    for id in touchedIDs {
                         let current = try MediumCodecV3.metaValue(db, id, .completedDepth).flatMap(Int.init) ?? 0
                         if current > maxDepth { try MediumCodecV3.setMeta(db, id, .completedDepth, value: String(maxDepth)) }
                     }

@@ -170,7 +170,7 @@ extension AppState {
                 do {
                     try await store?.deleteMedium(uuid: id)
                 } catch {
-                    guard DiskIndexLog.isOperationalFailure(error) else { return }
+                    guard DiskIndexLog.isOperationalFailure(error) else { continue }
                     DiskIndexLog.shared.record(.store, .error, "deleteMedium \(error)")
                 }
             }

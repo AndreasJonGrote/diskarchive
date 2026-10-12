@@ -59,7 +59,7 @@ extension WindowTestGroup {
         let medium = try #require(reloaded.medium(with: stored.uuid))
         #expect(medium.showAbsoluteCapacity)
         #expect(medium.isFavorite)
-        #expect(medium.autoIndexPaused == false)
+        #expect(medium.autoIndexPaused == true)
     }
 
     @Test func settingsSurviveRestartAndReset() {
@@ -81,6 +81,25 @@ extension WindowTestGroup {
         let cleared = AppState(defaults: defaults)
         #expect(cleared.appSettings == AppSettings())
         defaults.removePersistentDomain(forName: suite)
+    }
+
+    @Test func forgetAllContinuesWhenOneDeleteFails() async throws {
+        let rig = try await SurfaceRig.make()
+        let first = StoredMedium(volumeUUID: "A", fsType: "apfs", volumeTotalBytes: 10, name: "Eins", decision: .index, indexStatus: .indexed)
+        let second = StoredMedium(volumeUUID: "B", fsType: "apfs", volumeTotalBytes: 10, name: "Zwei", decision: .index, indexStatus: .indexed)
+        try await rig.store.upsertMedium(first)
+        try await rig.store.upsertMedium(second)
+        await rig.store.setDeleteMediumFailUUIDs([first.uuid])
+        rig.app.attach(store: rig.store)
+        await rig.app.loadStoredMedia()
+        rig.app.forgetAllMedia()
+        let settled = try await waitUntil {
+            guard rig.app.registryMedia.isEmpty else { return false }
+            return try await rig.store.medium(uuid: second.uuid) == nil
+        }
+        #expect(settled)
+        #expect(try await rig.store.medium(uuid: first.uuid) != nil)
+        #expect(try await rig.store.medium(uuid: second.uuid) == nil)
     }
 
     @Test func forgetAllClearsUIAndDatabase() async throws {

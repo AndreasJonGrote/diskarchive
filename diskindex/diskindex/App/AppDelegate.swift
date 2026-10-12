@@ -165,7 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appState = AppDelegateBridge.appState
         stopLiveServicesBeforeRewire()
         appState.prepareForTermination()
-        Task { await appState.indexStore?.checkpoint() }
+        appState.indexStore?.checkpoint()
     }
 
     /// Coordinator, Watcher und Indexer stoppen (Retry, Integritätsfehler, Beenden).
@@ -367,9 +367,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        MainActor.assumeIsolated {
-            // Post-Zeitpunkt prüft schon das Ereignis; hier nur Hauptschalter —
-            // sonst unterdrückt macOS Banner bei aktiver App (Pause aus dem Menü).
+        Task { @MainActor in
             completionHandler(SystemNotice.presentationOptions(
                 kind: notification.request.content.userInfo["diskindex.noticeEvent"] as? String,
                 notificationsEnabled: AppDelegateBridge.appState.appSettings.notificationsEnabled
@@ -383,7 +381,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
         let userInfo = response.notification.request.content.userInfo
-        MainActor.assumeIsolated {
+        Task { @MainActor in
             let appState = AppDelegateBridge.appState
             if appState.openIndexingFailureFromNotification(userInfo: userInfo) {
                 AppWindowPresenter.openMain(appState: appState)

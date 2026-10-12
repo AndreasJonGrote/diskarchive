@@ -35,6 +35,18 @@ struct SearchBehaviorTests {
         return (app, medium)
     }
 
+    @Test func supersededSearchClearsProgressFlag() async throws {
+        let (app, _) = try await appWithResults()
+        await app.indexStore?.setSearchQueryDelay(.milliseconds(200))
+        let slow = Task { await app.runSearch() }
+        try await Task.sleep(for: .milliseconds(30))
+        #expect(app.searchState.isSearchInProgress)
+        await app.runSearch()
+        await slow.value
+        #expect(!app.searchState.isSearchInProgress)
+        await app.indexStore?.setSearchQueryDelay(nil)
+    }
+
     @Test func oldResultsStayVisibleWhileTheNextSearchRuns() async throws {
         let (app, _) = try await appWithResults()
         await app.runSearch()

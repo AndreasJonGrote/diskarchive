@@ -46,6 +46,28 @@ struct IndexPruneTests {
         #expect(stamp != nil)
     }
 
+    @Test func depthPruneCapsCompletedDepthOnlyOnTouchedStorages() async throws {
+        let harness = try StoreHarness.make()
+        let deep = try await harness.insert(name: "Deep", fsType: "apfs", bytes: 1_000)
+        let shallow = try await harness.insert(name: "Shallow", fsType: "apfs", bytes: 1_000)
+        _ = try await SampleTree.plant(in: harness.store, medium: deep.uuid)
+        try await harness.store.applyDirectory(
+            mediumUUID: shallow.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "only.txt", isFolder: false)],
+            seenAt: Date()
+        )
+        for depth in 1...4 {
+            try await harness.store.completeLayer(mediumUUID: deep.uuid, depth: depth)
+            try await harness.store.completeLayer(mediumUUID: shallow.uuid, depth: depth)
+        }
+        _ = try await harness.store.pruneToMatch(SampleTree.depth(2))
+        let deepStored = try #require(try await harness.store.medium(uuid: deep.uuid))
+        let shallowStored = try #require(try await harness.store.medium(uuid: shallow.uuid))
+        #expect(deepStored.completedDepth == 2)
+        #expect(shallowStored.completedDepth == 4)
+    }
+
     @Test func pruneResetsTheBoundaryStampAndCompletedDepth() async throws {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)

@@ -129,6 +129,11 @@ final class AppState {
             columnBrowserState.selection = ColumnSelection()
             isFilterBarVisible = false
             searchState.filters = SearchFilters()
+            if oldValue == .columnBrowser, mainWindowDestination != .columnBrowser {
+                columnBrowserState.selectedMediumID = nil
+                columnBrowserState.pathStack = []
+                columnBrowserState.selectedUncapturedFolderID = nil
+            }
         }
     }
     var mainWindowDestinationBeforeSearch: MainWindowDestination?

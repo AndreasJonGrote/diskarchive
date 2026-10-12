@@ -198,6 +198,7 @@ extension IndexStoreV3 {
     // MARK: Suche
 
     func search(query: String, filters: SearchFilters, limit: Int = 500, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> [StoredItem] {
+        if let delay = searchQueryDelay { try await Task.sleep(for: delay) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty, !filters.hasActiveFilters { return [] }
         guard limit > 0 else { return [] }

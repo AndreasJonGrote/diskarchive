@@ -107,7 +107,8 @@ Status: `finish` prüft Token vor Task/Spinner; `cancel` bricht Task ab, `await 
 
 **c.0.3.2.007 — UI / Quit / Meta restlich (REPORT 14, 18, 21, 23, 24, 25, 27).**
 `isSearchInProgress` bei Abbruch; Depth-`contentStamp`/`completedDepth` nur betroffene Storages; `forgetAllMedia` weiterlaufen; Spalten-State Tab-Wechsel; Notification-Delegate Main; Quit-Checkpoint warten; `autoIndexPaused` aus DB.
-Status:
+Status: REPORT 14 defer in `runSearch`; 18 prune-Meta nur `touchedStorages`; 21 `forgetAll` continue; 23 Spalten-Nav-Reset; 24 Delegate `@MainActor`; 25 sync `checkpoint`; 27 `asMedium` paused. Tests SearchBehavior, IndexPrune, SurfaceStore, UiQuitMetaTests. 499 serial grün. Regel 23: App 13:16:00, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 14: `runSearch` defer setzt `isSearchInProgress` bei gleicher Generation zurück. REPORT 18: `contentStamp`/`completedDepth` nur `touchedStorages` (IndexPrune: anderes Medium behält Tiefe). REPORT 21: `forgetAll` catch → `continue`. REPORT 23: Spalten-Nav-Reset beim Verlassen. REPORT 24: Notification-Delegate `Task { @MainActor }`. REPORT 25: sync `checkpoint()` in `prepareForAppTermination`. REPORT 27: `asMedium` übernimmt `autoIndexPaused`. Tests SearchBehavior/IndexPrune/SurfaceStore/UiQuitMeta. Regel 23: Binary 13:16:00, find -newer leer. Suite 499 nicht erneut. Keine Nacharbeit.
 
 ### Offen, ohne Cursor
 

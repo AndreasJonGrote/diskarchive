@@ -441,7 +441,7 @@ extension StoredMedium {
             connectionStatus: connection,
             indexStatus: IndexStatus(rawValue: indexStatus.rawValue) ?? .pending,
             allowIndexing: decision == .index,
-            autoIndexPaused: false,
+            autoIndexPaused: autoIndexPaused,
             decision: decision,
             capacityTotalBytes: volumeTotalBytes,
             capacityUsedBytes: capacityUsedBytes,
