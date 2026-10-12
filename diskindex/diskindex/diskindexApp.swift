@@ -42,6 +42,13 @@ struct diskindexApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(replacing: .appInfo) {
+                Button(LayoutCopy.menuBarAbout) { AboutPanel.show() }
+            }
+            CommandGroup(replacing: .appSettings) {
+                Button(LayoutCopy.appMenuSettings) { AppMenuCommands.openSettings(appState: appState) }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 }

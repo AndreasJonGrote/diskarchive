@@ -122,7 +122,7 @@ private func freeBytes() -> Int64 {
 }
 
 private func buildMedium(
-    store: IndexStore,
+    store: IndexStoreV3,
     uuid: UUID,
     total: Int,
     seed: UInt64,
@@ -197,14 +197,23 @@ private func buildMedium(
             result.partial = true
             break
         }
-        let folders = try store.database.pool.read { db -> [Row] in
+        // Schema V3 hat keinen Pfad: Pfad = Pfad des Elternordners (Ebene davor) + Name.
+        let parentPaths = Dictionary(uniqueKeysWithValues: level.compactMap { context in context.id.map { ($0, context.path) } })
+        let folders: [(id: Int64, path: String)] = try store.pool.read { db -> [Row] in
             try Row.fetchAll(
                 db,
-                sql: "SELECT id, path FROM item WHERE depth = ? AND isFolder = 1 AND mediumID = (SELECT id FROM medium WHERE uuid = ?)",
-                arguments: [depth, uuid.uuidString]
+                sql: """
+                    SELECT id, parentID, name FROM items
+                    WHERE depth = ? AND isFolder = 1 AND storageID = (SELECT id FROM storages WHERE uuid = ?)
+                    """,
+                arguments: [depth, MediumCodecV3.data(uuid)]
             )
+        }.map { row in
+            let parent: Int64? = row["parentID"]
+            let base = parent.flatMap { parentPaths[$0] } ?? "/"
+            return (id: row["id"], path: base + (row["name"] as String) + "/")
         }
-        level = folders.map { FolderContext(id: $0["id"], path: $0["path"], depth: depth + 1, special: nil) }
+        level = folders.map { FolderContext(id: $0.id, path: $0.path, depth: depth + 1, special: nil) }
     }
     return result
 }
@@ -253,7 +262,7 @@ private final class BenchReport: @unchecked Sendable {
         return (text("hw.model"), text("machdep.cpu.brand_string"), Int(ProcessInfo.processInfo.physicalMemory / 1_073_741_824))
     }
 
-    func write(to folder: URL) throws {
+    func write(to folder: URL, name: String = "vorher") throws {
         lock.lock()
         var snapshot = rows
         var noteList = notes
@@ -261,7 +270,7 @@ private final class BenchReport: @unchecked Sendable {
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let day = DateFormatter()
         day.dateFormat = "yyyy-MM-dd"
-        let base = folder.appendingPathComponent("\(day.string(from: Date()))-vorher")
+        let base = folder.appendingPathComponent("\(day.string(from: Date()))-\(name)")
         let machine = Self.machine()
         var total = Date().timeIntervalSince(started)
         // Läuft S1 und S2 in getrennten Aufrufen, bleibt das Ergebnis des anderen Szenarios erhalten.
@@ -277,7 +286,9 @@ private final class BenchReport: @unchecked Sendable {
             noteList = previous.hinweise.filter { !noteList.contains($0) } + noteList
             total += previous.laufzeitGesamtSekunden
         }
-        var markdown = "# Messung Datenbank — vorher (Aufgabe 196)\n\n"
+        var markdown = name == "vorher"
+            ? "# Messung Datenbank — vorher (Aufgabe 196)\n\n"
+            : "# Messung Datenbank V3 — Suche einzeln gegen parallel (Aufgabe 232)\n\n"
         markdown += "- Rechner: \(machine.model), \(machine.cpu), \(machine.memoryGB) GB RAM\n"
         markdown += "- macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\n"
         markdown += "- Übersetzung: Debug mit `-O` (Release-Tests bauen nicht, Debug-Testhilfen)\n"
@@ -343,8 +354,7 @@ private struct Scenario {
     let name: String
     let directory: URL
     let fileURL: URL
-    var database: IndexDatabase
-    var store: IndexStore
+    var store: IndexStoreV3
     var mediumUUIDs: [UUID] = []
     var largest: (uuid: UUID, items: Int)?
     var specials: [(kids: Int, folderID: Int64)] = []
@@ -354,15 +364,13 @@ private struct Scenario {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-dbbench-\(name)-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let fileURL = directory.appendingPathComponent("index.sqlite")
-        let database = try IndexDatabase(fileURL: fileURL)
-        return Scenario(name: name, directory: directory, fileURL: fileURL, database: database, store: IndexStore(database: database))
+        let fileURL = directory.appendingPathComponent("archive.sqlite")
+        return Scenario(name: name, directory: directory, fileURL: fileURL, store: try IndexStoreV3.open(at: fileURL))
     }
 
     mutating func reopen() throws {
-        try database.close()
-        database = try IndexDatabase(fileURL: fileURL)
-        store = IndexStore(database: database)
+        try store.pool.close()
+        store = try IndexStoreV3.open(at: fileURL)
     }
 
     func addMedium(_ title: String) async throws -> UUID {
@@ -388,9 +396,10 @@ private func recordSizes(_ scenario: Scenario, label: String) async throws {
     let sizes = scenario.fileSizes()
     report.add(scenario.name, "Größe", "\(label): Datenbankdatei", value: gigabytes(sizes.db))
     report.add(scenario.name, "Größe", "\(label): WAL", value: gigabytes(sizes.wal))
-    let pool = scenario.store.database.pool
-    let pathBytes = try await pool.read { db in try Int64.fetchOne(db, sql: "SELECT SUM(LENGTH(path)) FROM item") ?? 0 }
-    report.add(scenario.name, "Größe", "\(label): Bytes der Spalte path (SUM(LENGTH(path)))", value: gigabytes(pathBytes), note: "\(pathBytes) Bytes")
+    let pool = scenario.store.pool
+    let nameBytes = try await pool.read { db in try Int64.fetchOne(db, sql: "SELECT SUM(LENGTH(name)) FROM items") ?? 0 }
+    let slugBytes = try await pool.read { db in try Int64.fetchOne(db, sql: "SELECT SUM(LENGTH(slug)) FROM items") ?? 0 }
+    report.add(scenario.name, "Größe", "\(label): Bytes der Spalten name und slug", value: gigabytes(nameBytes + slugBytes), note: "name \(nameBytes), slug \(slugBytes) Bytes")
     let pages = try await pool.read { db -> (count: Int, size: Int, free: Int) in
         (
             try Int.fetchOne(db, sql: "PRAGMA page_count") ?? 0,
@@ -408,23 +417,19 @@ private func recordSizes(_ scenario: Scenario, label: String) async throws {
         }
         var tables: Int64 = 0
         var indexes: Int64 = 0
-        var fts: Int64 = 0
         var details: [String] = []
         for row in rows {
             let name: String = row["name"]
             let bytes: Int64 = row["bytes"]
-            if name == "item" {
+            if name == "items" || name == "item_details" {
                 tables += bytes
-            } else if name.hasPrefix("item_fts") {
-                fts += bytes
-            } else if name.hasPrefix("item_") || name.hasPrefix("sqlite_autoindex_item") {
+            } else if name.hasPrefix("items_") || name.hasPrefix("sqlite_autoindex_items") {
                 indexes += bytes
                 details.append("\(name) \(gigabytes(bytes))")
             }
         }
-        report.add(scenario.name, "Größe", "\(label): Tabelle item", value: gigabytes(tables))
-        report.add(scenario.name, "Größe", "\(label): Indizes auf item", value: gigabytes(indexes), note: details.joined(separator: "; "))
-        report.add(scenario.name, "Größe", "\(label): item_fts (inkl. Hilfstabellen)", value: gigabytes(fts))
+        report.add(scenario.name, "Größe", "\(label): Tabellen items + item_details", value: gigabytes(tables))
+        report.add(scenario.name, "Größe", "\(label): Indizes auf items", value: gigabytes(indexes), note: details.joined(separator: "; "))
     } catch {
         report.add(scenario.name, "Größe", "\(label): dbstat nicht verfügbar", value: "-", note: "\(error)")
     }
@@ -442,15 +447,14 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
     var openTimes: [Double] = []
     var checkTimes: [Double] = []
     for _ in 0..<openRuns {
-        try scenario.database.close()
+        try scenario.store.pool.close()
         let start = ContinuousClock.now
-        let opened = try IndexDatabase(fileURL: scenario.fileURL)
+        let opened = try IndexStoreV3.open(at: scenario.fileURL)
         openTimes.append(seconds(start.duration(to: .now)) * 1_000)
         let checkStart = ContinuousClock.now
         try opened.runIntegrityCheck()
         checkTimes.append(seconds(checkStart.duration(to: .now)) * 1_000)
-        scenario.database = opened
-        scenario.store = IndexStore(database: opened)
+        scenario.store = opened
     }
     report.add(name, "Öffnen", "Datenbank öffnen ohne quick_check (nach Neuöffnen, OS-Cache warm)", ms: median(openTimes), runs: openTimes)
     report.add(
@@ -510,8 +514,8 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
     // Favoriten
     do {
         let step = max(1, scenario.totalItems / 1_000)
-        let ids = try await scenario.store.database.pool.read { db in
-            try Int64.fetchAll(db, sql: "SELECT id FROM item WHERE isFolder = 0 AND id % ? = 0 ORDER BY id LIMIT 1000", arguments: [step])
+        let ids = try await scenario.store.pool.read { db in
+            try Int64.fetchAll(db, sql: "SELECT id FROM items WHERE isFolder = 0 AND id % ? = 0 ORDER BY id LIMIT 1000", arguments: [step])
         }
         let start = ContinuousClock.now
         for chunk in stride(from: 0, to: ids.count, by: 100) {
@@ -524,9 +528,6 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
         report.add(name, "Favoriten", "favorites() bei \(ids.count) Favoriten", ms: favorites.median, runs: favorites.all, note: "geliefert \(returned)")
     }
 
-    // LIKE ohne Suchindex (h)
-    try await measureLike(&scenario)
-
     // deleteMedium
     if deleteLargest, let largest = scenario.largest {
         let before = scenario.fileSizes()
@@ -535,7 +536,7 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
         report.add(name, "Löschen", "deleteMedium (\(largest.items) Einträge)", ms: seconds(start.duration(to: .now)) * 1_000)
         let afterDelete = scenario.fileSizes()
         let vacuumStart = ContinuousClock.now
-        try await scenario.store.database.pool.writeWithoutTransaction { db in
+        try await scenario.store.pool.writeWithoutTransaction { db in
             try db.execute(sql: "PRAGMA incremental_vacuum")
             try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
         }
@@ -549,7 +550,7 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
     }
 
     // pruneToMatch
-    let maxDepth = try await scenario.store.database.pool.read { db in try Int.fetchOne(db, sql: "SELECT MAX(depth) FROM item") ?? 0 }
+    let maxDepth = try await scenario.store.pool.read { db in try Int.fetchOne(db, sql: "SELECT MAX(depth) FROM items") ?? 0 }
     let scope = IndexScope(
         maxDepth: maxDepth - 1,
         matcher: IgnoreMatcher(ignoreHiddenFiles: false, excludedPatterns: [], artifactsIgnored: false)
@@ -557,16 +558,16 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
     // Zeitfenster: Das Löschen tiefer Ordner ist bei großen Datenmengen sehr langsam (Aufgabe 196, Befund). Deshalb in
     // kleinen Schritten (`maxBatches`) bis zum Ende oder bis 10 Minuten, danach Rate und Rest-Schätzung.
     let pruneStart = ContinuousClock.now
-    let remainingBefore = try await scenario.store.database.pool.read { db in
-        try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM item WHERE depth > ?", arguments: [maxDepth - 1]) ?? 0
+    let remainingBefore = try await scenario.store.pool.read { db in
+        try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM items WHERE depth > ?", arguments: [maxDepth - 1]) ?? 0
     }
     var removed = 0
     var finished = false
     while seconds(pruneStart.duration(to: .now)) < 600 {
         let step = try await scenario.store.pruneToMatch(scope, maxBatches: 20)
         removed += step
-        let left = try await scenario.store.database.pool.read { db in
-            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM item WHERE depth > ?", arguments: [maxDepth - 1]) ?? 0
+        let left = try await scenario.store.pool.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM items WHERE depth > ?", arguments: [maxDepth - 1]) ?? 0
         }
         if left == 0 { finished = true; break }
     }
@@ -576,89 +577,6 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
         name, "Bereinigen", "pruneToMatch nach Tiefe \(maxDepth) → \(maxDepth - 1)", ms: pruneSeconds * 1_000,
         note: "zu entfernen \(remainingBefore), entfernt \(removed) (\(Int(rate))/s), \(finished ? "fertig" : "ABGEBROCHEN nach 10 min; \(removed > 0 ? "Schätzung gesamt ≈ \(Int(Double(remainingBefore) / rate)) s" : "keine Schätzung (nichts entfernt)")")"
     )
-}
-
-private func measureLike(_ scenario: inout Scenario) async throws {
-    let report = BenchReport.shared
-    let name = scenario.name
-    let pool = scenario.store.database.pool
-    let freeBefore = freeBytes()
-    guard freeBefore > 4_000_000_000 else {
-        report.note("\(name): LIKE-Messung auf bench_names übersprungen (zu wenig freier Platz)")
-        return
-    }
-    let createStart = ContinuousClock.now
-    try await pool.writeWithoutTransaction { db in
-        try db.execute(sql: "CREATE TABLE bench_names(id INTEGER PRIMARY KEY, name TEXT)")
-        try db.execute(sql: "INSERT INTO bench_names SELECT id, name FROM item WHERE removedAt IS NULL")
-        try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
-    }
-    report.add(name, "LIKE ohne Suchindex", "bench_names anlegen", ms: seconds(createStart.duration(to: .now)) * 1_000)
-    if let bytes = try? await pool.read({ db in
-        try Int64.fetchOne(db, sql: "SELECT SUM(pgsize) FROM dbstat WHERE name = 'bench_names'")
-    }), bytes > 0 {
-        let rows = try await pool.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM bench_names") ?? 0 }
-        report.add(name, "LIKE ohne Suchindex", "Größe bench_names", value: gigabytes(bytes), note: "\(rows) Zeilen")
-    } else {
-        report.add(name, "LIKE ohne Suchindex", "Größe bench_names", value: "dbstat nicht verfügbar")
-    }
-
-    struct Query { let label: String; let sql: String; let isCount: Bool }
-    let queries = [
-        Query(
-            label: "item, Liste 500",
-            sql: """
-                SELECT item.*, medium.uuid AS mediumUUID FROM item JOIN medium ON medium.id = item.mediumID
-                WHERE item.removedAt IS NULL AND item.name LIKE ? ORDER BY item.name COLLATE NOCASE, item.id LIMIT 500
-                """,
-            isCount: false
-        ),
-        Query(
-            label: "item, Zahl",
-            sql: "SELECT COUNT(*) FROM item JOIN medium ON medium.id = item.mediumID WHERE item.removedAt IS NULL AND item.name LIKE ?",
-            isCount: true
-        ),
-        Query(
-            label: "bench_names, Liste 500",
-            sql: "SELECT id, name FROM bench_names WHERE name LIKE ? ORDER BY name COLLATE NOCASE, id LIMIT 500",
-            isCount: false
-        ),
-        Query(label: "bench_names, Zahl", sql: "SELECT COUNT(*) FROM bench_names WHERE name LIKE ?", isCount: true),
-    ]
-    func run(_ query: Query, term: String, on pool: DatabasePool) async throws -> Int {
-        try await pool.read { db in
-            if query.isCount {
-                return try Int.fetchOne(db, sql: query.sql, arguments: ["%\(term)%"]) ?? 0
-            }
-            return try Row.fetchAll(db, sql: query.sql, arguments: ["%\(term)%"]).count
-        }
-    }
-    for term in [BenchNames.common, BenchNames.rare] {
-        for query in queries {
-            var result = 0
-            _ = try await run(query, term: term, on: scenario.store.database.pool)
-            let warm = try await timed { result = try await run(query, term: term, on: scenario.store.database.pool) }
-            report.add(name, "LIKE ohne Suchindex", "warm: \(query.label), '\(term)'", ms: warm.median, runs: warm.all, note: "Ergebnis \(result)")
-            var cold: [Double] = []
-            for _ in 0..<3 {
-                try await scenario.store.database.pool.write { db in try db.execute(sql: "PRAGMA shrink_memory") }
-                try scenario.reopen()
-                try await scenario.store.database.pool.read { db in try db.execute(sql: "PRAGMA shrink_memory") }
-                let start = ContinuousClock.now
-                _ = try await run(query, term: term, on: scenario.store.database.pool)
-                cold.append(seconds(start.duration(to: .now)) * 1_000)
-            }
-            report.add(
-                name, "LIKE ohne Suchindex", "kalt (shrink_memory + neu öffnen): \(query.label), '\(term)'",
-                ms: median(cold), runs: cold, note: "OS-Seitencache bleibt warm (kein purge)"
-            )
-        }
-    }
-    try await scenario.store.database.pool.writeWithoutTransaction { db in
-        try db.execute(sql: "DROP TABLE bench_names")
-        try db.execute(sql: "PRAGMA incremental_vacuum")
-        try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
-    }
 }
 
 private func buildMedia(
@@ -727,7 +645,7 @@ private func concurrentWrites(_ scenario: inout Scenario, items: Int) async thro
     )
     try await store.deleteMedium(uuid: c)
     try await store.deleteMedium(uuid: d)
-    try await store.database.pool.writeWithoutTransaction { db in
+    try await store.pool.writeWithoutTransaction { db in
         try db.execute(sql: "PRAGMA incremental_vacuum")
         try db.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
     }
@@ -808,5 +726,50 @@ struct IndexBenchTests {
         try await runMeasurements(&scenario, deleteLargest: true)
         try await recordSizes(scenario, label: "nach Bereinigung")
         try report.write(to: outputFolder())
+    }
+
+    /// Aufgabe 232: Suche auf dem Schema V3 bei 1 Mio. Einträgen, einzelne Abfrage gegen parallele Bereiche.
+    @Test func v3SearchSingleVersusParallel() async throws {
+        let report = BenchReport.shared
+        let free = freeBytes()
+        report.note("Freier Platz zu Beginn: \(gigabytes(free))")
+        guard free >= Self.minimumFree else {
+            report.note("abgebrochen: unter 15 GB frei (\(gigabytes(free)))")
+            try report.write(to: outputFolder(), name: "v3-suche")
+            return
+        }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-dbbench-V3-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = try IndexStoreV3.open(at: directory.appendingPathComponent("v3.sqlite"))
+        let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "V3-S1", type: .usb, decision: .index)
+        try await store.upsertMedium(medium)
+        let start = ContinuousClock.now
+        let built = try await buildMedium(store: store, uuid: medium.uuid, total: scaled(1_000_000), seed: 11, specialKids: [100, 5_000, 50_000], floorBytes: Self.emergencyFree)
+        report.add("V3-S1", "Aufbau", "Schreiben über IndexStoreV3", ms: seconds(start.duration(to: .now)) * 1_000,
+                   value: "\(built.written) Einträge", note: "\(Int(Double(built.written) / max(built.applySeconds, 0.001))) Einträge/s (nur Schreibaufrufe)")
+        let size = (try? FileManager.default.attributesOfItem(atPath: store.pool.path)[.size] as? NSNumber)?.int64Value ?? 0
+        report.add("V3-S1", "Aufbau", "Datenbankdatei", value: gigabytes(size))
+        let cores = ProcessInfo.processInfo.activeProcessorCount
+        report.note("Kerne: \(cores), Bereiche parallel: \(IndexStoreV3.automaticParallelism)")
+        var plain = SearchFilters(); plain.fileTypes = [.pdf]
+        let cases: [(String, String, SearchFilters)] = [
+            ("häufig 'bil'", BenchNames.common, SearchFilters()),
+            ("selten 'Quartzit'", BenchNames.rare, SearchFilters()),
+            ("häufig 'bil' + pdf", BenchNames.common, plain),
+        ]
+        for (label, term, filters) in cases {
+            for (mode, parts) in [("einzeln", 1), ("parallel", IndexStoreV3.automaticParallelism)] {
+                await store.setSearchParallelism(parts)
+                var hits = 0
+                let list = try await timed { hits = try await store.search(query: term, filters: filters, limit: 500, maxDepth: nil, scope: nil).count }
+                report.add("V3-S1", "Suche", "Liste (500) \(label), \(mode)", ms: list.median, runs: list.all, note: "\(hits) geliefert")
+                var count = 0
+                let counted = try await timed { count = try await store.searchCount(query: term, filters: filters, maxDepth: nil, scope: nil) }
+                report.add("V3-S1", "Suche", "Zahl \(label), \(mode)", ms: counted.median, runs: counted.all, note: "Treffer \(count)")
+            }
+        }
+        await store.setSearchParallelism(nil)
+        try report.write(to: outputFolder(), name: "v3-suche")
     }
 }

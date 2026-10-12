@@ -229,14 +229,15 @@ nonisolated struct StoredMedium: Sendable, Equatable {
     }
 }
 
-/// Keyset-Fortschritt für `IndexStore.childrenPage` (Sortierung: Ordner zuerst, Name, id).
+/// Fortschritt für `IndexStoreV3.childrenPage` (Sortierung: Suchname natürlich, Kennung). `name` trägt den Suchnamen
+/// des letzten Eintrags; `isFolder` ist ohne Bedeutung.
 nonisolated struct ItemChildrenCursor: Sendable, Equatable {
     var isFolder: Bool
     var name: String
     var id: Int64
 }
 
-/// Eine Zeile aus `item`. `id` ist der Datenbankschlüssel, nicht die App-UUID.
+/// Eine Zeile aus `items`. `id` ist der Datenbankschlüssel, nicht die App-UUID.
 nonisolated struct StoredItem: Sendable, Equatable, Identifiable {
     var id: Int64
     var mediumUUID: UUID
@@ -250,18 +251,7 @@ nonisolated struct StoredItem: Sendable, Equatable, Identifiable {
     var fileID: String?
     var depth: Int
     var path: String
-    var lastSeenAt: Date
-    var removedAt: Date?
     var isFavorite: Bool
     var listedAt: Date?
     var unreadable: Bool = false
-}
-
-/// Namen aus `sqlite_master` und die drei Pragmas, die Aufgabe 36 festlegt.
-nonisolated struct IndexSchemaSnapshot: Sendable, Equatable {
-    var names: Set<String>
-    var journalMode: String
-    var foreignKeys: Int64
-    var synchronous: Int64
-    var fullTextUpdateSQL: String
 }

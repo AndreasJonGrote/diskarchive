@@ -127,6 +127,6 @@ struct StartupSequenceTests {
 
     @Test func realIntegrityCheckPassesOnAHealthyDatabase() async throws {
         let rig = try await SurfaceRig.make()
-        try rig.database.runIntegrityCheck()
+        try rig.store.runIntegrityCheck()
     }
 }

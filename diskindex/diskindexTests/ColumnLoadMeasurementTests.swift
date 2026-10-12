@@ -222,7 +222,7 @@ struct ColumnLoadMeasurementTests {
     }
 
     private func seedChildren(
-        store: IndexStore,
+        store: IndexStoreV3,
         mediumUUID: UUID,
         parentID: Int64,
         count: Int,

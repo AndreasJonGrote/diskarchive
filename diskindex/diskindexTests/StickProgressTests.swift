@@ -99,7 +99,7 @@ private final class LockedOptionalInt: @unchecked Sendable {
 }
 
 private struct StickScanHarness {
-    let store: IndexStore
+    let store: IndexStoreV3
     let mediumID: UUID
     let limits: IndexingRunLimits
     private let indexer = DirectoryIndexer()
@@ -108,8 +108,8 @@ private struct StickScanHarness {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-stick-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000_000, name: "STICK", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         return StickScanHarness(store: store, mediumID: medium.uuid, limits: limits)
@@ -158,7 +158,7 @@ private struct StickScanHarness {
         var total = 0
         func walk(_ parent: Int64?) async throws {
             let children = try await store.children(mediumUUID: mediumID, parentID: parent)
-            total += children.filter { $0.removedAt == nil }.count
+            total += children.count
             for child in children where child.isFolder {
                 try await walk(child.id)
             }

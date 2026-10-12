@@ -14,8 +14,8 @@ import Testing
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-index-service-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let access = BlockingAccess()
         let appState = AppState()
         let service = IndexingService(store: store, access: access, appState: appState)

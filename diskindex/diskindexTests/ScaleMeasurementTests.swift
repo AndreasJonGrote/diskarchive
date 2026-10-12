@@ -216,7 +216,7 @@ struct ScaleMeasurementTests {
         let after = ProcessMeter.residentBytes()
         let elapsed = clock.duration(to: .now)
         let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
-        let database = harness.directory.appendingPathComponent("index.sqlite")
+        let database = harness.directory.appendingPathComponent("archive.sqlite")
         let wal = harness.directory.appendingPathComponent("index.sqlite-wal")
         return "\(label) status=\(outcome.status) proben=\(outcome.progress.count) dauer=\(String(format: "%.2f", seconds))s cpu=\(String(format: "%.2f", ProcessMeter.cpuSeconds() - cpu))s ram-vorher=\(before) ram-nachher=\(after) ram-spitze=\(peak) db=\(size(database)) wal=\(size(wal))"
     }

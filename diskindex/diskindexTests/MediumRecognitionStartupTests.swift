@@ -13,8 +13,8 @@ struct MediumRecognitionStartupTests {
         MediumRecognitionStartup.resetStartupFlagsForTests()
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-startup-\(UUID().uuidString)", isDirectory: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let access = ScriptedAccess()
         let appState = AppState()
         let coordinator = MediumCoordinator(store: store, access: access, appState: appState)

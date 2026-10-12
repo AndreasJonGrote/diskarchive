@@ -17,8 +17,8 @@ struct ColumnChangeLoopTests {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-change-loop-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         defer { try? database.close(); try? FileManager.default.removeItem(at: directory) }
 
         var medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 100, name: "Stick", decision: .index, indexStatus: .indexed)

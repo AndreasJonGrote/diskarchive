@@ -22,9 +22,7 @@ import Testing
                 kind: .folder,
                 parentPath: [],
                 modifiedAt: nil,
-                sizeBytes: nil,
-                lastSeenAt: nil
-            ),
+                sizeBytes: nil),
             IndexedItem(
                 id: IndexedItem.stableID(mediumID: mediumID, rowID: 2),
                 rowID: 2,
@@ -32,9 +30,7 @@ import Testing
                 kind: .file,
                 parentPath: [],
                 modifiedAt: Date(),
-                sizeBytes: 4,
-                lastSeenAt: nil
-            ),
+                sizeBytes: 4),
         ]
 
         let root = ColumnFolderTableView(items: items, selectedIDs: [items[0].id]) { item in

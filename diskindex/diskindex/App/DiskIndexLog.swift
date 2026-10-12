@@ -287,9 +287,9 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         var size = model.count
         sysctlbyname("hw.model", &model, &size, nil, 0)
         let modelName = String(cString: model)
-        let databaseURL = try? IndexDatabase.storeFileURL()
+        let databaseURL = try? IndexStoreV3.storeFileURL()
         let bytes = databaseURL.flatMap { try? FileManager.default.attributesOfItem(atPath: $0.path)[.size] as? NSNumber }?.int64Value
-        let inventory = IndexDatabase.inventoryLabels()
+        let inventory = IndexStoreV3.inventoryLabels()
         let runtime = String(format: "%.0f s", Date().timeIntervalSince(startedAt))
         return CrashReportText.make(
             version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?",

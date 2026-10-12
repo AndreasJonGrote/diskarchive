@@ -23,6 +23,8 @@ nonisolated extension LayoutCopy {
     static var menuBarLaunchAtLogin: String { L10n.string("copy.menubar.launch_at_login") }
     static var menuBarRevealLog: String { L10n.string("copy.menubar.reveal_log") }
     static var menuBarQuit: String { L10n.string("copy.menubar.quit") }
+    static var menuBarAbout: String { L10n.string("copy.menubar.about") }
+    static var appMenuSettings: String { L10n.string("copy.appmenu.settings") }
     static func noticeIndexedComplete(_ a0: String, _ a1: String) -> String { L10n.format("copy.notice.indexed_complete", a0, a1) }
     static func noticeFavoritesOnline(_ a0: String, _ a1: String) -> String { L10n.format("copy.notice.favorites_online", a0, a1) }
     static var failureDisconnected: String { L10n.string("copy.failure.disconnected") }

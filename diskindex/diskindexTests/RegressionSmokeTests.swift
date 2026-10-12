@@ -346,9 +346,7 @@ struct RegressionSmokeTests {
                     kind: kind,
                     parentPath: [],
                     modifiedAt: Date(),
-                    sizeBytes: 4,
-                    lastSeenAt: Date()
-                )
+                    sizeBytes: 4)
             )
         }
         return items

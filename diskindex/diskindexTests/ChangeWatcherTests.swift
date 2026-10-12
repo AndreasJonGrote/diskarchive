@@ -158,7 +158,7 @@ extension WindowTestGroup {
         }
         #expect(row.lastEventID == 42)
         #expect(row.fsEventsUUID == "UUID-1")
-        let reopened = IndexStore(database: rig.database)
+        let reopened = IndexStoreV3(database: rig.database)
         let again = try #require(try await reopened.medium(uuid: rig.medium.uuid))
         #expect(again.lastEventID == 42)
     }
@@ -206,8 +206,8 @@ extension WindowTestGroup {
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/Neu/a.txt", eventID: 5))
         let ok = await waitUntil(timeout: 1.2) {
             guard let neu = try? await rig.store.item(mediumUUID: rig.medium.uuid, path: [], name: "Neu"),
-                  neu.isFolder, neu.removedAt == nil else { return false }
-            return (try? await rig.store.item(mediumUUID: rig.medium.uuid, path: ["Neu"], name: "a.txt"))?.removedAt == nil
+                  neu.isFolder else { return false }
+            return (try? await rig.store.item(mediumUUID: rig.medium.uuid, path: ["Neu"], name: "a.txt")) != nil
         }
         #expect(ok)
         #expect(log.ids.isEmpty)
@@ -237,8 +237,8 @@ extension WindowTestGroup {
     @Test func unplugCancelsReconcileAndReconnectResumes() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-reconcile-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let access = BlockingListAccess()
         let app = AppState()
         let service = IndexingService(store: store, access: access, appState: app)
@@ -420,7 +420,7 @@ extension WindowTestGroup {
     }
 
     @Test func saveCursorWritesOnlyWhenEventIDChanges() async throws {
-        IndexStore.recordEventCursorCallCount = 0
+        IndexStoreV3.recordEventCursorCallCount = 0
         let rig = try await watchRig()
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/a.txt", eventID: 10, fileSystemUUID: "UUID-1"))
@@ -428,11 +428,11 @@ extension WindowTestGroup {
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
-        #expect(IndexStore.recordEventCursorCallCount == 1)
+        #expect(IndexStoreV3.recordEventCursorCallCount == 1)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/b.txt", eventID: 11, fileSystemUUID: "UUID-1"))
         try await Task.sleep(for: .milliseconds(40))
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
-        #expect(IndexStore.recordEventCursorCallCount == 2)
+        #expect(IndexStoreV3.recordEventCursorCallCount == 2)
     }
 }
 }

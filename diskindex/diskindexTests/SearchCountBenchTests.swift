@@ -19,7 +19,7 @@ struct SearchCountBenchTests {
             .appendingPathComponent("diskindex-countbench-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
-        let store = IndexStore(database: try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite")))
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "BENCH", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         let total = 1_200_000

@@ -17,7 +17,7 @@ struct SearchBehaviorTests {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-searchbehavior-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let store = IndexStore(database: try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite")))
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "SUCHE", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         let entries = (0..<30).map { ScannedEntry(name: "bericht-\($0).pdf", isFolder: false, sizeBytes: 1) }

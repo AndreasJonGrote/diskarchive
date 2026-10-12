@@ -8,7 +8,7 @@ import Foundation
 
 @MainActor
 final class MediumCoordinator {
-    private let store: IndexStore
+    private let store: IndexStoreV3
     private let access: any MediumAccess
     private let appState: AppState
     private var onIndexRequested: (UUID, VolumeInfo) -> Void
@@ -25,7 +25,7 @@ final class MediumCoordinator {
     private var activationObserver: NSObjectProtocol?
 
     init(
-        store: IndexStore,
+        store: IndexStoreV3,
         access: any MediumAccess,
         appState: AppState,
         onIndexRequested: @escaping (UUID, VolumeInfo) -> Void = { _, _ in }

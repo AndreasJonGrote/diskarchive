@@ -103,7 +103,6 @@ struct ColumnChromeTests {
                 parentPath: parent,
                 modifiedAt: Date(),
                 sizeBytes: nil,
-                lastSeenAt: Date(),
                 listedAt: Date()
             )
         }

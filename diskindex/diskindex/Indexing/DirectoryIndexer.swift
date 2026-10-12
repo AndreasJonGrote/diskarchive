@@ -8,7 +8,7 @@ import Foundation
 /// Liest ein Medium ebenenweise und schreibt jede fertige Ebene, bevor die nächste beginnt.
 nonisolated struct DirectoryIndexer: Sendable {
     func run(
-        store: IndexStore,
+        store: IndexStoreV3,
         access: any MediumAccess,
         mediumUUID: UUID,
         volume: VolumeInfo,
@@ -385,7 +385,7 @@ nonisolated struct DirectoryIndexer: Sendable {
     }
 
     private func runCountingPhase(
-        store: IndexStore,
+        store: IndexStoreV3,
         access: any MediumAccess,
         mediumUUID: UUID,
         volume: VolumeInfo,
@@ -477,7 +477,7 @@ nonisolated struct DirectoryIndexer: Sendable {
 
     private func failWrite(
         _ error: Error,
-        _ store: IndexStore,
+        _ store: IndexStoreV3,
         _ mediumUUID: UUID,
         _ token: UUID,
         _ stored: StoredMedium,
@@ -506,7 +506,7 @@ nonisolated struct DirectoryIndexer: Sendable {
     }
 
     private func stop(
-        _ store: IndexStore,
+        _ store: IndexStoreV3,
         _ mediumUUID: UUID,
         _ token: UUID,
         _ halt: ScanHalt,
@@ -575,7 +575,7 @@ nonisolated struct DirectoryIndexer: Sendable {
 
     private func parentsFor(
         depth: Int,
-        store: IndexStore,
+        store: IndexStoreV3,
         mediumUUID: UUID,
         volume: VolumeInfo
     ) async -> [(id: Int64?, path: String?)] {

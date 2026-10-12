@@ -8,7 +8,7 @@ import Foundation
 /// Hält höchstens einen Lauf je Medium und schickt Fortschritt an `AppState`.
 @MainActor
 final class IndexingService {
-    private let store: IndexStore
+    private let store: IndexStoreV3
     private let access: any MediumAccess
     private let appState: AppState
     private weak var coordinator: MediumCoordinator?
@@ -22,7 +22,7 @@ final class IndexingService {
     private var rerunAfterFinish: Set<UUID> = []
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
 
-    init(store: IndexStore, access: any MediumAccess, appState: AppState) {
+    init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
         self.store = store
         self.access = access
         self.appState = appState

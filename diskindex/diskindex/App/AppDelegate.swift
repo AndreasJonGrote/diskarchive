@@ -252,7 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
-    private func startWatching(id: UUID, volume: VolumeInfo, store: IndexStore, watcher: ChangeWatcher) async {
+    private func startWatching(id: UUID, volume: VolumeInfo, store: IndexStoreV3, watcher: ChangeWatcher) async {
         await LiveWiring.startWatching(
             id: id,
             volume: volume,
@@ -268,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         StartupSequence.run(
             previousRunUnclean: DiskIndexLog.shared.previousRunUnclean,
             defaults: AppDefaults.current,
-            open: { try IndexStore.openDefault() },
+            open: { try IndexStoreV3.openDefault() },
             wire: { [weak self] store in self?.wireStore(store, appState: appState) },
             onFailure: { [weak self] error in self?.handleStoreFailure(error, appState: appState) }
         )
@@ -286,7 +286,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func wireStore(_ store: IndexStore, appState: AppState) {
+    private func wireStore(_ store: IndexStoreV3, appState: AppState) {
         mediumCoordinator?.stop()
         appState.clearIndexStoreOpenFailure()
         let access = DirectMediumAccess()

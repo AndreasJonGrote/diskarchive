@@ -40,7 +40,7 @@ struct IndexingWiringTests {
         let renamed = root.appendingPathComponent("b.txt")
         try FileManager.default.moveItem(at: url, to: renamed)
         let seen = await waitUntil(timeout: 15) {
-            (try? await rig.store.item(mediumUUID: mediumID, path: [], name: "b.txt"))?.removedAt == nil
+            (try? await rig.store.item(mediumUUID: mediumID, path: [], name: "b.txt")) != nil
         }
         #expect(seen)
     }
@@ -70,7 +70,7 @@ struct IndexingWiringTests {
         await rig.service.waitUntilIdle(mediumID)
 
         let ok = await waitUntil(timeout: 20) {
-            (try? await rig.store.item(mediumUUID: mediumID, path: [], name: "neu.txt"))?.removedAt == nil
+            (try? await rig.store.item(mediumUUID: mediumID, path: [], name: "neu.txt")) != nil
         }
         #expect(ok)
     }

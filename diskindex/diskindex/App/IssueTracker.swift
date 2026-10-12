@@ -370,8 +370,8 @@ nonisolated final class IssueReporter: @unchecked Sendable {
 
     private static func liveDraft(kind: String) -> IssueDraft {
         let crash = DiskIndexLog.shared.crashExcerpt()
-        let labels = IndexDatabase.inventoryLabels()
-        let bytes = ((try? IndexDatabase.storeFileURL()).flatMap { url in
+        let labels = IndexStoreV3.inventoryLabels()
+        let bytes = ((try? IndexStoreV3.storeFileURL()).flatMap { url in
             try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber
         })?.intValue ?? 0
         return IssueDraft(

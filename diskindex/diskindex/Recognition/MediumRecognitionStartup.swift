@@ -20,7 +20,7 @@ enum MediumRecognitionStartup {
 
     static func bootstrap(
         appState: AppState,
-        store: IndexStore,
+        store: IndexStoreV3,
         coordinator: MediumCoordinator,
         startChangeLoop: () -> Void
     ) {

@@ -13,16 +13,16 @@ import Testing
 
 @MainActor
 struct SurfaceRig {
-    let database: IndexDatabase
-    let store: IndexStore
+    let database: TestDatabase
+    let store: IndexStoreV3
     let app: AppState
     let coordinator: MediumCoordinator
 
     static func make() async throws -> SurfaceRig {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-surface-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let app = AppState()
         let coordinator = MediumCoordinator(store: store, access: GrantedAccess(), appState: app)
         return SurfaceRig(database: database, store: store, app: app, coordinator: coordinator)
@@ -51,8 +51,8 @@ struct SurfaceRig {
 
 @MainActor
 struct TreeRig {
-    let database: IndexDatabase
-    let store: IndexStore
+    let database: TestDatabase
+    let store: IndexStoreV3
     let app: AppState
     let medium: StoredMedium
 }
@@ -150,13 +150,13 @@ func searchFixture() async throws -> TreeRig {
 }
 
 @MainActor
-func ids(store: IndexStore, query: String, filters: SearchFilters, maxDepth: Int?) async throws -> Set<Int64> {
+func ids(store: IndexStoreV3, query: String, filters: SearchFilters, maxDepth: Int?) async throws -> Set<Int64> {
     let rows = try await store.search(query: query, filters: filters, limit: 500, maxDepth: maxDepth)
     return Set(rows.map(\.id))
 }
 
 @MainActor
-func swiftIDs(store: IndexStore, medium: UUID, query: String, filters: SearchFilters, maxDepth: Int?) async throws -> Set<Int64> {
+func swiftIDs(store: IndexStoreV3, medium: UUID, query: String, filters: SearchFilters, maxDepth: Int?) async throws -> Set<Int64> {
     var rows: [StoredItem] = []
     func walk(_ parent: Int64?) async throws {
         for child in try await store.children(mediumUUID: medium, parentID: parent) {
@@ -177,8 +177,8 @@ func swiftIDs(store: IndexStore, medium: UUID, query: String, filters: SearchFil
 
 @MainActor
 struct WatchRig {
-    let database: IndexDatabase
-    let store: IndexStore
+    let database: TestDatabase
+    let store: IndexStoreV3
     let app: AppState
     let medium: StoredMedium
     let access: MapAccess

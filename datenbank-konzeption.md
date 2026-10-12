@@ -56,9 +56,9 @@ Abfragepläne: Suche läuft als Durchlauf der **schmalen Suchhilfe** (`items_sea
 - **Bereinigen nach Scan-Tiefe** heute unbrauchbar langsam (F25) → mit Status-Flag und `depth` per SQL in Blöcken.
 - `quick_check` bei 5,65 GB 13 s → im Hintergrund richtig (219); neue Struktur ~60 % kleiner.
 
-## Schema-Skizze (Entwurf Claude 11.10., zur Freigabe; vor der Auswertung von 196)
+## Schema-Skizze (Claude 11.10., **freigegeben** Nutzer 11.10.; Umsetzung TODO 230–238)
 
-**Alle Tabellen werden in 0.3 sofort angelegt** (Nutzer 11.10.), auch die, die erst später gefüllt werden (`item_meta`, `item_checksum`, `api_queue`). Alle Zeitangaben als ganze Sekunden seit 1970 (`INTEGER`), Ja/Nein als 0/1, Aufzählungen als kleine Zahl. Kennungen mit `AUTOINCREMENT` (nie wiederverwendet). Verweise mit `ON DELETE CASCADE`.
+**Schema als erste GRDB-Migration `0.3.0-schema`**; spätere Versionen hängen nur Migrationen an. **Alle Tabellen werden in 0.3 sofort angelegt** (Nutzer 11.10.), auch die, die erst später gefüllt werden (`item_meta`, `item_checksum`, `api_queue`). Alle Zeitangaben als ganze Sekunden seit 1970 (`INTEGER`), Ja/Nein als 0/1, Aufzählungen als kleine Zahl. Kennungen mit `AUTOINCREMENT` (nie wiederverwendet). **Besitz-Verweise** (Medium → Einträge, Eintrag → Kinder/Details/Meta/Prüfsumme/Favorit) mit `ON DELETE CASCADE`; **Nachschlage-Verweise** (`extID`, `keyID`) ohne Kaskade. `storages.uuid` eindeutig. `items.status`: 0 sichtbar, 1 zu-löschen, **2 verschwunden** (wird am Ende des Laufs gelöscht, nachdem Umbenennungen verbunden wurden).
 
 **`storages`** – ein Medium
 | Feld | Typ | Inhalt |
@@ -95,7 +95,6 @@ Abfragepläne: Suche läuft als Durchlauf der **schmalen Suchhilfe** (`items_sea
 | depth | INT | Ebene (Scan-Tiefe, Bereinigen) |
 | status | INT | 0 sichtbar, 1 zu-löschen, Rest frei |
 | modifiedAt | INTEGER | Änderungsdatum (Alter-Filter, Datum in der Suche) |
-| lastSeenRun | INTEGER | Nummer des Scan-Laufs, in dem der Eintrag zuletzt gesehen wurde |
 | fileID | INTEGER | Datei-Kennung des Systems (nur APFS/HFS+ verlässlich) |
 | contentStamp | INTEGER | nur Ordner: Fingerabdruck des Inhalts |
 | listedAt | INTEGER | nur Ordner: zuletzt vollständig gelesen |
@@ -123,7 +122,7 @@ Abfragepläne: Suche läuft als Durchlauf der **schmalen Suchhilfe** (`items_sea
 - Suche: `items(slug, status)` als schmale Hilfe für `LIKE '%…%'`; Medien über `storages.slug`.
 - Alter-Filter: `items(modifiedAt)`.
 - Umbenennen erkennen: `items(storageID, fileID)` nur wo `fileID` vorhanden.
-- Abgleich: `items(storageID, lastSeenRun)`.
+- ~~Abgleich: `items(storageID, lastSeenRun)`~~ – **entfällt (Claude 11.10.)**: Entfernt wird über den Ordnervergleich (`status = 2`); „zuletzt gesehen“ einer Datei = Datum des Mediums.
 
 ## Zahlen statt Text (Claude 11.10., **beschlossen** Nutzer 11.10.)
 
@@ -148,7 +147,7 @@ Bleiben Text: `name`, `slug`, Werte in `*_meta`, `settings`. Die Zuordnungen (Za
 **Beschlossen:**
 1. **Eine gemeinsame Datei** für alle Medien.
 2. **Tabellen:** `storages`, `storage_meta`, `items`, `item_details`, `item_meta`, `item_checksum`, `favorites`, `settings`, `api_queue` (0.3.1). Vorschaubilder als Dateien, nicht in der Datenbank. **Keine `logs`-Tabelle** (Nutzer 11.10.); das Protokoll bleibt eine Datei. **`item_meta` und `item_checksum` werden in 0.3 schon angelegt** (leer), damit 0.5/0.8 nur noch füllen.
-3. **`items`** enthält, was Suche, Filter, Spalten und Indizieren brauchen: `id`, `storageID`, `parentID`, `name`, **`slug`**, `ext`, `kind` (Typ-Kategorie als **kleine Zahl**, Nutzer 11.10.; MIME bei Bedarf in `item_details`), `isFolder`, `status` (sichtbar / zu-löschen), **`modifiedAt`** (Alter-Filter), `lastSeenAt` (Indizieren). Nur-Ordner-Felder (Inhaltsstempel, gelesen am, nicht lesbar) **auch in `items`** (Nutzer 11.10.: keine `item_folders`; kostet ~27 MB bei 9 Mio. Einträgen).
+3. **`items`** enthält, was Suche, Filter, Spalten und Indizieren brauchen: `id`, `storageID`, `parentID`, `name`, **`slug`**, `ext`, `kind` (Typ-Kategorie als **kleine Zahl**, Nutzer 11.10.; MIME bei Bedarf in `item_details`), `isFolder`, `status` (sichtbar / zu-löschen / verschwunden), **`modifiedAt`** (Alter-Filter). (`lastSeenRun` gestrichen, 11.10.) Nur-Ordner-Felder (Inhaltsstempel, gelesen am, nicht lesbar) **auch in `items`** (Nutzer 11.10.: keine `item_folders`; kostet ~27 MB bei 9 Mio. Einträgen).
 4. **`item_details`** mit **festen Spalten**, eine Zeile je Eintrag (Größe, Erstelldatum, Datei-Kennung, Paket ja/nein, ggf. MIME). **Kein** Schlüssel/Wert-Schema hier (Nutzer 11.10.: zu aufwendig, auch beim Löschen; 9 Mio. Dateien × 4 Werte wären ~36 Mio. Zeilen).
 5. **`item_meta`**: `itemID, key, value, info` (Text), dazu `source` (siehe Grundsatz). **Kein Filtern** nach Metadaten (höchstens später Suche). Kein Datum je Zeile; `info` ist Reserve („headroom“). Betrifft nur Bild, Video, Audio, PDF.
 6. **Kein gespeicherter Pfad.** Pfad = Medium + Kette der Elternordner + Name.
@@ -171,7 +170,7 @@ Kommend: Metadaten (0.5), Vorschaubilder (0.6), Export (0.7, nur lesen, Ladebalk
    | exFAT | gleich | **neu** | **erste Sitzung Fantasiewert** (18446744073709551610), danach andere Zahl |
    → Die Kennung ist nur auf **APFS/HFS+** verlässlich. Auf FAT/exFAT nicht.
    **Lösung (übliches Vorgehen bei Sync- und Katalog-Werkzeugen wie rsync `--fuzzy`, Unison, Syncthing: „sicher verbinden, im Zweifel neu“):**
-   - **APFS/HFS+:** über `fileID` verbinden (Suchhilfe `storageID, fileID`).
+   - **APFS/HFS+:** über `fileID` verbinden (Suchhilfe `storageID, fileID`). **Achtung (Claude 11.10.):** `fileID` wird heute gar nicht erfasst (Scanner übergibt `nil`); in 235 zuerst beim Lesen mitnehmen (Bulk-Lesen liefert die Kennung ohne Mehraufwand).
    - **Live, solange das Medium steckt (alle Dateisysteme):** macOS meldet Umbenennen/Verschieben als Ereignispaar „alt → neu“ → direkt übernehmen (FSEvents mit Datei-Ereignissen; heute liest die Überwachung nur den Elternordner neu).
    - **FAT/exFAT, Änderung außerhalb:** im Abgleich verschwundene und neue Einträge desselben Mediums vergleichen. **Datei:** gleiche Größe + gleiches Änderungsdatum (FAT: 2 s Genauigkeit) + gleiches Erstelldatum + gleiche Endung; liegt schon eine Prüfsumme vor (`item_checksum.partial`), zusätzlich diese. **Ordner:** gleicher Inhaltsstempel. Treffer nach diesen Merkmalen sind **Kandidaten**; entschieden wird wie folgt (Nutzer 11.10.: „lieber verloren“ reicht nicht).
    **Fingerabdruck statt Raten (Vorschlag Claude 11.10., zur Freigabe):**

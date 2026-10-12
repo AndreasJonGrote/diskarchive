@@ -10,11 +10,11 @@ import Testing
 @testable import diskindex
 
 @MainActor
-private func columnCacheTree() async throws -> (app: AppState, store: IndexStore, medium: StoredMedium) {
+private func columnCacheTree() async throws -> (app: AppState, store: IndexStoreV3, medium: StoredMedium) {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-cache-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-    let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-    let store = IndexStore(database: database)
+    let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+    let store = IndexStoreV3(database: database)
     let app = AppState()
     app.attach(store: store)
     app.startChangeLoop()

@@ -34,7 +34,7 @@ final class StatusLog: @unchecked Sendable {
 }
 
 struct ScanHarness {
-    let store: IndexStore
+    let store: IndexStoreV3
     let mediumID: UUID
     private let indexer = DirectoryIndexer()
 
@@ -42,8 +42,8 @@ struct ScanHarness {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-scan-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "TEST", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         return ScanHarness(store: store, mediumID: medium.uuid)

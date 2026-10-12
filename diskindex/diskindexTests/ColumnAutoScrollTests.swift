@@ -205,9 +205,9 @@ private enum ColumnAutoScrollTestSupport {
         app.indexRepository.seedScreenshotCache(
             mediumID: mediumID,
             entries: [([], [
-                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 1), rowID: 1, name: "A", kind: .folder, parentPath: [], modifiedAt: Date(), sizeBytes: 0, lastSeenAt: Date(), listedAt: Date()),
+                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 1), rowID: 1, name: "A", kind: .folder, parentPath: [], modifiedAt: Date(), sizeBytes: 0, listedAt: Date()),
             ]), (["A"], [
-                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 2), rowID: 2, name: "eins.txt", kind: .file, parentPath: ["A"], modifiedAt: Date(), sizeBytes: 1, lastSeenAt: Date(), listedAt: Date()),
+                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 2), rowID: 2, name: "eins.txt", kind: .file, parentPath: ["A"], modifiedAt: Date(), sizeBytes: 1, listedAt: Date()),
             ])]
         )
         return app
@@ -216,16 +216,16 @@ private enum ColumnAutoScrollTestSupport {
     static func seedDeep(app: AppState, mediumID: UUID) {
         let root: [( [String], [IndexedItem])] = [
             ([], [
-                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 1), rowID: 1, name: "A", kind: .folder, parentPath: [], modifiedAt: Date(), sizeBytes: 0, lastSeenAt: Date(), listedAt: Date()),
+                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 1), rowID: 1, name: "A", kind: .folder, parentPath: [], modifiedAt: Date(), sizeBytes: 0, listedAt: Date()),
             ]),
             (["A"], [
-                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 2), rowID: 2, name: "B", kind: .folder, parentPath: ["A"], modifiedAt: Date(), sizeBytes: 0, lastSeenAt: Date(), listedAt: Date()),
+                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 2), rowID: 2, name: "B", kind: .folder, parentPath: ["A"], modifiedAt: Date(), sizeBytes: 0, listedAt: Date()),
             ]),
             (["A", "B"], [
-                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 3), rowID: 3, name: "C", kind: .folder, parentPath: ["A", "B"], modifiedAt: Date(), sizeBytes: 0, lastSeenAt: Date(), listedAt: Date()),
+                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 3), rowID: 3, name: "C", kind: .folder, parentPath: ["A", "B"], modifiedAt: Date(), sizeBytes: 0, listedAt: Date()),
             ]),
             (["A", "B", "C"], [
-                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 4), rowID: 4, name: "ziel.txt", kind: .file, parentPath: ["A", "B", "C"], modifiedAt: Date(), sizeBytes: 1, lastSeenAt: Date(), listedAt: Date()),
+                IndexedItem(id: IndexedItem.stableID(mediumID: mediumID, rowID: 4), rowID: 4, name: "ziel.txt", kind: .file, parentPath: ["A", "B", "C"], modifiedAt: Date(), sizeBytes: 1, listedAt: Date()),
             ]),
         ]
         app.indexRepository.seedScreenshotCache(mediumID: mediumID, entries: root)

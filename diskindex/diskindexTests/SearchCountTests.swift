@@ -14,7 +14,7 @@ import Testing
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-count-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let store = IndexStore(database: try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite")))
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "ZAHL", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
 

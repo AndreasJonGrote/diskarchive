@@ -12,11 +12,11 @@ import Testing
 extension WindowTestGroup {
 @Suite @MainActor
 struct PruneScopeTests {
-    private func appWithHiddenFile() async throws -> (AppState, IndexStore, StoredMedium) {
+    private func appWithHiddenFile() async throws -> (AppState, IndexStoreV3, StoredMedium) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-prunescope-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let store = IndexStore(database: try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite")))
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "PRUNE", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         var entries = (0..<20).map { ScannedEntry(name: "bericht-\($0).pdf", isFolder: false, sizeBytes: 1) }

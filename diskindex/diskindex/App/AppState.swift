@@ -80,7 +80,7 @@ final class AppState {
     var favoriteObjects: [SearchResultItem] = []
     var popoverResults = PopoverSearchResults()
     let indexRepository: IndexRepository
-    private(set) var indexStore: IndexStore?
+    private(set) var indexStore: IndexStoreV3?
     /// `true`, sobald die Datenbank offen und angehängt ist (Aufgabe 219). Davor zeigen Fenster und Popover den Ladezustand.
     var storeReady = false
     /// Der Start öffnet die Datenbank gerade (vom `AppDelegate` gesetzt); ohne Start (Tests, Vorschau) bleibt es `false`.
@@ -176,7 +176,7 @@ final class AppState {
     /// Einhängepfad eines angeschlossenen Mediums. Der Koordinator setzt das.
     var mountPath: ((UUID) -> String?)?
 
-    init(store: IndexStore? = nil, defaults: UserDefaults? = nil) {
+    init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil) {
         indexStore = store
         indexRepository = IndexRepository(store: store)
         if let defaults {
@@ -194,7 +194,7 @@ final class AppState {
         settingsReady = true
     }
 
-    func attach(store: IndexStore) {
+    func attach(store: IndexStoreV3) {
         indexStore = store
         storeReady = true
         indexRepository.replaceStore(store)

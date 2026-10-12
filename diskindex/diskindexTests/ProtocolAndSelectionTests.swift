@@ -458,7 +458,7 @@ private func makeLog() throws -> DiskIndexLog {
 }
 
 private func item(_ name: String, _ kind: IndexedItem.Kind, size: Int64? = nil) -> IndexedItem {
-    IndexedItem(id: UUID(), name: name, kind: kind, parentPath: [], modifiedAt: nil, sizeBytes: size, lastSeenAt: nil)
+    IndexedItem(id: UUID(), name: name, kind: kind, parentPath: [], modifiedAt: nil, sizeBytes: size)
 }
 
 @MainActor

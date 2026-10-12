@@ -100,7 +100,6 @@ struct ColumnHorizontalScrollerTests {
                     parentPath: [],
                     modifiedAt: Date(),
                     sizeBytes: 0,
-                    lastSeenAt: Date(),
                     listedAt: Date()
                 ),
             ])]
@@ -286,7 +285,6 @@ struct ColumnHorizontalScrollerTests {
                 parentPath: path,
                 modifiedAt: Date(),
                 sizeBytes: 0,
-                lastSeenAt: Date(),
                 listedAt: Date()
             )
             if name == "C" { folderID = item.id }
@@ -301,7 +299,6 @@ struct ColumnHorizontalScrollerTests {
             parentPath: path,
             modifiedAt: Date(),
             sizeBytes: 10,
-            lastSeenAt: Date(),
             listedAt: Date()
         )
         entries.append((path, [file]))
@@ -346,7 +343,6 @@ struct ColumnHorizontalScrollerTests {
                 parentPath: path,
                 modifiedAt: Date(),
                 sizeBytes: 0,
-                lastSeenAt: Date(),
                 listedAt: Date()
             )
             entries.append((path, [item]))
@@ -391,7 +387,6 @@ struct ColumnHorizontalScrollerTests {
                 parentPath: [],
                 modifiedAt: Date(),
                 sizeBytes: 10,
-                lastSeenAt: Date(),
                 listedAt: Date()
             )
         }

@@ -40,12 +40,10 @@ struct LiveWatchAfterFirstIndexTests {
         try FileManager.default.moveItem(at: seedURL, to: renamedURL)
 
         let renamedInStore = await waitUntil(timeout: 30) {
-            guard (try? await rig.store.item(mediumUUID: mediumID, path: [], name: "renamed.txt"))?.removedAt == nil else {
+            guard (try? await rig.store.item(mediumUUID: mediumID, path: [], name: "renamed.txt")) != nil else {
                 return false
             }
-            let old = try? await rig.store.item(mediumUUID: mediumID, path: [], name: "seed.txt")
-            if let old { return old.removedAt != nil }
-            return true
+            return (try? await rig.store.item(mediumUUID: mediumID, path: [], name: "seed.txt")) == nil
         }
         #expect(renamedInStore)
 
@@ -70,7 +68,7 @@ struct LiveWatchAfterFirstIndexTests {
 
         let bulkOK = await waitUntil(timeout: 30) {
             guard let folder = try? await rig.store.item(mediumUUID: mediumID, path: [], name: "Bulk"),
-                  folder.isFolder, folder.removedAt == nil else { return false }
+                  folder.isFolder else { return false }
             guard let stored = try? await rig.store.medium(uuid: mediumID) else { return false }
             return stored.fileCount >= 2_001
         }
@@ -81,7 +79,7 @@ struct LiveWatchAfterFirstIndexTests {
 
 @MainActor
 struct LiveWatchRig {
-    let store: IndexStore
+    let store: IndexStoreV3
     let app: AppState
     let coordinator: MediumCoordinator
     let service: IndexingService
@@ -92,8 +90,8 @@ struct LiveWatchRig {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-live-db-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let access = DirectMediumAccess()
         let app = AppState(store: store)
         let service = IndexingService(store: store, access: access, appState: app)
@@ -194,7 +192,7 @@ func runShell(_ command: String) throws -> String {
     return text
 }
 
-extension IndexStore {
+extension IndexStoreV3 {
     func item(mediumUUID: UUID, path: [String], name: String) async throws -> StoredItem? {
         let parentID: Int64?
         if path.isEmpty {

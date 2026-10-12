@@ -704,10 +704,9 @@ struct ColumnBrowserView: View {
                                 ByteCountFormatter.storage.string(fromByteCount: size)
                             ))
                         }
-                        if let seen = file.lastSeenAt {
-                            Text(LayoutCopy.columnDetailLastSeen(
-                                seen.formatted(date: .abbreviated, time: .omitted)
-                            ))
+                        // „Zuletzt gesehen“ ist der Zeitpunkt des Mediums, nicht der einzelnen Datei (Aufgabe 233).
+                        if let seen = ColumnDetailText.lastSeen(medium: medium) {
+                            Text(seen)
                         }
                     }
                     .font(.system(size: 12.5))
@@ -904,4 +903,12 @@ enum ColumnBrowserFiltering {
     ColumnBrowserView()
         .environment(AppState())
         .frame(width: 1100, height: 520)
+}
+
+/// Texte der Detailspalte, die aus dem Medium kommen (testbar ohne Fenster).
+enum ColumnDetailText {
+    /// „Zuletzt gesehen: …“ mit dem Datum, an dem das Medium zuletzt gesehen wurde.
+    static func lastSeen(medium: Medium) -> String? {
+        medium.lastSeenAt.map { LayoutCopy.columnDetailLastSeen($0.formatted(date: .abbreviated, time: .omitted)) }
+    }
 }

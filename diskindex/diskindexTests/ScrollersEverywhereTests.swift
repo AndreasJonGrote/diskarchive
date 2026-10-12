@@ -116,7 +116,6 @@ struct ScrollersEverywhereTests {
             parentPath: [],
             modifiedAt: Date(),
             sizeBytes: 10,
-            lastSeenAt: Date(),
             listedAt: Date()
         )
     }

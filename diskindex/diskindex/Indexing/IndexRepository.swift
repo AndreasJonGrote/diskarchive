@@ -9,7 +9,7 @@ import Foundation
 @MainActor
 @Observable
 final class IndexRepository {
-    private var store: IndexStore?
+    private var store: IndexStoreV3?
     private var cache: [String: [IndexedItem]] = [:]
     private var cacheOrder: [String] = []
     var scope = IndexScope.revealAll
@@ -38,11 +38,11 @@ final class IndexRepository {
     /// UI-Aktualisierung des Ladestands (T1: höchstens alle 100 ms).
     private static let loadProgressInterval: Duration = .milliseconds(100)
 
-    init(store: IndexStore?) {
+    init(store: IndexStoreV3?) {
         self.store = store
     }
 
-    func replaceStore(_ store: IndexStore?) {
+    func replaceStore(_ store: IndexStoreV3?) {
         self.store = store
         cache.removeAll()
         cacheOrder.removeAll()
@@ -157,7 +157,7 @@ final class IndexRepository {
         cache[cacheKey(mediumID, path)] != nil
     }
 
-    /// Tests — Ladezustand ohne IndexStore (Aufgabe 156).
+    /// Tests — Ladezustand ohne IndexStoreV3 (Aufgabe 156).
     func setLoadingForUITest(mediumID: UUID, path: [String], loading isOn: Bool, total: Int = 20_000, loaded: Int = 0) {
         let key = cacheKey(mediumID, path)
         if isOn {
@@ -172,7 +172,7 @@ final class IndexRepository {
         generation += 1
     }
 
-    /// Bildschirmfotos — Ordnerinhalte ohne IndexStore.
+    /// Bildschirmfotos — Ordnerinhalte ohne IndexStoreV3.
     func seedScreenshotCache(mediumID: UUID, entries: [([String], [IndexedItem])]) {
         for (path, items) in entries {
             remember(cacheKey(mediumID, path), items)

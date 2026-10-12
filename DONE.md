@@ -106,4 +106,11 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 
 | 220 | Version 0.2.0, Build-Nummer automatisch (Zeitstempel) | 11.10. (Claude-Lauf 425 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11h.md` |
 
-**Offen:** Schema-Entwurf 0.3 zur Freigabe; Versionsanzeige (Frage an den Nutzer). 196 (Messwerkzeug) liegt im Backlog unter 0.3.
+| 221 | „Über Disk Archive“ (Menüleiste, Programm-Menü, Link), ⌘, öffnet Einstellungen | 11.10. (Claude-Lauf 438 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11j.md` |
+| 230 | Schema V3 angelegt (11 Tabellen, Suchhilfen), Slug, natürliche Sortierung, ItemKind | 11.10. | ebenda |
+
+| 231 | Schreibwege V3 (`IndexStoreV3`, `IndexWriting`), Status „verschwunden“, Lauf-Nummer, WAL kürzen | 11.10. (Claude-Lauf 463 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11k.md` |
+
+| 232 | Lesewege V3 (`IndexReading`), natürliche gemischte Sortierung, Pfad per Kette, parallele Suche über `slug`, Mediennamen | 11.10. (Claude-Lauf 477 Tests seriell grün, 0 Warnungen) | `archiv/todo-stand-2026-10-11l.md` |
+
+**Offen:** 222 (Wackeltests), 233 (Umschalten). 196 (Messwerkzeug) liegt im Backlog unter 0.3.

@@ -27,11 +27,11 @@ private final class CountSamples: @unchecked Sendable {
 extension WindowTestGroup {
 @Suite @MainActor
 struct SearchCountDisplayTests {
-    private func appWithData() async throws -> (AppState, IndexStore) {
+    private func appWithData() async throws -> (AppState, IndexStoreV3) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-countdisplay-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let store = IndexStore(database: try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite")))
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "ZAHL", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         var entries = (0..<30).map { ScannedEntry(name: "bericht-\($0).pdf", isFolder: false, sizeBytes: 1) }

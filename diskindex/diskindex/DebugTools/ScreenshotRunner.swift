@@ -603,7 +603,6 @@ private enum ScreenshotFixture {
                 parentPath: parentPath,
                 modifiedAt: Date(),
                 sizeBytes: kind == .file ? 80_000 : nil,
-                lastSeenAt: Date(),
                 listedAt: listedAt
             )
         }
@@ -647,8 +646,7 @@ private enum ScreenshotFixture {
             kind: .file,
             parentPath: ["Rechnungen"],
             modifiedAt: Date(),
-            sizeBytes: 120_000,
-            lastSeenAt: Date()
+            sizeBytes: 120_000
         )
         return SearchMatch(
             media: [medium],

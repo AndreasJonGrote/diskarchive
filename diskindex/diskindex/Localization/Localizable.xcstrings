@@ -367,6 +367,23 @@
         }
       }
     },
+    "copy.appmenu.settings" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings…"
+          }
+        }
+      }
+    },
     "copy.binary.no" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2268,6 +2285,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Until tomorrow"
+          }
+        }
+      }
+    },
+    "copy.menubar.about" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Über Disk Archive"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About Disk Archive"
           }
         }
       }

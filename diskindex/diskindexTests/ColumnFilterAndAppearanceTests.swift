@@ -79,9 +79,7 @@ private func item(_ name: String, _ kind: IndexedItem.Kind) -> IndexedItem {
         kind: kind,
         parentPath: [],
         modifiedAt: Date(timeIntervalSince1970: 1_700_000_000),
-        sizeBytes: 1,
-        lastSeenAt: Date(timeIntervalSince1970: 1_700_000_000)
-    )
+        sizeBytes: 1)
 }
 
 private func near(_ color: Color, dark: Bool, hex: UInt32) -> Bool {

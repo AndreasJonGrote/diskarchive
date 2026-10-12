@@ -21,12 +21,33 @@ struct IndexingSpinnerRing: View {
         return phase / period * 360
     }
 
+    @Environment(\.spinnerFrozenAngle) private var frozenAngle
+
     var body: some View {
-        TimelineView(.animation) { context in
-            Circle()
-                .trim(from: 0, to: 0.75)
-                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
-                .rotationEffect(.degrees(Self.angle(at: context.date)))
+        if let frozenAngle {
+            ring.rotationEffect(.degrees(frozenAngle))
+        } else {
+            TimelineView(.animation) { context in
+                ring.rotationEffect(.degrees(Self.angle(at: context.date)))
+            }
         }
+    }
+
+    private var ring: some View {
+        Circle()
+            .trim(from: 0, to: 0.75)
+            .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+    }
+}
+
+private struct SpinnerFrozenAngleKey: EnvironmentKey {
+    static let defaultValue: Double? = nil
+}
+
+extension EnvironmentValues {
+    /// Feste Drehung statt Uhrzeit: Messungen am Pixelbild brauchen eine unveränderliche Form (Tests, Aufgabe 222).
+    var spinnerFrozenAngle: Double? {
+        get { self[SpinnerFrozenAngleKey.self] }
+        set { self[SpinnerFrozenAngleKey.self] = newValue }
     }
 }

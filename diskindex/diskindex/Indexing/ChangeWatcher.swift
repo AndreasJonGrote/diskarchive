@@ -21,7 +21,7 @@ protocol ChangeSource: Sendable {
 
 @MainActor
 final class ChangeWatcher {
-    private let store: IndexStore
+    private let store: IndexStoreV3
     private let access: any MediumAccess
     private let appState: AppState
     /// Voller ebenenweiser Abgleich. Zeilen bleiben erhalten (`fromScratch` setzt nur die Tiefe zurück).
@@ -44,7 +44,7 @@ final class ChangeWatcher {
     private var cursorTimer: Task<Void, Never>?
     private let engine: ChangeWatcherEngine
 
-    init(store: IndexStore, access: any MediumAccess, appState: AppState) {
+    init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
         self.store = store
         self.access = access
         self.appState = appState

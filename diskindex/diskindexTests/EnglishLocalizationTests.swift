@@ -105,7 +105,7 @@ struct EnglishLocalizationTests {
         ("App/LaunchAtLogin.swift", "logger.", "Protokollzeile, kein UI"),
         ("App/CrashReportText.swift", "Disk Archive Bericht", "technischer Absturzbericht (Entwickler)"),
         ("App/IssueTracker.swift", "Disk Archive/outbox", "Ordnername auf der Platte"),
-        ("Storage/IndexDatabase.swift", "Disk Archive", "Ordnername auf der Platte"),
+        ("Storage/V3/IndexStoreV3.swift", "Disk Archive", "Ordnername auf der Platte"),
         ("App/DiskIndexLog.swift", "Disk Archive", "Dateiname des Absturzberichts"),
         ("MenuBar/MenuBarController.swift", "Absturz testen", "nur Debug-Menü (#if DEBUG)"),
         ("Indexing/IgnoreMatcher.swift", "System Volume Information", "Systemordner-Name"),

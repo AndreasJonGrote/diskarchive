@@ -12,7 +12,7 @@ struct IndexedItem: Identifiable, Hashable {
     }
 
     let id: UUID
-    /// Zeile in `item`. Leer nur bei Vorschauen ohne Datenbank.
+    /// Zeile in `items`. Leer nur bei Vorschauen ohne Datenbank.
     var rowID: Int64?
     let name: String
     let kind: Kind
@@ -20,7 +20,6 @@ struct IndexedItem: Identifiable, Hashable {
     let parentPath: [String]
     let modifiedAt: Date?
     let sizeBytes: Int64?
-    let lastSeenAt: Date?
     var listedAt: Date?
     var unreadable: Bool = false
     var isFavorite: Bool = false
@@ -64,7 +63,6 @@ struct IndexedItem: Identifiable, Hashable {
         parentPath: [String],
         modifiedAt: Date?,
         sizeBytes: Int64?,
-        lastSeenAt: Date?,
         listedAt: Date? = nil,
         unreadable: Bool = false,
         isFavorite: Bool = false,
@@ -78,7 +76,6 @@ struct IndexedItem: Identifiable, Hashable {
         self.parentPath = parentPath
         self.modifiedAt = modifiedAt
         self.sizeBytes = sizeBytes
-        self.lastSeenAt = lastSeenAt
         self.listedAt = listedAt
         self.unreadable = unreadable
         self.isFavorite = isFavorite
@@ -102,7 +99,6 @@ struct IndexedItem: Identifiable, Hashable {
         self.parentPath = resolvedParent
         self.modifiedAt = stored.modifiedAt
         self.sizeBytes = stored.sizeBytes
-        self.lastSeenAt = stored.lastSeenAt
         self.listedAt = stored.listedAt
         self.unreadable = stored.unreadable
         self.isFavorite = stored.isFavorite

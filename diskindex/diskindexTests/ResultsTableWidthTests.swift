@@ -28,7 +28,6 @@ struct ResultsTableWidthTests {
                 parentPath: ["Archiv", "2024"],
                 modifiedAt: Date(),
                 sizeBytes: 10,
-                lastSeenAt: Date(),
                 listedAt: Date()
             )
             return SearchResultItem(item: item, mediumID: mediumID, isOnline: true)

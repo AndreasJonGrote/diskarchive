@@ -134,7 +134,6 @@ struct ColumnVerticalLayoutTests {
                 parentPath: parent,
                 modifiedAt: Date(),
                 sizeBytes: kind == .file ? 80_000 : nil,
-                lastSeenAt: Date(),
                 listedAt: Date()
             )
         }

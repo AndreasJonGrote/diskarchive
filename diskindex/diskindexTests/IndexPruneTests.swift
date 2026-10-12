@@ -287,7 +287,7 @@ private enum SampleTree {
         )
     }
 
-    static func plant(in store: IndexStore, medium: UUID) async throws -> Planted {
+    static func plant(in store: IndexStoreV3, medium: UUID) async throws -> Planted {
         try await store.applyDirectory(
             mediumUUID: medium,
             parentID: nil,

@@ -154,7 +154,6 @@ import Testing
         #expect(outcome.status == .indexed)
         #expect(outcome.readErrors == 1)
         let still = try #require(try await harness.store.item(id: kept.id))
-        #expect(still.removedAt == nil)
         #expect(still.name == "keep.txt")
 
         let broken = try await ScanHarness.make()
@@ -164,7 +163,9 @@ import Testing
         #expect(failed.status == .error)
     }
 
-    @Test func secondRunTombstonesAndRestoresAFavorite() async throws {
+    /// Schema V3: Was beim vollständigen Lesen fehlt, ist erst „verschwunden“ und wird am Ende des Laufs samt Favorit
+    /// gelöscht; taucht die Datei später wieder auf, ist sie ein neuer Eintrag (Umbenennen erkennt 235).
+    @Test func secondRunRemovesAMissingEntryWithItsFavorite() async throws {
         let harness = try await ScanHarness.make()
         let access = MemoryVolume(mountPath: "/Volumes/T")
         access.file("keep.txt")
@@ -173,14 +174,13 @@ import Testing
         try await harness.store.setFavorite(itemID: kept.id, true)
         access.remove("keep.txt")
         _ = try await harness.run(access: access, maxDepth: nil, fromScratch: true)
-        let gone = try #require(try await harness.store.item(id: kept.id))
-        #expect(gone.removedAt != nil)
-        #expect(gone.isFavorite)
+        #expect(try await harness.store.item(id: kept.id) == nil)
+        #expect(try await harness.store.favorites().isEmpty)
         access.file("keep.txt")
         _ = try await harness.run(access: access, maxDepth: nil, fromScratch: true)
-        let back = try #require(try await harness.store.item(id: kept.id))
-        #expect(back.removedAt == nil)
-        #expect(back.isFavorite)
+        let back = try #require(try await harness.item(named: "keep.txt"))
+        #expect(back.id != kept.id)
+        #expect(!back.isFavorite)
         #expect(back.fileID == nil)
     }
 

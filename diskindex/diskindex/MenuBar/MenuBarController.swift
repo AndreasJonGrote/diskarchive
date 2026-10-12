@@ -222,7 +222,16 @@ final class MenuBarController: NSObject {
     }
 
     private func showContextMenu(for button: NSStatusBarButton, event: NSEvent) {
+        let menu = makeContextMenu()
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+    }
+
+    func makeContextMenu() -> NSMenu {
         let menu = NSMenu()
+        let aboutItem = NSMenuItem(title: LayoutCopy.menuBarAbout, action: #selector(showAbout), keyEquivalent: "")
+        aboutItem.target = self
+        menu.addItem(aboutItem)
+        menu.addItem(.separator())
         let openItem = NSMenuItem(title: LayoutCopy.menuBarShowApp, action: #selector(openMainWindow), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
@@ -245,7 +254,11 @@ final class MenuBarController: NSObject {
         let quitItem = NSMenuItem(title: LayoutCopy.menuBarQuit, action: #selector(quitApp), keyEquivalent: "")
         quitItem.target = self
         menu.addItem(quitItem)
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 4), in: button)
+        return menu
+    }
+
+    @objc private func showAbout() {
+        AboutPanel.show()
     }
 
     @objc private func openMainWindow() {

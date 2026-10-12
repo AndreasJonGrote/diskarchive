@@ -31,7 +31,10 @@ struct ColumnStatusIconTests {
     }
 
     private func metrics<V: View>(_ view: V, size: CGSize) async -> (diameter: CGFloat, width: CGFloat, height: CGFloat, gap: CGFloat) {
-        let bitmap = await PixelProbe.render(view.background(Color.white), size: size, appearance: .aqua)
+        // Der Ring dreht sich mit der Uhrzeit: ohne festen Winkel hängt seine Umrissbreite vom Zeitpunkt ab (Aufgabe 222).
+        let bitmap = await PixelProbe.render(
+            view.environment(\.spinnerFrozenAngle, 0).background(Color.white), size: size, appearance: .aqua
+        )
         let background = PixelProbe.color(in: bitmap, at: CGPoint(x: size.width - 8, y: size.height - 8))
         let scale = CGFloat(bitmap.pixelsWide) / bitmap.size.width
         func ink(_ x: Int, _ y: Int) -> Bool {

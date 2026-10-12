@@ -71,6 +71,16 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
         mutate(relative) { $0.unreadable = true }
     }
 
+    func markReadable(_ relative: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        if relative.isEmpty {
+            root.unreadable = false
+            return
+        }
+        mutate(relative) { $0.unreadable = false }
+    }
+
     func remove(_ relative: String) {
         lock.lock()
         defer { lock.unlock() }

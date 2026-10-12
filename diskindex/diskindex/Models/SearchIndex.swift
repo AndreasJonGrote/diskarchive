@@ -46,7 +46,7 @@ enum SearchIndex {
     static let pageLimit = 500
 
     static func matching(
-        store: IndexStore?,
+        store: IndexStoreV3?,
         query: String,
         filters: SearchFilters,
         media: [Medium],
@@ -111,7 +111,7 @@ enum SearchIndex {
 
     /// Trefferzahl allein — wird nach der Ergebnisliste nachgereicht.
     static func count(
-        store: IndexStore?,
+        store: IndexStoreV3?,
         query: String,
         filters: SearchFilters,
         media: [Medium],
@@ -123,7 +123,7 @@ enum SearchIndex {
         return (try? await store.searchCount(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)) ?? 0
     }
 
-    static func unfilteredItemCount(store: IndexStore?, query: String, media: [Medium], maxDepth: Int?, scope: IndexScope? = nil) async -> Int {
+    static func unfilteredItemCount(store: IndexStoreV3?, query: String, media: [Medium], maxDepth: Int?, scope: IndexScope? = nil) async -> Int {
         guard let store else { return 0 }
         var filters = SearchFilters()
         filters.selectAllMedia = false
@@ -131,7 +131,7 @@ enum SearchIndex {
         return (try? await store.searchCount(query: query, filters: filters, maxDepth: maxDepth, scope: scope)) ?? 0
     }
 
-    static func favoriteObjects(store: IndexStore?, media: [Medium], maxDepth: Int?, scope: IndexScope? = nil) async -> [SearchResultItem] {
+    static func favoriteObjects(store: IndexStoreV3?, media: [Medium], maxDepth: Int?, scope: IndexScope? = nil) async -> [SearchResultItem] {
         guard let store else { return [] }
         let started = ContinuousClock.now
         let rows: [StoredItem]

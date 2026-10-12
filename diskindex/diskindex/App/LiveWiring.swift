@@ -11,7 +11,7 @@ enum LiveWiring {
     static func startWatching(
         id: UUID,
         volume: VolumeInfo,
-        store: IndexStore,
+        store: IndexStoreV3,
         watcher: ChangeWatcher,
         appState: AppState
     ) async {
@@ -37,7 +37,7 @@ enum LiveWiring {
     static func restartWatchersAfterWake(
         coordinator: MediumCoordinator,
         watcher: ChangeWatcher,
-        store: IndexStore,
+        store: IndexStoreV3,
         appState: AppState
     ) async {
         var count = 0

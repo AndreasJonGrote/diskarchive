@@ -15,8 +15,8 @@ struct WindowTestGroupStoreCacheTests {
     @Test func largeOpenFolderSurvivesMetaTicksDuringLiveSync() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-cache-big-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         defer { try? database.close(); try? FileManager.default.removeItem(at: directory) }
         let app = AppState()
         app.attach(store: store)
@@ -75,8 +75,8 @@ struct WindowTestGroupStoreCacheTests {
     @Test func layerWholeMediumInvalidateSurvivesCountsMetaTick() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-layer-counts-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         defer { try? database.close(); try? FileManager.default.removeItem(at: directory) }
         let app = AppState()
         app.attach(store: store)
@@ -101,7 +101,6 @@ struct WindowTestGroupStoreCacheTests {
                     parentPath: [],
                     modifiedAt: Date(),
                     sizeBytes: 0,
-                    lastSeenAt: Date(),
                     listedAt: Date()
                 ),
             ])]

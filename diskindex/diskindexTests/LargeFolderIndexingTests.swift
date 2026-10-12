@@ -35,7 +35,6 @@ import Testing
         if let id = savedID.value {
             let again = try #require(try await harness.store.item(id: id))
             #expect(again.name == "f-100.txt")
-            #expect(again.removedAt == nil)
         }
         let ids = try await harness.fileIDsUnderBig()
         #expect(Set(ids).count == ids.count)
@@ -55,8 +54,7 @@ import Testing
         let removePath = "big/\(indexed.name)"
         access.remove(removePath)
         _ = try await harness.run(access: access, maxDepth: nil, fromScratch: false)
-        let gone = try #require(try await harness.store.item(id: indexed.id))
-        #expect(gone.removedAt != nil)
+        #expect(try await harness.store.item(id: indexed.id) == nil)
     }
 }
 
@@ -65,7 +63,7 @@ private final class IDBox: @unchecked Sendable {
 }
 
 private struct LargeScanHarness {
-    let store: IndexStore
+    let store: IndexStoreV3
     let mediumID: UUID
     let batchEntryLimit: Int
     private let indexer = DirectoryIndexer()
@@ -74,8 +72,8 @@ private struct LargeScanHarness {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-large-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000_000, name: "BIG", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         return LargeScanHarness(store: store, mediumID: medium.uuid, batchEntryLimit: batchEntryLimit)
@@ -135,7 +133,7 @@ private struct LargeScanHarness {
     func namesUnderBig() async throws -> Set<String> {
         let big = try #require(try await store.folderID(mediumUUID: mediumID, path: ["big"]))
         let children = try await store.children(mediumUUID: mediumID, parentID: big)
-        return Set(children.filter { $0.removedAt == nil }.map(\.name))
+        return Set(children.map(\.name))
     }
 
     func fileIDsUnderBig() async throws -> [Int64] {
@@ -147,7 +145,7 @@ private struct LargeScanHarness {
         var total = 0
         func walk(_ parent: Int64?) async throws {
             let children = try await store.children(mediumUUID: mediumID, parentID: parent)
-            total += children.filter { $0.removedAt == nil }.count
+            total += children.count
             for child in children where child.isFolder {
                 try await walk(child.id)
             }

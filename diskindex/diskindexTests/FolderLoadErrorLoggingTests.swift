@@ -16,8 +16,8 @@ import Testing
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
 
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Err", decision: .index, indexStatus: .indexed)
         try await store.upsertMedium(medium)
         try await store.applyDirectory(

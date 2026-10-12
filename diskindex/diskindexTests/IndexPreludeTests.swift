@@ -111,8 +111,8 @@ private final class PreludeRecorder: @unchecked Sendable {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-prelude-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "VORLAUF", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
         let access = MemoryVolume(mountPath: "/Volumes/T")

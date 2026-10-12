@@ -8,10 +8,10 @@
 import Foundation
 
 actor ChangeWatcherEngine {
-    private let store: IndexStore
+    private let store: IndexStoreV3
     private let access: any MediumAccess
 
-    init(store: IndexStore, access: any MediumAccess) {
+    init(store: IndexStoreV3, access: any MediumAccess) {
         self.store = store
         self.access = access
     }

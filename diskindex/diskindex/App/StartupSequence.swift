@@ -29,14 +29,14 @@ enum StartupSequence {
         previousRunUnclean: Bool,
         defaults: UserDefaults,
         now: @escaping @Sendable () -> Date = { Date() },
-        open: @escaping @Sendable () throws -> IndexStore,
-        wire: @escaping (IndexStore) -> Void,
-        integrityCheck: @escaping @Sendable (IndexStore) throws -> Void = { try $0.database.runIntegrityCheck() },
+        open: @escaping @Sendable () throws -> IndexStoreV3,
+        wire: @escaping (IndexStoreV3) -> Void,
+        integrityCheck: @escaping @Sendable (IndexStoreV3) throws -> Void = { try $0.runIntegrityCheck() },
         onFailure: @escaping (Error) -> Void
     ) -> Task<Void, Never> {
         Task {
             let opened = DispatchTime.now()
-            let store: IndexStore
+            let store: IndexStoreV3
             do {
                 store = try await Task.detached(priority: .userInitiated) { try open() }.value
             } catch {

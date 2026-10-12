@@ -34,7 +34,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 **Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
 
-**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **0.2 eingefroren (Nutzer 11.10.: Start 0.3).** Fehler aus dem Alltagstest kommen weiter hierher und haben Vorrang. **220 abgenommen. Zurzeit keine Aufgabe freigegeben.** Schema-Entwurf 0.3 wartet auf Freigabe des Nutzers.
+**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **0.2 eingefroren (Nutzer 11.10.: Start 0.3).** Fehler aus dem Alltagstest kommen weiter hierher und haben Vorrang. **Abgenommen bis 232. Freigegeben: 222 → 233. HALT nach 233.** Schema 0.3 vom Nutzer freigegeben (11.10.).
 
 **Claude-Prüfung 11.10. (5):** 219 **abgenommen**. Claude: 0 Warnungen, **421 Tests seriell grün**, App 11:02:12 aktuell. Datenbank öffnet in `Task.detached`, Verdrahtung danach auf dem Hauptfaden, `quick_check` nur bei Bedarf im Hintergrund. Volltext: `archiv/todo-stand-2026-10-11e.md`.
 
@@ -73,17 +73,63 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F24 | Start: Wartekreisel („Spinning Ball“), Menüleistensymbol erst nach Sekunden. Protokoll 11.10.: `app launch` 10:24:53 → `store open ok` 10:25:12 = **19 s** (kalt), zweiter Start 3,3 s. Ursache: `IndexStore.openDefault()` läuft **synchron auf dem Hauptfaden** (`AppDelegate.startMediumRecognition` ~Z. 279) und `IndexDatabase` macht bei jedem Öffnen `PRAGMA quick_check` über die ganze Datei (1,4 GB; `Storage/IndexDatabase.swift` ~Z. 60) | Nutzer 11.10., Claude-Ursache | **behoben** 11.10. (219); gemessen: Datenbank offen 17–31 ms, bereit nach 0,1–0,25 s (vorher 3–19 s); Prüfung 3,5 s im Hintergrund |
 | F25 | Bereinigen nach geringerer Scan-Tiefe extrem langsam (Messung 196: S1 nach 15 min nichts entfernt, S2 479 Einträge/s ≈ 1,6 h); vermutlich `DELETE … WHERE path …` ohne `mediumID` → Suchhilfe `item_path` greift nicht | Agent 11.10. (196) | **löst 0.3** (Status-Flag, kein Pfad); bis dahin Scan-Tiefe nicht verringern |
 | F26 | Großes WAL nach langem Schreiben: erstes Öffnen danach 116 s (S2) | Agent 11.10. (196) | **in 0.3** regelmäßig `wal_checkpoint(TRUNCATE)` nach Läufen, `journal_size_limit` |
+| F27 | Wackeltest `AllowIndexingStabilityTests.groupBodyStableAcrossProgressTicks` (parallel 3/5 rot) | Agent 11.10. (232) | **freigegeben als 222** |
+| F28 | Wackeltest `ColumnStatusIconTests` (Abstand 11,5–12 statt 10 ± 1) | Agent 11.10. (232) | **freigegeben als 222** |
 | F2 | Live-Überwachung am echten Stick nach 195 bestätigen: Umbenennen, neuer Ordner, Kopieren, Spalte bleibt sichtbar und aktualisiert sich | Nutzer 09.10. | **bestätigt** 10.10. (erster Test lief mit veraltetem Sabotage-Build → Regel 23) |
 
 Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meldet.
 
 
 
+**221 abgenommen (Claude 11.10.):** „Über Disk Archive“ (Rechtsklick- und Programm-Menü, Link diskarchive.app), ⌘, öffnet die Einstellungen. Antwort zur Frage: leere `Settings`-Szene als Träger für `.commands` bleibt, solange sie kein Fenster öffnen kann – in Ordnung.
+
 ### Version 0.3 — Neue Datenbankstruktur (begonnen 11.10.)
 
 **196 abgenommen (Claude 11.10.):** 0 Warnungen, 423 Tests seriell grün, App 18:58:57 aktuell. Ergebnisse: `Werkzeuge/messung/2026-10-11-vorher.md`. Rest von g): `DebugTools/ColumnLoadBench.swift` und `Werkzeuge/column-load-bench.sh` löscht der Nutzer (Agent durfte nicht).
 
 **220 abgenommen (Claude 11.10.):** `MARKETING_VERSION` 0.2.0 überall, Build-Nummer = Zeitstempel `jjjjMMtthhmm` (Skript-Phase, gebaute App: 0.2.0 / 202610111927, Signatur gültig), 425 Tests seriell grün, 0 Warnungen. Version erscheint heute nur in Protokoll, Fehler- und Absturzbericht.
+
+**Plan 0.3 (Claude 11.10., Grundlage `datenbank-konzeption.md`: „Grundsatz ab 0.3“, „Schema-Skizze“, „Besprechung“, „Überprüfung“, „Messung 196“).** Die neue Speicherschicht entsteht **neben** der alten; die App läuft bis zum Umschalten (233) unverändert weiter. Reihenfolge, je eine Aufgabe mit Abnahme:
+- **230** Schema und Grundbausteine (diese Aufgabe, unten).
+- **231** Schreibwege auf dem neuen Schema (Indizieren, Abgleich, Überwachung, Entfernen über Laufnummer, Medien in `storages`/`storage_meta`, Favoriten).
+- **232** Lesewege (Spalten natürlich sortiert und gemischt, Suche `LIKE` auf `slug` **parallel in Bereichen** inkl. Mediennamen, Zahl, Filter über `kind`/`extID`/`modifiedAt`, Favoriten, Pfad durch Verkettung).
+- **233** Umschalten: App nutzt nur noch die neue Schicht, alte Datenbank wird beim Start verworfen, alter Code (`item_fts`, `path`, `pruneToMatch`, `checksNames` …) entfernt.
+- **234** Status-Flag und Warteschlange für Regeländerungen (ersetzt Bereinigen nach Bereich; Suche wartet, Spalten „Inhalte werden geladen“; Pflicht: nie hängen bleiben).
+- **235** Umbenennen/Verschieben erkennen (fileID **erst erfassen** – heute nie gespeichert – dann auf APFS/HFS+ verbinden; Ereignispaare live; FAT-Merkmale ±1 h; Teil-Prüfsumme für Favoriten).
+- **236** Wartung (Zeit + Zähler), WAL nach Läufen kürzen (F26).
+- **237** Einstellungen in die Tabelle `settings` (außer Sprache, Fensterposition).
+- **238** Messung „nachher“ mit 196 und Vergleich; danach Schema einfrieren.
+
+**230 abgenommen (Claude 11.10.):** `Storage/V3/` (SchemaV3, Slug, NaturalOrder, ItemKind), 438 Tests seriell grün, 0 Warnungen. **Korrekturen gehen in 231 ein** (Fehler in Claudes Vorgabe „alle Verweise kaskadieren“): Nachschlage-Verweise (`items.extID`, `storage_meta.keyID`, `item_meta.keyID`) **ohne** Kaskade; `storages.uuid` **eindeutig**.
+
+**231 abgenommen (Claude 11.10.):** `IndexStoreV3` mit allen 24 Schreib-Methoden, Protokoll `IndexWriting` (alt und neu), Status 2 + Löschen am Laufende, Lauf-Nummer, WAL-Kürzen; 463 Tests seriell grün, 0 Warnungen. **Befund Claude:** Die Datei-Kennung (`fileID`) wird heute **nie erfasst** (Scanner übergibt `fileID: nil`, `DirectoryIndexer` ~Z. 624, `ChangeWatcherEngine` ~Z. 167; echte Datenbank: 1,65 Mio. Einträge ohne `fileID`). → Teil von 235.
+
+**232 abgenommen (Claude 11.10.):** `IndexReading` (alt und neu), Spalten natürlich und gemischt, Pfad per Kette, Suche über `slug` parallel + Mediennamen, Filter über Zahlenfelder; 477 Tests seriell grün, 0 Warnungen. Messung S1: `Werkzeuge/messung/2026-10-11-v3-suche.md`. **Entscheidungen zu den Abweichungen:** (1) Suche **gemischt**: Trefferliste (Limit 500) **einzeln** (hört nach 500 Treffern auf), Trefferzahl **parallel** – in 233 umsetzen. (2) Programme-Filter = `.app`-Pakete **und** `.dmg`/`.pkg` (entspricht Backlog T2) – in 233 sicherstellen, dass `.app`-Pakete dabei sind. (3) Trefferliste nach Suchname sortiert: in Ordnung (die Tabelle sortiert ohnehin nach Wahl des Nutzers).
+
+**222. (F27, F28) Zwei Wackeltests stabilisieren (0.2).** `AllowIndexingStabilityTests.groupBodyStableAcrossProgressTicks` (zählt `body`-Aufrufe zeitabhängig; parallel 3/5 rot) und `ColumnStatusIconTests` (Pixelabstand 11,5–12 statt 10 ± 1; ~2/7 rot). Ursache je Test in 1 Zeile; keine Prüfung abschwächen, sondern die Zeitabhängigkeit entfernen (feste Zahl von Fortschritts-Takten ohne echte Uhr; Pixelmessung erst nach abgeschlossenem Layout bzw. mit exakt gleichem Rendering-Maßstab). Danach beide je 20× einzeln und 5 Parallelläufe grün (Zahlen in den Status). Ist ein Abstand von 12 statt 10 **im Code** falsch (nicht im Test): melden, nicht den Test anpassen.
+
+Status 222: Ursache `ColumnStatusIconTests`: der Ring dreht sich nach der Uhrzeit, die Umrisshöhe hing vom Zeitpunkt ab → fester Winkel über `spinnerFrozenAngle` (nur Test, Standard unverändert); Abstand 10 pt im Code stimmt (gemessen exakt). Ursache `AllowIndexingStabilityTests`: zählte Zeichenläufe eines echten Fensters (6/18/20/50 je nach App-Zustand) → prüft jetzt den Vertrag `==` (50 gleiche Takte gleich, jede sichtbare Änderung ungleich, beide Verwendungen mit `EquatableView`); Sabotage rot ✓. 20× einzeln je Test grün, seriell 480 grün, 5 von 5 Parallelläufen grün, Warnungen 0. Bereit zur Prüfung.
+
+**233. Umschalten auf die neue Schicht (0.3).** *Nutzer 11.10.: Aus der alten Datenbank wird nichts gebraucht – keine Übernahme, keine Sicherung, kein Rückfallweg. Alles Alte darf weg.*
+a) **Die App benutzt nur noch `IndexStoreV3`** (alle Stellen, die heute `IndexStore` nutzen: Start, `AppState`, `IndexRepository`, Indexer, Überwachung, Erkennung, Suche, Favoriten, Fehlerbericht-Inventar …).
+b) **Datenbankdatei** `archive.sqlite` in `~/Library/Application Support/Disk Archive/`. **Kein Code** zum Löschen, Übernehmen oder Sichern der alten `index.sqlite` (der Nutzer setzt einmal manuell zurück); die alte Datei wird nie geöffnet.
+c) **Schema über GRDB-`DatabaseMigrator`:** Das V3-Schema ist die **erste registrierte Migration** (`"0.3.0-schema"`). Spätere Versionen hängen nur neue Migrationen an (Grundsatz „nach 0.3 nur erweitern“). Öffnen = Migrator laufen lassen. Test: frische Datei → genau diese eine Migration eingetragen.
+d) **Korrekturen aus Claudes SQL-Prüfung (11.10.):**
+- **`lastSeenRun` entfernen** (Spalte, Suchhilfe `items_lastseen`, Lauf-Zähler in `storage_meta`): Entfernt wird über den Ordnervergleich (`status = 2`), nicht über die Laufnummer; die Nummer wurde zudem nur bei geänderten Ordnern fortgeschrieben und in `IndexStoreV3+Reading` ~Z. 347 fälschlich als Datum gelesen („1. Jan. 1970“ in der Detailspalte). **„Zuletzt gesehen“** einer Datei zeigt künftig das Datum des Mediums (`storages.lastSeenAt`); die Detailspalte (`ColumnBrowserView` ~Z. 707) entsprechend umstellen.
+- **`StoredItem`/`IndexedItem` aufräumen:** `removedAt` und Eintrags-`lastSeenAt` entfernen (nur `status = 0` wird gelesen; die Notlösung „Datum 1970 für verschwunden“ ~Z. 348 fällt weg).
+- **`unreadable` zurücksetzen:** Wird ein Ordner vollständig gelesen (`finalize`), `unreadable = 0` (heute bleibt die Markierung für immer, alt wie neu).
+- **`ItemKind`:** Nur **`.app`-Pakete** sind „Programme“ (dazu `.dmg`, `.pkg`). Andere Pakete (z. B. `.key`, `.pages`, `.numbers`, `.photoslibrary`, `.rtfd`) nach Endung einordnen (Dokumente bzw. sonstige) – heute macht `ItemKind.classify` ~Z. 58 **jedes** Paket zum Programm.
+- **Regel „veraltete Zusatzdaten“ jetzt einbauen:** Ändern sich bei einem Eintrag Größe oder Änderungsdatum, löscht der Schreibweg in derselben Transaktion `item_meta` mit `source = 0` (gelesen) und `item_checksum` dieses Eintrags (Nutzer-Werte `source = 1` bleiben). Test dazu.
+- `item_details.createdAt` bleibt leer bis 235 (Scanner erfasst das Erstelldatum noch nicht); dort zusammen mit `fileID` erfassen.
+e) **Bereinigen auf V3** (bis 234): Tiefe per SQL (`depth > n`, in Blöcken nach Kennung), Namensregeln in Blöcken in Swift; Laufzeit für 100.000 zu entfernende Einträge messen (Ziel < 10 s; F25).
+f) **Suche:** Liste einzeln, Zahl parallel (Entscheidung 232).
+g) **Alles Alte entfernen:** `IndexStore` (alt), `IndexSQL`, `IndexDatabase` mit den Migrationen v1–v9 und dem alten `quick_check`-Weg, `item_fts`, `path`, alte Test-Helfer und Kommentare dazu; `V3*ParityTests` nur noch gegen V3; `IndexBenchTests` auf V3 umstellen (Messung erst in 238). Protokolle `IndexReading`/`IndexWriting` nur behalten, wenn sie noch nützen.
+h) **Tests:** volle Suite grün auf V3; zusätzlich (1) frischer Ordner → `archive.sqlite`, eine Migration, V3-Schema; eine daneben liegende `index.sqlite` bleibt unverändert; (2) Ende-zu-Ende: Medium indizieren → Spalten, Suche, Favorit, Live-Umbenennen (bestehende Ketten-Tests auf V3; Liste in den Status); (3) Bereinigen nach geringerer Tiefe: 100.000 Einträge < 10 s (Messwert); (4) Ordner unlesbar → später lesbar → `unreadable = 0`; (5) `.key`-Paket ist kein Programm, `.app` schon; (6) Detailspalte zeigt „Zuletzt gesehen“ mit dem Datum des Mediums. Sabotage für (1), (3), (4), (5) → rot ✓.
+i) `grep -rn "item_fts\|IndexSQL\|lastSeenRun\|removedAt" diskindex diskindexTests` → leer (Ausgabe in den Status). Seriell, parallel, Warnungen 0, **Regel 23**.
+Status: App nutzt nur `IndexStoreV3` (`archive.sqlite`, Migration `0.3.0-schema`); alt entfernt (`IndexStore`, `IndexSQL`, `IndexDatabase` v1–v9, Protokolle, `item_fts`, `path`, `lastSeenRun`, `removedAt`, Eintrags-`lastSeenAt`); `items_parent` neu (sonst O(N²) beim Ordner-Löschen); Zusatzdaten `source = 0`/Prüfsumme fallen bei geänderter Größe/Datum; `unreadable` wird beim vollständigen Lesen zurückgesetzt; Programme = `.app`, `.dmg`, `.pkg`; Detailspalte „Zuletzt gesehen“ = Datum des Mediums. grep aus i): leer (Exit 1). Neue Tests `StoreSwitchTests`/`DetailLastSeenTests` (1)–(6), Sabotage rot ✓ ((1) Dateiname, (3) Löschen ohne Wirkung und ohne `items_parent` = 197 s, (4), (5)). Messwert (3): 100.000 Einträge Tiefe 2 → 1 in 1,5 s (Ziel < 10 s).
+Ketten-Tests (Medium → Spalten, Suche, Favorit, Live-Umbenennen) auf V3: `LiveWatchAfterFirstIndexTests` (echtes Volume, FSEvents-Umbenennen), `IndexingWiringTests`, `ColumnChangeLoopTests`, `ColumnLiveRenameTests`, `ChangeWatcherTests`, `DirectoryIndexerTests`, `StoreReadTests`/`StoreWriteTests`, `SearchBehaviorTests`, `ColumnAndSearchTests`. Angepasst: Spalten gemischt natürlich sortiert (`a.txt` vor `Inner`, Entscheidung 232); `IndexBenchTests` auf V3 (Messung erst 238).
+Seriell 473 Tests grün, parallel grün, Warnungen 0. Regel 23: App ohne `-derivedDataPath` gebaut, keine `.swift`-Datei neuer als das Programm (0); App 08:07:33, Stand 08:07. Neue Texte: keine.
+Frage: Nach einem vollständigen Lauf sind fehlende Einträge samt Favorit gelöscht (Wiederkehr = neuer Eintrag, bis 235 das Umbenennen erkennt) – so umgesetzt wie in d) beschrieben. Offenlegung: zweimal versehentlich `git rm --cached /dev/null` (wirkungslos, Index unverändert); alte Dateien per `mv` nach `$TMPDIR/removed-old-layer/` statt `rm` (tracked-Löschen wurde verweigert) – sie stehen im Git als gelöscht. Bereit zur Prüfung.
 
 ---
 

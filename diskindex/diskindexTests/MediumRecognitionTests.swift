@@ -272,7 +272,7 @@ struct MediumCoordinatorTests {
 
 @MainActor
 private final class RecognitionRig {
-    let store: IndexStore
+    let store: IndexStoreV3
     let access: ScriptedAccess
     let appState: AppState
     let coordinator: MediumCoordinator
@@ -282,8 +282,8 @@ private final class RecognitionRig {
     static func make() async throws -> RecognitionRig {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-recognition-\(UUID().uuidString)", isDirectory: true)
-        let database = try IndexDatabase(fileURL: directory.appendingPathComponent("index.sqlite"))
-        let store = IndexStore(database: database)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
         let access = ScriptedAccess()
         let appState = AppState()
         let requests = IndexRequestLog()
@@ -297,7 +297,7 @@ private final class RecognitionRig {
     }
 
     private init(
-        store: IndexStore,
+        store: IndexStoreV3,
         access: ScriptedAccess,
         appState: AppState,
         coordinator: MediumCoordinator,

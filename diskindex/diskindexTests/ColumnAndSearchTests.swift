@@ -20,7 +20,7 @@ extension WindowTestGroup {
     @Test func openingAFolderShowsItsChildren() async throws {
         let rig = try await seededTree()
         let names = await rig.app.indexRepository.loadChildren(mediumID: rig.medium.uuid, path: ["Alpha"]).map(\.name)
-        #expect(names == ["Inner", "a.txt"])
+        #expect(names == ["a.txt", "Inner"]) // Spalten sind gemischt natürlich sortiert (Aufgabe 232)
     }
 
     @Test func folderAtScanBoundaryIsUncapturedWhileRowsRemain() async throws {
@@ -67,7 +67,7 @@ extension WindowTestGroup {
         let root = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: nil)
         let file = try #require(root.first { $0.name == "readme.txt" })
         try await rig.store.setFavorite(itemID: file.id, true)
-        let reopened = IndexStore(database: rig.database)
+        let reopened = IndexStoreV3(database: rig.database)
         let favorites = try await reopened.favorites()
         #expect(favorites.contains { $0.name == "readme.txt" && $0.isFavorite })
     }
@@ -125,7 +125,7 @@ extension WindowTestGroup {
         let rows = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: nil)
         let file = try #require(rows.first { $0.name == "Rechnung.pdf" })
         try await rig.store.setFavorite(itemID: file.id, true)
-        let again = IndexStore(database: rig.database)
+        let again = IndexStoreV3(database: rig.database)
         rig.app.attach(store: again)
         await rig.app.reloadFavorites()
         #expect(rig.app.favoriteObjects.contains { $0.name == "Rechnung.pdf" })
