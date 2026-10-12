@@ -13,7 +13,7 @@
 
 ## Roadmap (Nutzer 10.10.)
 
-Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgeblich ist dieser Abschnitt.** Die Nummern sind die Versionsnummern der App (`MARKETING_VERSION`, ab 11.10. dreistellig `n.n.n`: 0.2.0, 0.3.0, 0.3.1 …; Aufgabe 220). **0.2 am 11.10. eingefroren, 0.3 begonnen** (Nutzer); Fehler aus dem Alltag haben weiter Vorrang.
+Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgeblich ist dieser Abschnitt.** Die Nummern sind die Versionsnummern der App (`MARKETING_VERSION`, ab 11.10. dreistellig `n.n.n`: 0.2.0, 0.3.0, 0.3.1, 0.3.2 …; Aufgabe 220). **0.2 am 11.10. eingefroren, 0.3 begonnen** (Nutzer); Fehler aus dem Alltag haben weiter Vorrang.
 
 | Version | Inhalt |
 |---|---|
@@ -21,6 +21,7 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 | **0.2** | alle bekannten Fehler beheben (Live-Überwachung, Indizieren, nicht angezeigte Dinge, Glitches) |
 | **0.3** | neue Datenbankstruktur |
 | **0.3.1** | **API-Warteschlange** (Nutzer 11.10.): ein Weg ins Netz für Fehlerberichte (später Update-, Versions-, Lizenz-Check); online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Details: `datenbank-konzeption.md` |
+| **0.3.2** | **Erkennung und Dashboard (Alltag):** Warteschlange für den Erkennungs-Dialog (je Medium, nacheinander; keine Indizierung ohne explizites Ja/Nein); Dashboard-Kacheln mit Belegung und „Zuletzt indiziert“ in der unteren Meta-Zeile. Details: [ROADMAP.md](ROADMAP.md) § 0.3.2 |
 | **0.4** | letzte Fixes. **Beta für Beta-Tester.** Ab hier laden andere die App |
 | **0.5** | Metadaten und EXIF (Code und Design) |
 | **0.6** | Vorschaubilder |
@@ -29,6 +30,7 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 | **0.9** | Lizenz |
 | **1.0** | erste fertige Version |
 
+- **Layout-Reminder (0.3.2, vor Code):** Für die Korrekturen in **0.3.2** müssen die Mockups in [layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html) nachgezogen werden — mindestens **02** (Erkennungs-Dialog: mehrere Medien, Warteschlange/Stapel statt nur ein Dialog) und **04** (Dashboard-`card-meta`: Belegung und Zeitpunkt des letzten Scans unten in der Kachel, stabile eine Zeile). Heute zeigt Layout 02 nur einen Dialog; die App weicht bei der Meta-Zeile ab. Erst Layout, dann Aufgabe in `TODO.md`.
 - **Grundsatz (Nutzer):** Mit 0.4 sind **alle Probleme erledigt**. Was Fehler ist, muss **in 0.2** gelöst sein. 0.3 und 0.4 sind Umbau und Politur. Neues, das kein Fehler ist, kommt ins Backlog der nächsten Version.
 - **Bis 1.0 keine Rücksicht auf vorhandene Daten (Nutzer 10.10.):** Datenbank, Einstellungen und Protokolle **auf dem Mac des Nutzers** dürfen jederzeit verändert, verworfen oder gelöscht werden; Agenten müssen dabei nicht vorsichtig sein. Für andere Rechner ab 0.4 siehe „Stichtag“.
 - **Nach 0.3 nur noch erweitern (Nutzer 11.10.):** Keine bestehende Tabelle wird mehr verändert; neue Funktionen über neue Schlüssel in `settings`/`storage_meta`/`item_meta` oder neue Tabellen (Beispiel: Scan-Tiefe je Medium = Schlüssel in `storage_meta`).

@@ -1,6 +1,6 @@
 # ROADMAP.md — Disk Archive
 
-Stand 10.10.2026. Der Weg von **0.1 Beta** (jetzt) bis **1.0**. Die Versionsnummern und ihre Reihenfolge stammen vom Nutzer. Mit **[Vorschlag]** markierte Zeilen sind Ergänzungen von Claude und noch nicht bestätigt.
+Stand 12.10.2026. Der Weg von **0.1 Beta** (jetzt) bis **1.0**. Die Versionsnummern und ihre Reihenfolge stammen vom Nutzer. Mit **[Vorschlag]** markierte Zeilen sind Ergänzungen von Claude und noch nicht bestätigt.
 
 **Maßgeblich ist der Abschnitt „Roadmap“ in [README.md](README.md).** Diese Datei ist die ausführliche Fassung mit Abnahmekriterien. Bei Widerspruch gilt die README.
 
@@ -14,6 +14,7 @@ Gilt zusammen mit [README.md](README.md) (Konzept), [TODO.md](TODO.md) (offene A
 | **0.2** | alle bekannten Fehler beheben | danach gibt es keine offenen Probleme |
 | **0.3** | neue Datenbankstruktur | letzte Version mit freiem Verwerfen der Datenbank |
 | **0.3.1** | API-Warteschlange | ein Weg ins Netz; Versions-Check und Sperre kommen mit dem Update-Modal in 0.4 |
+| **0.3.2** | Erkennung und Dashboard | Warteschlange Erkennungs-Dialog; Dashboard-`card-meta`; Layout 02 + 04 zuerst |
 | **0.4** | letzte Fixes, **Beta für Beta-Tester** | erste Weitergabe nach außen |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
@@ -82,6 +83,27 @@ Schritte (aus der Konzeption, in dieser Reihenfolge):
 ## 0.3.1 — API-Warteschlange (Nutzer 11.10.)
 
 Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Ordner), später Update-, Versions- und Lizenz-Check. Online → sofort leeren (auch auf macOS-Meldung „Netz wieder da“); offline → Ping alle 60 s. Versions-Check, Beta-Sperre und Update-Modal kommen in **0.4**. Details: `datenbank-konzeption.md`.
+
+---
+
+## 0.3.2 — Erkennung und Dashboard (Alltag)
+
+**Ziel:** Mehrere neu angeschlossene Medien dürfen sich nicht gegenseitig den Erkennungs-Dialog wegnehmen; ohne explizite Ja/Nein-Entscheidung startet **keine** Indizierung. Dashboard-Kacheln zeigen Belegung und Scan-Zeit konsistent unten in der Kachel.
+
+**Layout zuerst (README, Layout-Reminder):** Vor Cursor-Aufgaben Mockups in `layout/Disk Index App.dc.html` anpassen — **Screen 02** (Warteschlange: n Dialoge nacheinander bzw. gestapelt, je Dialog genau ein Medium; Schließen ohne Entscheidung entfernt das Medium nicht aus der Warteschlange) und **Screen 04** (`card-meta`: Belegung links, „Zuletzt indiziert“ rechts in **einer** unteren Zeile; kein Verschwinden der Uhr beim Umschalten Prozent ↔ absolute Größe). Optional **03**, wenn Popover bei „Entscheidung ausstehend“ einen Weg zum Dialog braucht (kein „Neu indizieren“ ohne Entscheidung).
+
+**Inhalt (Produkt):**
+
+1. **Erkennungs-Dialog:** FIFO-Warteschlange aller Medien mit `decision == undecided` (verbunden). Jeder Dialog gilt nur für die Medium-ID, mit der er geöffnet wurde. Nach Ja/Nein: nächstes Medium. Menüleisten-Badge „Neu erkannt“, solange die Warteschlange nicht leer ist (nicht nur solange ein Panel offen ist).
+2. **Kein Index ohne Entscheidung:** Indizierung und „Neu indizieren“ nur, wenn `decision == index` (explizit). Popover und Einstellungen dürfen `undecided` nicht umgehen.
+3. **Dashboard (04):** In `MediumDashboardCard` die Meta-Zeile wie Layout: Belegter Speicher (klickbar) und Zeitpunkt des **letzten Scans** (`lastIndexedAt` / gleiche Formulierung wie Popover), offline weiter „Zuletzt gesehen“ wie im Mockup.
+
+**Fertig, wenn [Vorschlag]:**
+
+- Zwei Medien nacheinander anschließen, erste ohne Entscheidung: beide erscheinen nacheinander im Dialog; erste erhält nach Beantwortung der zweiten weiterhin einen Dialog.
+- Kein Lauf und kein Reindex-Klick für `undecided`.
+- Dashboard-Kacheln: Meta-Zeile unten, Layout 04 entspricht dem aktualisierten Mockup; Toggle Belegung ändert die Zeilenstruktur nicht.
+- Layout 02 und 04 aktualisiert; Regression/Rauchtest für Erkennung und Dashboard grün.
 
 ---
 

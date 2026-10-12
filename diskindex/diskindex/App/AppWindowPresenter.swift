@@ -129,10 +129,6 @@ enum AppWindowPresenter {
         panel.center()
         register(panel) {
             newMediumWindow = nil
-            // Schließen ohne Entscheidung = später entscheiden; Badge „Neu erkannt“ verschwindet.
-            if appState.newMediumDialogMediumID != nil {
-                appState.newMediumDialogMediumID = nil
-            }
         }
         newMediumWindow = panel
         panel.orderFrontRegardless()

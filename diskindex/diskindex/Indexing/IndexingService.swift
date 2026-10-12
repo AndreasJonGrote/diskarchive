@@ -46,6 +46,10 @@ final class IndexingService {
             return
         }
         guard !isPaused(mediumUUID) else { return }
+        guard appState.medium(with: mediumUUID)?.decision == .index else {
+            DiskIndexLog.shared.record(.index, .info, "auftrag abgelehnt unentschieden medium=\(mediumUUID)")
+            return
+        }
         DiskIndexLog.shared.record(.index, .info, "auftrag medium=\(mediumUUID) scratch=\(fromScratch)")
 
         let token = UUID()

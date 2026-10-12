@@ -70,6 +70,25 @@ struct VolumeCandidateRuleTests {
 
 @MainActor
 struct MediumCoordinatorTests {
+    @Test func secondUnknownMediumQueuesBehindFirstUndecided() async throws {
+        let rig = try await RecognitionRig.make()
+        await rig.coordinator.handle(.appeared(rig.volume(name: "PLATTE_A", path: "/Volumes/PLATTE_A")))
+        let first = try #require(rig.appState.newMediumDialogMediumID)
+        await rig.coordinator.handle(.appeared(rig.volume(
+            name: "PLATTE_B",
+            path: "/Volumes/PLATTE_B",
+            uuid: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB",
+            created: Date(timeIntervalSince1970: 1_718_102_900)
+        )))
+        #expect(rig.appState.newMediumDialogMediumID == first)
+        #expect(rig.appState.pendingNewMediumDecisionIDs.count == 2)
+        rig.appState.onNewMediumChoice?(first, true, false)
+        await rig.coordinator.waitForChoice()
+        let second = try #require(rig.appState.newMediumDialogMediumID)
+        #expect(second != first)
+        #expect(rig.indexRequests == [first])
+    }
+
     @Test func unknownGrantedStoresMediumAndRequestsDialog() async throws {
         let rig = try await RecognitionRig.make()
         await rig.coordinator.handle(.appeared(rig.volume()))

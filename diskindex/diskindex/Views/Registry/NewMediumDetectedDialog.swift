@@ -23,7 +23,7 @@ struct NewMediumDialogWindowHost: View {
         }
         .fixedSize()
         .onExitCommand {
-            appState.newMediumDialogMediumID = nil
+            AppWindowPresenter.closeNewMedium()
         }
         .onChange(of: appState.newMediumDialogMediumID) { _, newValue in
             if newValue == nil {
@@ -103,6 +103,9 @@ struct NewMediumDetectedDialog: View {
                 $0.indexStatus = allowIndexing ? .indexing : .indexed
             }
         }
-        appState.newMediumDialogMediumID = nil
+        appState.completeNewMediumDecision(medium.id)
+        if appState.newMediumDialogMediumID == nil {
+            AppWindowPresenter.closeNewMedium()
+        }
     }
 }

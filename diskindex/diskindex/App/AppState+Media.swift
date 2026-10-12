@@ -74,6 +74,7 @@ extension AppState {
     func canReindex(_ id: UUID, now: Date = Date()) -> Bool {
         if reindexRequested.contains(id) { return false }
         guard let medium = medium(with: id) else { return false }
+        guard medium.decision == .index else { return false }
         if medium.indexStatus == .indexing { return false }
         if let end = medium.lastIndexedAt, now < end.addingTimeInterval(59) { return false }
         return true
@@ -107,8 +108,22 @@ extension AppState {
         }
     }
 
+    func enqueueNewMediumDecision(_ id: UUID) {
+        guard !pendingNewMediumDecisionIDs.contains(id) else { return }
+        pendingNewMediumDecisionIDs.append(id)
+    }
+
+    func completeNewMediumDecision(_ id: UUID) {
+        pendingNewMediumDecisionIDs.removeAll { $0 == id }
+    }
+
+    func clearNewMediumDecisionQueue() {
+        pendingNewMediumDecisionIDs.removeAll()
+    }
+
     func forgetMedium(id: UUID) {
         DiskIndexLog.shared.ui("forget id=\(id)")
+        completeNewMediumDecision(id)
         pendingMediumWrites[id]?.cancel()
         pendingMediumWrites[id] = nil
         media.removeAll { $0.id == id }
@@ -137,7 +152,7 @@ extension AppState {
         searchMatch = SearchMatch()
         searchState.submittedQuery = ""
         detailMediumID = nil
-        newMediumDialogMediumID = nil
+        clearNewMediumDecisionQueue()
         columnBrowserState = ColumnBrowserState()
         indexRepository.invalidateAll()
         indexingFailure = nil
@@ -192,7 +207,7 @@ extension AppState {
         if active.contains(where: { $0.connectionStatus == .connected && $0.indexStatus == .error }) {
             return .error
         }
-        if newMediumDialogMediumID != nil {
+        if hasPendingNewMediumDecisions {
             return .newlyDetected
         }
         if globalAutoIndexPaused {

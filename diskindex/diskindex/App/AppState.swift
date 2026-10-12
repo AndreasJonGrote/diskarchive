@@ -136,7 +136,16 @@ final class AppState {
     /// Hochzählen = Objekt-Suchfeld verliert den Fokus (Scaffold reagiert, Aufgabe 28).
     var searchFieldFocusResetCount = 0
     var detailMediumID: UUID?
-    var newMediumDialogMediumID: UUID?
+    /// FIFO: verbundene Medien, die noch Ja/Nein im Erkennungs-Dialog brauchen (0.3.2).
+    var pendingNewMediumDecisionIDs: [UUID] = []
+    /// Vorderstes Medium der Warteschlange (verbunden, unentschieden).
+    var newMediumDialogMediumID: UUID? {
+        pendingNewMediumDecisionIDs.first { id in
+            guard let medium = medium(with: id) else { return false }
+            return medium.connectionStatus == .connected && medium.decision == .undecided
+        }
+    }
+    var hasPendingNewMediumDecisions: Bool { newMediumDialogMediumID != nil }
     /// Medium-ID, indizieren ja/nein, „merken“. Gesetzt vom `MediumCoordinator`.
     var onNewMediumChoice: ((UUID, Bool, Bool) -> Void)?
     /// „Neu indizieren“. Gesetzt vom `IndexingService`.

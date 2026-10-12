@@ -151,6 +151,7 @@ final class MenuBarController: NSObject {
 
         withObservationTracking {
             // Explizit lesen: `effectiveMenuBarBadge` kehrt ggf. früh zurück (Fehler), der Dialog muss trotzdem reagieren.
+            _ = appState.pendingNewMediumDecisionIDs
             _ = appState.newMediumDialogMediumID
             _ = appState.effectiveMenuBarBadge
         } onChange: {

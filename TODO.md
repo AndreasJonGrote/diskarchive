@@ -30,155 +30,124 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ---
 
-## A. Jetzt — Version 0.2 „Alle bekannten Fehler“
+## A. Jetzt — Version 0.3
 
-**Maßgeblich für Versionen und Reihenfolge: README, Abschnitt „Roadmap“** (ausführlich: [ROADMAP.md](ROADMAP.md), folgt der README). In A steht nur, was zur **laufenden Version (0.2)** gehört, also bekannte **Fehler**. Was nach dem Einfrieren auffällt und kein Fehler ist, kommt nach B mit Zielversion.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** (siehe [DONE.md](DONE.md)). **Freigegeben: 233b. HALT nach 233b.**
 
-**Stand 11.10.:** Abgenommen bis 219 (siehe DONE.md). **0.2 eingefroren (Nutzer 11.10.: Start 0.3).** Fehler aus dem Alltagstest kommen weiter hierher und haben Vorrang. **Abgenommen bis 233 (12.10.). Freigegeben: 233b. HALT nach 233b.** Schema 0.3 vom Nutzer freigegeben (11.10.).
+**Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
+- **R1** Nur die genannten Stellen ändern.
+- **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓.
+- **R3** Status höchstens 5 Zeilen.
 
-**Claude-Prüfung 11.10. (5):** 219 **abgenommen**. Claude: 0 Warnungen, **421 Tests seriell grün**, App 11:02:12 aktuell. Datenbank öffnet in `Task.detached`, Verdrahtung danach auf dem Hauptfaden, `quick_check` nur bei Bedarf im Hintergrund. Volltext: `archiv/todo-stand-2026-10-11e.md`.
+### Noch offen / beobachten (keine Cursor-Aufgabe)
 
-**Arbeitsregeln je Aufgabe (gelten zusätzlich zu den 23 Regeln):**
-- **R1 Nur die genannten Stellen ändern.** Jede Aufgabe nennt Datei und Zeile. Andere Dateien nur, wenn die Aufgabe es sagt. Keine „Verbesserungen nebenbei“.
-- **R2 Beweis = Pixel aus einem echten Fenster.** `hitTest != nil`, `source.contains(…)`, Zahlenvergleiche mit Konstanten und Prüfungen nur am Datenmodell zählen **nicht** als Beweis für Aussehen oder Klickverhalten. Benutze dafür ausschließlich die Hilfe `PixelProbe` (Aufgabe 150 a). Jeder neue Test wird einmal **sabotiert** und muss dann rot sein; im Status: „Sabotage: rot ✓“.
-- **R3 Status je Aufgabe:** höchstens 5 Zeilen: geänderte Dateien:Zeilen, Testname, Ergebnis der Sabotage, Pfad der Bildschirmfotos (`Werkzeuge/screenshots/<JJJJ-MM-TT>-<aufgabe>/`).
+| Nr. | Stand |
+|---|---|
+| F11 | beobachten (`serviceRunPassesTheReasonToTheDialog`, parallel selten rot) |
+| F23 | beobachten (kurze `Task.sleep` in mehreren Suites) |
+| F25 | löst **234** (Status-Flag statt Bereich-Bereinigen) |
+| F26 | löst **236** (WAL kürzen / Wartung) |
 
-### Liste der bekannten Fehler (0.2, Claude sammelt)
+Weitere Alltagfehler trägt Claude hier ein.
 
-| Nr. | Fehler | Herkunft | Stand |
-|---|---|---|---|
-| 195 | `MustScanSubDirs` unter der Wurzel verlor Änderungen; `.counts` verwarf Spalten-Invalidierung | Claude-Prüfung 192 | **behoben** 10.10. |
-| F1 | Testlücke: `BulkDirectoryReaderTests` (FAT-Abbild) endet mit `return` und meldet **grün**, wenn `hdiutil create/attach` scheitert (in Claudes Umgebung so geschehen) → prüft dann nichts. Soll: sichtbar überspringen oder rot. | Claude 10.10. | **behoben** 10.10. (197; Abbild 64m, Test lief vorher nie) |
-| F3 | Waagerechte Scrollleiste liegt **auf** der Statusleiste und verdeckt den Pfadtext; senkrechte Leisten je Spalte fehlen (README „Spaltenansicht: Scrollen“, Nutzer 10.10.) | Nutzer 10.10. (Foto) | **behoben** 10.10. (198) |
-| F4 | Detail-Spalte erscheint **ohne Auswahl**, sobald die Ordnerspalten breiter als das Fenster sind (README 5: nur bei Datei oder Mehrfachauswahl) | Nutzer 10.10. (Foto) | **behoben** 10.10. (199) |
-| F5 | Demo-Medium „Spalten-Zustände (Demo)“ entfernen (Nutzer 10.10.: Layouts sind abgenommen, wird nicht mehr gebraucht) | Nutzer 10.10. | **behoben** 10.10. (200) |
-| F6 | Fehlerdialog zeigt **nie** einen Grund: `IndexingService` meldet immer `reason: .unknown`; `IndexRunOutcome` trägt keinen Fehler, `IndexFailureReason.classify` wird nur von Tests benutzt (README 2b verlangt den Grund) | Claude-Durchsicht 10.10. | **behoben** 10.10. (202) |
-| F7 | Englisch unvollständig: feste deutsche Texte außerhalb von `L10n` (Kontextmenü, Menüleisten-Rechtsklick, Mitteilungen, Fehlergründe, Statuszeilen, Altersfilter, Fußzeile „x von y ausgewählt“, „Zuletzt indiziert“, Platzhalter) und feste `de_DE`-Formate | Claude-Durchsicht 10.10. | **behoben** 10.10. (203) |
-| F8 | Toter Code, nur von Tests benutzte Logik, Doppeltes | Claude-Durchsicht 10.10. | **behoben** 10.10. (201) |
-| F10 | Tests schreiben in die echten Einstellungen des Nutzers (`UserDefaults.standard` = `app.diskarchive`) | Claude-Prüfung 10.10. | **behoben** 10.10. (205) |
-| F11 | `serviceRunPassesTheReasonToTheDialog` fällt im **parallelen** Lauf selten aus (2× gesehen, Meldung nicht erfasst; seriell 10/10 grün) | Agent 10.10. | beobachten; beim nächsten Ausfall Meldung sichern |
-| F12 | Jeder Testlauf hinterlässt eine Datei `~/Library/Preferences/app.diskarchive.tests.<pid>.plist` (16 Stück am 10.10.) | Claude-Prüfung 10.10. | **behoben** 10.10. (208) |
-| F9 | Stresstest 1 TB (Nutzer 10.10.): erster Lauf zeigt **2 Minuten nichts** (Start 10:13:02, „ebene 1 fertig“ 10:15:02), weil die **Zählphase** (README 4) erst den ganzen Baum liest, bevor Ebene 1 geschrieben wird. Widerspricht „Schichten: erste Ebene sofort sichtbar“ | Claude, Protokoll 10.10. | **behoben** 10.10. (206, Nacharbeit 209) |
-| F13 | Beim Abgleich nach dem Start blinkt die Prozentzahl im Dashboard grün/rot: der Hintergrund-Nachzähler (`DirectoryIndexer` ~Z. 146 `Task { runCountingPhase(… onProgress: onProgress) }`) meldet `.counting`, die Ebenen-Schleife gleichzeitig `.indexing` → Phase springt | Nutzer 11.10., Claude-Ursache | **behoben** 11.10. (210) |
-| F14 | Spinner im Dashboard-Chip dreht sich nicht (steht in `TimelineView`, die 30× pro Sekunde neu zeichnet; `IndexingSpinnerRing` nutzt `repeatForever` aus `onAppear`) | Nutzer 11.10. | **behoben** 11.10. (210) |
-| F15 | Suche zählt höchstens 50.000 (`IndexStore.searchCount` mit `scope` holt `limit: 50_000` und zählt in Swift); „.html“ ergibt 50.000 statt ca. 1,6 Mio. | Nutzer 11.10. | **behoben** 11.10. (211) |
-| F16 | Suchergebnisse flackern im Takt des Fortschritts (`runSearch` leert `searchMatch` vor jeder neuen Suche; jede Live-Meldung startet die Suche neu) | Nutzer 11.10. | **behoben** 11.10. (211) |
-| F17 | X im Suchfeld leert das Feld, aber nicht die Suche | Nutzer 11.10. | **behoben** 11.10. (211) |
-| F18 | Scrollleisten fehlen in der Ergebnisliste der Suche, in Einstellungen → Speichermedien und in sehr großen Ordnern (`ColumnFolderTableView` ~Z. 26 `hasVerticalScroller = false`) | Nutzer 11.10. | **behoben** 11.10. (212) |
-| F19 | Prozentzahl im Menüleisten-Popover nicht rechtsbündig | Nutzer 11.10. (Foto) | **behoben** 11.10. (213) |
-| F20 | Rote Vorschlagstexte gelten als festgelegt (Nutzer 11.10.: „setze alle roten Texte als gesetzt“) | Nutzer 11.10. | **behoben** 11.10. (214) |
-| F21 | `DelayedLoadingStateTests.fastLoadNeverShowsHint` wackelt parallel (10 ms gegen 50 ms) | Agent 11.10. | **behoben** 11.10. (217) |
-| F22 | Ergebnistabelle (Suche, vermutlich auch Favoriten) nutzt die Fensterbreite nicht: Name und Pfad stehen auf Mindestbreite (160/140), Status nicht rechts, rechts große Leerfläche. **Rückschritt aus 212** (Breite per Preference gemessen, kommt offenbar als 0 an) | Nutzer 11.10. (Foto) | **behoben** 11.10. (218) |
-| F23 | Weitere Tests mit kurzem `Task.sleep` (< 200 ms), mögliche Wackler unter Last: `ChangeWatcherTests`, `ColumnCacheTests`, `ColumnLiveRenameTests`, `IndexStoreTests`, `SurfaceStoreTests`, `SurfaceTestSupport`, `WindowTestGroupStoreCacheTests` | Agent 11.10. (217) | beobachten; erst bei einem Ausfall angehen |
-| F24 | Start: Wartekreisel („Spinning Ball“), Menüleistensymbol erst nach Sekunden. Protokoll 11.10.: `app launch` 10:24:53 → `store open ok` 10:25:12 = **19 s** (kalt), zweiter Start 3,3 s. Ursache: `IndexStore.openDefault()` läuft **synchron auf dem Hauptfaden** (`AppDelegate.startMediumRecognition` ~Z. 279) und `IndexDatabase` macht bei jedem Öffnen `PRAGMA quick_check` über die ganze Datei (1,4 GB; `Storage/IndexDatabase.swift` ~Z. 60) | Nutzer 11.10., Claude-Ursache | **behoben** 11.10. (219); gemessen: Datenbank offen 17–31 ms, bereit nach 0,1–0,25 s (vorher 3–19 s); Prüfung 3,5 s im Hintergrund |
-| F25 | Bereinigen nach geringerer Scan-Tiefe extrem langsam (Messung 196: S1 nach 15 min nichts entfernt, S2 479 Einträge/s ≈ 1,6 h); vermutlich `DELETE … WHERE path …` ohne `mediumID` → Suchhilfe `item_path` greift nicht | Agent 11.10. (196) | **löst 0.3** (Status-Flag, kein Pfad); bis dahin Scan-Tiefe nicht verringern |
-| F26 | Großes WAL nach langem Schreiben: erstes Öffnen danach 116 s (S2) | Agent 11.10. (196) | **in 0.3** regelmäßig `wal_checkpoint(TRUNCATE)` nach Läufen, `journal_size_limit` |
-| F27 | Wackeltest `AllowIndexingStabilityTests.groupBodyStableAcrossProgressTicks` (parallel 3/5 rot) | Agent 11.10. (232) | **behoben** 12.10. (222) |
-| F28 | Wackeltest `ColumnStatusIconTests` (Abstand 11,5–12 statt 10 ± 1) | Agent 11.10. (232) | **behoben** 12.10. (222) |
-| F2 | Live-Überwachung am echten Stick nach 195 bestätigen: Umbenennen, neuer Ordner, Kopieren, Spalte bleibt sichtbar und aktualisiert sich | Nutzer 09.10. | **bestätigt** 10.10. (erster Test lief mit veraltetem Sabotage-Build → Regel 23) |
-
-Weitere Fehler aus dem Alltag trägt Claude hier ein, sobald der Nutzer sie meldet.
-
-
-
-**221 abgenommen (Claude 11.10.):** „Über Disk Archive“ (Rechtsklick- und Programm-Menü, Link diskarchive.app), ⌘, öffnet die Einstellungen. Antwort zur Frage: leere `Settings`-Szene als Träger für `.commands` bleibt, solange sie kein Fenster öffnen kann – in Ordnung.
-
-### Version 0.3 — Neue Datenbankstruktur (begonnen 11.10.)
-
-**196 abgenommen (Claude 11.10.):** 0 Warnungen, 423 Tests seriell grün, App 18:58:57 aktuell. Ergebnisse: `Werkzeuge/messung/2026-10-11-vorher.md`. Rest von g): `DebugTools/ColumnLoadBench.swift` und `Werkzeuge/column-load-bench.sh` löscht der Nutzer (Agent durfte nicht).
-
-**220 abgenommen (Claude 11.10.):** `MARKETING_VERSION` 0.2.0 überall, Build-Nummer = Zeitstempel `jjjjMMtthhmm` (Skript-Phase, gebaute App: 0.2.0 / 202610111927, Signatur gültig), 425 Tests seriell grün, 0 Warnungen. Version erscheint heute nur in Protokoll, Fehler- und Absturzbericht.
-
-**Plan 0.3 (Claude 11.10., Grundlage `datenbank-konzeption.md`: „Grundsatz ab 0.3“, „Schema-Skizze“, „Besprechung“, „Überprüfung“, „Messung 196“).** Die neue Speicherschicht entsteht **neben** der alten; die App läuft bis zum Umschalten (233) unverändert weiter. Reihenfolge, je eine Aufgabe mit Abnahme:
-- **230** Schema und Grundbausteine (diese Aufgabe, unten).
-- **231** Schreibwege auf dem neuen Schema (Indizieren, Abgleich, Überwachung, Entfernen über Laufnummer, Medien in `storages`/`storage_meta`, Favoriten).
-- **232** Lesewege (Spalten natürlich sortiert und gemischt, Suche `LIKE` auf `slug` **parallel in Bereichen** inkl. Mediennamen, Zahl, Filter über `kind`/`extID`/`modifiedAt`, Favoriten, Pfad durch Verkettung).
-- **233** Umschalten: App nutzt nur noch die neue Schicht, alter Code entfernt (abgenommen 12.10.); **233b** auto_vacuum.
-- **234** Status-Flag und Warteschlange für Regeländerungen (ersetzt Bereinigen nach Bereich; Suche wartet, Spalten „Inhalte werden geladen“; Pflicht: nie hängen bleiben).
-- **235** Umbenennen/Verschieben erkennen (fileID **erst erfassen** – heute nie gespeichert – dann auf APFS/HFS+ verbinden; Ereignispaare live; FAT-Merkmale ±1 h; Teil-Prüfsumme für Favoriten).
-- **236** Wartung (Zeit + Zähler), WAL nach Läufen kürzen (F26).
-- **237** Einstellungen in die Tabelle `settings` (außer Sprache, Fensterposition).
-- **238** Messung „nachher“ mit 196 und Vergleich; danach Schema einfrieren.
-
-**230 abgenommen (Claude 11.10.):** `Storage/V3/` (SchemaV3, Slug, NaturalOrder, ItemKind), 438 Tests seriell grün, 0 Warnungen. **Korrekturen gehen in 231 ein** (Fehler in Claudes Vorgabe „alle Verweise kaskadieren“): Nachschlage-Verweise (`items.extID`, `storage_meta.keyID`, `item_meta.keyID`) **ohne** Kaskade; `storages.uuid` **eindeutig**.
-
-**231 abgenommen (Claude 11.10.):** `IndexStoreV3` mit allen 24 Schreib-Methoden, Protokoll `IndexWriting` (alt und neu), Status 2 + Löschen am Laufende, Lauf-Nummer, WAL-Kürzen; 463 Tests seriell grün, 0 Warnungen. **Befund Claude:** Die Datei-Kennung (`fileID`) wird heute **nie erfasst** (Scanner übergibt `fileID: nil`, `DirectoryIndexer` ~Z. 624, `ChangeWatcherEngine` ~Z. 167; echte Datenbank: 1,65 Mio. Einträge ohne `fileID`). → Teil von 235.
-
-**232 abgenommen (Claude 11.10.):** `IndexReading` (alt und neu), Spalten natürlich und gemischt, Pfad per Kette, Suche über `slug` parallel + Mediennamen, Filter über Zahlenfelder; 477 Tests seriell grün, 0 Warnungen. Messung S1: `Werkzeuge/messung/2026-10-11-v3-suche.md`. **Entscheidungen zu den Abweichungen:** (1) Suche **gemischt**: Trefferliste (Limit 500) **einzeln** (hört nach 500 Treffern auf), Trefferzahl **parallel** – in 233 umsetzen. (2) Programme-Filter = `.app`-Pakete **und** `.dmg`/`.pkg` (entspricht Backlog T2) – in 233 sicherstellen, dass `.app`-Pakete dabei sind. (3) Trefferliste nach Suchname sortiert: in Ordnung (die Tabelle sortiert ohnehin nach Wahl des Nutzers).
-
-**222 abgenommen (Claude 12.10.):** Spinner-Winkel im Test fest, Stabilitätstest prüft den Vertrag `==`; Abstand 10 pt im Code richtig.
-
-**233 abgenommen (Claude 12.10.):** App nur noch V3 (`archive.sqlite`, Migration `0.3.0-schema`), alte Schicht weg, grep leer, 473 Tests seriell grün, 0 Warnungen, Regel 23 ✓, Bereinigen 100.000 in 1,5 s. **Antwort auf die Frage:** Ja, so bleibt es bis 235 (fehlende Einträge samt Favorit gelöscht, Wiederkehr = neuer Eintrag). **Hinweis an den Agenten:** `git rm` ist verboten (AGENTS.md), auch wirkungslos; nie wieder.
+### Aufgabe
 
 **233b. `auto_vacuum` greift nicht (0.3).** Befund Claude: `SchemaV3.makeConfiguration` setzt erst `journal_mode = WAL`, dann `auto_vacuum = INCREMENTAL`. In dieser Reihenfolge bleibt eine neue Datei bei `auto_vacuum = 0` (mit sqlite3 nachgeprüft: WAL zuerst → 0, `auto_vacuum` zuerst → 2). Damit gibt `incremental_vacuum` (236) nie Platz zurück.
-a) Reihenfolge so ändern, dass eine **neue** Datei `PRAGMA auto_vacuum` = **2** hat (vor WAL und vor der ersten Tabelle). Achtung: `DatabasePool` schaltet WAL womöglich selbst ein – dann die neue Datei zuerst mit `DatabaseQueue` anlegen (auto_vacuum setzen, schließen) und erst danach den Pool öffnen. Bestehende Dateien nicht umbauen (der Nutzer setzt zurück).
+a) Reihenfolge so ändern, dass eine **neue** Datei `PRAGMA auto_vacuum` = **2** hat (vor WAL und vor der ersten Tabelle). Achtung: `DatabasePool` schaltet WAL womöglich selbst ein — dann die neue Datei zuerst mit `DatabaseQueue` anlegen (auto_vacuum setzen, schließen) und erst danach den Pool öffnen. Bestehende Dateien nicht umbauen (der Nutzer setzt zurück).
 b) Test: frische Datei über `SchemaV3.openPool` → `PRAGMA auto_vacuum` = 2 und `journal_mode` = wal. Sabotage (alte Reihenfolge) → rot ✓.
 c) Kopfkommentar `SchemaV3.swift` Z. 5 („Die App benutzt es noch nicht“) korrigieren.
 d) Seriell, Warnungen 0, **Regel 23**.
 Status: SchemaV3.swift: auto_vacuum vor WAL + prepareNewFile(DatabaseQueue); Kopfkommentar korrigiert. Test freshFileHasIncrementalAutoVacuumAndWAL. Sabotage (alte Reihenfolge): rot ✓. 474 Tests seriell grün 08:40, Warnungen 0. Regel 23: App 08:40:58, SchemaV3.swift 08:34:43 (find -newer leer). Bereit zur Prüfung.
 
----
+#### Cursor-Spur (Schlüssel `c.0.3.2.NNN` = Cursor · Version 0.3.2 · Aufgabe). Claude pflegt Abnahmen später in DONE/README. Nur notiert — Freigabe je Aufgabe durch Nutzer/Claude.
 
----
+**c.0.3.2.001 — 233b nachprüfen und abschließen (aus A.233b).**
+Gegenprüfung am Code (12.10.): `SchemaV3.prepareNewFile` + `auto_vacuum` vor WAL; Test `freshFileHasIncrementalAutoVacuumAndWAL`; Kopfkommentar ok. Status stand „Bereit zur Prüfung“.
+a) Suite erneut: `SchemaV3Tests` + seriell voll, Warnungen 0, **Regel 23** belegen.
+b) Bei Grün: Status „Bereit zur Prüfung“ belassen bzw. Belege aktualisieren; nach Nutzer-/Claude-OK → DONE (Claude).
+c) Bei Rot: Ursache beheben, Sabotage rot ✓, neuer Status.
+Status: 233b-Code ok (prepareNewFile, Test freshFile…). Seriell: SchemaV3Tests 11 grün, 476 grün 11:06, Warnungen 0. Nebenfix MediumDecisionTests (undecided vor enqueue, 0.3.2-Badge). Regel 23: App 11:06:52, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor 12.10. 11:17:** Code a/c bestätigt (`prepareNewFile`, auto_vacuum vor WAL, Kopfkommentar). `SchemaV3Tests` 11/11 inkl. `freshFileHasIncrementalAutoVacuumAndWAL` grün 11:11. Suite seriell: **470 bestanden, 6 übersprungen, 0 fehlgeschlagen** (totalTestCount 476) 11:12–11:17, Warnungen 0. Regel 23: Build Debug App **11:17:20**, `find … -newer` leer. Keine Nacharbeit an 233b. Abnahme → DONE (Claude/Nutzer).
 
----
+**c.0.3.2.002 — Erkennungs-Dialoge stapeln + keine Indizierung ohne Ja + Dashboard-Meta (Roadmap 0.3.2; REPORT 7/16/17).**
+Kein Layout-Vorlauf. Layout 02/04 wird später nachgezogen.
+a) **Mehrere Modals:** Pro Medium `undecided` ein eigenes Panel; Versatz nach unten rechts, neuestes vorne und unten; jedes Panel nur für seine ID; Schließen ohne Ja/Nein lässt Medium `undecided` (Queue/Badge bleiben).
+b) **Keine Indizierung ohne explizites Ja:** Lauf/Reindex/Watcher nur bei `decision == .index`. Ja nur über Erkennungs-Dialog **oder** Einstellungen → Speichermedien / Medium-Details. Nein: Lauf canceln, Watcher stoppen (REPORT 7). Popover: kein „Neu indizieren“ bei `undecided`.
+c) REPORT **17:** „Nicht indizieren“ setzt nicht `indexStatus = .indexed` ohne Index. REPORT **16:** Latch `requestedIndex` bei Pause-No-Op bereinigen.
+d) **Dashboard-Kachel:** Meta unten — Belegung links, „Zuletzt indiziert“ / „Zuletzt gesehen“ rechts; Uhr auch im Absolut-Modus.
+e) README-Konzept §2 + Roadmap 0.3.2 / Layout-Reminder anpassen (Stapel + Indizierungsregel; „erst Layout“ streichen).
+f) Tests (zwei Medien → zwei Dialoge; ohne Ja kein Lauf; Ja in Einstellungen startet), Sabotage rot ✓, seriell, Regel 23.
+Status:
 
-### Vor 0.4: Voraussetzungen für die Weitergabe
+**c.0.3.2.003 — Store-Öffnen / Retry / Integrität (REPORT 2, 3, 4, 5, 22, 28).**
+Teardown bei Integritätsfehler wie Beenden; Change-Loop an neuen Store binden; vor `wireStore` alte Indexer/Watcher stoppen; Startup-Task single-flight; Retry mit Lade-UI; `indexStore`/`changeLoop` zurücksetzen.
+Status:
 
-Siehe README, Abschnitt „Roadmap“ (0.4). Cursor arbeitet nicht daran; die Liste steht in B unter 0.4. Merkhilfe für den Nutzer (bleibt hier):
+**c.0.3.2.004 — FSEvents / Watcher-Lebenszyklus (REPORT 6, 8, 9, 10).**
+Kein paralleles Schreiben Watcher↔Indexer ohne Token; Stream-Fehler → `continuation.finish`; Unmount → sauber stoppen/neu starten; Cursor nur bei erfolgreichem Reread speichern.
+Status:
 
-- **Eigene Kopie auf einem anderen Mac (ohne Notarisierung, nur für den Nutzer selbst):** Xcode → Product → Archive → „Distribute App“ → „Custom“ → „Copy App“. Kommt die App per AirDrop/Mail/Cloud und blockiert macOS sie: `xattr -dr com.apple.quarantine "/Applications/Disk Archive.app"` (Pfad anpassen; per USB-Stick kopiert meist nicht nötig). Für andere Nutzer nur mit Developer ID + Notarisierung.
+**c.0.3.2.005 — Suche / Spalten Scope & Pagination (REPORT 11, 12, 19, 20).**
+Bei `checksNames`: LIMIT/Pagination nach sichtbaren Treffern; `childrenPage` bei leerer gefilterter Seite weiterblättern; `childCount` Scope beachten; `searchCount` bei Namensregeln entlasten.
+Status:
+
+**c.0.3.2.006 — IndexingService finish / cancel / Recount (REPORT 13, 15, 26).**
+Token vor Spinner/Task-Clear; `cancel` detached-Task abbrechen; Hintergrund-Recount an Token/`shouldHalt` koppeln.
+Status:
+
+**c.0.3.2.007 — UI / Quit / Meta restlich (REPORT 14, 18, 21, 23, 24, 25, 27).**
+`isSearchInProgress` bei Abbruch; Depth-`contentStamp`/`completedDepth` nur betroffene Storages; `forgetAllMedia` weiterlaufen; Spalten-State Tab-Wechsel; Notification-Delegate Main; Quit-Checkpoint warten; `autoIndexPaused` aus DB.
+Status:
 
 ### Offen, ohne Cursor
 
-- **Nutzer:** (1) Kurztest am Stick für 107: großen Ordner öffnen, Pfeiltasten, Mehrfachauswahl, Rechtsklick. (2) Layout nachziehen: alte Chip-Beschreibungstexte, Menüleisten-Symbol „blauer Spinner (Abgleich)“ (112 Punkt 3), Texte der roten Vorschläge (Debug-App prüfen). (3) Entscheiden: T5 (ausführliches Protokoll) freigeben?
-- **Claude:** Layout (Stand 07.10.) gegen README abgleichen; danach neue Aufgaben für Cursor schreiben. Spezifikationen der abgenommenen Aufgaben: `archiv/todo-stand-2026-10-07.md`.
+- **Nutzer:** Layout 02 + 04 für 0.3.2 **nachziehen** (blockiert Code nicht; siehe c.0.3.2.002).
+- **Claude:** Nach Abnahme c.0.3.2.001 (233b) → DONE; Freigabe der nächsten `c.0.3.2.*`-Aufgabe.
 
 ---
 
-## B. Backlog (nicht freigegeben, Cursor arbeitet nicht daran) — nach Zielversion
+## B. Backlog (nicht freigegeben, Cursor arbeitet nicht daran)
 
-### Ohne feste Version (klein)
+### 0.3 — noch offen (Reihenfolge)
 
-
-### 0.3 — Neue Datenbankstruktur (Roadmap 0.3, `datenbank-konzeption.md`)
-
-Reihenfolge: (1) Messwerkzeug 196 und Messung „vorher“ → (2) Architektur entscheiden (eine Datei oder Datei je Medium plus Register) → (3) Konvention Seitentabellen (`item_<funktion>`, `itemID`, `ON DELETE CASCADE`, `srcSize`, `srcModifiedAt`, `extractorVersion`; Thumbnails in eigener Datei) → (4) Zuschnitt `item`/`medium` → (5) Schema neu, Abfragen umstellen (erst Schreib-, dann Lesewege, kleine Aufgaben mit Zwischenabnahme) → (6) Messung „nachher“ gegen die Schwelle → (7) Altlasten entfernen.
+- **234** Status-Flag und Warteschlange für Regeländerungen (ersetzt Bereinigen nach Bereich; F25).
+- **235** Umbenennen/Verschieben erkennen (`fileID` erst erfassen).
+- **236** Wartung (Zeit + Zähler), WAL nach Läufen kürzen (F26).
+- **237** Einstellungen in Tabelle `settings` (außer Sprache, Fensterposition).
+- **238** Messung „nachher“ mit 196 und Vergleich; Schema einfrieren.
+- **0.3.1** API-Warteschlange (README / ROADMAP).
+- **0.3.2** → Cursor-Spur **c.0.3.2.002** (gestapelte Dialoge, Indizierung nur nach Ja, Dashboard-Meta; Layout nachziehen).
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
 
-- **Signatur und Notarisierung:** Release signiert heute mit „Apple Development“ (`CODE_SIGN_IDENTITY`). Nötig: **Developer ID Application** + Notarisierung (`notarytool`) + Stapeln (Bezahl-Mitgliedschaft Apple Developer Program). Hardened Runtime ist an, Sandbox aus.
-- **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (Nutzer, nicht Cursor).
-- **Versions-Check:** `version.json` bzw. `GET …/api/version/` (existiert), Dialog „Neue Version verfügbar“ **einmal je Version**, Link **nur** auf `diskarchive.app`, Schalter in den Einstellungen; Datenschutztext, README 8 und 9 anpassen.
-- **Beta-Verfallsdatum** mit freundlicher Meldung.
-- **`FeatureAccess`:** zentrale Stelle „Darf der Nutzer das?“, in der Beta immer „ja“ (Vorbereitung 0.9).
-- **macOS 14:** Mindestversion entschieden (184 erledigt); **Laufzeittest auf macOS 14** (z. B. VM) steht aus.
-- **Fehlerbericht:** Ziel live `https://diskarchive.app/api/issues` (193 erledigt). **Datenschutz:** `ReportScrubber` ersetzt Pfade unter `/Volumes`, `/Users`, `~` und Anführungsnamen; `leakCategory` sperrt Versand bei Restpfaden. Test mit **echten Protokollzeilen** (`reread … /Volumes/NO NAME/…`).
-- **Name:** „Disk Archive“, Bundle-ID `app.diskarchive` (185 erledigt).
-- **Release-Prüfung:** Release-Build mit `DEAD_CODE_STRIPPING = YES`; Debug-Werkzeuge sauber abgegrenzt (`#if DEBUG`/`#if BENCH` in allen `DebugTools`-Dateien geprüft).
-- **Update durch Ersetzen der App:** Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe nach Version (neuere übernimmt), Launch Agent beim Start neu registrieren.
-- **Ab 0.4 echte Migrationen:** Sicherungskopie vor jeder Migration, Schutz vor Rückschritt (GRDB `hasBeenSuperseded`, Namen prüfen).
+- **Signatur und Notarisierung:** Developer ID Application + Notarisierung + Stapeln.
+- **Download-Seite** auf `https://diskarchive.app/` (Nutzer).
+- **Versions-Check** / Update-Modal / Beta-Sperre (siehe README 0.4).
+- **Beta-Verfallsdatum**; **`FeatureAccess`**; Laufzeittest **macOS 14**.
+- **Fehlerbericht:** Test mit echten Protokollzeilen.
+- **Update durch Ersetzen der App;** ab 0.4 echte Migrationen (Sicherung, `hasBeenSuperseded`).
+
+Merkhilfe eigene Kopie ohne Notarisierung: Xcode Archive → Distribute → Copy App; ggf. `xattr -dr com.apple.quarantine "…"`.
 
 ### 0.5 — Metadaten und EXIF
-Wartet auf das **Layout vom Nutzer** und eine eigene Besprechung (README Roadmap). Felder: `datenbank-konzeption.md`.
+Wartet auf Layout und Besprechung (README).
 
 ### 0.6 — Vorschaubilder
-Eigene Datei, **Abschalter global und je Medium**. Größe laut README **250 px** lange Seite (Nutzer 10.10.). Wird vor dem Start besprochen.
+Eigene Datei, Abschalter; **250 px** lange Seite (README).
 
 ### 0.7 — CSV-Export
-Noch nicht ausgearbeitet; vier offene Fragen in README (Roadmap).
+Noch nicht ausgearbeitet (README).
 
 ### 0.8 — Duplikate
-Über alle Medien, stufenweise, nur im Hintergrund (README).
+Über alle Medien, stufenweise (README).
 
 ### 0.9 — Lizenz
-Nach Medienzahl **1 / 50 / 250**; offene Fragen in README.
+Medienzahl **1 / 50 / 250**; offene Fragen in README.
 
-### Ohne Zielversion (wartet auf Entscheidung des Nutzers)
+### Ohne Zielversion (wartet auf Nutzer)
 
-- **T1. Ladehinweis erst nach 1 s** (Nutzer 06.10.): gehört zu 107; Suche/Favoriten später.
-- **T2. Programme als Dateityp „Programme“** (`.app`-Pakete, dmg, pkg).
-- **T3. Erweiterte Dateityp-Icons** (Styleguide Sektion 15).
-- Cursor hat T1–T3 vorzeitig gebaut; Claude entscheidet bei der Prüfung, was bleibt.
-- **T5 (Vorschlag Claude, wartet auf Nutzer): Ausführliches Protokoll („Diagnose-Modus“).** Es gibt schon `~/Library/Logs/Disk Index/diskindex.log` (Kategorien, `crash-last.txt`, „previous run ended without clean exit“). Lücken: (1) **Beenden wird nicht protokolliert** (`applicationShouldTerminate` schreibt nichts; nur `applicationWillTerminate` „app terminate ok“) → Zeilen „quit requested (Quelle)“, „quit: status item entfernt“, „quit: Indizierung gestoppt“ mit Dauer. (2) **Haupt-Thread-Wächter:** blockiert der Hauptfaden > 2 s, Zeile `hang main ms=…` mit Stack (Release tauglich). (3) **Schalter** „Ausführlich“ (Erweitert, nur Debug oder per `defaults`) für Pegel `debug`: je Medium Dauer von Lesen/Schreiben, Cache-Treffer, Ladezeiten Spalten, Speicher. (4) `crash-last.txt` auch bei Beenden durch Signal. Nicht freigegeben.
+- **T1.** Ladehinweis erst nach 1 s.
+- **T2.** Programme als Dateityp (`.app`/dmg/pkg) — teilweise in 233.
+- **T3.** Erweiterte Dateityp-Icons (Styleguide 15).
+- **T5.** Ausführliches Protokoll / Diagnose-Modus (Vorschlag Claude; nicht freigegeben).

@@ -57,6 +57,15 @@ struct MediumDecisionUnitTests {
         #expect(app.effectiveMenuBarBadge == .error)
     }
 
+    @Test func undecidedMediumCannotReindex() {
+        var medium = PreviewData.media[0]
+        medium.decision = .undecided
+        medium.indexStatus = .pending
+        let app = AppState()
+        app.media = [medium]
+        #expect(!app.canReindex(medium.id))
+    }
+
     @Test func menuBarBadgeFollowsPriority() {
         let app = AppState()
         var online = PreviewData.media[0]
@@ -71,7 +80,8 @@ struct MediumDecisionUnitTests {
         app.globalAutoIndexPaused = true
         #expect(app.effectiveMenuBarBadge == .paused)
 
-        app.newMediumDialogMediumID = id
+        app.updateMedium(id: id) { $0.decision = .undecided }
+        app.enqueueNewMediumDecision(id)
         #expect(app.effectiveMenuBarBadge == .newlyDetected)
 
         app.updateMedium(id: id) { $0.indexStatus = .error }

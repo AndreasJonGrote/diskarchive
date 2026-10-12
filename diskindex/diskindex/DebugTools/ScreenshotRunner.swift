@@ -174,7 +174,7 @@ enum ScreenshotRunner {
         app.noticePreviewPin = nil
         app.detailMediumID = nil
         app.indexingFailure = nil
-        app.newMediumDialogMediumID = nil
+        app.clearNewMediumDecisionQueue()
         app.globalAutoIndexPaused = false
         app.popoverSearchText = ""
         app.isFilterBarVisible = false

@@ -35,10 +35,13 @@ struct DashboardLastSeenTests {
         #expect(medium.lastSeenDescription(now: today, language: .english) == "3 days ago")
     }
 
-    @Test func dashboardShowsClockAndNowWithoutPrefix() async throws {
+    @Test func dashboardShowsClockAndLastIndexedWithoutPrefix() async throws {
         var medium = try #require(PreviewData.media.first)
         medium.connectionStatus = .connected
         medium.indexStatus = .indexed
+        medium.completedDepth = 2
+        medium.fileCount = 10
+        medium.lastIndexedAt = Date()
         medium.capacityUsedBytes = 400
         let app = AppState()
         app.media = [medium]
@@ -54,7 +57,7 @@ struct DashboardLastSeenTests {
         )
         defer { session.close() }
         let bitmap = session.bitmap()
-        let label = medium.lastSeenDescription(language: .german)
+        let label = IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexedAt)
         let ref = referenceLastSeenInk(for: label)
         let rowY: CGFloat = 118
         let ink = try #require(PixelProbe.inkBounds(
@@ -64,7 +67,7 @@ struct DashboardLastSeenTests {
         ))
         #expect(abs(ink.width - ref.width) <= max(14, ref.width * 0.2))
         #expect(abs(ink.height - ref.height) <= 8)
-        let prefixRef = referenceLastSeenInk(for: "zuletzt gesehen: \(label)")
+        let prefixRef = referenceLastSeenInk(for: "zuletzt indiziert: \(label)")
         #expect(ink.width < prefixRef.width - 20)
     }
 

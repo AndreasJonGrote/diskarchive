@@ -54,21 +54,18 @@ struct MediumDashboardCard: View {
 
     @ViewBuilder
     private func metaLine(medium: Medium) -> some View {
-        Group {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             if medium.indexStatus == .error {
                 Text(LayoutCopy.dashboardErrorRetry)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else if let occupancy = medium.occupancyLabel(showAbsolute: medium.showAbsoluteCapacity) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    occupancyToggle(medium: medium, occupancy: occupancy)
-                        .lineLimit(1)
-                    if !medium.showAbsoluteCapacity {
-                        Spacer(minLength: 4)
-                        lastSeenBadge(medium: medium)
-                    }
-                }
+                occupancyToggle(medium: medium, occupancy: occupancy)
+                    .lineLimit(1)
             } else {
-                lastSeenBadge(medium: medium)
+                Color.clear.frame(height: 1)
             }
+            Spacer(minLength: 4)
+            metaTimeBadge(medium: medium)
         }
         .font(.system(size: 11))
         .foregroundStyle(DesignColor.text.opacity(0.55))
@@ -85,6 +82,35 @@ struct MediumDashboardCard: View {
         }
         .buttonStyle(.plainFullHit)
         .pointerCursor()
+    }
+
+    @ViewBuilder
+    private func metaTimeBadge(medium: Medium) -> some View {
+        if showsLastIndexed(medium) {
+            HStack(spacing: 4) {
+                Image("IconClock")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 12, height: 12)
+                Text(
+                    IndexedDateFormatting.lastIndexedLine(
+                        date: medium.lastIndexActivityAt ?? medium.lastIndexedAt
+                    )
+                )
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+            }
+        } else {
+            lastSeenBadge(medium: medium)
+        }
+    }
+
+    private func showsLastIndexed(_ medium: Medium) -> Bool {
+        medium.connectionStatus == .connected
+            && medium.indexStatus != .pending
+            && medium.indexStatus != .error
+            && medium.hasIndex
     }
 
     private func lastSeenBadge(medium: Medium) -> some View {

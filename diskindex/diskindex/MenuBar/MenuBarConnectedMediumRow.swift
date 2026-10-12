@@ -33,7 +33,8 @@ struct MenuBarConnectedMediumRow: View {
 
     private func row(at date: Date) -> some View {
         let fraction = appState.displayedProgress(medium.id, now: date)
-        let reservesTrailingSlot = fraction != nil || (rowHovered && fraction == nil)
+        let canShowReindex = medium.decision == .index && reindexAllowed
+        let reservesTrailingSlot = fraction != nil || (rowHovered && fraction == nil && canShowReindex)
         return HStack(spacing: 0) {
             HStack(alignment: .center, spacing: 12) {
                 HStack(alignment: .center, spacing: 12) {
@@ -42,7 +43,7 @@ struct MenuBarConnectedMediumRow: View {
                 }
                 .contentShape(Rectangle())
                 .pointerCursor()
-                .onTapGesture { openColumnBrowserFromPopover() }
+                .onTapGesture { rowPrimaryTap() }
 
                 if reservesTrailingSlot {
                     ZStack(alignment: .center) {
@@ -92,7 +93,7 @@ struct MenuBarConnectedMediumRow: View {
     private func trailingSlot(fraction: Double?) -> some View {
         if let fraction {
             indexingToggle(fraction: fraction)
-        } else if rowHovered {
+        } else if rowHovered, medium.decision == .index {
             MenuBarGhostButton(title: LayoutCopy.reindex, isEnabled: reindexAllowed) {
                 appState.reindexMedium(id: medium.id)
             }
@@ -152,6 +153,15 @@ struct MenuBarConnectedMediumRow: View {
 
     private static func byteLabel(_ count: Int64) -> String {
         ByteCountFormatter.storage.string(fromByteCount: count)
+    }
+
+    private func rowPrimaryTap() {
+        if medium.decision == .undecided {
+            appState.enqueueNewMediumDecision(medium.id)
+            AppWindowPresenter.openNewMedium(appState: appState)
+            return
+        }
+        openColumnBrowserFromPopover()
     }
 
     private func openColumnBrowserFromPopover() {

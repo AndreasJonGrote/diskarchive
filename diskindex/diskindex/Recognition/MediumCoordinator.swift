@@ -375,7 +375,7 @@ final class MediumCoordinator {
     }
 
     private func requestDialog(_ id: UUID) {
-        appState.newMediumDialogMediumID = id
+        appState.enqueueNewMediumDecision(id)
         guard !Self.isRunningUnitTests else { return }
         AppWindowPresenter.openNewMedium(appState: appState)
     }
