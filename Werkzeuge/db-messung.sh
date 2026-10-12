@@ -7,4 +7,4 @@ export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Develope
 cd "$ROOT/diskindex"
 TEST_RUNNER_DA_BENCH=1 xcodebuild test -scheme diskindex -destination 'platform=macOS' \
   -only-testing:diskindexTests/IndexBenchTests${BENCH_ONLY:+/$BENCH_ONLY} -parallel-testing-enabled NO -test-timeouts-enabled YES -default-test-execution-time-allowance 7200 -maximum-test-execution-time-allowance 7200 \
-  SWIFT_OPTIMIZATION_LEVEL=-O 2>&1 | grep -E "BENCH|error:|✘|✔|TEST "
+  SWIFT_OPTIMIZATION_LEVEL=-O 2>&1 | { grep -E "BENCH|error:|✘|✔|TEST " || true; }

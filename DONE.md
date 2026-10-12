@@ -120,5 +120,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | c.0.3.235 + 235b | fileID / Umbenennen-Verschieben; Nacharbeit Ereignispaare + partial | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.236 | Wartung Zeit+Zähler, WAL Truncate (F26), Leerlauf-Compaction | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.237 | App-Einstellungen in `settings` (JSON); Auto-Send; Sprache/Fenster weiter UD | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.238 | Messung nachher + Schema-Freeze; Bericht; Schwellen Größe/Abfrage ok, Spalten → F29 | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | `Werkzeuge/messung/2026-10-12-nachher-bericht.md` |
 
-**Offen / freigegeben:** **c.0.3.238** freigegeben (Cursor, Cloud aus); dann 0.3.1.
+**Offen / freigegeben:** **c.0.3.1.001** freigegeben (Cursor, Cloud aus). Spalten-Follow-up **F29**.

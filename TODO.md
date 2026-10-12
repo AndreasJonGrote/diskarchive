@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235/235b** + **236** + **237** (Spur, Cursor statt Cloud). **Freigegeben: c.0.3.238** (dann **c.0.3.1.001**). **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat. Nach jeder Aufgabe HALT („Bereit zur Prüfung“).
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** (Spur, Cursor statt Cloud). **Freigegeben: c.0.3.1.001**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat. Nach jeder Aufgabe HALT („Bereit zur Prüfung“).
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -47,6 +47,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F23 | beobachten (kurze `Task.sleep` in mehreren Suites) |
 | F25 | löst **234** (Status-Flag statt Bereich-Bereinigen) |
 | F26 | **erledigt** in **c.0.3.236** (WAL Truncate + Leerlauf-Wartung) |
+| F29 | Spalten 50k „alle Seiten“ nachher langsamer als 196 (+20…30 %); Follow-up Profiling (238-Bericht) |
 
 Weitere Alltagfehler trägt Claude hier ein.
 
@@ -108,13 +109,50 @@ Status: `PersistedAppSettings` + JSON-Key `appSettings`; Hydrate/Migration; Runt
 - Regel 23: Binary **18:07:04**, find -newer leer. Suite 515 nicht erneut. **Keine Nacharbeit.**
 
 **c.0.3.238 — Messung „nachher“ + Schema einfrieren (Original **238**, Bezug **196**).**
-Messung „nachher“ mit Werkzeug aus **196**, Vergleich gegen Schwelle; Schema einfrieren.
+Abschluss von 0.3-Datenbank: gleiche Messlatte wie 196, dann Schwellen + Einfrieren + **großer Vergleichsreport**.
 **Freigabe Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10.:** Voraussetzung **237 abgenommen**. **196** in DONE. **Freigegeben zur Umsetzung.** HALT nach dieser Aufgabe.
-Status: freigegeben — Umsetzung ausstehend.
+
+**a) Messwerkzeug „nachher“ (aus 196):**
+- Basis: `IndexBenchTests` + `Werkzeuge/db-messung.sh` (`DA_BENCH=1`, Debug `-O`, Temp-DB, ≥15 GB frei).
+- Ausgabe neu: `Werkzeuge/messung/2026-10-<TT>-nachher.md` **und** `.json` (Name `nachher`, nicht `vorher`; Markdown-Titel Aufgabe **238**).
+- Szenarien wie 196: **S1** ~1 Mio. Einträge / 1 Medium; **S2** ~8–9 Mio. / 300 Medien (Plan wie in `IndexBenchTests`). `DA_BENCH_SCALE` nur zum Probe­lauf; echte Messung Scale **1**.
+- Messgruppen mindestens wie vorher: Schreiben, Größe (DB/WAL/Seiten/Tabellen/Indizes; kein `path`-SUM mehr — V3 hat keinen Pfad; stattdessen Größe `items` + `item_details` + relevante Indizes), Öffnen/`quick_check`, Spaltenansicht (100 / 5 000 / 50 000 Kinder), Suche (häufig `bil` / selten `Quartzit`, mit/ohne Filter), Favoriten, Bereinigen/Status-Pfad wo sinnvoll.
+- Suche: aktueller V3-Pfad (Liste Limit 500, Count parallel) — wie produktiv, nicht die alte FTS-Messung.
+
+**b) Vergleich gegen Schwelle** (ROADMAP / `datenbank-konzeption.md`):
+- Referenz: `Werkzeuge/messung/2026-10-11-vorher.md` (+ `.json`).
+- **Bestanden**, wenn **mindestens eines** gilt (besser beides dokumentieren):
+  1. Datenbankdatei **≥ 20 % kleiner** als vorher (S1 und/oder S2, nach Aufbau bzw. nach Compaction klar kennzeichnen), **oder**
+  2. maßgebliche Abfrage **≥ 25 % schneller** (mind. Spalten „alle Seiten, 50 000“ und Suche `bil` Liste/Count ohne Filter, warm).
+- Zusätzlich: Spaltenansicht **nicht langsamer** (±10 % Toleranz auf Median). Abweichungen begründen, nicht verschweigen.
+- Tabelle vorher | nachher | Δ % für die Kernmesspunkte (S1 + S2).
+
+**c) Schema einfrieren (Doku + Code-Hinweis):**
+- Kurz in Status/Report: Migration `0.3.0-schema` ist die eingefrorene Basis; ab 0.4 nur noch **neue** Tabellen/Schlüssel (`settings`/`storage_meta`/`item_meta`) oder Anbau-Migrationen — **keine** Umbauten bestehender Spalten (README „Nach 0.3 nur noch erweitern“ / Stichtag).
+- Kopfkommentar an `SchemaV3.swift` (oder gleichwertig): „Schema 0.3 eingefroren (238)“ mit Verweis auf den Report. **Kein** großes Refactoring.
+
+**d) Großer Abschluss-Report (Pflicht, Nutzerwunsch):**
+Neue Datei **`Werkzeuge/messung/2026-10-<TT>-nachher-bericht.md`** (ins Repo; ausführlich, kein 5-Zeilen-Status). Inhalt mindestens:
+1. **Zweck / Kontext** — 196 vorher → Umbau 230–237 → 238 nachher; was gemessen wurde (Maschine, macOS, Dauer, Scale).
+2. **Methode** — Kommando (`db-messung.sh` / Env), S1/S2-Definition, Abweichungen zum 196-Werkzeug (V3-Felder, kein path, parallele Suche).
+3. **Ergebnisse** — Kernzahlen S1/S2 in Vergleichstabellen; vollständige Rohdaten = `*-nachher.md/.json`.
+4. **Schwellen-Urteil** — klar **bestanden / nicht bestanden** je Kriterium (Größe, Abfrage, Spalten); bei Rot: Ursache und Empfehlung (kein Test abschwächen).
+5. **Schema-Einfrieren** — was gilt ab jetzt; Liste der Tabellen aus `0.3.0-schema`; was bewusst leer bleibt (`item_meta`/`item_checksum`/`api_queue` für spätere Versionen).
+6. **Offene Risiken / Folge** — z. B. seltenes Wort parallel, Layout 0.3.2, API-Warteschlange 0.3.1; was 238 **nicht** löst.
+7. Kurzer Verweis in `DONE.md`/Status auf diesen Bericht (Claude/Cursor-Abnahme liest den Bericht, nicht nur den Status).
+
+**e) Suite / Regel 23:** Normale Suite ohne `DA_BENCH` bleibt grün und schnell (Bench übersprungen). Warnungen 0. Nach Sabotage-Rücknahme (falls Sabotage am Report/Vergleich) App bauen, **Regel 23**. Messlauf selbst darf Stunden dauern — nicht in der normalen Suite.
+
+Status: **Bereit zur Prüfung** — Nachher Scale 1: `Werkzeuge/messung/2026-10-12-nachher.md/.json`, Vergleich `2026-10-12-nachher-vergleich.md`, Bericht `2026-10-12-nachher-bericht.md`. `db-messung-nachher.sh`, `messung-vergleich.py`, SchemaV3-Freeze-Kommentar. Suite **515/515** ohne DA_BENCH; Messlauf ~2728 s separat. Regel 23 ok. Schwellen: Größe+Abfrage ja, Spalten-Guard nein → Gesamt **nicht bestanden** (Bericht). **HALT** — kein 0.3.1.001+.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10.:**
+- **a–d ok:** Rohdaten + Vergleichsskript + Bericht `2026-10-12-nachher-bericht.md` (Abschnitte 1–7); Freeze-Kommentar `SchemaV3.swift`; Größe S1/S2 −54…−63 %; `bil`-Liste −91…−98 %.
+- **Schwelle:** Größe **ja**, Abfrage **ja**, Spalten-Guard **nein** (S1 +30 %, S2 +20 %) → Gesamt laut Briefing **nicht bestanden** — ehrlich dokumentiert, Follow-up **F29** (kein Test abschwächen). Hinweis: vorher M3 Pro / nachher M4 — Spalten trotzdem langsamer.
+- Regel 23: Binary **20:01:09**, find -newer leer. Suite 515 nicht erneut.
+- **Abnahme der Aufgabe** (Messung + Report + Einfrieren) — **ja**. Produktziel „alle Schwellen grün“ offen (**F29**). **c.0.3.1.001 freigegeben.**
 
 **c.0.3.1.001 — API-Warteschlange (Original **0.3.1**, README / ROADMAP).**
 Tabelle `api_queue` nutzen; Fehlerbericht aus `outbox` (`IssueTracker`) hierher; online sofort leeren (macOS-Netzmeldung), offline Ping 60 s.
-**Freigabe Cursor (Nutzerwunsch) 12.10.:** **Freigegeben zur Umsetzung** (Aufgabe selbst noch offen).
+**Freigabe Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10.:** nach Abnahme **238**. **Freigegeben zur Umsetzung.** HALT nach dieser Aufgabe.
 Status: freigegeben — Umsetzung ausstehend.
 
 ### Offen, ohne Cursor (Rest 0.3.2)
@@ -132,8 +170,8 @@ Status: freigegeben — Umsetzung ausstehend.
 - **235** → **c.0.3.235** + **235b** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **236** → **c.0.3.236** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus; F26).
 - **237** → **c.0.3.237** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
-- **238** → **c.0.3.238** (Messung „nachher“; **196**). *freigegeben in A/Spur — nächste Aufgabe*
-- **0.3.1** → **c.0.3.1.001** (API-Warteschlange). *freigegeben in A/Spur*
+- **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29**). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
+- **0.3.1** → **c.0.3.1.001** (API-Warteschlange). *freigegeben in A/Spur — nächste Aufgabe*
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
 
 

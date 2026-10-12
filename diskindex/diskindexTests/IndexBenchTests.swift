@@ -2,8 +2,9 @@
 //  IndexBenchTests.swift
 //  diskindexTests
 //
-//  Aufgabe 196 — Messwerkzeug Datenbank („vorher“). Nur mit DA_BENCH=1, sonst übersprungen. Misst nur, ändert das
-//  App-Schema nicht (Hilfstabelle `bench_names` liegt nur in der Mess-Datenbank). Start: `Werkzeuge/db-messung.sh`.
+//  Aufgaben 196 / 238 — Messwerkzeug Datenbank (vorher/nachher). Nur mit DA_BENCH=1, sonst übersprungen. Misst nur,
+//  ändert das App-Schema nicht. Start vorher: `Werkzeuge/db-messung.sh`; nachher: `Werkzeuge/db-messung-nachher.sh`.
+//  Report-Name: Env `DA_BENCH_NAME` (Default „nachher“ ab 238).
 //
 
 import Foundation
@@ -108,6 +109,10 @@ private struct FolderContext {
 private let benchBatch = 2_000
 /// Nur zum Erproben des Werkzeugs: `DA_BENCH_SCALE=0.01` verkleinert alle Mengen. Die echte Messung läuft mit 1.
 private let benchScale = Double(ProcessInfo.processInfo.environment["DA_BENCH_SCALE"] ?? "") ?? 1
+private let benchReportName: String = {
+    let raw = ProcessInfo.processInfo.environment["DA_BENCH_NAME"] ?? ""
+    return raw.isEmpty ? "nachher" : raw
+}()
 private func scaled(_ count: Int) -> Int { max(2_000, Int(Double(count) * benchScale)) }
 private let referenceDate = Date(timeIntervalSince1970: 1_791_700_000)
 
@@ -286,9 +291,17 @@ private final class BenchReport: @unchecked Sendable {
             noteList = previous.hinweise.filter { !noteList.contains($0) } + noteList
             total += previous.laufzeitGesamtSekunden
         }
-        var markdown = name == "vorher"
-            ? "# Messung Datenbank — vorher (Aufgabe 196)\n\n"
-            : "# Messung Datenbank V3 — Suche einzeln gegen parallel (Aufgabe 232)\n\n"
+        var markdown: String
+        switch name {
+        case "vorher":
+            markdown = "# Messung Datenbank — vorher (Aufgabe 196)\n\n"
+        case "nachher":
+            markdown = "# Messung Datenbank — nachher (Aufgabe 238)\n\n"
+        case "v3-suche":
+            markdown = "# Messung Datenbank V3 — Suche einzeln gegen parallel (Aufgabe 232)\n\n"
+        default:
+            markdown = "# Messung Datenbank — \(name)\n\n"
+        }
         markdown += "- Rechner: \(machine.model), \(machine.cpu), \(machine.memoryGB) GB RAM\n"
         markdown += "- macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)\n"
         markdown += "- Übersetzung: Debug mit `-O` (Release-Tests bauen nicht, Debug-Testhilfen)\n"
@@ -672,7 +685,7 @@ struct IndexBenchTests {
         report.note("Freier Platz zu Beginn von S1: \(gigabytes(free))")
         guard free >= Self.minimumFree else {
             report.note("S1 und S2 abgebrochen: unter 15 GB frei (\(gigabytes(free)))")
-            try report.write(to: outputFolder())
+            try report.write(to: outputFolder(), name: benchReportName)
             Issue.record("zu wenig freier Platz: \(gigabytes(free))")
             return
         }
@@ -691,7 +704,7 @@ struct IndexBenchTests {
         try await concurrentWrites(&scenario, items: scaled(100_000))
         try await runMeasurements(&scenario, deleteLargest: false)
         try await recordSizes(scenario, label: "nach Bereinigung")
-        try report.write(to: outputFolder())
+        try report.write(to: outputFolder(), name: benchReportName)
     }
 
     @Test func s2ManyMedia() async throws {
@@ -700,7 +713,7 @@ struct IndexBenchTests {
         report.note("Freier Platz zu Beginn von S2: \(gigabytes(free))")
         guard free >= Self.minimumFree else {
             report.note("S2 abgebrochen: unter 15 GB frei (\(gigabytes(free)))")
-            try report.write(to: outputFolder())
+            try report.write(to: outputFolder(), name: benchReportName)
             return
         }
         var scenario = try Scenario.make("S2")
@@ -718,14 +731,14 @@ struct IndexBenchTests {
         if build.aborted {
             report.note("S2 nach \(scenario.totalItems) Einträgen abgebrochen (Platz); S1 liegt vollständig vor.")
             try await recordSizes(scenario, label: "Abbruchstand")
-            try report.write(to: outputFolder())
+            try report.write(to: outputFolder(), name: benchReportName)
             return
         }
         try await concurrentWrites(&scenario, items: scaled(100_000))
         // Das größte Medium (3 Mio.) enthält die Sonderordner; es wird beim Löschen gemessen, deshalb zuerst die Spalten.
         try await runMeasurements(&scenario, deleteLargest: true)
         try await recordSizes(scenario, label: "nach Bereinigung")
-        try report.write(to: outputFolder())
+        try report.write(to: outputFolder(), name: benchReportName)
     }
 
     /// Aufgabe 232: Suche auf dem Schema V3 bei 1 Mio. Einträgen, einzelne Abfrage gegen parallele Bereiche.
