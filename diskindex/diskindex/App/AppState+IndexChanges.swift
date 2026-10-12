@@ -17,9 +17,15 @@ extension AppState {
     }
 
     func startChangeLoop() {
-        guard changeLoop == nil, let indexStore else { return }
+        let previous = changeLoop
+        changeLoop = nil
+        previous?.cancel()
+        guard let indexStore else { return }
+        let store = indexStore
         changeLoop = Task { [weak self] in
-            for await event in indexStore.changes {
+            if let previous { await previous.value }
+            guard !Task.isCancelled else { return }
+            for await event in store.changes {
                 guard let self else { return }
                 let dropped = event.generation > self.lastChangeGeneration + 1
                 self.lastChangeGeneration = event.generation
@@ -46,8 +52,7 @@ extension AppState {
 
     /// Vor Prozessende: Hintergrund-Tasks stoppen, Einstellungen sichern, Spalten-Laden abbrechen.
     func prepareForTermination() {
-        changeLoop?.cancel()
-        changeLoop = nil
+        cancelChangeLoop()
         settingsSaveTask?.cancel()
         settingsSaveTask = nil
         pauseExpiryTask?.cancel()

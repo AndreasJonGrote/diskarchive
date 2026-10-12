@@ -213,6 +213,21 @@ final class AppState {
         indexRepository.replaceStore(store)
     }
 
+    /// Change-Loop stoppen; Store bleibt angehängt (Retry/Rewire vor neuem `attach`).
+    func cancelChangeLoop() {
+        changeLoop?.cancel()
+        changeLoop = nil
+    }
+
+    /// Nach Integritätsfehler oder totem Pool: Loop und Store-Referenz lösen (c.0.3.2.003).
+    func detachFromIndexStore() {
+        cancelChangeLoop()
+        indexStore = nil
+        storeReady = false
+        lastChangeGeneration = 0
+        indexRepository.replaceStore(nil)
+    }
+
     // MARK: - Filter & Suche
 
     func toggleFilterBarVisible() {

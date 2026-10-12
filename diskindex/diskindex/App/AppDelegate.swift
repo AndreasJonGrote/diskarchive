@@ -17,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mediumCoordinator: MediumCoordinator?
     private var indexingService: IndexingService?
     private var changeWatcher: ChangeWatcher?
+    private var storeStartupTask: Task<Void, Never>?
+    private var storeStartupGeneration = 0
     private let recognitionLogger = Logger(subsystem: "app.diskarchive", category: "MediumRecognition")
     private var launchKind = AppLaunchKind.click
     private var handedOff = false
@@ -160,12 +162,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func prepareForAppTermination() {
         MenuBarController.shared.prepareForTermination()
         AppWindowPresenter.prepareForTermination()
-        mediumCoordinator?.stop()
         let appState = AppDelegateBridge.appState
+        stopLiveServicesBeforeRewire()
         appState.prepareForTermination()
+        Task { await appState.indexStore?.checkpoint() }
+    }
+
+    /// Coordinator, Watcher und Indexer stoppen (Retry, Integritätsfehler, Beenden).
+    private func stopLiveServicesBeforeRewire() {
+        mediumCoordinator?.stop()
         changeWatcher?.stopAllForTermination()
         indexingService?.cancelAllForTermination()
-        Task { await appState.indexStore?.checkpoint() }
+        mediumCoordinator = nil
+        changeWatcher = nil
+        indexingService = nil
     }
 
     /// XCTest startet die App als Testhost. Einzelinstanz und der Launch-Agent würden diese Kopie beenden.
@@ -264,20 +274,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func startMediumRecognition() {
         let appState = AppDelegateBridge.appState
+        storeStartupTask?.cancel()
+        storeStartupGeneration += 1
+        let generation = storeStartupGeneration
         appState.storeOpening = true
-        StartupSequence.run(
+        appState.clearIndexStoreOpenFailure()
+        storeStartupTask = StartupSequence.run(
             previousRunUnclean: DiskIndexLog.shared.previousRunUnclean,
             defaults: AppDefaults.current,
             open: { try IndexStoreV3.openDefault() },
-            wire: { [weak self] store in self?.wireStore(store, appState: appState) },
-            onFailure: { [weak self] error in self?.handleStoreFailure(error, appState: appState) }
+            wire: { [weak self] store in
+                guard generation == self?.storeStartupGeneration, !Task.isCancelled else { return }
+                self?.wireStore(store, appState: appState)
+            },
+            onFailure: { [weak self] error in
+                guard generation == self?.storeStartupGeneration, !Task.isCancelled else { return }
+                self?.handleStoreFailure(error, appState: appState)
+            }
         )
     }
 
     private func handleStoreFailure(_ error: Error, appState: AppState) {
         DiskIndexLog.shared.record(.store, .error, "open \(error)")
         recognitionLogger.error("Index konnte nicht geöffnet werden: \(error.localizedDescription, privacy: .public)")
-        mediumCoordinator?.stop()
+        if appState.storeReady || appState.indexStore != nil {
+            stopLiveServicesBeforeRewire()
+            appState.prepareForTermination()
+            appState.detachFromIndexStore()
+        } else {
+            mediumCoordinator?.stop()
+            mediumCoordinator = nil
+        }
         appState.reportIndexStoreOpenFailure()
         if launchKind == .login {
             postIndexStoreOpenFailureNotification()
@@ -287,7 +314,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func wireStore(_ store: IndexStoreV3, appState: AppState) {
-        mediumCoordinator?.stop()
+        stopLiveServicesBeforeRewire()
+        appState.cancelChangeLoop()
         appState.clearIndexStoreOpenFailure()
         let access = DirectMediumAccess()
         let service = IndexingService(store: store, access: access, appState: appState)

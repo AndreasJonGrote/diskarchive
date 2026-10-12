@@ -40,9 +40,11 @@ enum StartupSequence {
             do {
                 store = try await Task.detached(priority: .userInitiated) { try open() }.value
             } catch {
+                guard !Task.isCancelled else { return }
                 onFailure(error)
                 return
             }
+            guard !Task.isCancelled else { return }
             log("open", since: opened)
             let wired = DispatchTime.now()
             wire(store)
@@ -58,6 +60,7 @@ enum StartupSequence {
                 log("integrity", since: checked)
             } catch {
                 log("integrity", since: checked)
+                guard !Task.isCancelled else { return }
                 onFailure(error)
             }
         }

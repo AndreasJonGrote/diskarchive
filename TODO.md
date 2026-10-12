@@ -87,7 +87,8 @@ Status: `MediumCoordinator.applyChoice` Z. 326: `hasIndex ? .indexed : .pending`
 
 **c.0.3.2.003 — Store-Öffnen / Retry / Integrität (REPORT 2, 3, 4, 5, 22, 28).**
 Teardown bei Integritätsfehler wie Beenden; Change-Loop an neuen Store binden; vor `wireStore` alte Indexer/Watcher stoppen; Startup-Task single-flight; Retry mit Lade-UI; `indexStore`/`changeLoop` zurücksetzen.
-Status:
+Status: `detachFromIndexStore`/`cancelChangeLoop`; Change-Loop wartet alten Task ab; AppDelegate single-flight + `stopLiveServicesBeforeRewire`; Integritäts-`onFailure` vollständig; Retry `clearIndexStoreOpenFailure`. StoreStartupLifecycleTests. 485 seriell grün. Regel 23: App 12:07:28, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 2/28: `handleStoreFailure` bei ready Store → `stopLiveServicesBeforeRewire` + `prepareForTermination` + `detachFromIndexStore`. REPORT 3: `startChangeLoop` cancel + `await previous` + neuer Store. REPORT 4: `wireStore` stoppt Live-Dienste zuerst. REPORT 5: `storeStartupTask`/`storeStartupGeneration`. REPORT 22: Retry `clearIndexStoreOpenFailure` → `isStoreLoading`. Tests `StoreStartupLifecycleTests` decken Restart/Detach/Retry/Integrität ab. Regel 23: App 12:07:28, find -newer leer. Suite 485 nicht erneut gelaufen. Keine Nacharbeit.
 
 **c.0.3.2.004 — FSEvents / Watcher-Lebenszyklus (REPORT 6, 8, 9, 10).**
 Kein paralleles Schreiben Watcher↔Indexer ohne Token; Stream-Fehler → `continuation.finish`; Unmount → sauber stoppen/neu starten; Cursor nur bei erfolgreichem Reread speichern.
