@@ -102,7 +102,8 @@ Status: `childrenPage` Cursor aus SQL-Zeilen; `visibleSearchHitIDs`/`searchHitPa
 
 **c.0.3.2.006 — IndexingService finish / cancel / Recount (REPORT 13, 15, 26).**
 Token vor Spinner/Task-Clear; `cancel` detached-Task abbrechen; Hintergrund-Recount an Token/`shouldHalt` koppeln.
-Status:
+Status: `finish` prüft Token vor Task/Spinner; `cancel` bricht Task ab, `await task?.value`, UI nur ohne Nachfolger; `publish` guard. DirectoryIndexer: `backgroundRecount` + defer-cancel, `setScanTotal` nur bei aktivem Token. Tests `IndexingFinishCancelTests` (3). 495 Tests serial grün; Debug-App 12:51:22. Bereit zur Prüfung.
+**Prüfung Cursor 12.10. (Code, ohne xcodebuild):** REPORT 13: `finish` Token-`guard` vor Task/Spinner-Clear. REPORT 15: `cancel` → `task?.cancel()` + `await value`; UI/Task nur wenn kein Nachfolger-`runs`. REPORT 26: Recount als `backgroundRecount` + `defer` cancel; `setScanTotal` nur bei `indexingIsActive` (Recount + Zählphase). Tests `IndexingFinishCancelTests` (3). Regel 23: Binary 12:51:31, find -newer leer. Suite 495 nicht erneut. Keine Nacharbeit.
 
 **c.0.3.2.007 — UI / Quit / Meta restlich (REPORT 14, 18, 21, 23, 24, 25, 27).**
 `isSearchInProgress` bei Abbruch; Depth-`contentStamp`/`completedDepth` nur betroffene Storages; `forgetAllMedia` weiterlaufen; Spalten-State Tab-Wechsel; Notification-Delegate Main; Quit-Checkpoint warten; `autoIndexPaused` aus DB.
@@ -130,7 +131,6 @@ Status:
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
 
-- **Signatur und Notarisierung:** Developer ID Application + Notarisierung + Stapeln.
 - **Download-Seite** auf `https://diskarchive.app/` (Nutzer).
 - **Versions-Check** / Update-Modal / Beta-Sperre (siehe README 0.4).
 - **Beta-Verfallsdatum**; **`FeatureAccess`**; Laufzeittest **macOS 14**.
@@ -153,6 +153,10 @@ Noch nicht ausgearbeitet (README).
 
 ### 0.9 — Lizenz
 Medienzahl **1 / 50 / 250**; offene Fragen in README.
+
+### 1.0 – Finales Release
+
+- **Signatur und Notarisierung:** Developer ID Application + Notarisierung + Stapeln.
 
 ### Ohne Zielversion (wartet auf Nutzer)
 

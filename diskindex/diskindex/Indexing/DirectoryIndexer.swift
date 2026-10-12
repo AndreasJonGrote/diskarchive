@@ -56,6 +56,8 @@ nonisolated struct DirectoryIndexer: Sendable {
             DiskIndexLog.shared.record(.index, .error, "begin abgelehnt medium=\(mediumUUID)")
             return IndexRunOutcome(status: .pending, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: stored.firstIndexedAt)
         }
+        var backgroundRecount: Task<Void, Never>?
+        defer { backgroundRecount?.cancel() }
         let fullReconcile = !fromScratch && stored.indexStatus == .indexed && stored.completedDepth > 0
         let startDepth: Int
         if fromScratch || stored.completedDepth == 0 {
@@ -143,7 +145,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                     entriesCompleted: entriesCompleted,
                     finished: false
                 ))
-                Task {
+                backgroundRecount = Task {
                     let recount = await runCountingPhase(
                         store: store,
                         access: access,
@@ -155,6 +157,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         // Nur `scanTotal` aktualisieren; Phase und Fortschritt meldet allein die Ebenen-Schleife.
                         onProgress: { _ in }
                     )
+                    guard await store.indexingIsActive(mediumUUID: mediumUUID, token: token) else { return }
                     if recount > 0 {
                         do {
                             try await store.setScanTotal(mediumUUID: mediumUUID, total: recount)
@@ -445,7 +448,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 }
             }
         }
-        if total > 0 {
+        if total > 0, await store.indexingIsActive(mediumUUID: mediumUUID, token: token) {
             try? await store.setScanTotal(mediumUUID: mediumUUID, total: total)
         }
         return max(total, 1)

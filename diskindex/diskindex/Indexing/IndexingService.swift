@@ -122,7 +122,14 @@ final class IndexingService {
     }
 
     func cancel(mediumUUID: UUID) async {
-        guard let token = runs.removeValue(forKey: mediumUUID) else { return }
+        let task = tasks[mediumUUID]
+        guard task != nil || runs[mediumUUID] != nil else { return }
+        task?.cancel()
+        guard let token = runs.removeValue(forKey: mediumUUID) else {
+            await task?.value
+            tasks[mediumUUID] = nil
+            return
+        }
         runStartedAt.removeValue(forKey: mediumUUID)
         pauseIDs.remove(mediumUUID)
         do {
@@ -131,9 +138,15 @@ final class IndexingService {
             DiskIndexLog.shared.record(.index, .error, "abbruch \(error)")
         }
         DiskIndexLog.shared.record(.index, .info, "abgebrochen medium=\(mediumUUID)")
-        appState.clearMenuBarRunIndicators(mediumUUID)
-        appState.updateMedium(id: mediumUUID) {
-            $0.indexStatus = .pending
+        if runs[mediumUUID] == nil {
+            appState.clearMenuBarRunIndicators(mediumUUID)
+            appState.updateMedium(id: mediumUUID) {
+                $0.indexStatus = .pending
+            }
+        }
+        await task?.value
+        if runs[mediumUUID] == nil {
+            tasks[mediumUUID] = nil
         }
     }
 
@@ -166,6 +179,7 @@ final class IndexingService {
     }
 
     fileprivate func publish(_ mediumUUID: UUID, _ progress: IndexProgress) async {
+        guard runs[mediumUUID] != nil else { return }
         let now = Date()
         if !progress.finished, let last = lastUIUpdate[mediumUUID], now.timeIntervalSince(last) < 0.25 {
             return
@@ -186,9 +200,9 @@ final class IndexingService {
     }
 
     fileprivate func finish(_ mediumUUID: UUID, _ token: UUID, _ outcome: IndexRunOutcome) async {
+        guard runs[mediumUUID] == token else { return }
         tasks[mediumUUID] = nil
         appState.clearMenuBarRunIndicators(mediumUUID)
-        guard runs[mediumUUID] == token else { return }
         runs[mediumUUID] = nil
         let started = runStartedAt.removeValue(forKey: mediumUUID)
         DiskIndexLog.shared.record(.index, .info, "lauf ende medium=\(mediumUUID) status=\(outcome.status)")
