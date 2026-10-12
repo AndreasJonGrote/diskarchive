@@ -138,6 +138,8 @@ final class AppState {
     var detailMediumID: UUID?
     /// FIFO: verbundene Medien, die noch Ja/Nein im Erkennungs-Dialog brauchen (0.3.2).
     var pendingNewMediumDecisionIDs: [UUID] = []
+    /// Panels, die der Nutzer ohne Ja/Nein geschlossen hat (Badge/Queue bleiben).
+    var dismissedNewMediumPanelIDs: Set<UUID> = []
     /// Vorderstes Medium der Warteschlange (verbunden, unentschieden).
     var newMediumDialogMediumID: UUID? {
         pendingNewMediumDecisionIDs.first { id in
@@ -148,6 +150,8 @@ final class AppState {
     var hasPendingNewMediumDecisions: Bool { newMediumDialogMediumID != nil }
     /// Medium-ID, indizieren ja/nein, „merken“. Gesetzt vom `MediumCoordinator`.
     var onNewMediumChoice: ((UUID, Bool, Bool) -> Void)?
+    /// Einstellungen → Speichermedien / Medium-Details: Ja/Nein steuert Lauf und Watcher (`LiveWiring`).
+    @ObservationIgnored var onMediumDecisionChanged: ((UUID, StoredIndexDecision, Bool) -> Void)?
     /// „Neu indizieren“. Gesetzt vom `IndexingService`.
     var onReindexMedium: ((UUID) -> Void)?
     /// Klick ist angekommen, der Lauf hat noch nicht begonnen.

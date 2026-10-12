@@ -322,7 +322,8 @@ final class MediumCoordinator {
                     row.indexStatus = .pending
                 } else {
                     row.decision = .dontIndex
-                    row.indexStatus = .indexed
+                    let hasIndex = row.completedDepth >= 1 || row.fileCount + row.folderCount > 0
+                    row.indexStatus = hasIndex ? .indexed : .pending
                 }
                 try await store.updateMedium(uuid: mediumID, row)
                 stored = row
@@ -343,6 +344,15 @@ final class MediumCoordinator {
             return
         }
         onIndexRequested(mediumID, volume)
+    }
+
+    func clearIndexRequest(mediumID: UUID) {
+        requestedIndex.remove(mediumID)
+    }
+
+    func requestIndexingAfterDecision(mediumID: UUID) {
+        guard let volume = volume(for: mediumID) else { return }
+        requestIndex(mediumID: mediumID, volume: volume)
     }
 
     func forget(mediumID: UUID) {
@@ -377,7 +387,7 @@ final class MediumCoordinator {
     private func requestDialog(_ id: UUID) {
         appState.enqueueNewMediumDecision(id)
         guard !Self.isRunningUnitTests else { return }
-        AppWindowPresenter.openNewMedium(appState: appState)
+        AppWindowPresenter.syncNewMediumPanels(appState: appState)
     }
 
     private func publish(_ stored: StoredMedium, connection: ConnectionStatus) {

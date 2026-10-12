@@ -7,14 +7,14 @@
 
 import SwiftUI
 
-/// Inhalt des systemweiten Panels (`AppWindowPresenter.openNewMedium`); schließt es, sobald entschieden ist.
+/// Inhalt eines Erkennungs-Panels je Medium-ID (`AppWindowPresenter.syncNewMediumPanels`).
 struct NewMediumDialogWindowHost: View {
     @Environment(AppState.self) private var appState
+    let mediumID: UUID
 
     var body: some View {
         Group {
-            if let id = appState.newMediumDialogMediumID,
-               let medium = appState.medium(with: id) {
+            if let medium = appState.medium(with: mediumID), medium.decision == .undecided {
                 NewMediumDetectedDialog(medium: medium)
                     .padding(Self.shadowInset)
             } else {
@@ -23,12 +23,7 @@ struct NewMediumDialogWindowHost: View {
         }
         .fixedSize()
         .onExitCommand {
-            AppWindowPresenter.closeNewMedium()
-        }
-        .onChange(of: appState.newMediumDialogMediumID) { _, newValue in
-            if newValue == nil {
-                AppWindowPresenter.closeNewMedium()
-            }
+            AppWindowPresenter.closeNewMediumPanel(mediumID: mediumID, appState: appState, userDismissed: true)
         }
     }
 
@@ -99,13 +94,17 @@ struct NewMediumDetectedDialog: View {
             onNewMediumChoice(medium.id, allowIndexing, rememberChoice)
         } else {
             appState.updateMedium(id: medium.id) {
+                $0.decision = allowIndexing ? .index : .dontIndex
                 $0.allowIndexing = allowIndexing
-                $0.indexStatus = allowIndexing ? .indexing : .indexed
+                if allowIndexing {
+                    $0.indexStatus = .pending
+                } else if !$0.hasIndex {
+                    $0.indexStatus = .pending
+                }
             }
         }
         appState.completeNewMediumDecision(medium.id)
-        if appState.newMediumDialogMediumID == nil {
-            AppWindowPresenter.closeNewMedium()
-        }
+        AppWindowPresenter.closeNewMediumPanel(mediumID: medium.id, appState: appState, userDismissed: false)
+        AppWindowPresenter.syncNewMediumPanels(appState: appState)
     }
 }

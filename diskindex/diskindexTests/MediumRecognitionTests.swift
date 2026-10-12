@@ -3,6 +3,7 @@
 //  diskindexTests
 //
 
+import AppKit
 import Foundation
 import Testing
 @testable import diskindex
@@ -70,7 +71,7 @@ struct VolumeCandidateRuleTests {
 
 @MainActor
 struct MediumCoordinatorTests {
-    @Test func secondUnknownMediumQueuesBehindFirstUndecided() async throws {
+    @Test func twoUnknownMediaEachStayUndecidedUntilChoice() async throws {
         let rig = try await RecognitionRig.make()
         await rig.coordinator.handle(.appeared(rig.volume(name: "PLATTE_A", path: "/Volumes/PLATTE_A")))
         let first = try #require(rig.appState.newMediumDialogMediumID)
@@ -80,13 +81,26 @@ struct MediumCoordinatorTests {
             uuid: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB",
             created: Date(timeIntervalSince1970: 1_718_102_900)
         )))
-        #expect(rig.appState.newMediumDialogMediumID == first)
         #expect(rig.appState.pendingNewMediumDecisionIDs.count == 2)
+        #expect(rig.indexRequests.isEmpty)
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
+        #expect(AppWindowPresenter.openNewMediumPanelCount == 2)
         rig.appState.onNewMediumChoice?(first, true, false)
         await rig.coordinator.waitForChoice()
-        let second = try #require(rig.appState.newMediumDialogMediumID)
-        #expect(second != first)
         #expect(rig.indexRequests == [first])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
+        #expect(AppWindowPresenter.openNewMediumPanelCount == 1)
+    }
+
+    @Test func dontIndexWithoutIndexKeepsPendingStatus() async throws {
+        let rig = try await RecognitionRig.make()
+        await rig.coordinator.handle(.appeared(rig.volume()))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, false, true)
+        await rig.coordinator.waitForChoice()
+        let stored = try #require(try await rig.store.medium(uuid: id))
+        #expect(stored.decision == .dontIndex)
+        #expect(stored.indexStatus == .pending)
     }
 
     @Test func unknownGrantedStoresMediumAndRequestsDialog() async throws {

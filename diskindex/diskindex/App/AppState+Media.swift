@@ -47,7 +47,12 @@ extension AppState {
             || (before.indexStatus == .indexing && after.indexStatus != .indexing) {
             armReindexGate(id)
         }
-        if persist { scheduleMediumWrite(id) }
+        if persist {
+            scheduleMediumWrite(id)
+            if before.decision != after.decision || before.allowIndexing != after.allowIndexing {
+                onMediumDecisionChanged?(id, after.decision, after.allowIndexing)
+            }
+        }
         noteIndexSample(id: id, status: after.indexStatus, fraction: after.indexProgressFraction, now: Date())
     }
 
@@ -111,6 +116,7 @@ extension AppState {
     func enqueueNewMediumDecision(_ id: UUID) {
         guard !pendingNewMediumDecisionIDs.contains(id) else { return }
         pendingNewMediumDecisionIDs.append(id)
+        dismissedNewMediumPanelIDs.remove(id)
     }
 
     func completeNewMediumDecision(_ id: UUID) {

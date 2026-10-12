@@ -80,7 +80,6 @@ enum LiveWiring {
         }
         coordinator.setIndexHandler { [weak service] id, volume in
             service?.start(mediumUUID: id, volume: volume, fromScratch: false)
-            Task { await startWatching(id, volume) }
         }
         coordinator.onReconcileRequested = { [weak service, weak watcher] id, volume in
             Task {
@@ -101,6 +100,21 @@ enum LiveWiring {
                 coordinator?.forget(mediumID: id)
             }
         }
+
+        appState.onMediumDecisionChanged = { [weak coordinator, weak service, weak watcher] id, decision, allowIndexing in
+            Task {
+                if decision == .dontIndex || !allowIndexing {
+                    await service?.cancel(mediumUUID: id)
+                    await watcher?.stop(mediumID: id)
+                    return
+                }
+                guard decision == .index, allowIndexing else { return }
+                guard appState.medium(with: id)?.connectionStatus == .connected else { return }
+                guard !appState.globalAutoIndexPaused else { return }
+                coordinator?.requestIndexingAfterDecision(mediumID: id)
+            }
+        }
+
         appState.onAutoIndexPauseChanged = { [weak service, weak watcher] in
             service?.pauseChanged()
             watcher?.pauseChanged()

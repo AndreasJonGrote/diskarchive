@@ -12,11 +12,16 @@ import SwiftUI
 enum AppWindowPresenter {
     private static let mainWindowAutosaveName = "DiskIndexMainWindow"
     private static let defaultMainWindowSize = NSSize(width: 1100, height: 750)
+    private static let newMediumStackOffset: CGFloat = 24
+    private static let newMediumScreenMargin: CGFloat = 24
 
     private static var mainWindow: NSWindow?
-    private static var newMediumWindow: NSPanel?
+    private static var newMediumPanels: [UUID: NSPanel] = [:]
     private static var crashReportWindow: NSPanel?
     private static var windowDelegates: [ObjectIdentifier: PresenterWindowDelegate] = [:]
+
+    /// Anzahl offener Erkennungs-Panels (Tests).
+    static var openNewMediumPanelCount: Int { newMediumPanels.count }
 
     /// Öffnet bzw. holt das Hauptfenster nach vorn; `destination == nil` behält die aktuelle Ansicht.
     static func openMain(appState: AppState, destination: MainWindowDestination? = nil) {
@@ -94,55 +99,55 @@ enum AppWindowPresenter {
         }
     }
 
-    /// Systemweites „Neues Medium“-Panel (Aufgabe 9) — schwebt über allen Fenstern.
+    /// Pro unentschiedenem Medium ein schwebendes Panel (0.3.2), unten rechts gestapelt.
+    static func syncNewMediumPanels(appState: AppState, revealDismissed: Bool = false) {
+        let activeIDs = appState.pendingNewMediumDecisionIDs.filter { id in
+            guard let medium = appState.medium(with: id) else { return false }
+            guard medium.connectionStatus == .connected, medium.decision == .undecided else { return false }
+            if !revealDismissed, appState.dismissedNewMediumPanelIDs.contains(id) { return false }
+            return true
+        }
+
+        let stale = Set(newMediumPanels.keys).subtracting(activeIDs)
+        for id in stale {
+            closeNewMediumPanel(mediumID: id, appState: appState, userDismissed: false)
+        }
+
+        for (stackIndex, id) in activeIDs.enumerated() {
+            openOrUpdateNewMediumPanel(mediumID: id, appState: appState, stackIndex: stackIndex, stackCount: activeIDs.count)
+        }
+
+        if let frontID = activeIDs.last, let panel = newMediumPanels[frontID] {
+            panel.orderFrontRegardless()
+            panel.makeKey()
+        }
+    }
+
     static func openNewMedium(appState: AppState) {
-        guard appState.newMediumDialogMediumID != nil else { return }
+        guard appState.hasPendingNewMediumDecisions else { return }
+        syncNewMediumPanels(appState: appState, revealDismissed: true)
+    }
 
-        if let window = newMediumWindow {
-            window.orderFrontRegardless()
-            window.makeKey()
-            return
+    /// Schließen ohne Ja/Nein: Panel weg, Medium bleibt `undecided` (Queue/Badge).
+    static func closeNewMediumPanel(mediumID: UUID, appState: AppState, userDismissed: Bool) {
+        if userDismissed {
+            appState.dismissedNewMediumPanelIDs.insert(mediumID)
         }
-
-        let hosting = NSHostingView(
-            rootView: NewMediumDialogWindowHost()
-                .environment(appState)
-        )
-        let size = hosting.fittingSize
-        let panel = KeyablePanel(
-            contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
-            backing: .buffered,
-            defer: false
-        )
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
-        panel.becomesKeyOnlyIfNeeded = false
-        panel.contentView = hosting
-        hosting.wantsLayer = true
-        hosting.layer?.backgroundColor = NSColor.clear.cgColor
-        panel.center()
-        register(panel) {
-            newMediumWindow = nil
-        }
-        newMediumWindow = panel
-        panel.orderFrontRegardless()
-        panel.makeKey()
+        newMediumPanels[mediumID]?.close()
     }
 
     static func closeNewMedium() {
-        newMediumWindow?.close()
+        for id in Array(newMediumPanels.keys) {
+            newMediumPanels[id]?.close()
+        }
     }
 
     /// Fenster ohne Animation ausblenden — vor dem Prozessende, damit SwiftUI nicht mehr rendert.
     static func prepareForTermination() {
         mainWindow?.orderOut(nil)
-        newMediumWindow?.orderOut(nil)
+        for panel in newMediumPanels.values {
+            panel.orderOut(nil)
+        }
         crashReportWindow?.orderOut(nil)
     }
 
@@ -180,6 +185,65 @@ enum AppWindowPresenter {
         crashReportWindow = panel
         panel.orderFrontRegardless()
         panel.makeKey()
+    }
+
+    private static func openOrUpdateNewMediumPanel(
+        mediumID: UUID,
+        appState: AppState,
+        stackIndex: Int,
+        stackCount: Int
+    ) {
+        let hosting: NSHostingView<AnyView>
+        if let panel = newMediumPanels[mediumID], let existing = panel.contentView as? NSHostingView<AnyView> {
+            hosting = existing
+        } else {
+            hosting = NSHostingView(
+                rootView: AnyView(
+                    NewMediumDialogWindowHost(mediumID: mediumID)
+                        .environment(appState)
+                )
+            )
+            let size = hosting.fittingSize
+            let panel = KeyablePanel(
+                contentRect: NSRect(origin: .zero, size: size),
+                styleMask: [.borderless, .nonactivatingPanel],
+                backing: .buffered,
+                defer: false
+            )
+            panel.isFloatingPanel = true
+            panel.level = .floating
+            panel.backgroundColor = .clear
+            panel.isOpaque = false
+            panel.hasShadow = false
+            panel.hidesOnDeactivate = false
+            panel.isMovableByWindowBackground = true
+            panel.becomesKeyOnlyIfNeeded = false
+            panel.contentView = hosting
+            hosting.wantsLayer = true
+            hosting.layer?.backgroundColor = NSColor.clear.cgColor
+            register(panel) {
+                newMediumPanels.removeValue(forKey: mediumID)
+            }
+            newMediumPanels[mediumID] = panel
+        }
+
+        guard let panel = newMediumPanels[mediumID] else { return }
+        let depthFromNewest = stackCount - 1 - stackIndex
+        placeNewMediumPanel(panel, depthFromNewest: depthFromNewest)
+        panel.orderFrontRegardless()
+    }
+
+    private static func placeNewMediumPanel(_ panel: NSPanel, depthFromNewest: Int) {
+        let visible = NSScreen.main?.visibleFrame ?? .zero
+        let offset = CGFloat(depthFromNewest) * newMediumStackOffset
+        var frame = panel.frame
+        if frame.width < 10 || frame.height < 10, let hosting = panel.contentView as? NSHostingView<AnyView> {
+            let size = hosting.fittingSize
+            frame.size = size
+        }
+        frame.origin.x = visible.maxX - frame.width - newMediumScreenMargin - offset
+        frame.origin.y = visible.minY + newMediumScreenMargin + offset
+        panel.setFrame(frame, display: true)
     }
 
     private static func centerMainWindowOnVisibleScreen(_ window: NSWindow) {

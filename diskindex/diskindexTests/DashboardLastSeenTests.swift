@@ -71,6 +71,48 @@ struct DashboardLastSeenTests {
         #expect(ink.width < prefixRef.width - 20)
     }
 
+
+    @Test func dashboardShowsClockWithAbsoluteOccupancy() async throws {
+        var medium = try #require(PreviewData.media.first)
+        medium.connectionStatus = .connected
+        medium.indexStatus = .indexed
+        medium.completedDepth = 2
+        medium.fileCount = 10
+        medium.lastIndexedAt = Date()
+        medium.capacityUsedBytes = 3_770_000_000_000
+        medium.capacityTotalBytes = 4_100_000_000_000
+        medium.showAbsoluteCapacity = true
+        let app = AppState()
+        app.media = [medium]
+        let width: CGFloat = 960
+        let session = PixelProbe.open(
+            MediumDashboardCard(medium: medium)
+                .environment(app)
+                .environment(\.colorScheme, .light)
+                .frame(width: width, height: 160, alignment: .topLeading)
+                .background(Color.white),
+            size: CGSize(width: width, height: 160),
+            appearance: .aqua
+        )
+        defer { session.close() }
+        let bitmap = session.bitmap()
+        let label = IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexedAt)
+        let rowY: CGFloat = 118
+        let ink = try #require(PixelProbe.inkBounds(
+            in: bitmap,
+            rect: CGRect(x: width * 0.55, y: rowY - 6, width: width * 0.42, height: 20),
+            background: CGPoint(x: 40, y: 40)
+        ))
+        #expect(ink.width > 20)
+        let leftInk = try #require(PixelProbe.inkBounds(
+            in: bitmap,
+            rect: CGRect(x: 8, y: rowY - 6, width: width * 0.45, height: 20),
+            background: CGPoint(x: width - 40, y: 40)
+        ))
+        #expect(leftInk.width > 40)
+        _ = label
+    }
+
     private func referenceLastSeenInk(for text: String) -> CGSize {
         let session = PixelProbe.open(
             HStack(spacing: 4) {

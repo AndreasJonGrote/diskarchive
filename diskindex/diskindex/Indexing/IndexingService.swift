@@ -45,9 +45,13 @@ final class IndexingService {
             }
             return
         }
-        guard !isPaused(mediumUUID) else { return }
+        guard !isPaused(mediumUUID) else {
+            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+            return
+        }
         guard appState.medium(with: mediumUUID)?.decision == .index else {
             DiskIndexLog.shared.record(.index, .info, "auftrag abgelehnt unentschieden medium=\(mediumUUID)")
+            coordinator?.clearIndexRequest(mediumID: mediumUUID)
             return
         }
         DiskIndexLog.shared.record(.index, .info, "auftrag medium=\(mediumUUID) scratch=\(fromScratch)")
