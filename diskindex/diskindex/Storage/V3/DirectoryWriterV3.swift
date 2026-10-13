@@ -407,7 +407,9 @@ nonisolated final class DirectoryWriterV3 {
         parentID: Int64?,
         mountPath: String?
     ) throws -> ListedRow? {
-        guard !entry.isFolder else { return candidate }
+        if entry.isFolder {
+            return folderGoneCandidateIsConfident(candidate, entry: entry, parentID: parentID) ? candidate : nil
+        }
         guard Self.partialMatchingEnabled,
               let mountPath,
               let stored = try fetchPartial(itemID: candidate.id) else { return candidate }
@@ -415,6 +417,16 @@ nonisolated final class DirectoryWriterV3 {
             mountPath: mountPath, parentID: parentID, name: entry.name
         ) else { return nil }
         return stored == incoming ? candidate : nil
+    }
+
+    /// FAT/Ordner ohne `fileID`: kein Revive allein wegen `matches.count == 1` ohne Name+Eltern.
+    private func folderGoneCandidateIsConfident(
+        _ candidate: ListedRow,
+        entry: ScannedEntry,
+        parentID: Int64?
+    ) -> Bool {
+        guard entry.isFolder else { return true }
+        return candidate.name == entry.name && candidate.parentID == parentID
     }
 
     private func disambiguateWithPartial(

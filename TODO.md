@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.242` (danach HALT). `239`–`241` abgenommen. Folge `243`–`244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.243` (danach HALT). `239`–`242` abgenommen. Folge `244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -197,13 +197,16 @@ Status: Nacharbeit b: Restart in `finishRuleReconcileWorker` vor Waiter/Flags/Id
 - **b + Nacharbeit ok:** `finishRuleReconcileWorker` prüft `needsRerun` **zuerst** → `startRuleReconcileWorker` und `return` ohne Waiter/Flags/Idle; erst ohne Restart Flags runter + `resumeRuleReconcileIdleWaiters` + `emitIdle`. Test `waitForIdleWaitsThroughErrorRestart` (Enqueue während Fail-Delay, Idle erst danach).
 - Regel 23: Binary **09:42:34**, Quellen älter, find -newer leer. Suite 529 nicht erneut. **Keine Nacharbeit.** **c.0.3.242 freigegeben.**
 
-**c.0.3.242 — FAT gone-Ordner Mehrdeutigkeit (REPORT 34 / A6).** — **FREIGEGEBEN**
+**c.0.3.242 — FAT gone-Ordner Mehrdeutigkeit (REPORT 34 / A6).** — **ABGENOMMEN**
 `matchGoneCandidate` für Ordner ohne `fileID`: nicht allein wegen `matches.count == 1` reviven, wenn keine belastbaren Merkmale (Eltern/Name/Partial). APFS/`fileID`-Pfad unverändert.
 a) Fix + Test (Sabotage: unkritischer Single-Match ohne Merkmal → rot ✓).
 b) Seriell; **Regel 23**. HALT.
-Status:
+Status: `folderGoneCandidateIsConfident` (Name+parentID) in `verifyPartialMatch`; APFS/fileID unverändert. Tests FAT Ordner negativ/positiv; Sabotage ohne Check → rot ✓. **531/531** seriell. Regel 23: App 10:15:12, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
+- **a ok:** `trustsFileID` → `matchGoneCandidate` weiter `nil`. Ordner-Single-Match nur über `folderGoneCandidateIsConfident` (Name + `parentID`); sonst kein Revive. Tests `fatSingleGoneFolderDoesNotReviveUnrelatedName` / `fatGoneFolderRevivesWhenNameAndParentMatch`. Sabotage laut Status (kein Dauer-Schalter).
+- Regel 23: Binary **10:15:12**, find -newer leer. Suite 531 nicht erneut. **Keine Nacharbeit.** **c.0.3.243 freigegeben.**
 
-**c.0.3.243 — Ordner Live-Pfad-Rename (REPORT 35 / N1).** — noch nicht freigegeben
+**c.0.3.243 — Ordner Live-Pfad-Rename (REPORT 35 / N1).** — **FREIGEGEBEN**
 Heute: `applyLivePathRename` → `false` für Ordner (235b bewusst). Schließen der Lücke: Ordner-Relocate inkl. korrekter Kind-Tiefen/`parentID`, Favoriten-ID bleibt.
 a) Nur wenn Paar eindeutig; sonst Fallback Eltern-Reread wie bisher.
 b) Test Umbenennen/Verschieben Ordner mit Favorit; Sabotage; seriell; **Regel 23**. HALT.
@@ -238,7 +241,7 @@ Status:
 - **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29** / `c.0.3.244`). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
-- **Re-Audit** → **c.0.3.239**–**241** abgenommen; **242** freigegeben; 243–244 wartend; N6/N7 ohne Cursor.
+- **Re-Audit** → **c.0.3.239**–**242** abgenommen; **243** freigegeben; 244 wartend; N6/N7 ohne Cursor.
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester

@@ -125,5 +125,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | c.0.3.239 | Spalten-Cache: `invalidateAll` bumpt Generationen (REPORT 29/A1) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.240 | api_queue Robustheit (busy/Flush/Leak/Reachability; REPORT 30+) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.241 | Wartung Re-Queue + Reconcile Restart (Idle erst final; REPORT 32/36) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.242 | FAT gone-Ordner: Revive nur Name+Eltern (REPORT 34/A6) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 
-**Offen / freigegeben:** `c.0.3.242`. Folge 243–244; F29 → `c.0.3.244`; 0.3.2 Layout/README Nutzer/Claude.
+**Offen / freigegeben:** `c.0.3.243`. Folge 244 (F29); 0.3.2 Layout/README Nutzer/Claude.

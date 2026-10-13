@@ -111,6 +111,57 @@ struct ItemIdentityTests {
         #expect(restored.first?.id != other.id)
     }
 
+    @Test func fatSingleGoneFolderDoesNotReviveUnrelatedName() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Stick", fsType: "msdos", bytes: 1_000)
+        let seen = Date(timeIntervalSince1970: 1_700_000_300)
+        try await harness.store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "Archiv", isFolder: true, modifiedAt: seen)],
+            seenAt: seen
+        )
+        let old = try #require(try await harness.store.children(mediumUUID: medium.uuid, parentID: nil).first)
+        try await harness.store.setFavorite(itemID: old.id, true)
+        try await harness.store.applyDirectory(mediumUUID: medium.uuid, parentID: nil, entries: [], seenAt: seen)
+        try await harness.store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "NeuOrdner", isFolder: true, modifiedAt: seen)],
+            seenAt: seen
+        )
+        let after = try await harness.store.children(mediumUUID: medium.uuid, parentID: nil)
+        #expect(after.count == 1)
+        #expect(after.first?.name == "NeuOrdner")
+        #expect(after.first?.id != old.id)
+        #expect(after.first?.isFavorite == false)
+    }
+
+    @Test func fatGoneFolderRevivesWhenNameAndParentMatch() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Stick", fsType: "msdos", bytes: 1_000)
+        let seen = Date(timeIntervalSince1970: 1_700_000_350)
+        try await harness.store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "Daten", isFolder: true, modifiedAt: seen)],
+            seenAt: seen
+        )
+        let old = try #require(try await harness.store.children(mediumUUID: medium.uuid, parentID: nil).first)
+        try await harness.store.setFavorite(itemID: old.id, true)
+        try await harness.store.applyDirectory(mediumUUID: medium.uuid, parentID: nil, entries: [], seenAt: seen)
+        try await harness.store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "Daten", isFolder: true, modifiedAt: seen)],
+            seenAt: seen
+        )
+        let after = try await harness.store.children(mediumUUID: medium.uuid, parentID: nil)
+        #expect(after.count == 1)
+        #expect(after.first?.id == old.id)
+        #expect(after.first?.isFavorite == true)
+    }
+
     @Test func sabotagePartialDisabledDoesNotReconnectAmbiguous() async throws {
         DirectoryWriterV3.partialMatchingEnabled = false
         defer { DirectoryWriterV3.partialMatchingEnabled = true }
