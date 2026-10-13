@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Keine Cursor-Aufgabe freigegeben** (0.3.2 Layout/README → Nutzer/Claude; **F29** beobachten). **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.239` (danach HALT). Folge `240`–`244` in der Spur, noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -45,9 +45,9 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 |---|---|
 | F11 | beobachten (`serviceRunPassesTheReasonToTheDialog`, parallel selten rot) |
 | F23 | beobachten (kurze `Task.sleep` in mehreren Suites) |
-| F25 | löst **234** (Status-Flag statt Bereich-Bereinigen) |
+| F25 | **erledigt** in **c.0.3.234** (Status-Flag statt Bereich-Bereinigen) |
 | F26 | **erledigt** in **c.0.3.236** (WAL Truncate + Leerlauf-Wartung) |
-| F29 | Spalten 50k „alle Seiten“ nachher langsamer als 196 (+20…30 %); Follow-up Profiling (238-Bericht) |
+| F29 | → Spur **`c.0.3.244`** (ROADMAP 0.3 Spalten-Schwelle; Produktcode, kein Doku/Layout) |
 
 Weitere Alltagfehler trägt Claude hier ein.
 
@@ -159,10 +159,56 @@ Status: **Bereit zur Prüfung** — `ApiQueueKind`/`ApiQueuePersistence`, `Issue
 - **Scope ok:** kein Versions-/Update-API (0.4). Tests Persistenz + `migratesLegacyOutboxFiles` / Cap 50.
 - Regel 23: Binary **20:27:47**, find -newer leer. Suite 521 nicht erneut. **Keine Nacharbeit.**
 
-### Offen, ohne Cursor (Rest 0.3.2)
+**Re-Audit 13.10. — neue Spur (REPORT 29–39 / N1–N5 / A1–A6).** Quelle: [REPORT.md](REPORT.md). N6/N7 Doku → „Offen, ohne Cursor“. N4 kein Fix.
+
+**c.0.3.239 — Spalten-Cache nach Regel-Reconcile (REPORT 29 / A1).** — **FREIGEGEBEN**
+`IndexRepository.invalidateAll` darf `loadGenerations` nicht löschen (sonst matchen In-Flight-Loads Token `0` wieder). Stattdessen Generationen bumpen wie `invalidate` / `prepareForTermination`. Aufrufe aus Regel-Queue (`AppState+RuleReconcile`) bleiben.
+a) Fix + Test: laufender `load` nach `invalidateAll` schreibt nicht in den Cache; Sabotage (altes `removeAll` auf Generationen) → rot ✓.
+b) Seriell, Warnungen 0, **Regel 23**. HALT.
+Status:
+
+**c.0.3.240 — api_queue Robustheit (REPORT 30/31/33/37 = A2/A3/A5/N3).** — noch nicht freigegeben
+Fehlerbericht darf unter Index-Last nicht verloren gehen; Flush nicht doppelt; Leak-Zeilen nicht ewig due; Reachability-State sicher.
+a) Enqueue resilient: `busyMode`/Timeout und/oder gemeinsamer Pool / Retry; bei endgültig fehlgeschlagenem Crash-Enqueue kurzer Fallback (Datei oder erneuter Versuch), nie still verwerfen.
+b) `flush` Single-Flight (Mutex/Flag); Online-Timer und Enqueue teilen denselben Pfad.
+c) Leak-block (`ReportScrubber.leakCategory`): Zeile löschen oder dauerhaft nicht-due markieren; Timer nur bei echter Arbeit.
+d) Optional mitziehen: `ApiQueueReachability.online` atomar/Main-Actor (N3).
+e) Tests inkl. Sabotage wo sinnvoll; seriell; **Regel 23**. HALT.
+Status:
+
+**c.0.3.241 — Wartung + Regel-Reconcile nach Busy/Fehler (REPORT 32/36 = A4/N2).** — noch nicht freigegeben
+a) Leerlauf-Compaction: nicht nach ~2 kurzen Versuchen aufgeben; nach Live-Sync-Ende / Idle erneut `scheduleDatabaseMaintenance`, bis Schuld verarbeitet oder klar idle.
+b) `finishRuleReconcileWorker`: wenn `ruleReconcileNeedsRerun` noch true → Worker neu starten (Fehlerpfad darf pending Enqueue nicht „hängen“ lassen).
+c) Tests + Sabotage; seriell; **Regel 23**. HALT.
+Status:
+
+**c.0.3.242 — FAT gone-Ordner Mehrdeutigkeit (REPORT 34 / A6).** — noch nicht freigegeben
+`matchGoneCandidate` für Ordner ohne `fileID`: nicht allein wegen `matches.count == 1` reviven, wenn keine belastbaren Merkmale (Eltern/Name/Partial). APFS/`fileID`-Pfad unverändert.
+a) Fix + Test (Sabotage: unkritischer Single-Match ohne Merkmal → rot ✓).
+b) Seriell; **Regel 23**. HALT.
+Status:
+
+**c.0.3.243 — Ordner Live-Pfad-Rename (REPORT 35 / N1).** — noch nicht freigegeben
+Heute: `applyLivePathRename` → `false` für Ordner (235b bewusst). Schließen der Lücke: Ordner-Relocate inkl. korrekter Kind-Tiefen/`parentID`, Favoriten-ID bleibt.
+a) Nur wenn Paar eindeutig; sonst Fallback Eltern-Reread wie bisher.
+b) Test Umbenennen/Verschieben Ordner mit Favorit; Sabotage; seriell; **Regel 23**. HALT.
+Status:
+
+**c.0.3.244 — ROADMAP 0.3 Spalten-Schwelle / F29 (REPORT 39 / N5).** — noch nicht freigegeben
+**Nur Produktcode / Performance** — ausdrücklich **kein** Doku-, README- oder Layout-Auftrag.
+ROADMAP 0.3 „Fertig wenn“: Spaltenansicht nicht langsamer (±10 %). Messung 238: 50k „alle Seiten“ S1 ~+30 %, S2 ~+20 % (Größe/Abfrage ok).
+a) Profiling Spalten-Pagination/`childrenPage`/Cache (V3); gezielte Optimierung.
+b) Nachweis: gleicher Messpfad wie 238 (oder dokumentierter Teil-Bench) — Spalten-Guard grün oder ehrlich begründet mit Rest-Δ und Freigabe-Frage.
+c) Keinen Bench/Test abschwächen. Seriell Suite ohne DA_BENCH grün; **Regel 23**. HALT.
+Status:
+
+### Offen, ohne Cursor (Rest 0.3.2 + Doku Re-Audit)
 
 - **Nutzer:** Layout 02 + 04 für **0.3.2** nachziehen (blockiert Code nicht; `c.0.3.2.002`).
 - **Claude** (Cloud; wenn wieder verfügbar) / **jetzt Cursor:** Spur **c.0.3.2.001–007** formell nach DONE/Archiv (Abnahme vorläufig **Cursor auf Nutzerwunsch** 12.10.); README §2 + ROADMAP 0.3.2 / Layout-Reminder (Punkt e aus 002).
+- **REPORT 40 / N6:** `2026-10-12-nachher-bericht.md` §5 — `api_queue` nicht mehr „ungenutzt“ (nach 0.3.1.001).
+- **REPORT 41 / N7:** README Layout-Reminder „Erst Layout, dann Aufgabe“ an Code-Stand 0.3.2 anpassen.
+- **REPORT 38 / N4:** kein Fix (`lastCompactionAt` nur Audit-Zeitstempel laut 236).
 
 ---
 
@@ -174,9 +220,10 @@ Status: **Bereit zur Prüfung** — `ApiQueueKind`/`ApiQueuePersistence`, `Issue
 - **235** → **c.0.3.235** + **235b** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **236** → **c.0.3.236** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus; F26).
 - **237** → **c.0.3.237** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
-- **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29**). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
+- **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29** / `c.0.3.244`). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
+- **Re-Audit** → **c.0.3.239**–**244** in A/Spur (239 freigegeben); N6/N7 ohne Cursor.
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester

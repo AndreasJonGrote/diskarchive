@@ -1,6 +1,6 @@
 # Code-Befunde (technische Fehler)
 
-Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `IndexStoreV3`, Datei `archive.sqlite`). Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge.
+Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `IndexStoreV3`, Datei `archive.sqlite`). Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge. **2–28:** behoben in Cursor-Spur `c.0.3.2.002`–`007` (Commits `ccd79ce`…`d7dc092` bzw. 002). **29+:** neu aus Re-Audit 13.10.
 
 ## Behoben in `be80c9c`
 
@@ -12,37 +12,59 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 
 ---
 
-## Übersicht (offen)
+## Übersicht
 
-| Nr | Schwere | Kurz |
-|----|---------|------|
-| 2 | Kritisch | Nach Integritätsfehler laufen Dienste weiter, DB-Handle unbrauchbar |
-| 3 | Hoch | Change-Loop bleibt am ersten Store nach Retry |
-| 4 | Hoch | `wireStore` stoppt vorherigen Indexer/Watcher nicht |
-| 5 | Hoch | Parallele Startup-Tasks ohne Abbruch |
-| 6 | Hoch | FSEvents-Watcher während Erstlauf/Abgleich |
-| 7 | Hoch | „Indizieren“ Ja/Nein ohne Stop/Start/Watcher |
-| 8 | Hoch | FSEvents-Setup scheitert → Watcher-Task hängt |
-| 9 | Hoch | Stream-Unmount beendet Watcher ohne Neustart |
-| 10 | Hoch | Live-Reread: DB-Fehler, Cursor trotzdem gespeichert |
-| 11 | Hoch | Suche: `LIMIT` vor Scope-Filter |
-| 12 | Hoch | Spalten-Pagination endet bei leer gefilterter Seite |
-| 13 | Hoch | `finish` räumt Task/Spinner vor Token-Prüfung auf |
-| 14 | Hoch | Suche: `isSearchInProgress` bleibt bei Abbruch |
-| 15 | Mittel | `cancel` bricht detached Index-Task nicht ab |
-| 16 | Mittel | `requestedIndex`-Latch bei Pause-No-Op |
-| 17 | Mittel | „Nicht indizieren“ setzt `indexStatus = .indexed` ohne Index |
-| 18 | Mittel | Depth-Bereinigung: globale Metadaten-Updates (teilweise verbessert) |
-| 19 | Mittel | `childCount` ignoriert `IndexScope` |
-| 20 | Mittel | `searchCount` scannt alle Treffer in Swift |
-| 21 | Mittel | `forgetAllMedia` bricht DB-Löschung beim ersten Fehler ab |
-| 22 | Mittel | Store-Retry ohne Ladezustand in der UI |
-| 23 | Mittel | Spalten-State nur teilweise beim Tab-Wechsel zurückgesetzt |
-| 24 | Mittel | Mitteilungs-Delegate ohne Main-Thread-Garantie |
-| 25 | Mittel | Quit-Checkpoint nicht abgewartet |
-| 26 | Mittel | Hintergrund-Recount ohne Lauf-Kopplung |
-| 27 | Niedrig | `autoIndexPaused` aus DB geht in `asMedium` verloren |
-| 28 | Mittel | Integritätsfehler: `indexStore`/`changeLoop` nicht zurückgesetzt |
+### Behoben (2–28)
+
+| Nr | Schwere | Kurz | Spur |
+|----|---------|------|------|
+| 2 | Kritisch | Nach Integritätsfehler laufen Dienste weiter, DB-Handle unbrauchbar | `c.0.3.2.003` |
+| 3 | Hoch | Change-Loop bleibt am ersten Store nach Retry | `c.0.3.2.003` |
+| 4 | Hoch | `wireStore` stoppt vorherigen Indexer/Watcher nicht | `c.0.3.2.003` |
+| 5 | Hoch | Parallele Startup-Tasks ohne Abbruch | `c.0.3.2.003` |
+| 6 | Hoch | FSEvents-Watcher während Erstlauf/Abgleich | `c.0.3.2.004` |
+| 7 | Hoch | „Indizieren“ Ja/Nein ohne Stop/Start/Watcher | `c.0.3.2.002` |
+| 8 | Hoch | FSEvents-Setup scheitert → Watcher-Task hängt | `c.0.3.2.004` |
+| 9 | Hoch | Stream-Unmount beendet Watcher ohne Neustart | `c.0.3.2.004` |
+| 10 | Hoch | Live-Reread: DB-Fehler, Cursor trotzdem gespeichert | `c.0.3.2.004` |
+| 11 | Hoch | Suche: `LIMIT` vor Scope-Filter | `c.0.3.2.005` |
+| 12 | Hoch | Spalten-Pagination endet bei leer gefilterter Seite | `c.0.3.2.005` |
+| 13 | Hoch | `finish` räumt Task/Spinner vor Token-Prüfung auf | `c.0.3.2.006` |
+| 14 | Hoch | Suche: `isSearchInProgress` bleibt bei Abbruch | `c.0.3.2.007` |
+| 15 | Mittel | `cancel` bricht detached Index-Task nicht ab | `c.0.3.2.006` |
+| 16 | Mittel | `requestedIndex`-Latch bei Pause-No-Op | `c.0.3.2.002` |
+| 17 | Mittel | „Nicht indizieren“ setzt `indexStatus = .indexed` ohne Index | `c.0.3.2.002` / `002b` |
+| 18 | Mittel | Depth-Bereinigung: globale Metadaten-Updates (teilweise verbessert) | `c.0.3.2.007` |
+| 19 | Mittel | `childCount` ignoriert `IndexScope` | `c.0.3.2.005` |
+| 20 | Mittel | `searchCount` scannt alle Treffer in Swift | `c.0.3.2.005` |
+| 21 | Mittel | `forgetAllMedia` bricht DB-Löschung beim ersten Fehler ab | `c.0.3.2.007` |
+| 22 | Mittel | Store-Retry ohne Ladezustand in der UI | `c.0.3.2.003` |
+| 23 | Mittel | Spalten-State nur teilweise beim Tab-Wechsel zurückgesetzt | `c.0.3.2.007` |
+| 24 | Mittel | Mitteilungs-Delegate ohne Main-Thread-Garantie | `c.0.3.2.007` |
+| 25 | Mittel | Quit-Checkpoint nicht abgewartet | `c.0.3.2.007` |
+| 26 | Mittel | Hintergrund-Recount ohne Lauf-Kopplung | `c.0.3.2.006` |
+| 27 | Niedrig | `autoIndexPaused` aus DB geht in `asMedium` verloren | `c.0.3.2.007` |
+| 28 | Mittel | Integritätsfehler: `indexStore`/`changeLoop` nicht zurückgesetzt | `c.0.3.2.003` |
+
+### Offen (29+, Re-Audit 13.10.)
+
+| Nr | Alias | Schwere | Kurz | Spur-Plan |
+|----|-------|---------|------|-----------|
+| 29 | A1 | Hoch | `invalidateAll` löscht Generationen → stale Spalten-Cache nach Regel-Reconcile | `c.0.3.239` |
+| 30 | A2 | Hoch | Fehlerbericht-Enqueue verwirft bei busy Index-DB (zweiter Pool, kein Fallback) | `c.0.3.240` |
+| 31 | A3 | Mittel | Parallele `flush()` → doppelter API-Send | `c.0.3.240` |
+| 32 | A4 | Mittel | Leerlauf-Wartung gibt nach ~4 s auf; Schuld bleibt | `c.0.3.241` |
+| 33 | A5 | Mittel | Leak-blockierte Queue-Zeilen bleiben ewig due | `c.0.3.240` |
+| 34 | A6 | Niedrig | FAT: einzelner gone-Ordner kann falsch revived werden | `c.0.3.242` |
+| 35 | N1 | Niedrig | Live-Pfad-Rename für Ordner absichtlich `false` (235b-Lücke) | `c.0.3.243` |
+| 36 | N2 | Mittel | Regel-Reconcile: nach Fehler kein Neustart trotz `needsRerun` | `c.0.3.241` |
+| 37 | N3 | Niedrig | `ApiQueueReachability.online` ohne Sync (`@unchecked Sendable`) | `c.0.3.240` |
+| 38 | N4 | — | `lastCompactionAt` nur schreiben (kein Zeit-Trigger; Spec 236) | kein Fix |
+| 39 | N5 | Hoch* | ROADMAP 0.3: Spalten 50k langsamer (F29); Größe/Abfrage ok | `c.0.3.244` |
+| 40 | N6 | Doku | 238-Bericht: `api_queue` „ungenutzt“ veraltet | ohne Cursor |
+| 41 | N7 | Doku | README Layout-Reminder „erst Layout“ vs. Code 0.3.2 | ohne Cursor |
+
+\*Produktziel / Schwellen-Guard, kein Crash.
 
 ---
 
@@ -54,6 +76,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Nach erfolgreichem `wire(store)` laufen Erkennung, Change-Loop, Indizierung und FSEvents. Schlägt danach `quick_check` fehl, wird die DB quarantänisiert und der Pool geschlossen — Indexer/Watcher/Change-Loop laufen weiter; `AppState.indexStore` zeigt weiter auf den geschlossenen Store.
 - **Warum:** `wire` erfolgt vor dem Integritätscheck. `handleStoreFailure` ruft nur `mediumCoordinator?.stop()` auf, nicht `prepareForAppTermination()` (Watcher, Indexer, `appState.prepareForTermination()`). `reportIndexStoreOpenFailure` setzt `storeReady = false`, aber weder `indexStore = nil` noch Abbruch des Change-Loops.
 - **Vorschlag:** Bei Integritätsfehler dieselbe Abbruchkette wie beim Beenden; `indexStore`/`storeReady`/`changeLoop` zurücksetzen. Integrität prüfen vor `wire` oder bei Fehler nach `wire` vollständig entkoppeln.
+- **Behoben in Cursor-Spur:** `c.0.3.2.003` (Commit `ccd79ce`).
 
 ### 3. Change-Loop bleibt am ersten Store
 
@@ -61,6 +84,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Nach DB-Retry mit neuem `IndexStoreV3` kommen DB-Events (`emit`) nicht mehr zuverlässig in der UI an (Suche/Spalten/Favoriten-Refresh).
 - **Warum:** `startChangeLoop` startet nur wenn `changeLoop == nil` und iteriert über das beim Start erfasste `indexStore`. Retry ruft erneut `startChangeLoop` auf, ohne alten Loop zu canceln/neu zu binden.
 - **Vorschlag:** Vor neuem Loop alten canceln; Loop liest `indexStore` über `weak self` pro Event oder explizit nach `attach(store:)` neu starten.
+- **Behoben in Cursor-Spur:** `c.0.3.2.003` (Commit `ccd79ce`).
 
 ### 4. Erneutes Verdrahten ohne Stoppen der alten Dienste
 
@@ -68,6 +92,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Zweites `wireStore` (Retry) ersetzt Referenzen auf `IndexingService`/`ChangeWatcher`, stoppt aber die vorherigen Instanzen nicht.
 - **Warum:** Es wird nur `mediumCoordinator?.stop()` aufgerufen, nicht `changeWatcher?.stopAllForTermination()` / `indexingService?.cancelAllForTermination()`.
 - **Vorschlag:** Vor Erzeugen neuer Dienste die alten wie bei `prepareForAppTermination` stoppen; Startup-Task serialisieren (siehe Nr. 5).
+- **Behoben in Cursor-Spur:** `c.0.3.2.003` (Commit `ccd79ce`).
 
 ### 5. Überlappende Startup-Tasks
 
@@ -75,6 +100,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Mehrfaches Retry oder schnelles erneutes Öffnen kann zwei parallele `wire(store)`-Aufrufe auslösen.
 - **Warum:** Jeder Aufruf startet ein neues `Task` ohne Handle, Abbruch oder „single flight“.
 - **Vorschlag:** Laufenden Startup-Task speichern und vor neuem Start canceln; oder Mutex bis `wire` abgeschlossen.
+- **Behoben in Cursor-Spur:** `c.0.3.2.003` (Commit `ccd79ce`).
 
 ### 6. Live-Watcher parallel zum Index-Lauf
 
@@ -82,6 +108,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Während Erstlauf oder Abgleich können FSEvents-Flushes und der Indexer gleichzeitig in dieselbe `items`-Tabelle schreiben. Beim Abgleich wird der Watcher nach `stop` sofort wieder gestartet, bevor der Lauf endet.
 - **Warum:** Watcher startet bei Index-Anforderung (`setIndexHandler`), nicht erst zuverlässig nach erfolgreichem Lauf (`onRunIndexed` allein reicht nicht). `applyDirectories` prüft keinen `indexingToken`.
 - **Vorschlag:** Watcher erst nach erfolgreichem Lauf starten oder während aktivem Token Watcher-Schreibvorgänge verweigern/queueen; bei Abgleich Watcher bis Laufende gestoppt lassen.
+- **Behoben in Cursor-Spur:** `c.0.3.2.004` (Commit `07af1e8`).
 
 ### 7. Einstellungen „Indizieren“ ohne Lauf-Steuerung
 
@@ -89,6 +116,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Wechsel auf „Nein“ stoppt weder Indizierung noch FSEvents; Wechsel auf „Ja“ startet keinen Lauf, solange kein anderer Pfad (Mount, Reindex) greift.
 - **Warum:** Kein Hook wie `onMediaForgotten` / `LiveWiring` für Entscheidungsänderung — nur UI + debounced DB-Schreiben.
 - **Vorschlag:** Bei Entscheidungsänderung `cancel` + Watcher stoppen (Nein) bzw. `start` + Watcher (Ja, wenn verbunden und nicht pausiert), analog Erkennungsdialog.
+- **Behoben in Cursor-Spur:** `c.0.3.2.002` (Commit in Spur 002; Entscheidungs-Hook / LiveWiring).
 
 ### 8. FSEvents-Stream-Setup: hängender AsyncStream
 
@@ -96,6 +124,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Live-Updates für ein Medium bleiben dauerhaft aus; `ChangeWatcher.tasks[mediumID]` blockiert in `for await`.
 - **Warum:** Scheitert `FSEventStreamCreate` oder `FSEventStreamStart`, wird `close()` aufgerufen, aber `continuation.finish()` nie — der Stream liefert keine Events und endet nicht.
 - **Vorschlag:** Bei Fehler `continuation.finish()` (optional mit Fehler-Event); Watcher-Task beenden und `tasks`/`sources` aufräumen.
+- **Behoben in Cursor-Spur:** `c.0.3.2.004` (Commit `07af1e8`).
 
 ### 9. FSEvents-Unmount: Watcher tot, Medium noch verbunden
 
@@ -103,6 +132,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Nach internem Unmount-Event keine Live-Sync mehr, obwohl Coordinator das Medium noch als angeschlossen führt.
 - **Warum:** Task und Source werden entfernt, `mounts`/`volumes`/`cursors` bleiben; kein `saveCursor`, kein Restart; Wake-Restart überspringt nicht-watchende Medien.
 - **Vorschlag:** Vollständiges `stop(mediumID:)` oder bei verbundenem Medium Watcher neu starten; Cursor speichern.
+- **Behoben in Cursor-Spur:** `c.0.3.2.004` (Commit `07af1e8`).
 
 ### 10. Live-Reread: Fehler, Cursor dennoch fortgeschrieben
 
@@ -110,6 +140,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Index weicht von der Platte ab; Nutzer sieht keinen Fehler; spätere Events gelten als verarbeitet.
 - **Warum:** `applyDirectories`-Fehler werden nur geloggt; Rückgabe bleibt `.ok`; `flush` ruft immer `saveCursor` auf.
 - **Vorschlag:** Bei Fehler `.needsFullReconcile` oder Fehlerzustand; Cursor nur bei Erfolg speichern.
+- **Behoben in Cursor-Spur:** `c.0.3.2.004` (Commit `07af1e8`).
 
 ### 11. Suche: Limit vor Namens-Scope
 
@@ -117,6 +148,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Während ausstehender Bereinigung (`pruneAt`, `scope.checksNames`) können Suchlisten leer oder stark unter 500 Treffer sein, obwohl `searchCount` hoch ist.
 - **Warum:** SQL wendet `LIMIT` an (`searchHitsSQL`), danach filtert Swift nach Ausschluss/Artefakt-Regeln.
 - **Vorschlag:** Bei `checksNames` paginieren bis genug sichtbare Treffer oder Filter in SQL nachziehen (wo möglich).
+- **Behoben in Cursor-Spur:** `c.0.3.2.005` (Commit `cb0c60c`).
 
 ### 12. Spalten: Pagination bricht bei leerer gefilterter Seite ab
 
@@ -124,6 +156,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Ordner wirkt leer oder unvollständig, obwohl sichtbare Kinder weiter hinten in der DB existieren.
 - **Warum:** Liefert die DB-Seite Zeilen, filtert Swift aber alle weg, ist `filtered.count < limit` → `nextCursor = nil` (auch wenn `rows` voll war).
 - **Vorschlag:** Weiterblättern in SQL, solange `nextCursor` aus letzter DB-Zeile kommt, nicht aus gefilterter Menge; oder leere Seite ≠ Ende.
+- **Behoben in Cursor-Spur:** `c.0.3.2.005` (Commit `cb0c60c`).
 
 ### 13. Index-`finish`: UI vor Token-Validierung
 
@@ -131,6 +164,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Menüleisten-Spinner verschwindet, obwohl ein neuerer Lauf für dasselbe Medium aktiv ist.
 - **Warum:** `tasks[mediumUUID] = nil` und `clearMenuBarRunIndicators` laufen vor `guard runs[mediumUUID] == token`.
 - **Vorschlag:** Zuerst Token prüfen, dann Task/Spinner nur für gültigen Lauf zurücksetzen.
+- **Behoben in Cursor-Spur:** `c.0.3.2.006` (Commit `90ef0ba`).
 
 ### 14. Suche: Fortschrittsflag bei Task-Abbruf
 
@@ -138,6 +172,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Nach Verlassen der Suche oder Abbruch der SwiftUI-`.task` bleibt „Suche läuft“ sichtbar.
 - **Warum:** `isSearchInProgress = true` ohne `defer`/Cancellation-Handler; bei Abbruch während `await SearchIndex.matching` oder bei `generation != searchGeneration` (Z. 114) wird Z. 127 nicht erreicht.
 - **Vorschlag:** `defer { … false }` mit Generation/Cancellation-Prüfung oder bei Cancellation explizit zurücksetzen.
+- **Behoben in Cursor-Spur:** `c.0.3.2.007` (Commit `d7dc092`).
 
 ### 15. `cancel` ohne Task-Abbruch
 
@@ -145,6 +180,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Nach Abziehen/Vergessen kann der Indexer noch lange I/O auf dem Medium ausführen und spät `finish` aufrufen.
 - **Warum:** Es wird nur der Token entfernt und `halt` liefert `.cancel`; `tasks[mediumUUID]?.cancel()` fehlt.
 - **Vorschlag:** Detached-Task canceln; danach wie bisher Token/Store/UI.
+- **Behoben in Cursor-Spur:** `c.0.3.2.006` (Commit `90ef0ba`).
 
 ### 16. `requestedIndex`-Latch bei frühem `start`-Abbruch
 
@@ -152,6 +188,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Medium startet nach Pause/Entscheidung keinen Erstlauf, bis Remount.
 - **Warum:** Latch wird gesetzt, bevor `start` läuft; bei `isPaused` returniert `start` ohne Lauf, Latch bleibt gesetzt.
 - **Vorschlag:** Latch erst nach erfolgreichem Start setzen, oder bei No-Op `requestedIndex.remove(mediumID)`.
+- **Behoben in Cursor-Spur:** `c.0.3.2.002` (Commit in Spur 002).
 
 ### 17. Erkennungsdialog „Nicht indizieren“: falscher Index-Status
 
@@ -159,6 +196,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Medium ohne Index kann in DB/UI als `indexStatus == .indexed` erscheinen (Chip/Filter inkonsistent zu `hasIndex`).
 - **Warum:** Bei `allowIndexing == false` wird `indexStatus` auf `.indexed` gesetzt, unabhängig vom vorhandenen Index.
 - **Vorschlag:** Status unverändert lassen oder expliziten Zustand „kein Index + Nein“; nicht `.indexed` ohne Daten.
+- **Behoben in Cursor-Spur:** `c.0.3.2.002` / `c.0.3.2.002b` (`hasIndex ? .indexed : .pending` in `applyChoice`).
 
 ### 18. Depth-Bereinigung: globale Metadaten-Updates (teilweise verbessert)
 
@@ -166,6 +204,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Unrelated Medien können `completedDepth` und Ordner-`contentStamp` verlieren → unnötiger Abgleich oder falsche Tiefe.
 - **Warum:** Eintrags-Löschung ist korrekt über `id`/`storageID`; Metadaten-Updates bei `maxDepth` aber weiter global: `UPDATE items SET contentStamp = NULL WHERE … depth = ?` ohne `storageID`, und `completedDepth` wird für **alle** `storages` gekappt, nicht nur `touchedStorages`.
 - **Vorschlag:** `contentStamp`-Update und `completedDepth`-Anpassung auf betroffene `storageID`(s) beschränken.
+- **Behoben in Cursor-Spur:** `c.0.3.2.007` (Commit `d7dc092`).
 
 ### 19. `childCount` ohne Scope
 
@@ -173,6 +212,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Lade-Fortschritt in großen Ordnern stimmt während ausstehender Bereinigung nicht (`loaded/total`).
 - **Warum:** Parameter `scope` wird mit `_ = scope` ignoriert.
 - **Vorschlag:** Scope in SQL anwenden oder separaten Zähler für sichtbare Kinder liefern.
+- **Behoben in Cursor-Spur:** `c.0.3.2.005` (Commit `cb0c60c`).
 
 ### 20. `searchCount` bei Swift-Namensregeln
 
@@ -180,6 +220,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Trefferzählung bei großen Indizes und aktiven Artefakt-/Ausschlussregeln kann sehr lange dauern (UI blockiert auf Count-Task).
 - **Warum:** Voller Cursor über alle SQL-Treffer mit Swift-Filter pro Zeile. Ohne `checksNames` ist Zählung parallelisiert (Verbesserung gegenüber V2).
 - **Vorschlag:** Kurzfristig UX (Timeout, Schätzung); mittelfristig Regeln in SQL oder Zähler cache invalidieren bei Scope-Ende.
+- **Behoben in Cursor-Spur:** `c.0.3.2.005` (Commit `cb0c60c`).
 
 ### 21. `forgetAllMedia`: abgebrochene DB-Löschung
 
@@ -187,6 +228,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** UI leer, in der DB bleiben Medien/Einträge für nicht gelöschte IDs.
 - **Warum:** Bei operativem Fehler in der Schleife `return` statt `continue`.
 - **Vorschlag:** Fehler pro ID loggen und weitermachen; optional Gesamtfehler in UI melden.
+- **Behoben in Cursor-Spur:** `c.0.3.2.007` (Commit `d7dc092`).
 
 ### 22. Store-Retry ohne Ladeanzeige
 
@@ -194,6 +236,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Während Retry erscheint Hauptinhalt statt Ladezustand, obwohl Store nicht bereit ist.
 - **Warum:** Retry ruft `startMediumRecognition` auf (`storeOpening = true`), lässt aber `indexStoreOpenFailed == true` bis erfolgreiches `wireStore` → `isStoreLoading` ist false.
 - **Vorschlag:** Beim Retry `indexStoreOpenFailed = false` oder separates `isStoreRetrying`; bis `attach` Lade-UI zeigen.
+- **Behoben in Cursor-Spur:** `c.0.3.2.003` (Commit `ccd79ce`).
 
 ### 23. Spaltenansicht: unvollständiger Reset beim Tab-Wechsel
 
@@ -201,6 +244,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Nach Wechsel Dashboard → Spalten → Dashboard → Spalten können Pfad/Medium zur alten Selection passen, Selection aber geleert sein.
 - **Warum:** Nur `selection` und Filter werden zurückgesetzt, nicht Navigationszustand der Spalten.
 - **Vorschlag:** Beim Verlassen von `.columnBrowser` in `mainWindowDestination.didSet` zusätzlich `pathStack`, `selectedMediumID` und `selectedUncapturedFolderID` zurücksetzen (oder den kompletten `ColumnBrowserState` außer `sidebarWidth`/`folderColumnWidth` neu initialisieren).
+- **Behoben in Cursor-Spur:** `c.0.3.2.007` (Commit `d7dc092`).
 
 ### 24. Mitteilungs-Delegate: Main-Actor-Annahme
 
@@ -208,6 +252,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Potentieller Crash oder Race, wenn Apple den Delegate off-main aufruft.
 - **Warum:** `MainActor.assumeIsolated` ohne vorheriges Dispatch auf Main.
 - **Vorschlag:** `DispatchQueue.main.async` + MainActor-isolated Block oder `@MainActor`-Methoden mit dokumentierter Queue.
+- **Behoben in Cursor-Spur:** `c.0.3.2.007` (Commit `d7dc092`).
 
 ### 25. Beenden: Checkpoint nicht abgewartet
 
@@ -215,6 +260,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** WAL/letzte Schreibvorgänge können beim Prozessende verloren gehen → längeres Recovery beim nächsten Start.
 - **Warum:** `Task { await checkpoint() }` ohne Warten; `applicationWillTerminate` endet sofort danach.
 - **Vorschlag:** Synchronen Checkpoint-Pfad für Terminate (kurzes Timeout) oder Beenden verzögern bis Checkpoint fertig.
+- **Behoben in Cursor-Spur:** `c.0.3.2.007` (Commit `d7dc092`).
 
 ### 26. Hintergrund-Recount entkoppelt vom Lauf
 
@@ -222,6 +268,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** `scanTotal` und Fortschritt springen nach Cancel/Reindex/Finish noch nachträglich.
 - **Warum:** Unstrukturiertes `Task` ruft `runCountingPhase`/`setScanTotal` ohne Token- oder Cancel-Prüfung auf.
 - **Vorschlag:** Recount an `token`/`shouldHalt` binden oder Task canceln, wenn der Lauf endet.
+- **Behoben in Cursor-Spur:** `c.0.3.2.006` (Commit `90ef0ba`).
 
 ### 27. `autoIndexPaused` aus Persistenz ignoriert
 
@@ -229,6 +276,7 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** In DB gespeichertes `autoIndexPaused` wirkt nicht auf `IndexingService.isPaused` nach Reload/Publish.
 - **Warum:** `asMedium` setzt `autoIndexPaused: false` fest.
 - **Vorschlag:** Wert aus `StoredMedium.autoIndexPaused` übernehmen (Feld ist in DB und `writeMedium` vorhanden).
+- **Behoben in Cursor-Spur:** `c.0.3.2.007` (Commit `d7dc092`).
 
 ### 28. Integritätsfehler: Change-Loop und Store-Referenz
 
@@ -236,6 +284,115 @@ Stand: 12.10.2026, geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `
 - **Was:** Nach fehlgeschlagenem Hintergrund-`quick_check` zeigt die UI Fehlerdialog, aber der Change-Loop lauscht weiter auf dem geschlossenen Pool; nach Retry können zwei Loops oder ein Loop am alten Stream aktiv sein (siehe Nr. 3).
 - **Warum:** Integritätsfehler nutzt dieselbe `onFailure`-Route wie Öffnen, ohne `changeLoop?.cancel()` und ohne `indexStore = nil` / `indexRepository.replaceStore(nil)`.
 - **Vorschlag:** In `handleStoreFailure` nach erstem erfolgreichem Wire unterscheiden oder generell Change-Loop stoppen und Store-Referenz lösen, bevor der Fehlerdialog erscheint.
+- **Behoben in Cursor-Spur:** `c.0.3.2.003` (Commit `ccd79ce`; gemeinsam mit Nr. 2).
+
+---
+
+## Neue Befunde (Re-Audit 13.10.)
+
+### 29 / A1. Spalten-Cache: `invalidateAll` löscht Generationen
+
+- **Wo:** `IndexRepository.invalidateAll`; Aufruf aus `AppState+RuleReconcile` (`startRuleReconcileWorker` / nach Idle)
+- **Was:** Nach Regel-Reconcile können veraltete Ordner-Loads den Cache überschreiben (falsche / gefilterte Zeilen, Flackern).
+- **Warum:** `invalidate` bumpt `loadGenerations`, `invalidateAll` macht `removeAll()` — laufende Loads mit Token `0` matchen danach wieder `default: 0`.
+- **Vorschlag:** Wie bei `invalidate` Generationen bumpen (oder globale Generation), nicht löschen; Test: Load während `invalidateAll` schreibt nicht mehr.
+- **Spur:** `c.0.3.239`
+
+### 30 / A2. Fehlerbericht verloren bei busy Index-DB
+
+- **Wo:** `ApiQueuePersistence.openQueuePool` (zweiter `DatabasePool` auf `archive.sqlite`); `IssueReporter.enqueue` `catch` → log + `return`
+- **Was:** Unter Last (langer Index-Write) kann Enqueue scheitern; Bericht ist weg (kein Datei-Outbox-Fallback mehr).
+- **Warum:** Kein `busyMode`/Timeout in `SchemaV3.makeConfiguration`; zweiter Pool konkurriert mit dem Index-Pool.
+- **Vorschlag:** Busy-Timeout und/oder gemeinsamen Pool / Retry; optional kurzer Datei-Fallback nur für Crash-Enqueue.
+- **Spur:** `c.0.3.240`
+
+### 31 / A3. Parallele `flush()` doppelter Send
+
+- **Wo:** `IssueReporter.flush` / `flushInBackground`; Trigger von `ApiQueueReachability` (online) + 60-s-Timer + Enqueue
+- **Was:** Dieselbe Queue-Zeile kann zweimal POSTet und gelöscht werden.
+- **Warum:** Kein Single-Flight / Mutex um `flush`.
+- **Vorschlag:** Ein laufender Flush; weitere Aufrufe warten oder mergen.
+- **Spur:** `c.0.3.240`
+
+### 32 / A4. Leerlauf-Wartung bricht nach kurzer Busy-Phase ab
+
+- **Wo:** `AppState+DatabaseMaintenance.startDatabaseMaintenanceWorker` (wenige Versuche); `endMediumLiveSync` plant nicht neu
+- **Was:** Nach Index/Live kann Freelist/Schuld liegen bleiben, bis der nächste Trigger kommt.
+- **Warum:** Worker gibt auf, wenn `canRunDatabaseMaintenance` mehrfach false ist.
+- **Vorschlag:** Länger/backoff erneut versuchen oder nach `endMediumLiveSync` / Idle erneut `scheduleDatabaseMaintenance`.
+- **Spur:** `c.0.3.241`
+
+### 33 / A5. Leak-blockierte Queue-Zeilen bleiben stecken
+
+- **Wo:** `IssueReporter.send` — `ReportScrubber.leakCategory` → `return` ohne Delete/Markierung
+- **Was:** Zeile bleibt „due“; Timer läuft weiter; Flush-No-Ops.
+- **Warum:** Send korrekt blockiert, Persistenz nicht bereinigt.
+- **Vorschlag:** Zeile löschen oder als `blocked`/nicht due markieren; Timer nur bei echtem Work.
+- **Spur:** `c.0.3.240`
+
+### 34 / A6. FAT: einzelner gone-Ordner falsch revived
+
+- **Wo:** `DirectoryWriterV3.matchGoneCandidate` (Ordner ohne Partial-Verify)
+- **Was:** Bei genau einem gone-Ordner ohne `fileID` kann ein neuer, unzusammenhängender Ordner dessen ID/Favoriten übernehmen.
+- **Warum:** Ordner-Kandidaten ohne Größe/mtime-Unterscheidung; Partial nur für Dateien.
+- **Vorschlag:** Strengere Ordner-Disambiguierung (Name/Pfad/Eltern) oder Partial/Inhalt für Ordner; nie automatisch bei `matches.count == 1` ohne Merkmal.
+- **Spur:** `c.0.3.242`
+
+### 35 / N1. Live-Pfad-Rename überspringt Ordner
+
+- **Wo:** `DirectoryWriterV3.applyLivePathRename` — `if row.isFolder { return false }`
+- **Was:** Ordner-Umbenennung/-Verschiebung live nur über Eltern-Reread / `fileID` / gone-Match; IDs/Favoriten auf Ordnern können reißen.
+- **Warum:** Bewusste 235b-Lücke (nur Dateien im Paar-Pfad).
+- **Vorschlag:** Optional Ordner-Relocate inkl. Tiefen-Update der Kinder (eigene Aufgabe).
+- **Spur:** `c.0.3.243`
+
+### 36 / N2. Regel-Reconcile startet nach Fehler nicht neu
+
+- **Wo:** `AppState+RuleReconcile.startRuleReconcileWorker` — `catch` → `return`; `finishRuleReconcileWorker` prüft `needsRerun` nicht
+- **Was:** Wenn während eines fehlgeschlagenen Laufs erneut `enqueueRuleReconcile` kam, bleibt `ruleReconcileNeedsRerun == true`, ohne Worker, bis zum nächsten Enqueue.
+- **Warum:** Fehlerpfad beendet den Task ohne Re-Schedule.
+- **Vorschlag:** In `finishRuleReconcileWorker` bei `needsRerun` erneut starten; oder nach Fehler kurz retry.
+- **Spur:** `c.0.3.241`
+
+### 37 / N3. `ApiQueueReachability.online` ohne Synchronisation
+
+- **Wo:** `ApiQueueReachability` (`@unchecked Sendable`), Feld `online`
+- **Was:** Theoretischer Data Race (Monitor-Queue schreibt; Timer-Pfad liest indirekt über Handler-Logik).
+- **Warum:** Kein Lock/Actor; Schwere niedrig (Praxis: `online` vor allem auf Monitor-Queue).
+- **Vorschlag:** Atomar / Main-Actor-only State; mit `c.0.3.240` mitziehen.
+- **Spur:** `c.0.3.240`
+
+### 38 / N4. `lastCompactionAt` nur geschrieben
+
+- **Wo:** `DatabaseMaintenance.setLastCompaction`; kein Reader als Zeit-Trigger
+- **Was:** Kein zeitgesteuerter Compaction-Trigger über dieses Feld.
+- **Warum:** Abnahme 236: Compaction über Schuld ≥ 10 000; Zeit = Integrität (7 Tage). **Kein Defekt** — Spec-Notiz.
+- **Vorschlag:** Kein Fix; optional später Zeit-Trigger nur nach Konzept-Änderung.
+- **Spur:** keiner
+
+### 39 / N5. ROADMAP 0.3 Spalten-Schwelle (F29)
+
+- **Wo:** Messung `Werkzeuge/messung/2026-10-12-nachher-*`; ROADMAP „Fertig wenn“ Spalten nicht langsamer
+- **Was:** Spalten „alle Seiten, 50 000“ nachher langsamer (S1 ~+30 %, S2 ~+20 %); Größe und Abfrage-Schwellen bestanden.
+- **Warum:** V3-Lese-/Paginierungspfad; Maschinenwechsel M3→M4 erklärt die Verlangsamung nicht weg.
+- **Vorschlag:** Profiling + gezielte Optimierung Spalten-Pagination/Cache (Produktcode); **kein** Test abschwächen; **kein** Doku-/Layout-Auftrag.
+- **Spur:** `c.0.3.244`
+
+### 40 / N6. Doku: 238-Bericht zu `api_queue`
+
+- **Wo:** `Werkzeuge/messung/2026-10-12-nachher-bericht.md` §5
+- **Was:** Text „`api_queue` bewusst ungenutzt“ ist nach `c.0.3.1.001` falsch.
+- **Warum:** Bericht vor API-Warteschlange geschrieben.
+- **Vorschlag:** Ein Satz korrigieren (Nutzer/Claude; **ohne Cursor-Code**).
+- **Spur:** ohne Cursor
+
+### 41 / N7. Doku: README Layout-Reminder 0.3.2
+
+- **Wo:** README „Layout-Reminder (0.3.2, vor Code)“
+- **Was:** „Erst Layout, dann Aufgabe“ — Produktcode 0.3.2 ist schon da; Mockups 02/04 fehlen noch.
+- **Warum:** Reihenfolge umgedreht.
+- **Vorschlag:** Reminder anpassen (Nutzer/Claude; **ohne Cursor-Code**).
+- **Spur:** ohne Cursor
 
 ---
 
