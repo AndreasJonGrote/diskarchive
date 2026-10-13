@@ -232,6 +232,7 @@ final class IndexRepository {
             loadingTotals[key] = totalCount
             loadingLoaded[key] = 0
 
+            let parentDirectoryPath = path.isEmpty ? "/" : "/" + path.joined(separator: "/") + "/"
             var accumulated: [IndexedItem] = []
             var lastProgress = ContinuousClock.now
             var cursor: ItemChildrenCursor?
@@ -241,7 +242,8 @@ final class IndexRepository {
                     parentID: parentID,
                     limit: Self.loadBatchSize,
                     after: cursor,
-                    scope: scope
+                    scope: scope,
+                    parentDirectoryPath: parentDirectoryPath
                 )
                 let rows = page.items
                 cursor = page.nextCursor

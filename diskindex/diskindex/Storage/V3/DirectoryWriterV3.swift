@@ -224,8 +224,7 @@ nonisolated final class DirectoryWriterV3 {
         let toParentPath = Array(toParts.dropLast())
         let fromParentID = try folderID(segments: fromParentPath)
         let toParentID = try folderID(segments: toParentPath)
-        guard let row = try fetchChild(parentID: fromParentID, name: fromName, allowGone: true) else { return false }
-        if row.isFolder { return false }
+        guard let row = try fetchChildUnique(parentID: fromParentID, name: fromName, allowGone: true) else { return false }
         if let clash = try fetchChild(parentID: toParentID, name: toName, allowGone: false), clash.id != row.id {
             return false
         }
@@ -236,17 +235,32 @@ nonisolated final class DirectoryWriterV3 {
             sizeBytes = values.fileSize.map(Int64.init)
             modifiedAt = values.contentModificationDate
         }
-        let entry = ScannedEntry(
-            name: toName,
-            isFolder: false,
-            sizeBytes: sizeBytes,
-            modifiedAt: modifiedAt,
-            fileID: row.fileID.map { String($0) }
-        )
-        let extID = try Self.fileExtension(toName).map(extensionID)
-        let kind = ItemKind.classify(ext: Self.fileExtension(toName), isFolder: false, isPackage: false).rawValue
-        let modified = modifiedAt.map(SchemaTime.seconds)
         let childDepth = toParentPath.count + 1
+        let entry: ScannedEntry
+        let extID: Int64?
+        let kind: Int
+        if row.isFolder {
+            entry = ScannedEntry(
+                name: toName,
+                isFolder: true,
+                isPackage: row.isPackage,
+                modifiedAt: modifiedAt,
+                fileID: row.fileID.map { String($0) }
+            )
+            extID = nil
+            kind = ItemKind.classify(ext: nil, isFolder: true, isPackage: row.isPackage).rawValue
+        } else {
+            entry = ScannedEntry(
+                name: toName,
+                isFolder: false,
+                sizeBytes: sizeBytes,
+                modifiedAt: modifiedAt,
+                fileID: row.fileID.map { String($0) }
+            )
+            extID = try Self.fileExtension(toName).map(extensionID)
+            kind = ItemKind.classify(ext: Self.fileExtension(toName), isFolder: false, isPackage: false).rawValue
+        }
+        let modified = modifiedAt.map(SchemaTime.seconds)
         var delta = MediumCountDelta.zero
         try relocateRow(
             located: row,
@@ -259,6 +273,9 @@ nonisolated final class DirectoryWriterV3 {
             fileID: row.fileID,
             delta: &delta
         )
+        if row.isFolder {
+            try shiftDescendantDepths(folderID: row.id, by: childDepth - row.depth)
+        }
         _ = seenAt
         _ = delta
         return true
@@ -282,8 +299,20 @@ nonisolated final class DirectoryWriterV3 {
     }
 
     private func fetchChild(parentID: Int64?, name: String, allowGone: Bool) throws -> ListedRow? {
+        let rows = try fetchChildRows(parentID: parentID, name: name, allowGone: allowGone)
+        guard let row = rows.first else { return nil }
+        return ListedRow(row)
+    }
+
+    private func fetchChildUnique(parentID: Int64?, name: String, allowGone: Bool) throws -> ListedRow? {
+        let rows = try fetchChildRows(parentID: parentID, name: name, allowGone: allowGone)
+        guard rows.count == 1, let row = rows.first else { return nil }
+        return ListedRow(row)
+    }
+
+    private func fetchChildRows(parentID: Int64?, name: String, allowGone: Bool) throws -> [Row] {
         let statusSQL = allowGone ? "i.status IN (0, 2)" : "i.status = 0"
-        guard let row = try Row.fetchOne(
+        return try Row.fetchAll(
             db,
             sql: """
                 SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
@@ -292,8 +321,22 @@ nonisolated final class DirectoryWriterV3 {
                 LIMIT 2
                 """,
             arguments: [storageID, parentID, name]
-        ) else { return nil }
-        return ListedRow(row)
+        )
+    }
+
+    private func shiftDescendantDepths(folderID: Int64, by delta: Int) throws {
+        guard delta != 0 else { return }
+        try db.execute(
+            sql: """
+                WITH RECURSIVE sub(id) AS (
+                    SELECT id FROM items WHERE parentID = ?
+                    UNION ALL
+                    SELECT i.id FROM items i INNER JOIN sub ON i.parentID = sub.id
+                )
+                UPDATE items SET depth = depth + ? WHERE id IN (SELECT id FROM sub)
+                """,
+            arguments: [folderID, delta]
+        )
     }
 
     static func relativeComponents(absolute: String, mountPath: String) -> [String]? {

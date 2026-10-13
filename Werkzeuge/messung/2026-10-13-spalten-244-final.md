@@ -1,0 +1,188 @@
+# Messung Datenbank — spalten-244-final
+
+- Rechner: Mac16,12, Apple M4, 24 GB RAM
+- macOS: Version 15.7.3 (Build 24G419)
+- Übersetzung: Debug mit `-O` (Release-Tests bauen nicht, Debug-Testhilfen)
+- Laufzeit gesamt: 12121 s
+
+## Hinweise
+
+- Freier Platz zu Beginn von S1: 139.606 GB
+- Freier Platz zu Beginn von S2: 139.275 GB
+- Freier Platz zu Beginn von S1: 139.308 GB
+- Freier Platz zu Beginn von S2: 138.244 GB
+- Freier Platz zu Beginn von S1: 136.186 GB
+- Freier Platz zu Beginn von S2: 139.540 GB
+
+## S1
+
+### Schreiben
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| Aufbau 1 Medium | 64527.6 |  | 15497 Einträge/s | 1000000 Einträge, ein Lauf (nicht wiederholbar) |
+| nacheinander 2 × 100000 | 15532.4 |  | 12876 Einträge/s gesamt |  |
+| gleichzeitig 2 × 100000 | 14627.8 |  | 13672 Einträge/s gesamt | je Medium: 6901 Einträge/s / 6836 Einträge/s |
+
+### Größe
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| nach Aufbau: Datenbankdatei |  |  | 0.279 GB |  |
+| nach Aufbau: WAL |  |  | 0.000 GB |  |
+| nach Aufbau: Bytes der Spalten name und slug |  |  | 0.053 GB | name 28505476, slug 28685547 Bytes |
+| nach Aufbau: Seiten |  |  | 73028 × 4096 B | frei: 0 |
+| nach Aufbau: Tabellen items + item_details |  |  | 0.097 GB |  |
+| nach Aufbau: Indizes auf items |  |  | 0.181 GB | items_children 0.051 GB; items_fileid 0.000 GB; items_identity 0.051 GB; items_modified 0.016 GB; items_parent 0.014 GB; items_search 0.049 GB |
+| nach Bereinigung: Datenbankdatei |  |  | 0.279 GB |  |
+| nach Bereinigung: WAL |  |  | 0.000 GB |  |
+| nach Bereinigung: Bytes der Spalten name und slug |  |  | 0.053 GB | name 28505476, slug 28685547 Bytes |
+| nach Bereinigung: Seiten |  |  | 73031 × 4096 B | frei: 0 |
+| nach Bereinigung: Tabellen items + item_details |  |  | 0.097 GB |  |
+| nach Bereinigung: Indizes auf items |  |  | 0.181 GB | items_children 0.051 GB; items_fileid 0.000 GB; items_identity 0.051 GB; items_modified 0.016 GB; items_parent 0.014 GB; items_search 0.049 GB |
+
+### Öffnen
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| Datenbank öffnen ohne quick_check (nach Neuöffnen, OS-Cache warm) | 0.9 | 5, 1, 1, 1, 1 |  |  |
+| quick_check allein | 338.9 | 331, 335, 339, 341, 339 |  | mit quick_check gesamt ≈ 339 ms; 5 Läufe; echter Kaltstart ohne `purge` (Root) nicht möglich |
+
+### Spaltenansicht
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| childCount, 100 Kinder | 0.0 | 0, 0, 0, 0, 0 |  |  |
+| erste Seite childrenPage (2000), 100 Kinder | 0.4 | 0, 0, 0, 0, 0 |  |  |
+| alle Seiten, 100 Kinder | 0.3 | 0, 0, 0, 0, 0 |  | 1 Seiten |
+| childCount, 5000 Kinder | 0.1 | 0, 0, 0, 0, 0 |  |  |
+| erste Seite childrenPage (2000), 5000 Kinder | 6.4 | 6, 6, 6, 6, 6 |  |  |
+| alle Seiten, 5000 Kinder | 16.2 | 16, 16, 16, 16, 16 |  | 3 Seiten |
+| childCount, 50000 Kinder | 0.9 | 2, 1, 1, 1, 1 |  |  |
+| erste Seite childrenPage (2000), 50000 Kinder | 6.8 | 8, 7, 7, 7, 6 |  |  |
+| alle Seiten, 50000 Kinder | 178.5 | 178, 177, 179, 179, 179 |  | 26 Seiten |
+
+### Suche
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), ohne Filter | 6.6 | 8, 6, 7, 7, 6 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), ohne Filter | 54.1 | 57, 54, 54, 55, 53 |  | Treffer 100342 |
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), Dateityp pdf | 25.7 | 26, 26, 26, 25, 25 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), Dateityp pdf | 55.2 | 59, 55, 53, 55, 56 |  | Treffer 7455 |
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), Alter letzter Monat | 133.0 | 138, 136, 130, 129, 133 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), Alter letzter Monat | 53.3 | 53, 53, 55, 53, 53 |  | Treffer 817 |
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), beide | 24.2 | 24, 24, 24, 24, 24 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), beide | 55.4 | 53, 58, 56, 55, 55 |  | Treffer 8207 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), ohne Filter | 65.4 | 68, 65, 65, 65, 66 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), ohne Filter | 49.7 | 48, 50, 49, 50, 52 |  | Treffer 18 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), Dateityp pdf | 67.4 | 69, 66, 66, 68, 67 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), Dateityp pdf | 51.7 | 52, 56, 51, 52, 52 |  | Treffer 1 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), Alter letzter Monat | 69.6 | 69, 70, 70, 69, 70 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), Alter letzter Monat | 52.5 | 52, 54, 53, 51, 52 |  | Treffer 1 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), beide | 69.9 | 72, 70, 71, 70, 69 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), beide | 52.5 | 50, 53, 55, 52, 52 |  | Treffer 2 |
+
+### Favoriten
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| 736 Favoriten setzen (10 × 100) | 7.5 |  |  |  |
+| favorites() bei 736 Favoriten | 144.2 | 146, 150, 144, 136, 136 |  | geliefert 736 |
+
+### Bereinigen
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| pruneToMatch nach Tiefe 5 → 4 | 600114.9 |  |  | zu entfernen 677415, entfernt 0 (0/s), ABGEBROCHEN nach 10 min; keine Schätzung (nichts entfernt) |
+
+## S2
+
+### Schreiben
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| Aufbau 300 Medien | 731228.4 |  | 11737 Einträge/s | 8583155 Einträge, ein Lauf |
+| nacheinander 2 × 100000 | 20421.2 |  | 9793 Einträge/s gesamt |  |
+| gleichzeitig 2 × 100000 | 18261.5 |  | 10952 Einträge/s gesamt | je Medium: 5531 Einträge/s / 5476 Einträge/s |
+
+### Größe
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| nach Aufbau: Datenbankdatei |  |  | 2.443 GB |  |
+| nach Aufbau: WAL |  |  | 0.000 GB |  |
+| nach Aufbau: Bytes der Spalten name und slug |  |  | 0.485 GB | name 259379943, slug 261022249 Bytes |
+| nach Aufbau: Seiten |  |  | 640369 × 4096 B | frei: 0 |
+| nach Aufbau: Tabellen items + item_details |  |  | 0.886 GB |  |
+| nach Aufbau: Indizes auf items |  |  | 1.554 GB | items_children 0.472 GB; items_fileid 0.000 GB; items_identity 0.470 GB; items_modified 0.118 GB; items_parent 0.120 GB; items_search 0.373 GB |
+| nach Bereinigung: Datenbankdatei |  |  | 1.686 GB |  |
+| nach Bereinigung: WAL |  |  | 0.000 GB |  |
+| nach Bereinigung: Bytes der Spalten name und slug |  |  | 0.297 GB | name 159165930, slug 160173734 Bytes |
+| nach Bereinigung: Seiten |  |  | 441924 × 4096 B | frei: 0 |
+| nach Bereinigung: Tabellen items + item_details |  |  | 0.550 GB |  |
+| nach Bereinigung: Indizes auf items |  |  | 1.134 GB | items_children 0.293 GB; items_fileid 0.000 GB; items_identity 0.292 GB; items_modified 0.116 GB; items_parent 0.074 GB; items_search 0.360 GB |
+
+### Öffnen
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| Datenbank öffnen ohne quick_check (nach Neuöffnen, OS-Cache warm) | 0.9 | 3, 1, 1 |  |  |
+| quick_check allein | 2777.1 | 2773, 2797, 2777 |  | mit quick_check gesamt ≈ 2777 ms; 3 Läufe; echter Kaltstart ohne `purge` (Root) nicht möglich |
+
+### Spaltenansicht
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| childCount, 100 Kinder | 0.1 | 0, 0, 0, 0, 0 |  |  |
+| erste Seite childrenPage (2000), 100 Kinder | 0.4 | 0, 0, 0, 0, 0 |  |  |
+| alle Seiten, 100 Kinder | 0.4 | 0, 0, 0, 0, 0 |  | 1 Seiten |
+| childCount, 5000 Kinder | 0.1 | 0, 0, 0, 0, 0 |  |  |
+| erste Seite childrenPage (2000), 5000 Kinder | 5.9 | 6, 6, 6, 6, 6 |  |  |
+| alle Seiten, 5000 Kinder | 14.9 | 15, 15, 15, 15, 15 |  | 3 Seiten |
+| childCount, 50000 Kinder | 0.8 | 1, 1, 1, 1, 1 |  |  |
+| erste Seite childrenPage (2000), 50000 Kinder | 6.1 | 7, 6, 6, 6, 6 |  |  |
+| alle Seiten, 50000 Kinder | 159.7 | 160, 159, 160, 160, 159 |  | 26 Seiten |
+
+### Suche
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), ohne Filter | 8.8 | 10, 9, 9, 9, 9 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), ohne Filter | 415.4 | 418, 404, 408, 415, 419 |  | Treffer 877230 |
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), Dateityp pdf | 20.6 | 22, 21, 21, 21, 20 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), Dateityp pdf | 418.3 | 416, 418, 419, 411, 426 |  | Treffer 76251 |
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), Alter letzter Monat | 176.8 | 185, 177, 177, 175, 177 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), Alter letzter Monat | 419.0 | 419, 419, 418, 417, 421 |  | Treffer 6559 |
+| search (Limit 500) 'bil' (häufig, 3 Zeichen), beide | 19.4 | 21, 19, 19, 19, 19 |  |  |
+| searchCount 'bil' (häufig, 3 Zeichen), beide | 413.7 | 414, 422, 410, 414, 412 |  | Treffer 82246 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), ohne Filter | 514.6 | 520, 515, 516, 512, 512 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), ohne Filter | 404.2 | 404, 403, 406, 405, 401 |  | Treffer 155 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), Dateityp pdf | 544.8 | 546, 551, 545, 542, 541 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), Dateityp pdf | 402.5 | 402, 398, 402, 403, 404 |  | Treffer 28 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), Alter letzter Monat | 544.2 | 544, 545, 543, 542, 544 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), Alter letzter Monat | 398.4 | 403, 399, 398, 398, 396 |  | Treffer 0 |
+| search (Limit 500) 'Quartzit' (selten, 8 Zeichen), beide | 544.7 | 547, 546, 545, 544, 542 |  |  |
+| searchCount 'Quartzit' (selten, 8 Zeichen), beide | 399.4 | 400, 400, 396, 398, 399 |  | Treffer 28 |
+
+### Favoriten
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| 881 Favoriten setzen (10 × 100) | 8.9 |  |  |  |
+| favorites() bei 881 Favoriten | 1057.8 | 1062, 1042, 1054, 1058, 1074 |  | geliefert 881 |
+
+### Löschen
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| deleteMedium (3000000 Einträge) | 64422.6 |  |  |  |
+| incremental_vacuum + Checkpoint | 2195.6 |  |  |  |
+| Dateigröße vor / nach Löschen / nach Vacuum |  |  | 2.443 GB / 2.443 GB / 1.758 GB | WAL: 0.000 GB / 0.968 GB / 0.000 GB |
+
+### Bereinigen
+
+| Messpunkt | Median (ms) | Läufe (ms) | Wert | Bemerkung |
+|---|---:|---|---|---|
+| pruneToMatch nach Tiefe 6 → 5 | 600516.9 |  |  | zu entfernen 2805525, entfernt 288163 (479/s), ABGEBROCHEN nach 10 min; Schätzung gesamt ≈ 5846 s |
+

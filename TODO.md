@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.243` (danach HALT). `239`–`242` abgenommen. Folge `244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.3.001` (danach HALT). `239`–`244` abgenommen (F29 Spalten-Guard grün). Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -47,7 +47,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 | F23 | beobachten (kurze `Task.sleep` in mehreren Suites) |
 | F25 | **erledigt** in **c.0.3.234** (Status-Flag statt Bereich-Bereinigen) |
 | F26 | **erledigt** in **c.0.3.236** (WAL Truncate + Leerlauf-Wartung) |
-| F29 | → Spur **`c.0.3.244`** (ROADMAP 0.3 Spalten-Schwelle; Produktcode, kein Doku/Layout) |
+| F29 | **erledigt** in **c.0.3.244** (Spalten-Guard S1 +3,4 %, S2 −9 %) |
 
 Weitere Alltagfehler trägt Claude hier ein.
 
@@ -206,18 +206,49 @@ Status: `folderGoneCandidateIsConfident` (Name+parentID) in `verifyPartialMatch`
 - **a ok:** `trustsFileID` → `matchGoneCandidate` weiter `nil`. Ordner-Single-Match nur über `folderGoneCandidateIsConfident` (Name + `parentID`); sonst kein Revive. Tests `fatSingleGoneFolderDoesNotReviveUnrelatedName` / `fatGoneFolderRevivesWhenNameAndParentMatch`. Sabotage laut Status (kein Dauer-Schalter).
 - Regel 23: Binary **10:15:12**, find -newer leer. Suite 531 nicht erneut. **Keine Nacharbeit.** **c.0.3.243 freigegeben.**
 
-**c.0.3.243 — Ordner Live-Pfad-Rename (REPORT 35 / N1).** — **FREIGEGEBEN**
+**c.0.3.243 — Ordner Live-Pfad-Rename (REPORT 35 / N1).** — **ABGENOMMEN**
 Heute: `applyLivePathRename` → `false` für Ordner (235b bewusst). Schließen der Lücke: Ordner-Relocate inkl. korrekter Kind-Tiefen/`parentID`, Favoriten-ID bleibt.
 a) Nur wenn Paar eindeutig; sonst Fallback Eltern-Reread wie bisher.
 b) Test Umbenennen/Verschieben Ordner mit Favorit; Sabotage; seriell; **Regel 23**. HALT.
-Status:
+Status: `DirectoryWriterV3.applyLivePathRename` Ordner (`fetchChildUnique`, `relocateRow`, `shiftDescendantDepths`); Tests `liveRenamePairKeepsFolderAndFavorite` + `A/Alt`→`A/Sub/Alt`; Sabotage `isFolder→false` → rot ✓. **533/533** seriell (`-parallel-testing-enabled NO`). Regel 23: App **10:57:31**, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
+- **a ok:** Ordner nicht mehr `return false`; `fetchChildUnique` (≠1 → false/Fallback); `relocateRow` + bei Ordner `shiftDescendantDepths`. Clash am Ziel → false.
+- **b ok:** Tests `liveRenamePairKeepsFolderAndFavorite` (ID+Favorit+Kind) und `liveRenamePairMovesFolderAndShiftsChildDepth` (`A/Alt`→`A/Sub/Alt`, depth+1). Sabotage laut Status.
+- Regel 23: Binary **11:03:16** (≥ Status 10:57:31), `DirectoryWriterV3` 10:51:19, find -newer leer. Suite 533 nicht erneut. **Keine Nacharbeit.** **c.0.3.244 freigegeben.**
 
-**c.0.3.244 — ROADMAP 0.3 Spalten-Schwelle / F29 (REPORT 39 / N5).** — noch nicht freigegeben
+**c.0.3.244 — ROADMAP 0.3 Spalten-Schwelle / F29 (REPORT 39 / N5).** — **ABGENOMMEN**
 **Nur Produktcode / Performance** — ausdrücklich **kein** Doku-, README- oder Layout-Auftrag.
 ROADMAP 0.3 „Fertig wenn“: Spaltenansicht nicht langsamer (±10 %). Messung 238: 50k „alle Seiten“ S1 ~+30 %, S2 ~+20 % (Größe/Abfrage ok).
 a) Profiling Spalten-Pagination/`childrenPage`/Cache (V3); gezielte Optimierung.
 b) Nachweis: gleicher Messpfad wie 238 (oder dokumentierter Teil-Bench) — Spalten-Guard grün oder ehrlich begründet mit Rest-Δ und Freigabe-Frage.
 c) Keinen Bench/Test abschwächen. Seriell Suite ohne DA_BENCH grün; **Regel 23**. HALT.
+Status: `fetchColumnChildRows`/`storedItemsFromColumnRows`, `parentDirectoryPath` (IndexRepository + Bench wie UI); kein storages-IN-Roundtrip. Spalten-Guard **ja** (`2026-10-13-spalten-244-final.json`, S1 178,5 ms +3,4 %, S2 159,7 ms −9 %). **533/533** seriell. Regel 23: App **17:08:58**, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code + Messung, ohne xcodebuild):**
+- **a ok:** `columnChildRowSelect` ohne `storages`-Join; `parentDirectoryPath` aus Repository-Pfad (UI) und Bench (`item.path`); vermeidet Ketten-`parentPaths` pro Seite.
+- **b ok:** `2026-10-13-spalten-244-final-vergleich.md` — Guard S1 **+3,4 %**, S2 **−9,0 %** (innerhalb ±10 %); Größe/Abfrage weiter bestanden; Gesamt 238-Schwellen **bestanden**.
+- Regel 23: Binary **17:08:58**, find -newer leer. Suite 533 nicht erneut. **Keine Nacharbeit.** **c.0.3.3.001 freigegeben.**
+
+**c.0.3.3.001 — Versions-Check / Update-Modal / Beta-Sperre (Vorgriff 0.3.3; Konzept aus 0.4).** — **FREIGEGEBEN**
+**Vorgriff (Nutzer 13.10.):** Layout-Mockup fehlt bewusst; Dialog nach Vorlage Fehler-Modal (`IndexingFailureDialog` / `IconWarning`). Umsetzung erst nach Freigabe; vor Abnahme ggf. noch einmal mit Nutzer besprechen. Basis: README 0.4, `datenbank-konzeption.md` (Versions-Check / Sperre), Nutzer-Präzisierung 13.10.
+
+**Update-Modal** (App noch erlaubt, API meldet neuere `n.n`):
+- Headline „Neue Version verfügbar“; Text: Version **X** in Nutzung, Update auf **Y** (Vergleich nur Haupt+Nebennummer).
+- Checkbox „Dieses Update überspringen“ → in `settings` die übersprungene Zielversion; Modal erst wieder beim **nächsten** Versions-Sprung.
+- „Schließen“ speichert Checkbox; „Zum Download“ öffnet `https://diskarchive.app/` (Onpage, nicht zwingend `/download`).
+- Auftrag über `api_queue` (`GET …/api/version/`).
+
+**Sperre — konzeptionell 100 % nur lesen (verbindlich):** Alle Daten bleiben lesbar (Browse, Suche, Favoriten ansehen). **Kein Schreiben / keine Aktualisierung des Indexes:** keine neuen Medien (Erkennung), kein Indizieren/Neu-Indizieren/Abgleich, **kein Watcher**, keine Regel-Reconcile-/Prune-/Index-Schreibpfade. Alles, was indiziert, beobachtet oder den Bestand aktualisiert, entfällt. (`FeatureAccess`-Haken; 0.9 Lizenz nutzt dieselbe Sperrlogik. Lizenz-UI später.)
+
+**Auslöser (OR — gleiche Sperrwirkung):**
+1. Beta (0.x) und API ≥ 1.0 → Hinweis + **7 Tage** (`betaExpiryNoticedAt`); **Frischinstallation** (keine DB) → **sofort**; keine Entsperrung der alten Version (`lockedVersion`).
+2. API **1 Monat** nicht erreicht (`apiLastSeen`) → gesperrt bis wieder Verbindung.
+3. **Beta-Verfallsdatum: 60 Tage nach Build** → gesperrt.
+
+Bei Sperre: Update-Modal **plus** fetter Hinweis + Warnsymbol „Betaphase beendet“ (bzw. gleichwertiger Sperrgrund-Text).
+
+a) Version-Check + Queue-Kind; Settings-Keys; Modal + Skip.
+b) Sperrpfade 1–3 + zentrale Read-only-Schranke; Tests (Zeitstempel zurücksetzen / Sabotage).
+c) Seriell; **Regel 23**. HALT nach Aufgabe.
 Status:
 
 ### Offen, ohne Cursor (Rest 0.3.2 + Doku Re-Audit)
@@ -238,17 +269,18 @@ Status:
 - **235** → **c.0.3.235** + **235b** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **236** → **c.0.3.236** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus; F26).
 - **237** → **c.0.3.237** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
-- **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29** / `c.0.3.244`). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
+- **238** → **c.0.3.238** — **abgenommen**; Spalten-Guard nachgezogen in **c.0.3.244** (F29 erledigt). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md` + `2026-10-13-spalten-244-final-vergleich.md`.
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
-- **Re-Audit** → **c.0.3.239**–**242** abgenommen; **243** freigegeben; 244 wartend; N6/N7 ohne Cursor.
+- **Re-Audit** → **c.0.3.239**–**244** abgenommen (F29 erledigt); N6/N7 ohne Cursor.
+- **0.3.3** → **c.0.3.3.001** freigegeben (Vorgriff Versions-Check/Sperre).
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
 
 - **Download-Seite** auf `https://diskarchive.app/` (Nutzer).
-- **Versions-Check** / Update-Modal / Beta-Sperre (siehe README 0.4).
-- **Beta-Verfallsdatum**; **`FeatureAccess`**; Laufzeittest **macOS 14**.
+- **Versions-Check** / Update-Modal / Beta-Sperre → Vorgriff **`c.0.3.3.001`** (0.3.3); Rest-Politur/Layout ggf. später. README 0.4 + `datenbank-konzeption.md`.
+- **Beta-Verfallsdatum: 60 Tage nach Build** (in `c.0.3.3.001`); **`FeatureAccess`**; Laufzeittest **macOS 14**.
 - **Fehlerbericht:** Test mit echten Protokollzeilen.
 - **Update durch Ersetzen der App;** ab 0.4 echte Migrationen (Sicherung, `hasBeenSuperseded`).
 

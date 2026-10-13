@@ -479,10 +479,16 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
     for special in scenario.specials {
         let uuid = scenario.largest?.uuid ?? scenario.mediumUUIDs[0]
         let store = scenario.store
+        let parentDirectoryPath = try await store.item(id: special.folderID)?.path
         let count = try await timed { _ = try await store.childCount(mediumUUID: uuid, parentID: special.folderID) }
         report.add(name, "Spaltenansicht", "childCount, \(special.kids) Kinder", ms: count.median, runs: count.all)
         let first = try await timed {
-            _ = try await store.childrenPage(mediumUUID: uuid, parentID: special.folderID, limit: benchBatch)
+            _ = try await store.childrenPage(
+                mediumUUID: uuid,
+                parentID: special.folderID,
+                limit: benchBatch,
+                parentDirectoryPath: parentDirectoryPath
+            )
         }
         report.add(name, "Spaltenansicht", "erste Seite childrenPage (\(benchBatch)), \(special.kids) Kinder", ms: first.median, runs: first.all)
         var pages = 0
@@ -491,7 +497,11 @@ private func runMeasurements(_ scenario: inout Scenario, deleteLargest: Bool) as
             pages = 0
             while true {
                 let page = try await store.childrenPage(
-                    mediumUUID: uuid, parentID: special.folderID, limit: benchBatch, after: cursor
+                    mediumUUID: uuid,
+                    parentID: special.folderID,
+                    limit: benchBatch,
+                    after: cursor,
+                    parentDirectoryPath: parentDirectoryPath
                 )
                 pages += 1
                 guard let next = page.nextCursor else { break }

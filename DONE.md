@@ -126,5 +126,7 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | c.0.3.240 | api_queue Robustheit (busy/Flush/Leak/Reachability; REPORT 30+) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.241 | Wartung Re-Queue + Reconcile Restart (Idle erst final; REPORT 32/36) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.242 | FAT gone-Ordner: Revive nur Name+Eltern (REPORT 34/A6) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.243 | Ordner Live-Pfad-Rename + Kind-Tiefen (REPORT 35/N1) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.244 | Spalten-Guard F29 (parentDirectoryPath; S1 +3,4 % / S2 −9 %) | 13.10. **Cursor** (Cloud aus; Code+Messung) | `Werkzeuge/messung/2026-10-13-spalten-244-final-vergleich.md` |
 
-**Offen / freigegeben:** `c.0.3.243`. Folge 244 (F29); 0.3.2 Layout/README Nutzer/Claude.
+**Offen / freigegeben:** `c.0.3.3.001` (Versions-Check/Sperre Vorgriff). 0.3.2 Layout/README Nutzer/Claude.

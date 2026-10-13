@@ -41,6 +41,141 @@ extension WindowTestGroup {
         #expect(count == 1)
     }
 
+    @Test func liveRenamePairKeepsFolderAndFavorite() async throws {
+        let rig = try await watchRig()
+        let parentA = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: parentA,
+            entries: [ScannedEntry(name: "Alt", isFolder: true)],
+            seenAt: Date()
+        )
+        let folder = try #require(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parentA).first { $0.name == "Alt" })
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: folder.id,
+            entries: [ScannedEntry(name: "kind.txt", isFolder: false, sizeBytes: 1)],
+            seenAt: Date()
+        )
+        let childBefore = try #require(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: folder.id).first)
+        try await rig.store.setFavorite(itemID: folder.id, true)
+        rig.access.listings["/Volumes/DISK/A"] = [
+            ListedDirectoryEntry(
+                name: "Neu",
+                isDirectory: true,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: nil,
+                modifiedAt: nil
+            ),
+        ]
+        rig.access.listings["/Volumes/DISK/A/Neu"] = [
+            ListedDirectoryEntry(
+                name: "kind.txt",
+                isDirectory: false,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: 1,
+                modifiedAt: nil
+            ),
+        ]
+        rig.watcher.pathExistsForLiveRename = { $0 == "/Volumes/DISK/A/Neu" }
+        rig.watcher.quietInterval = .milliseconds(40)
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        rig.source.emit(
+            VolumeChange(path: "/Volumes/DISK/A/Alt", eventID: 30, itemRemoved: true, itemRenamed: true)
+        )
+        rig.source.emit(
+            VolumeChange(path: "/Volumes/DISK/A/Neu", eventID: 31, itemCreated: true, itemRenamed: true)
+        )
+        let back = try await waitFor(timeoutMs: 800) { () async throws -> StoredItem? in
+            guard let row = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parentA).first(where: { $0.name == "Neu" }),
+                  row.id == folder.id,
+                  row.isFavorite,
+                  row.isFolder else { return nil }
+            let child = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: row.id).first
+            guard child?.id == childBefore.id, child?.depth == childBefore.depth else { return nil }
+            return row
+        }
+        #expect(back.id == folder.id)
+    }
+
+    @Test func liveRenamePairMovesFolderAndShiftsChildDepth() async throws {
+        let rig = try await watchRig()
+        let parentA = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: parentA,
+            entries: [
+                ScannedEntry(name: "Alt", isFolder: true),
+                ScannedEntry(name: "Sub", isFolder: true),
+            ],
+            seenAt: Date()
+        )
+        let folder = try #require(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parentA).first { $0.name == "Alt" })
+        let parentSub = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A", "Sub"]))
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: folder.id,
+            entries: [ScannedEntry(name: "kind.txt", isFolder: false, sizeBytes: 1)],
+            seenAt: Date()
+        )
+        let childBefore = try #require(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: folder.id).first)
+        let depthBefore = childBefore.depth
+        rig.access.listings["/Volumes/DISK/A"] = [
+            ListedDirectoryEntry(
+                name: "Sub",
+                isDirectory: true,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: nil,
+                modifiedAt: nil
+            ),
+        ]
+        rig.access.listings["/Volumes/DISK/A/Sub"] = [
+            ListedDirectoryEntry(
+                name: "Alt",
+                isDirectory: true,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: nil,
+                modifiedAt: nil
+            ),
+        ]
+        rig.access.listings["/Volumes/DISK/A/Sub/Alt"] = [
+            ListedDirectoryEntry(
+                name: "kind.txt",
+                isDirectory: false,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: 1,
+                modifiedAt: nil
+            ),
+        ]
+        rig.watcher.pathExistsForLiveRename = { $0 == "/Volumes/DISK/A/Sub/Alt" }
+        rig.watcher.quietInterval = .milliseconds(40)
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        rig.source.emit(
+            VolumeChange(path: "/Volumes/DISK/A/Alt", eventID: 32, itemRemoved: true, itemRenamed: true)
+        )
+        rig.source.emit(
+            VolumeChange(path: "/Volumes/DISK/A/Sub/Alt", eventID: 33, itemCreated: true, itemRenamed: true)
+        )
+        let moved = try await waitFor(timeoutMs: 800) { () async throws -> StoredItem? in
+            guard let row = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parentSub).first(where: { $0.name == "Alt" }),
+                  row.id == folder.id else { return nil }
+            let child = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: row.id).first
+            guard child?.depth == depthBefore + 1 else { return nil }
+            return row
+        }
+        #expect(moved.id == folder.id)
+    }
+
     @Test func liveRenamePairKeepsRowAndFavoriteWithoutFileID() async throws {
         let rig = try await watchRig()
         let parent = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))

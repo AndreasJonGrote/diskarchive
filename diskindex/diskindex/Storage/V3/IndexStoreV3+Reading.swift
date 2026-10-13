@@ -66,39 +66,34 @@ extension IndexStoreV3 {
         limit: Int,
         after: ItemChildrenCursor? = nil,
         offset: Int = 0,
-        scope: IndexScope? = nil
+        scope: IndexScope? = nil,
+        parentDirectoryPath: String? = nil
     ) async throws -> (items: [StoredItem], nextCursor: ItemChildrenCursor?) {
         if childrenReadsFail { throw IndexStoreError.childrenReadFailed }
         let rows: [StoredItem] = try await pool.read { db in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
-            let natural = "\"\(NaturalOrder.collationName)\""
-            var ids: [Int64] = []
-            if let after {
-                // Erst gleiche Suchnamen mit größerer Kennung, dann größere Suchnamen: beides Bereichsabfragen auf der Suchhilfe.
-                ids += try Int64.fetchAll(
-                    db,
-                    sql: """
-                        SELECT id FROM items
-                        WHERE storageID = ? AND parentID IS ? AND status = 0 AND slug COLLATE \(natural) = ? AND id > ?
-                        ORDER BY id LIMIT ?
-                        """,
-                    arguments: [storageID, parentID, after.name, after.id, limit]
-                )
-                if ids.count < limit {
-                    ids += try Int64.fetchAll(
-                        db,
-                        sql: """
-                            SELECT id FROM items
-                            WHERE storageID = ? AND parentID IS ? AND status = 0 AND slug COLLATE \(natural) > ?
-                            ORDER BY slug COLLATE \(natural), id LIMIT ?
-                            """,
-                        arguments: [storageID, parentID, after.name, limit - ids.count]
-                    )
-                }
+            let pathBase: String?
+            if let parentDirectoryPath {
+                pathBase = parentDirectoryPath
+            } else if parentID == nil {
+                pathBase = "/"
             } else {
-                ids = try Int64.fetchAll(db, sql: Self.columnFirstPageSQL, arguments: [storageID, parentID, limit, offset])
+                pathBase = nil
             }
-            return try Self.items(db, ids: ids)
+            let fetched = try Self.fetchColumnChildRows(
+                db,
+                storageID: storageID,
+                parentID: parentID,
+                limit: limit,
+                after: after,
+                offset: offset
+            )
+            return try Self.storedItemsFromColumnRows(
+                db,
+                rows: fetched,
+                mediumUUID: mediumUUID,
+                parentDirectoryPath: pathBase
+            )
         }
         let filtered: [StoredItem]
         if let scope {
@@ -124,6 +119,110 @@ extension IndexStoreV3 {
         WHERE storageID = ? AND parentID IS ? AND status = 0
         ORDER BY slug COLLATE "\(NaturalOrder.collationName)", id LIMIT ? OFFSET ?
         """
+
+    nonisolated static let columnChildRowSelect = """
+        SELECT i.id, i.parentID, i.name, i.isFolder, i.depth, i.status, i.modifiedAt, i.fileID,
+               i.listedAt, i.unreadable, e.ext AS ext, d.sizeBytes AS sizeBytes, d.isPackage AS isPackage,
+               (f.itemID IS NOT NULL) AS isFavorite
+        FROM items i
+        LEFT JOIN extensions e ON e.id = i.extID
+        LEFT JOIN item_details d ON d.itemID = i.id
+        LEFT JOIN favorites f ON f.itemID = i.id
+        """
+
+    nonisolated static func fetchColumnChildRows(
+        _ db: Database,
+        storageID: Int64,
+        parentID: Int64?,
+        limit: Int,
+        after: ItemChildrenCursor?,
+        offset: Int
+    ) throws -> [Row] {
+        let natural = "\"\(NaturalOrder.collationName)\""
+        let base = columnChildRowSelect
+        if let after {
+            var rows = try Row.fetchAll(
+                db,
+                sql: """
+                    \(base)
+                    WHERE i.storageID = ? AND i.parentID IS ? AND i.status = 0 AND i.slug COLLATE \(natural) = ? AND i.id > ?
+                    ORDER BY i.id LIMIT ?
+                    """,
+                arguments: [storageID, parentID, after.name, after.id, limit]
+            )
+            if rows.count < limit {
+                rows += try Row.fetchAll(
+                    db,
+                    sql: """
+                        \(base)
+                        WHERE i.storageID = ? AND i.parentID IS ? AND i.status = 0 AND i.slug COLLATE \(natural) > ?
+                        ORDER BY i.slug COLLATE \(natural), i.id LIMIT ?
+                        """,
+                    arguments: [storageID, parentID, after.name, limit - rows.count]
+                )
+            }
+            return rows
+        }
+        return try Row.fetchAll(
+            db,
+            sql: """
+                \(base)
+                WHERE i.storageID = ? AND i.parentID IS ? AND i.status = 0
+                ORDER BY i.slug COLLATE \(natural), i.id LIMIT ? OFFSET ?
+                """,
+            arguments: [storageID, parentID, limit, offset]
+        )
+    }
+
+    nonisolated static func storedItemsFromColumnRows(
+        _ db: Database,
+        rows: [Row],
+        mediumUUID: UUID,
+        parentDirectoryPath: String?
+    ) throws -> [StoredItem] {
+        guard !rows.isEmpty else { return [] }
+        let resolvedParentPaths: [Int64: String]
+        if parentDirectoryPath != nil {
+            resolvedParentPaths = [:]
+        } else {
+            resolvedParentPaths = try parentPaths(
+                db,
+                parentIDs: Set(rows.compactMap { $0["parentID"] as Int64? })
+            )
+        }
+        return rows.map { row in
+            let id: Int64 = row["id"]
+            let parent: Int64? = row["parentID"]
+            let isFolder: Bool = row["isFolder"]
+            let name: String = row["name"]
+            let base: String
+            if let parentDirectoryPath {
+                base = parentDirectoryPath
+            } else {
+                base = parent.flatMap { resolvedParentPaths[$0] } ?? "/"
+            }
+            let modified: Int64? = row["modifiedAt"]
+            let fileID: Int64? = row["fileID"]
+            let listed: Int64? = row["listedAt"]
+            return StoredItem(
+                id: id,
+                mediumUUID: mediumUUID,
+                parentID: parent,
+                name: name,
+                isFolder: isFolder,
+                isPackage: (row["isPackage"] as Bool?) ?? false,
+                ext: row["ext"],
+                sizeBytes: row["sizeBytes"],
+                modifiedAt: modified.map(SchemaTime.date),
+                fileID: fileID.map(String.init),
+                depth: row["depth"],
+                path: base + name + (isFolder ? "/" : ""),
+                isFavorite: row["isFavorite"],
+                listedAt: listed.map(SchemaTime.date),
+                unreadable: row["unreadable"]
+            )
+        }
+    }
 
     /// Trefferkennungen der Suche nach `(slug, id)` (Test: Abfrageplan).
     nonisolated static func searchHitsSQL(whereClause: String) -> String {
@@ -408,8 +507,8 @@ extension IndexStoreV3 {
 
     // MARK: Zeilen → StoredItem
 
-    /// Liefert die Einträge zu den Kennungen in derselben Reihenfolge. Pfade kommen aus einer einzigen Kettenabfrage.
-    nonisolated static func items(_ db: Database, ids: [Int64]) throws -> [StoredItem] {
+    /// Liefert die Einträge zu den Kennungen in derselben Reihenfolge. Pfade aus Kettenabfrage oder `parentDirectoryPath`.
+    nonisolated static func items(_ db: Database, ids: [Int64], parentDirectoryPath: String? = nil) throws -> [StoredItem] {
         guard !ids.isEmpty else { return [] }
         var byID: [Int64: Row] = [:]
         var offset = 0
@@ -435,7 +534,12 @@ extension IndexStoreV3 {
             }
             offset += 400
         }
-        let parentPaths = try parentPaths(db, parentIDs: Set(byID.values.compactMap { $0["parentID"] as Int64? }))
+        let resolvedParentPaths: [Int64: String]
+        if parentDirectoryPath != nil {
+            resolvedParentPaths = [:]
+        } else {
+            resolvedParentPaths = try parentPaths(db, parentIDs: Set(byID.values.compactMap { $0["parentID"] as Int64? }))
+        }
         return try ids.compactMap { id -> StoredItem? in
             guard let row = byID[id] else { return nil }
             let uuidData: Data = row["storageUUID"]
@@ -443,7 +547,12 @@ extension IndexStoreV3 {
             let parent: Int64? = row["parentID"]
             let isFolder: Bool = row["isFolder"]
             let name: String = row["name"]
-            let base = parent.flatMap { parentPaths[$0] } ?? "/"
+            let base: String
+            if let parentDirectoryPath {
+                base = parentDirectoryPath
+            } else {
+                base = parent.flatMap { resolvedParentPaths[$0] } ?? "/"
+            }
             let modified: Int64? = row["modifiedAt"]
             let fileID: Int64? = row["fileID"]
             let listed: Int64? = row["listedAt"]
