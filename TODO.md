@@ -187,11 +187,16 @@ Status: Busy `.timeout(10)`; Enqueue Retry + Outbox-Fallback; `IssueReporterFlus
 - **Hinweis:** Datei-Fallback wird erst wieder über `migrateLegacyOutboxFiles` (`start`) in die Queue geholt — Briefing erlaubt Datei; kein Blocker.
 - Regel 23: Binary **08:59:17**, find -newer leer. Suite 526 nicht erneut. **Keine Nacharbeit.** **c.0.3.241 freigegeben.**
 
-**c.0.3.241 — Wartung + Regel-Reconcile nach Busy/Fehler (REPORT 32/36 = A4/N2).** — **FREIGEGEBEN**
+**c.0.3.241 — Wartung + Regel-Reconcile nach Busy/Fehler (REPORT 32/36 = A4/N2).** — **NACHARBEIT** (weiter freigegeben)
 a) Leerlauf-Compaction: nicht nach ~2 kurzen Versuchen aufgeben; nach Live-Sync-Ende / Idle erneut `scheduleDatabaseMaintenance`, bis Schuld verarbeitet oder klar idle.
 b) `finishRuleReconcileWorker`: wenn `ruleReconcileNeedsRerun` noch true → Worker neu starten (Fehlerpfad darf pending Enqueue nicht „hängen“ lassen).
 c) Tests + Sabotage; seriell; **Regel 23**. HALT.
-Status:
+Status: Wartung 30×2 s + Re-Queue bei Schuld; `endMediumLiveSync` → `scheduleDatabaseMaintenance`. Reconcile `break` + Restart bei `needsRerun`. Tests maintenance/live-sync + needsRerun; Sabotage 2×-Loop manuell ✓. **528/528** seriell. Regel 23: App 09:27:08, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
+- **a ok:** `maintenanceWaitRounds = 30` × 2 s; bei Abbruch ohne Compaction und Schuld ≥ N → erneut `scheduleDatabaseMaintenance`; `endMediumLiveSync` (leer) plant Wartung. Test `maintenanceRunsAfterLiveSyncEnds`.
+- **b Kern ok:** `finishRuleReconcileWorker` startet bei `needsRerun` neu; Fehler → `break` statt `return` ohne Finish.
+- **Nacharbeit b:** In `finishRuleReconcileWorker` werden **vor** dem Restart `isRuleReconcileQueueActive = false`, `blocksLoads… = false` und **`resumeRuleReconcileIdleWaiters()`** ausgeführt. Idle-Waiter (Suche) laufen weiter, obwohl der Worker sofort neu startet — Fenster „scheinbar idle“. Soll: Restart-Entscheidung **zuerst**; Waiter/`emitIdle`/Flags nur wenn **kein** Restart. Test: Fehlerlauf + `enqueue` währenddessen → `waitForRuleReconcileIdle` erst nach **finalem** Idle; optional Sabotage alter Reihenfolge → rot ✓.
+- Regel 23: Binary **09:27:08**, find -newer leer. Suite 528 nicht erneut. **Kein 242** bis Nacharbeit abgenommen.
 
 **c.0.3.242 — FAT gone-Ordner Mehrdeutigkeit (REPORT 34 / A6).** — noch nicht freigegeben
 `matchGoneCandidate` für Ordner ohne `fileID`: nicht allein wegen `matches.count == 1` reviven, wenn keine belastbaren Merkmale (Eltern/Name/Partial). APFS/`fileID`-Pfad unverändert.

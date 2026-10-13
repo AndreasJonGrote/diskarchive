@@ -61,6 +61,24 @@ import Testing
     }
 
     @MainActor
+    @Test func maintenanceRunsAfterLiveSyncEnds() async throws {
+        let harness = try StoreHarness.make()
+        let appState = AppState()
+        appState.attach(store: harness.store)
+        await harness.store.recordMaintenanceDebt(MaintenancePolicy.changeThreshold)
+        let mediumID = UUID()
+        appState.beginMediumLiveSync(mediumID)
+        appState.scheduleDatabaseMaintenance()
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(await harness.store.maintenanceDebt() == MaintenancePolicy.changeThreshold)
+        appState.endMediumLiveSync(mediumID)
+        let cleared = await waitUntil(timeout: 5) {
+            await harness.store.maintenanceDebt() == 0
+        }
+        #expect(cleared)
+    }
+
+    @MainActor
     @Test func maintenanceWorkerRunsWhenIdle() async throws {
         let harness = try StoreHarness.make()
         let appState = AppState()

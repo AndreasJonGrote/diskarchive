@@ -55,7 +55,7 @@ extension AppState {
                     if DiskIndexLog.isOperationalFailure(error) {
                         DiskIndexLog.shared.record(.index, .error, "rule reconcile \(error)")
                     }
-                    return
+                    break
                 }
             } while await MainActor.run(body: { self.ruleReconcileNeedsRerun }) && !Task.isCancelled
         }
@@ -66,6 +66,10 @@ extension AppState {
         isRuleReconcileQueueActive = false
         indexRepository.blocksLoadsForRuleReconcile = false
         resumeRuleReconcileIdleWaiters()
+        if ruleReconcileNeedsRerun, indexStore != nil {
+            startRuleReconcileWorker()
+            return
+        }
         if emitIdle, let indexStore {
             Task { await indexStore.emit(.ruleReconcileIdle) }
         }

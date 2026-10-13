@@ -57,6 +57,19 @@ struct RuleReconcileQueueTests {
         #expect(!app.searchMatch.items.contains { $0.name.hasPrefix(".") })
     }
 
+    @Test func needsRerunAfterReconcileErrorRestartsWorker() async throws {
+        let (app, store, _) = try await appWithHiddenFile()
+        await store.setReconcileShouldFail(true)
+        app.appSettings.ignoreHiddenFiles = true
+        try await Task.sleep(for: .milliseconds(40))
+        app.enqueueRuleReconcile()
+        await app.waitForRuleReconcileIdle()
+        await app.runSearch()
+        await app.waitForSearchCount()
+        #expect(app.searchMatch.itemCount == 20)
+        #expect(!app.isRuleReconcileQueueActive)
+    }
+
     @Test func queueErrorDoesNotHangSearch() async throws {
         let (app, store, _) = try await appWithHiddenFile()
         await store.setReconcileShouldFail(true)

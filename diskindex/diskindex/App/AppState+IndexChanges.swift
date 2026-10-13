@@ -14,6 +14,9 @@ extension AppState {
 
     func endMediumLiveSync(_ id: UUID) {
         mediumLiveSyncIDs.remove(id)
+        if mediumLiveSyncIDs.isEmpty {
+            scheduleDatabaseMaintenance()
+        }
     }
 
     func startChangeLoop() {

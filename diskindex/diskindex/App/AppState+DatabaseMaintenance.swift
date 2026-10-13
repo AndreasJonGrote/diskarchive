@@ -19,15 +19,26 @@ extension AppState {
         databaseMaintenanceTask = nil
     }
 
+    private static let maintenanceWaitRounds = 30
+
     private func startDatabaseMaintenanceWorker() {
         databaseMaintenanceTask = Task(priority: .utility) { [weak self] in
             guard let self else { return }
+            var ranCompaction = false
             defer {
                 Task { @MainActor in
                     self.databaseMaintenanceTask = nil
+                    if !ranCompaction, let store = self.indexStore {
+                        Task {
+                            let debt = await store.maintenanceDebt()
+                            if debt >= MaintenancePolicy.changeThreshold {
+                                self.scheduleDatabaseMaintenance()
+                            }
+                        }
+                    }
                 }
             }
-            for _ in 0..<2 {
+            for _ in 0..<Self.maintenanceWaitRounds {
                 guard !Task.isCancelled else { return }
                 let ready = await MainActor.run { self.canRunDatabaseMaintenance() }
                 guard ready else {
@@ -40,6 +51,7 @@ extension AppState {
                     continue
                 }
                 await store.runCompactionIfNeeded()
+                ranCompaction = true
                 return
             }
         }
