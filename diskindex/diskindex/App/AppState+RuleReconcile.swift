@@ -63,13 +63,13 @@ extension AppState {
 
     private func finishRuleReconcileWorker(emitIdle: Bool) {
         ruleReconcileTask = nil
-        isRuleReconcileQueueActive = false
-        indexRepository.blocksLoadsForRuleReconcile = false
-        resumeRuleReconcileIdleWaiters()
         if ruleReconcileNeedsRerun, indexStore != nil {
             startRuleReconcileWorker()
             return
         }
+        isRuleReconcileQueueActive = false
+        indexRepository.blocksLoadsForRuleReconcile = false
+        resumeRuleReconcileIdleWaiters()
         if emitIdle, let indexStore {
             Task { await indexStore.emit(.ruleReconcileIdle) }
         }

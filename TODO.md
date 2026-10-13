@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.241` (danach HALT). `239`–`240` abgenommen. Folge `242`–`244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.242` (danach HALT). `239`–`241` abgenommen. Folge `243`–`244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -187,18 +187,17 @@ Status: Busy `.timeout(10)`; Enqueue Retry + Outbox-Fallback; `IssueReporterFlus
 - **Hinweis:** Datei-Fallback wird erst wieder über `migrateLegacyOutboxFiles` (`start`) in die Queue geholt — Briefing erlaubt Datei; kein Blocker.
 - Regel 23: Binary **08:59:17**, find -newer leer. Suite 526 nicht erneut. **Keine Nacharbeit.** **c.0.3.241 freigegeben.**
 
-**c.0.3.241 — Wartung + Regel-Reconcile nach Busy/Fehler (REPORT 32/36 = A4/N2).** — **NACHARBEIT** (weiter freigegeben)
+**c.0.3.241 — Wartung + Regel-Reconcile nach Busy/Fehler (REPORT 32/36 = A4/N2).** — **ABGENOMMEN**
 a) Leerlauf-Compaction: nicht nach ~2 kurzen Versuchen aufgeben; nach Live-Sync-Ende / Idle erneut `scheduleDatabaseMaintenance`, bis Schuld verarbeitet oder klar idle.
 b) `finishRuleReconcileWorker`: wenn `ruleReconcileNeedsRerun` noch true → Worker neu starten (Fehlerpfad darf pending Enqueue nicht „hängen“ lassen).
 c) Tests + Sabotage; seriell; **Regel 23**. HALT.
-Status: Wartung 30×2 s + Re-Queue bei Schuld; `endMediumLiveSync` → `scheduleDatabaseMaintenance`. Reconcile `break` + Restart bei `needsRerun`. Tests maintenance/live-sync + needsRerun; Sabotage 2×-Loop manuell ✓. **528/528** seriell. Regel 23: App 09:27:08, find -newer leer. Bereit zur Prüfung.
+Status: Nacharbeit b: Restart in `finishRuleReconcileWorker` vor Waiter/Flags/Idle; Test `waitForIdleWaitsThroughErrorRestart`. Wartung/Reconcile a unverändert. **529/529** seriell. Regel 23: App 09:42:34, find -newer leer. Bereit zur Prüfung.
 **Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
-- **a ok:** `maintenanceWaitRounds = 30` × 2 s; bei Abbruch ohne Compaction und Schuld ≥ N → erneut `scheduleDatabaseMaintenance`; `endMediumLiveSync` (leer) plant Wartung. Test `maintenanceRunsAfterLiveSyncEnds`.
-- **b Kern ok:** `finishRuleReconcileWorker` startet bei `needsRerun` neu; Fehler → `break` statt `return` ohne Finish.
-- **Nacharbeit b:** In `finishRuleReconcileWorker` werden **vor** dem Restart `isRuleReconcileQueueActive = false`, `blocksLoads… = false` und **`resumeRuleReconcileIdleWaiters()`** ausgeführt. Idle-Waiter (Suche) laufen weiter, obwohl der Worker sofort neu startet — Fenster „scheinbar idle“. Soll: Restart-Entscheidung **zuerst**; Waiter/`emitIdle`/Flags nur wenn **kein** Restart. Test: Fehlerlauf + `enqueue` währenddessen → `waitForRuleReconcileIdle` erst nach **finalem** Idle; optional Sabotage alter Reihenfolge → rot ✓.
-- Regel 23: Binary **09:27:08**, find -newer leer. Suite 528 nicht erneut. **Kein 242** bis Nacharbeit abgenommen.
+- **a ok:** `maintenanceWaitRounds = 30` × 2 s; Re-Queue bei Schuld; `endMediumLiveSync` → Wartung. Test `maintenanceRunsAfterLiveSyncEnds`.
+- **b + Nacharbeit ok:** `finishRuleReconcileWorker` prüft `needsRerun` **zuerst** → `startRuleReconcileWorker` und `return` ohne Waiter/Flags/Idle; erst ohne Restart Flags runter + `resumeRuleReconcileIdleWaiters` + `emitIdle`. Test `waitForIdleWaitsThroughErrorRestart` (Enqueue während Fail-Delay, Idle erst danach).
+- Regel 23: Binary **09:42:34**, Quellen älter, find -newer leer. Suite 529 nicht erneut. **Keine Nacharbeit.** **c.0.3.242 freigegeben.**
 
-**c.0.3.242 — FAT gone-Ordner Mehrdeutigkeit (REPORT 34 / A6).** — noch nicht freigegeben
+**c.0.3.242 — FAT gone-Ordner Mehrdeutigkeit (REPORT 34 / A6).** — **FREIGEGEBEN**
 `matchGoneCandidate` für Ordner ohne `fileID`: nicht allein wegen `matches.count == 1` reviven, wenn keine belastbaren Merkmale (Eltern/Name/Partial). APFS/`fileID`-Pfad unverändert.
 a) Fix + Test (Sabotage: unkritischer Single-Match ohne Merkmal → rot ✓).
 b) Seriell; **Regel 23**. HALT.
@@ -239,7 +238,7 @@ Status:
 - **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29** / `c.0.3.244`). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
-- **Re-Audit** → **c.0.3.239**–**240** abgenommen; **241** freigegeben; 242–244 wartend; N6/N7 ohne Cursor.
+- **Re-Audit** → **c.0.3.239**–**241** abgenommen; **242** freigegeben; 243–244 wartend; N6/N7 ohne Cursor.
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
