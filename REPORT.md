@@ -1,6 +1,6 @@
 # Code-Befunde (technische Fehler)
 
-Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („Updates“, Schema V3 / `IndexStoreV3`, Datei `archive.sqlite`). Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge. **2–28:** behoben in Cursor-Spur `c.0.3.2.002`–`007` (Commits `ccd79ce`…`d7dc092` bzw. 002). **29+:** neu aus Re-Audit 13.10.
+Stand: 13.10.2026 (nach Abnahme `c.0.3.3.002`). Ursprünglich geprüft gegen Commit `be80c9c`. Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge. **2–28**, **29–37 / 39**, **42–50:** behoben. **38 / 40 / 41:** Spec bzw. Doku. **51:** 239-Restloch Cache (`c.0.3.245`). **52–53:** niedrige Restfehler (`c.0.3.246`).
 
 ## Behoben in `be80c9c`
 
@@ -46,25 +46,52 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 | 27 | Niedrig | `autoIndexPaused` aus DB geht in `asMedium` verloren | `c.0.3.2.007` |
 | 28 | Mittel | Integritätsfehler: `indexStore`/`changeLoop` nicht zurückgesetzt | `c.0.3.2.003` |
 
-### Offen (29+, Re-Audit 13.10.)
+### Behoben (29–37, 39 — Re-Audit / Spur)
+
+| Nr | Alias | Schwere | Kurz | Spur |
+|----|-------|---------|------|------|
+| 29 | A1 | Hoch | `invalidateAll` löscht Generationen → stale Spalten-Cache | `c.0.3.239` |
+| 30 | A2 | Hoch | Fehlerbericht-Enqueue bei busy Index-DB | `c.0.3.240` |
+| 31 | A3 | Mittel | Parallele `flush()` → doppelter API-Send | `c.0.3.240` |
+| 32 | A4 | Mittel | Leerlauf-Wartung gibt zu früh auf | `c.0.3.241` |
+| 33 | A5 | Mittel | Leak-blockierte Queue-Zeilen ewig due | `c.0.3.240` |
+| 34 | A6 | Niedrig | FAT: gone-Ordner falsch revived | `c.0.3.242` |
+| 35 | N1 | Niedrig | Live-Pfad-Rename Ordner | `c.0.3.243` |
+| 36 | N2 | Mittel | Regel-Reconcile kein Restart nach Fehler | `c.0.3.241` |
+| 37 | N3 | Niedrig | Reachability `online` ohne Sync | `c.0.3.240` |
+| 39 | N5 | Hoch* | Spalten 50k langsamer (F29) | `c.0.3.244` |
+
+### Kein Code-Fix / Doku
+
+| Nr | Alias | Kurz | Spur |
+|----|-------|------|------|
+| 38 | N4 | `lastCompactionAt` nur Audit (Spec 236) | — |
+| 40 | N6 | 238-Bericht `api_queue` Text veraltet | ohne Cursor |
+| 41 | N7 | README Layout-Reminder 0.3.2 | ohne Cursor |
+
+### Behoben (42–50 — Read-only-Sperre)
+
+| Nr | Alias | Schwere | Kurz | Spur |
+|----|-------|---------|------|------|
+| 42 | L1 | Mittel | `connectKnown`: Store-Writes + Backfill trotz Sperre | `c.0.3.3.002` |
+| 43 | L2 | Kritisch | `forgetMedium` / `forgetAllMedia` trotz Sperre | `c.0.3.3.002` |
+| 44 | L3 | Hoch | `applyChoice` / Entscheidungs-Persistenz trotz Sperre | `c.0.3.3.002` |
+| 45 | L4 | Hoch | `writeMedium` / `updateMedium(persist:)` ohne Lock | `c.0.3.3.002` |
+| 46 | L5 | Niedrig | `updateNotice` bleibt ohne Offer | `c.0.3.3.002` |
+| 47 | L6 | Hoch | Laufender Regel-Reconcile / Restart ohne Lock | `c.0.3.3.002` |
+| 48 | L7 | Hoch | Scope unter Sperre verworfen; Unlock ohne Re-Queue | `c.0.3.3.002` |
+| 49 | L8 | Mittel | Lock-Cancel → UI `.indexing` | `c.0.3.3.002` |
+| 50 | L9 | Mittel | `ChangeWatcher.flush` ohne Lock-Guard | `c.0.3.3.002` |
+
+### Offen (51+)
 
 | Nr | Alias | Schwere | Kurz | Spur-Plan |
 |----|-------|---------|------|-----------|
-| 29 | A1 | Hoch | `invalidateAll` löscht Generationen → stale Spalten-Cache nach Regel-Reconcile | `c.0.3.239` |
-| 30 | A2 | Hoch | Fehlerbericht-Enqueue verwirft bei busy Index-DB (zweiter Pool, kein Fallback) | `c.0.3.240` |
-| 31 | A3 | Mittel | Parallele `flush()` → doppelter API-Send | `c.0.3.240` |
-| 32 | A4 | Mittel | Leerlauf-Wartung gibt nach ~4 s auf; Schuld bleibt | `c.0.3.241` |
-| 33 | A5 | Mittel | Leak-blockierte Queue-Zeilen bleiben ewig due | `c.0.3.240` |
-| 34 | A6 | Niedrig | FAT: einzelner gone-Ordner kann falsch revived werden | `c.0.3.242` |
-| 35 | N1 | Niedrig | Live-Pfad-Rename für Ordner absichtlich `false` (235b-Lücke) | `c.0.3.243` |
-| 36 | N2 | Mittel | Regel-Reconcile: nach Fehler kein Neustart trotz `needsRerun` | `c.0.3.241` |
-| 37 | N3 | Niedrig | `ApiQueueReachability.online` ohne Sync (`@unchecked Sendable`) | `c.0.3.240` |
-| 38 | N4 | — | `lastCompactionAt` nur schreiben (kein Zeit-Trigger; Spec 236) | kein Fix |
-| 39 | N5 | Hoch* | ROADMAP 0.3: Spalten 50k langsamer (F29); Größe/Abfrage ok | `c.0.3.244` |
-| 40 | N6 | Doku | 238-Bericht: `api_queue` „ungenutzt“ veraltet | ohne Cursor |
-| 41 | N7 | Doku | README Layout-Reminder „erst Layout“ vs. Code 0.3.2 | ohne Cursor |
+| 51 | A1b | Mittel | `IndexRepository.load`: missing-folder setzt Cache ohne Generations-Check | `c.0.3.245` |
+| 52 | R1 | Niedrig | Live-Rename: Clash ignoriert `status=gone` → Namens-Duplikat möglich | `c.0.3.246` |
+| 53 | R2 | Niedrig | `AppVersion.buildTimestamp` mit `TimeZone.current` (60-Tage-Kante) | `c.0.3.246` |
 
-\*Produktziel / Schwellen-Guard, kein Crash.
+\*Produktziel / Schwellen-Guard; mit 244 grün.
 
 ---
 
@@ -297,6 +324,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** `invalidate` bumpt `loadGenerations`, `invalidateAll` macht `removeAll()` — laufende Loads mit Token `0` matchen danach wieder `default: 0`.
 - **Vorschlag:** Wie bei `invalidate` Generationen bumpen (oder globale Generation), nicht löschen; Test: Load während `invalidateAll` schreibt nicht mehr.
 - **Spur:** `c.0.3.239`
+- **Behoben in Cursor-Spur:** `c.0.3.239` — `invalidateAll` bumpt Generationen wie `invalidate`.
 
 ### 30 / A2. Fehlerbericht verloren bei busy Index-DB
 
@@ -305,6 +333,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Kein `busyMode`/Timeout in `SchemaV3.makeConfiguration`; zweiter Pool konkurriert mit dem Index-Pool.
 - **Vorschlag:** Busy-Timeout und/oder gemeinsamen Pool / Retry; optional kurzer Datei-Fallback nur für Crash-Enqueue.
 - **Spur:** `c.0.3.240`
+- **Behoben in Cursor-Spur:** `c.0.3.240` (mit A3/A5/N3).
 
 ### 31 / A3. Parallele `flush()` doppelter Send
 
@@ -313,6 +342,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Kein Single-Flight / Mutex um `flush`.
 - **Vorschlag:** Ein laufender Flush; weitere Aufrufe warten oder mergen.
 - **Spur:** `c.0.3.240`
+- **Behoben in Cursor-Spur:** `c.0.3.240`.
 
 ### 32 / A4. Leerlauf-Wartung bricht nach kurzer Busy-Phase ab
 
@@ -321,6 +351,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Worker gibt auf, wenn `canRunDatabaseMaintenance` mehrfach false ist.
 - **Vorschlag:** Länger/backoff erneut versuchen oder nach `endMediumLiveSync` / Idle erneut `scheduleDatabaseMaintenance`.
 - **Spur:** `c.0.3.241`
+- **Behoben in Cursor-Spur:** `c.0.3.241` (mit N2).
 
 ### 33 / A5. Leak-blockierte Queue-Zeilen bleiben stecken
 
@@ -329,6 +360,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Send korrekt blockiert, Persistenz nicht bereinigt.
 - **Vorschlag:** Zeile löschen oder als `blocked`/nicht due markieren; Timer nur bei echtem Work.
 - **Spur:** `c.0.3.240`
+- **Behoben in Cursor-Spur:** `c.0.3.240`.
 
 ### 34 / A6. FAT: einzelner gone-Ordner falsch revived
 
@@ -337,6 +369,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Ordner-Kandidaten ohne Größe/mtime-Unterscheidung; Partial nur für Dateien.
 - **Vorschlag:** Strengere Ordner-Disambiguierung (Name/Pfad/Eltern) oder Partial/Inhalt für Ordner; nie automatisch bei `matches.count == 1` ohne Merkmal.
 - **Spur:** `c.0.3.242`
+- **Behoben in Cursor-Spur:** `c.0.3.242`.
 
 ### 35 / N1. Live-Pfad-Rename überspringt Ordner
 
@@ -345,6 +378,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Bewusste 235b-Lücke (nur Dateien im Paar-Pfad).
 - **Vorschlag:** Optional Ordner-Relocate inkl. Tiefen-Update der Kinder (eigene Aufgabe).
 - **Spur:** `c.0.3.243`
+- **Behoben in Cursor-Spur:** `c.0.3.243`.
 
 ### 36 / N2. Regel-Reconcile startet nach Fehler nicht neu
 
@@ -353,6 +387,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Fehlerpfad beendet den Task ohne Re-Schedule.
 - **Vorschlag:** In `finishRuleReconcileWorker` bei `needsRerun` erneut starten; oder nach Fehler kurz retry.
 - **Spur:** `c.0.3.241`
+- **Behoben in Cursor-Spur:** `c.0.3.241`.
 
 ### 37 / N3. `ApiQueueReachability.online` ohne Synchronisation
 
@@ -361,6 +396,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Kein Lock/Actor; Schwere niedrig (Praxis: `online` vor allem auf Monitor-Queue).
 - **Vorschlag:** Atomar / Main-Actor-only State; mit `c.0.3.240` mitziehen.
 - **Spur:** `c.0.3.240`
+- **Behoben in Cursor-Spur:** `c.0.3.240`.
 
 ### 38 / N4. `lastCompactionAt` nur geschrieben
 
@@ -377,6 +413,7 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** V3-Lese-/Paginierungspfad; Maschinenwechsel M3→M4 erklärt die Verlangsamung nicht weg.
 - **Vorschlag:** Profiling + gezielte Optimierung Spalten-Pagination/Cache (Produktcode); **kein** Test abschwächen; **kein** Doku-/Layout-Auftrag.
 - **Spur:** `c.0.3.244`
+- **Behoben in Cursor-Spur:** `c.0.3.244` — Guard ±10 % grün (`2026-10-13-spalten-244-final-vergleich.md`).
 
 ### 40 / N6. Doku: 238-Bericht zu `api_queue`
 
@@ -393,6 +430,117 @@ Stand: 13.10.2026 (Re-Audit). Ursprünglich geprüft gegen Commit `be80c9c` („
 - **Warum:** Reihenfolge umgedreht.
 - **Vorschlag:** Reminder anpassen (Nutzer/Claude; **ohne Cursor-Code**).
 - **Spur:** ohne Cursor
+
+---
+
+## Neue Befunde (Abend-Audit 13.10. — Read-only-Sperre)
+
+Nach `c.0.3.3.001` gilt laut Konzept: bei Sperre **keine Index-/Medium-Schreibpfade**. LiveWiring, Index-Start, Reconcile, Prune, Favoriten und „neue Medien“ sind geschützt. Die folgenden Pfade **nicht**.
+
+### 42 / L1. `connectKnown` schreibt trotz Sperre
+
+- **Wo:** `MediumCoordinator.connectKnown` (ca. Z. 130–217); `recordIdentity`, mehrfach `updateMedium`, Task `backfillMissingFavoritePartials`
+- **Was:** Bekanntes Medium: DB-Writes + Partial-Backfill trotz `!canWriteIndex`. Erneute Prüfung: `receiveUnknown`/`storeAndPresent`/`requestIndex` sind geschützt; `connectKnown` nicht.
+- **Warum:** Guard fehlt am Schreibpfad von `connectKnown` (Anzeige/publish wäre für Read-only ok).
+- **Vorschlag:** Store-Writes/Backfill/Dialog/Index nur bei `canWriteIndex`; sonst nur in-memory publish. Test: Sperre → kein Write.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002`.
+
+### 43 / L2. `forgetMedium` / `forgetAllMedia` trotz Sperre
+
+- **Wo:** `AppState+Media.forgetMedium` / `forgetAllMedia` (kein `canWriteIndex`; Store `deleteMedium`)
+- **Was:** Nutzer kann Medien aus dem Archiv löschen, obwohl Schreibsperre aktiv ist. Erneute Prüfung + Hintergrund-Audit: bestätigt (**kritisch**).
+- **Warum:** Forget-Routen prüfen `canWriteIndex` nicht.
+- **Vorschlag:** Guard + UI deaktivieren bei Sperre; Test: Forget No-Op wenn locked.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002`.
+
+### 44 / L3. `applyChoice` schreibt Entscheidung trotz Sperre
+
+- **Wo:** `MediumCoordinator.applyChoice` (ca. Z. 317+); `requestIndex` ist geschützt, `applyChoice` nicht
+- **Was:** Indizier-Entscheidung / Remember-Write (`store.updateMedium`) läuft trotz Sperre. Erneute Prüfung + Hintergrund-Audit: bestätigt (**hoch**).
+- **Warum:** Kein Lock-Check in `applyChoice`.
+- **Vorschlag:** `guard canWriteIndex`; Dialog bei Sperre nicht anbieten bzw. Ablehnung No-Op.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002`.
+
+### 45 / L4. `writeMedium` / `updateMedium(persist:)` ohne Lock
+
+- **Wo:** `AppState+IndexChanges.writeMedium`; `AppState+Media.updateMedium(persist:)` → `scheduleMediumWrite`; Registry/Detail-Entscheidungstoggles
+- **Was:** UI-Persistenz (Entscheidung, Kapazität, …) ohne Guard. Favoriten-API geschützt; Entscheidungs-Toggles nicht. Erneute Prüfung + Hintergrund-Audit: bestätigt.
+- **Warum:** Schranke nur an ausgewählten Call-Sites.
+- **Vorschlag:** Guard in `writeMedium`; bei Entscheidungsänderung unter Sperre auch `updateMedium(persist:)` No-Op oder Revert; Tests.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002`.
+
+### 46 / L5. `updateNotice` bleibt ohne Offer
+
+- **Wo:** `AppState+VersionLock.applyVersionLockEvaluation` Z. 18–27; Clear nur in `dismissUpdateNotice`
+- **Was:** Wenn `evaluation.updateOffer == nil`, bleibt bestehendes `updateNotice` stehen. Erneute Prüfung: bestätigt (kein `else`-Clear).
+- **Warum:** Nur Setzen/Aktualisieren bei Offer, kein Clear bei fehlendem Offer.
+- **Vorschlag:** Bei fehlendem Offer `updateNotice = nil`; kurzer Test.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002`.
+
+### 47 / L6. Regel-Reconcile läuft / startet trotz Sperre
+
+- **Wo:** `AppState+RuleReconcile.startRuleReconcileWorker` / `finishRuleReconcileWorker`; `AppDelegate.onVersionLockEngaged` bricht nur Index + Watcher ab
+- **Was:** Ein laufender `reconcileScopeToStatus` schreibt weiter. `finish…` startet bei `needsRerun` erneut **ohne** `canWriteIndex`. Erneute Prüfung (Hintergrund-Audit): bestätigt.
+- **Warum:** Lock-Hook ruft nicht `cancelRuleReconcileForTermination` / Worker-Cancel; Restart-Pfad ungeprüft.
+- **Vorschlag:** Bei Sperre Reconcile abbrechen; in `finish` und `start` Guard; Test: Lock mitlaufendem Worker → keine weiteren Writes / kein Restart.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002` (+ `cancelRuleReconcileForVersionLock` mit Deferred).
+
+### 48 / L7. Scope-Änderung unter Sperre geht verloren
+
+- **Wo:** `AppState.appSettings` didSet → `enqueueRuleReconcile()`; Guard in `enqueue` returnt ohne Flag
+- **Was:** Ignore/Scope-Änderung während Sperre setzt weder Worker noch `ruleReconcileNeedsRerun`. Nach Unlock kein automatischer Abgleich → Status/Scope können falsch bleiben.
+- **Warum:** Früher Return verwirft die Dirty-Markierung; Unlock queued nichts nach.
+- **Vorschlag:** Unter Sperre Dirty merken (Flag); bei Unlock `enqueueRuleReconcile()`; oder `needsRerun` auch bei Lock setzen und Worker erst bei Unlock starten.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002`.
+
+### 49 / L8. Lock-Cancel lässt UI auf `.indexing`
+
+- **Wo:** `onVersionLockEngaged` → `IndexingService.cancelAllForTermination` (nicht `cancel(mediumUUID:)`)
+- **Was:** Tasks/`runs` werden entfernt; `finish` sieht Token-Mismatch und räumt Status nicht → Medium kann in der UI `.indexing` bleiben.
+- **Warum:** Termination-Cancel ist für Quit gedacht, nicht für sauberes Lauf-Ende.
+- **Vorschlag:** Pro Medium `cancel(mediumUUID:)` (oder gemeinsamer Pfad, der Status auf pending/indexed setzt); Test: Lock während Index → Status nicht `.indexing`.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002` (`cancelAllActiveForVersionLock`).
+
+### 50 / L9. Watcher-Flush nach Lock
+
+- **Wo:** `ChangeWatcher.flush`; `stopAllWatching` erst async nach Lock
+- **Was:** Quiet-Period-Flush / in-flight `flush` hat kein `canWriteIndex` → kurzes Schreibfenster nach Sperre.
+- **Warum:** Guard fehlt am Flush; Stop ist asynchron.
+- **Vorschlag:** `guard canWriteIndex` in `flush` (und ggf. vor `processPending`); Test mit Sabotage-Lock während pending events.
+- **Spur:** `c.0.3.3.002`
+- **Behoben in Cursor-Spur:** `c.0.3.3.002`.
+
+### 51 / A1b. Missing-Folder-Cache ohne Generations-Check
+
+- **Wo:** `IndexRepository.load` — Zweig `parentID == nil` (nicht-root) setzt `cache[key] = []` und `return` **ohne** `loadToken`-Vergleich (Z. ~226–228)
+- **Was:** Nach `invalidateAll` (239 bumpt Generationen) kann ein veralteter Load trotzdem leeren Cache schreiben → Spalten-Loch.
+- **Warum:** 239 bumpt Generationen; dieser Early-Exit prüft sie nicht.
+- **Vorschlag:** Vor `cache[key] = []` denselben Guard wie bei Erfolgspfad; Test: invalidate während missing-folder-Load.
+- **Spur:** `c.0.3.245`
+
+### 52 / R1. Live-Rename Clash ignoriert `gone`
+
+- **Wo:** `DirectoryWriterV3.applyLivePathRename` — Clash mit `allowGone: false`
+- **Was:** Zielname mit existierender `status=gone`-Zeile blockiert nicht → mögliche doppelte Namen unter demselben Parent.
+- **Warum:** Clash-Query schließt gone aus.
+- **Vorschlag:** Clash inkl. gone prüfen bzw. gone-Zeile vor Rename behandeln; Test.
+- **Spur:** `c.0.3.246`
+
+### 53 / R2. Build-Timestamp in lokaler Zeitzone
+
+- **Wo:** `AppVersion.buildTimestamp` — `formatter.timeZone = TimeZone.current`
+- **Was:** 60-Tage-Sperrkante verschiebt sich mit der System-Zeitzone gegenüber einem festen Kalendertag.
+- **Warum:** Kein UTC / feste Zone.
+- **Vorschlag:** UTC (oder Bundle-Dokumentation); Test mit fester Zone.
+- **Spur:** `c.0.3.246`
 
 ---
 

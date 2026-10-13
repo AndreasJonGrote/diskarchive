@@ -36,6 +36,7 @@ extension AppState {
     }
 
     func updateMedium(id: UUID, persist: Bool = false, _ change: (inout Medium) -> Void) {
+        if persist, !featureAccess.canWriteIndex { return }
         guard let index = media.firstIndex(where: { $0.id == id }) else { return }
         let before = media[index]
         change(&media[index])
@@ -129,6 +130,7 @@ extension AppState {
     }
 
     func forgetMedium(id: UUID) {
+        guard featureAccess.canWriteIndex else { return }
         DiskIndexLog.shared.ui("forget id=\(id)")
         completeNewMediumDecision(id)
         pendingMediumWrites[id]?.cancel()
@@ -149,6 +151,7 @@ extension AppState {
     }
 
     func forgetAllMedia() {
+        guard featureAccess.canWriteIndex else { return }
         let ids = registryMedia.map(\.id)
         DiskIndexLog.shared.record(.store, .info, "forget all count=\(ids.count)")
         pendingMediumWrites.values.forEach { $0.cancel() }

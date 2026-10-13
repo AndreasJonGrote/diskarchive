@@ -13,6 +13,7 @@ extension AppState {
     }
 
     func applyVersionLockEvaluation(_ evaluation: VersionLockEvaluation) {
+        let wasLocked = versionLockState.isLocked
         versionLockState = evaluation.lockState
         versionLockBannerVisible = evaluation.showLockBanner
         if let offer = evaluation.updateOffer {
@@ -24,6 +25,12 @@ extension AppState {
             } else {
                 updateNotice = UpdateNotice(offer: offer, skipUpdate: false)
             }
+        } else {
+            updateNotice = nil
+        }
+        if wasLocked, !evaluation.lockState.isLocked, ruleReconcileDeferredWhileLocked {
+            ruleReconcileDeferredWhileLocked = false
+            enqueueRuleReconcile()
         }
     }
 

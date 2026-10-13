@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Keine Cursor-Aufgabe freigegeben.** `239`–`244` + **`c.0.3.3.001`** abgenommen. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **`239`–`244` + `c.0.3.3.001` + `c.0.3.3.002` abgenommen.** Nächste freigegeben: **`c.0.3.245`** (REPORT 51). **`c.0.3.246`** noch nicht (52–53). Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -253,7 +253,24 @@ Status: `AppVersion`, `SystemSettingsPersistence`, `VersionLockEvaluator`, `Feat
 **Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
 - **a ok:** `ApiQueueKind.versionCheck`; Flush → `VersionCheckClient` + `VersionCheckCoordinator`; Settings-Keys; `UpdateAvailableDialog` (Vorlage Fehler-Modal, Skip, Download → diskarchive.app); Texte de+en.
 - **b ok:** Evaluator 7 Tage / Frisch / 30 Tage API / 60 Tage Build + `lockedVersion`; `FeatureAccess.canWriteIndex` in LiveWiring, Index, Coordinator (keine neuen Medien), Reconcile, Prune, Favoriten-Schreiben; `onVersionLockEngaged` → Index-Cancel + `stopAllWatching`. Tests Skip/Grace/Frisch/API/Build/Lock-Bindung + FeatureAccess.
-- Regel 23: Binary **19:04:48**, find -newer leer. Suite 541 nicht erneut. **Keine Nacharbeit.** Spur A leer (kein Folge-Paket freigegeben).
+- Regel 23: Binary **19:04:48**, find -newer leer. Suite 541 nicht erneut. **Keine Nacharbeit.**
+
+### Cursor-Spur — freigegeben (Abend-/Hintergrund-Audit)
+
+#### c.0.3.3.002 — Read-only-Sperre schließen (REPORT 42–50) — **abgenommen**
+
+→ DONE. Nacharbeit e/f: `cancelRuleReconcileForVersionLock` + Test. Prüfung 13.10. (Cursor Nutzerwunsch): ok. Regel 23 Binary **20:19:16**.
+
+#### c.0.3.245 — Spalten-Cache missing-folder (REPORT 51 / A1b) — **freigegeben**
+
+Eine Aufgabe. In `IndexRepository.load`: Early-Exit `parentID == nil` (nicht-root) darf `cache[key] = []` nur setzen, wenn `loadGenerations[key] == loadToken` (wie Erfolgspfad). Test: `invalidateAll` während dieses Zweigs überschreibt Cache nicht. Seriell; **Regel 23**. HALT.
+Status:
+
+#### c.0.3.246 — Live-Rename gone-Clash + Build-TZ (REPORT 52–53) — **noch nicht freigegeben**
+
+a) **52 / R1:** `applyLivePathRename` Clash inkl. `gone` bzw. gone-Zelle behandeln.
+b) **53 / R2:** `AppVersion.buildTimestamp` in UTC (feste Zone); 60-Tage-Kante unabhängig von System-TZ.
+Status:
 
 ### Offen, ohne Cursor (Rest 0.3.2 + Doku Re-Audit)
 
@@ -277,14 +294,15 @@ Status: `AppVersion`, `SystemSettingsPersistence`, `VersionLockEvaluator`, `Feat
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
 - **Re-Audit** → **c.0.3.239**–**244** abgenommen (F29 erledigt); N6/N7 ohne Cursor.
-- **0.3.3** → **c.0.3.3.001** — **abgenommen/gelöst** (Vorgriff Versions-Check/Sperre).
+- **0.3.3** → **c.0.3.3.001** + **002** abgenommen; **245** freigegeben (51); **246** noch nicht (52–53).
+- **Re-Audit Rest** → **c.0.3.245** (A1b), **c.0.3.246** (R1/R2).
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
 
 - **Download-Seite** auf `https://diskarchive.app/` (Nutzer).
-- **Versions-Check** / Update-Modal / Beta-Sperre → **`c.0.3.3.001` abgenommen** (0.3.3 Vorgriff); Rest-Politur/Layout ggf. später. README 0.4 + `datenbank-konzeption.md`.
-- **Beta-Verfallsdatum: 60 Tage** + **`FeatureAccess`** → in **c.0.3.3.001**; Laufzeittest **macOS 14** weiter offen.
+- **Versions-Check** / Update-Modal / Beta-Sperre → **`c.0.3.3.001`/`002`**; README 0.4 + `datenbank-konzeption.md`.
+- **Beta-Verfallsdatum: 60 Tage** + **`FeatureAccess`** → in **001**/`002`; Laufzeittest **macOS 14** weiter offen.
 - **Fehlerbericht:** Test mit echten Protokollzeilen.
 - **Update durch Ersetzen der App;** ab 0.4 echte Migrationen (Sicherung, `hasBeenSuperseded`).
 

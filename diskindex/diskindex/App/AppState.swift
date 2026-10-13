@@ -101,6 +101,8 @@ final class AppState {
     var isRuleReconcileQueueActive = false
     var ruleReconcileTask: Task<Void, Never>?
     var ruleReconcileNeedsRerun = false
+    /// Scope/Regel-Änderung während Versions-Sperre; nach Unlock einmal nachziehen (c.0.3.3.002).
+    var ruleReconcileDeferredWhileLocked = false
     var ruleReconcileIdleWaiters: [CheckedContinuation<Void, Never>] = []
     var databaseMaintenanceTask: Task<Void, Never>?
     var pendingSearchAfterRuleReconcile = false

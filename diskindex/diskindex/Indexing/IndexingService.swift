@@ -36,6 +36,16 @@ final class IndexingService {
         tasks[mediumUUID] != nil
     }
 
+    func activeMediumUUIDs() -> [UUID] {
+        Array(Set(tasks.keys).union(runs.keys))
+    }
+
+    func cancelAllActiveForVersionLock() async {
+        for id in activeMediumUUIDs() {
+            await cancel(mediumUUID: id)
+        }
+    }
+
     func start(mediumUUID: UUID, volume: VolumeInfo, fromScratch: Bool) {
         guard appState.featureAccess.canWriteIndex else {
             coordinator?.clearIndexRequest(mediumID: mediumUUID)

@@ -75,7 +75,8 @@ struct RegistryTableRow: View {
         EquatableView(content: AllowIndexingBinaryGroup(
             mediumID: medium.id,
             allowIndexing: medium.allowIndexing,
-            isPending: medium.indexStatus == .pending
+            isPending: medium.indexStatus == .pending,
+            isEnabled: appState.featureAccess.canWriteIndex
         ) { allow in
             appState.updateMedium(id: medium.id, persist: true) {
                 $0.decision = allow ? .index : .dontIndex

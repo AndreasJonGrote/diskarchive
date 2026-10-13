@@ -9,7 +9,10 @@ import Foundation
 
 extension AppState {
     func enqueueRuleReconcile() {
-        guard featureAccess.canWriteIndex else { return }
+        guard featureAccess.canWriteIndex else {
+            ruleReconcileDeferredWhileLocked = true
+            return
+        }
         ruleReconcileNeedsRerun = true
         guard ruleReconcileTask == nil else { return }
         startRuleReconcileWorker()
@@ -31,7 +34,19 @@ extension AppState {
         resumeRuleReconcileIdleWaiters()
     }
 
+    /// Versions-Sperre: laufenden oder anstehenden Abgleich zum Unlock merken (c.0.3.3.002 e/f).
+    func cancelRuleReconcileForVersionLock() {
+        if isRuleReconcileQueueActive || ruleReconcileNeedsRerun {
+            ruleReconcileDeferredWhileLocked = true
+        }
+        cancelRuleReconcileForTermination()
+    }
+
     private func startRuleReconcileWorker() {
+        guard featureAccess.canWriteIndex else {
+            ruleReconcileDeferredWhileLocked = true
+            return
+        }
         isRuleReconcileQueueActive = true
         indexRepository.blocksLoadsForRuleReconcile = true
         indexRepository.invalidateAll()
@@ -65,7 +80,11 @@ extension AppState {
     private func finishRuleReconcileWorker(emitIdle: Bool) {
         ruleReconcileTask = nil
         if ruleReconcileNeedsRerun, indexStore != nil {
-            startRuleReconcileWorker()
+            if featureAccess.canWriteIndex {
+                startRuleReconcileWorker()
+            } else {
+                ruleReconcileDeferredWhileLocked = true
+            }
             return
         }
         isRuleReconcileQueueActive = false

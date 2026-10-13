@@ -353,7 +353,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         appState.onVersionLockEngaged = { [weak self] in
             Task { @MainActor in
-                self?.indexingService?.cancelAllForTermination()
+                let appState = AppDelegateBridge.appState
+                appState.cancelRuleReconcileForVersionLock()
+                await self?.indexingService?.cancelAllActiveForVersionLock()
                 await self?.changeWatcher?.stopAllWatching()
             }
         }

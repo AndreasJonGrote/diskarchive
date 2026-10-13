@@ -458,6 +458,7 @@ extension AppState {
     }
 
     func writeMedium(_ id: UUID) async {
+        guard featureAccess.canWriteIndex else { return }
         guard let indexStore, let current = medium(with: id) else { return }
         do {
             guard var stored = try await indexStore.medium(uuid: id) else { return }

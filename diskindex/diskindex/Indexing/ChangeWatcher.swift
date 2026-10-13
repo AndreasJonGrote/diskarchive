@@ -285,6 +285,7 @@ final class ChangeWatcher {
 
     private func flush(_ mediumID: UUID) async {
         guard let mount = mounts[mediumID] else { return }
+        guard appState.featureAccess.canWriteIndex else { return }
         if isIndexingActive(mediumID) {
             scheduleDeferredFlush(mediumID)
             return

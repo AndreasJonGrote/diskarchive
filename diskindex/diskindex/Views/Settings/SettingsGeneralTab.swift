@@ -275,6 +275,8 @@ struct SettingsGeneralTab: View {
             ConfirmButton(title: LayoutCopy.forgetAll, tone: .destructive) {
                 appState.forgetAllMedia()
             }
+            .disabled(!appState.featureAccess.canWriteIndex)
+            .opacity(appState.featureAccess.canWriteIndex ? 1 : 0.45)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

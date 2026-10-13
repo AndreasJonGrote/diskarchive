@@ -130,6 +130,10 @@ final class MediumCoordinator {
     private func connectKnown(_ stored: StoredMedium, volume: VolumeInfo) async throws {
         let started = ContinuousClock.now
         defer { DiskIndexLog.shared.perfIfSlow("abgleich", since: started) }
+        if !appState.featureAccess.canWriteIndex {
+            publishConnectKnownReadOnly(stored, volume: volume)
+            return
+        }
         var recoveredFromError = false
         if stored.indexStatus == .error {
             switch await access.probe(volume) {
@@ -316,6 +320,7 @@ final class MediumCoordinator {
 
     private func applyChoice(mediumID: UUID, allowIndexing: Bool, remember: Bool) {
         choiceTask = Task {
+            guard appState.featureAccess.canWriteIndex else { return }
             let stored: StoredMedium
             do {
                 guard var row = try await store.medium(uuid: mediumID) else {
@@ -390,6 +395,21 @@ final class MediumCoordinator {
             }
         }
         SystemNotice.postFavoritesOnline(name: name, favoriteCount: count, settings: appState.appSettings)
+    }
+
+    private func publishConnectKnownReadOnly(_ stored: StoredMedium, volume: VolumeInfo) {
+        var display = stored
+        display.name = volume.name
+        display.fsType = volume.fsType
+        display.volumeTotalBytes = volume.volumeTotalBytes
+        display.diskSizeBytes = volume.diskSizeBytes
+        display.type = volume.mediumType
+        if let free = volume.volumeFreeBytes {
+            display.capacityUsedBytes = max(0, volume.volumeTotalBytes - free)
+        }
+        mediumByPath[volume.mountPath] = display.uuid
+        publish(display, connection: .connected)
+        DiskIndexLog.shared.record(.medium, .info, "abgleich read-only id=\(display.uuid)")
     }
 
     private func requestDialog(_ id: UUID) {
