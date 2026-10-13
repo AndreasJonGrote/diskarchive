@@ -41,6 +41,7 @@ nonisolated enum SchemaV3 {
     static func makeConfiguration() -> Configuration {
         var configuration = Configuration()
         configuration.foreignKeysEnabled = true
+        configuration.busyMode = .timeout(10)
         // Die parallele Suche braucht mehrere Lese-Verbindungen (WAL erlaubt gleichzeitiges Lesen).
         configuration.maximumReaderCount = 16
         configuration.prepareDatabase { db in

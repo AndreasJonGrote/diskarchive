@@ -11,6 +11,7 @@ import Network
 nonisolated final class ApiQueueReachability: @unchecked Sendable {
     private let monitor = NWPathMonitor()
     private let monitorQueue = DispatchQueue(label: "app.diskarchive.apiQueue.path")
+    private let onlineLock = NSLock()
     private var online = false
     private var periodicTimer: Timer?
     var onFlush: @Sendable () -> Void = {}
@@ -20,10 +21,11 @@ nonisolated final class ApiQueueReachability: @unchecked Sendable {
         monitor.pathUpdateHandler = { [weak self] path in
             guard let self else { return }
             let satisfied = path.status == .satisfied
-            if satisfied, !self.online {
+            let wasOnline = self.readOnline()
+            if satisfied, !wasOnline {
                 self.onFlush()
             }
-            self.online = satisfied
+            self.setOnline(satisfied)
             self.syncPeriodicTimer()
         }
         monitor.start(queue: monitorQueue)
@@ -50,5 +52,17 @@ nonisolated final class ApiQueueReachability: @unchecked Sendable {
                 self.periodicTimer = nil
             }
         }
+    }
+
+    private func readOnline() -> Bool {
+        onlineLock.lock()
+        defer { onlineLock.unlock() }
+        return online
+    }
+
+    private func setOnline(_ value: Bool) {
+        onlineLock.lock()
+        online = value
+        onlineLock.unlock()
     }
 }

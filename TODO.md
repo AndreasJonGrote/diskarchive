@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.240` (danach HALT). `239` abgenommen. Folge `241`–`244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.241` (danach HALT). `239`–`240` abgenommen. Folge `242`–`244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -171,16 +171,23 @@ Status: `invalidateAll` bumpet `loadGenerations` für `loading`∪Keys statt `re
 - Sabotage laut Status (Suite 522); Dauerhaft kein Sabotage-Schalter — übliches Muster.
 - Regel 23: Binary **08:25:20**, `IndexRepository.swift` 08:25:07, Test 08:24:31, find -newer leer. Suite 522 nicht erneut. **Keine Nacharbeit.** **c.0.3.240 freigegeben.**
 
-**c.0.3.240 — api_queue Robustheit (REPORT 30/31/33/37 = A2/A3/A5/N3).** — **FREIGEGEBEN**
+**c.0.3.240 — api_queue Robustheit (REPORT 30/31/33/37 = A2/A3/A5/N3).** — **ABGENOMMEN**
 Fehlerbericht darf unter Index-Last nicht verloren gehen; Flush nicht doppelt; Leak-Zeilen nicht ewig due; Reachability-State sicher.
 a) Enqueue resilient: `busyMode`/Timeout und/oder gemeinsamer Pool / Retry; bei endgültig fehlgeschlagenem Crash-Enqueue kurzer Fallback (Datei oder erneuter Versuch), nie still verwerfen.
 b) `flush` Single-Flight (Mutex/Flag); Online-Timer und Enqueue teilen denselben Pfad.
 c) Leak-block (`ReportScrubber.leakCategory`): Zeile löschen oder dauerhaft nicht-due markieren; Timer nur bei echter Arbeit.
 d) Optional mitziehen: `ApiQueueReachability.online` atomar/Main-Actor (N3).
 e) Tests inkl. Sabotage wo sinnvoll; seriell; **Regel 23**. HALT.
-Status:
+Status: Busy `.timeout(10)`; Enqueue Retry + Outbox-Fallback; `IssueReporterFlushGate`; Leak `markBlocked`/`hasDueWork`; Reachability-Lock. Tests IssueTracker/ApiQueuePersistence; Sabotage Flush-Gate → rot ✓. **526/526** seriell. Regel 23: App 08:59:17, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
+- **a ok:** `SchemaV3.busyMode = .timeout(10)`; `persistReport` 3× Retry auf BUSY/LOCKED; sonst `fallbackOutboxReport` (Datei). Test `enqueueSurvivesConcurrentExclusiveWrite`.
+- **b ok:** `IssueReporterFlushGate` (pending→noch ein Lauf); `flush`/`flushInBackground` darüber. Test `parallelFlushSendsOnce` (1 Hit).
+- **c ok:** Leak → `markBlocked` (`blocked:`); `isDue`/`hasDueWork` false; Timer über `hasDueWork`. Tests Leak + `blockedRowIsNotDue`.
+- **d ok:** `ApiQueueReachability` `online` hinter `NSLock`.
+- **Hinweis:** Datei-Fallback wird erst wieder über `migrateLegacyOutboxFiles` (`start`) in die Queue geholt — Briefing erlaubt Datei; kein Blocker.
+- Regel 23: Binary **08:59:17**, find -newer leer. Suite 526 nicht erneut. **Keine Nacharbeit.** **c.0.3.241 freigegeben.**
 
-**c.0.3.241 — Wartung + Regel-Reconcile nach Busy/Fehler (REPORT 32/36 = A4/N2).** — noch nicht freigegeben
+**c.0.3.241 — Wartung + Regel-Reconcile nach Busy/Fehler (REPORT 32/36 = A4/N2).** — **FREIGEGEBEN**
 a) Leerlauf-Compaction: nicht nach ~2 kurzen Versuchen aufgeben; nach Live-Sync-Ende / Idle erneut `scheduleDatabaseMaintenance`, bis Schuld verarbeitet oder klar idle.
 b) `finishRuleReconcileWorker`: wenn `ruleReconcileNeedsRerun` noch true → Worker neu starten (Fehlerpfad darf pending Enqueue nicht „hängen“ lassen).
 c) Tests + Sabotage; seriell; **Regel 23**. HALT.
@@ -227,7 +234,7 @@ Status:
 - **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29** / `c.0.3.244`). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
-- **Re-Audit** → **c.0.3.239** abgenommen; **240** freigegeben; 241–244 wartend; N6/N7 ohne Cursor.
+- **Re-Audit** → **c.0.3.239**–**240** abgenommen; **241** freigegeben; 242–244 wartend; N6/N7 ohne Cursor.
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester

@@ -14,6 +14,7 @@ final class IssueStubURL: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var fail = false
     nonisolated(unsafe) static var hits = 0
     nonisolated(unsafe) static var lastRequestBody: Data?
+    nonisolated(unsafe) static var responseDelayNanoseconds: UInt64 = 0
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest {
@@ -24,6 +25,9 @@ final class IssueStubURL: URLProtocol, @unchecked Sendable {
     }
 
     override func startLoading() {
+        if Self.responseDelayNanoseconds > 0 {
+            Thread.sleep(forTimeInterval: Double(Self.responseDelayNanoseconds) / 1_000_000_000)
+        }
         Self.hits += 1
         Self.lastRequestBody = request.httpBody
         if Self.fail {
@@ -236,6 +240,54 @@ struct IssueTrackerTests {
         try expectQueued(reporter, 50)
     }
 
+    @Test func parallelFlushSendsOnce() async throws {
+        let reporter = try makeReporter()
+        IssueStubURL.responseDelayNanoseconds = 200_000_000
+        defer { IssueStubURL.responseDelayNanoseconds = 0 }
+        reporter.enqueue(kind: "crash")
+        async let first: Void = reporter.flush()
+        async let second: Void = reporter.flush()
+        _ = await (first, second)
+        #expect(IssueStubURL.hits == 1)
+        try expectQueued(reporter, 0)
+    }
+
+    @Test func leakBlockedRowStaysOutOfDueAndSkipsResend() async throws {
+        let reporter = try makeReporter()
+        let pool = try #require(reporter.queuePool)
+        let id = UUID().uuidString
+        let payload = Data(#"{"schema":2,"id":"\#(id)","kind":"crash","logTail":["/Volumes/KUNDE/geheim"]}"#.utf8)
+        try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: payload, createdAt: 1)
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 0)
+        try expectQueued(reporter, 1)
+        let row = try #require(try ApiQueuePersistence.fetchAllOrdered(pool).first)
+        #expect(row.info?.hasPrefix("blocked:leak=") == true)
+        #expect(try ApiQueuePersistence.fetchDue(pool, now: Date()).isEmpty)
+        IssueStubURL.hits = 0
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 0)
+    }
+
+    @Test func enqueueSurvivesConcurrentExclusiveWrite() async throws {
+        let reporter = try makeReporter()
+        let pool = try #require(reporter.queuePool)
+        let entered = DispatchSemaphore(value: 0)
+        let release = DispatchSemaphore(value: 0)
+        let writer = Task {
+            try pool.write { _ in
+                entered.signal()
+                _ = release.wait(timeout: .now() + 5)
+            }
+        }
+        #expect(entered.wait(timeout: .now() + 2) == .success)
+        reporter.enqueue(kind: "crash")
+        release.signal()
+        try await writer.value
+        try expectQueued(reporter, 1)
+        #expect(reporter.reportFiles().isEmpty)
+    }
+
     @Test func migratesLegacyOutboxFiles() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -274,6 +326,7 @@ private func makeReporter(
     IssueStubURL.fail = false
     IssueStubURL.hits = 0
     IssueStubURL.lastRequestBody = nil
+    IssueStubURL.responseDelayNanoseconds = 0
     let directory = outboxDirectory ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     if outboxDirectory == nil {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

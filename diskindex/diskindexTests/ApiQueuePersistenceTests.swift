@@ -60,6 +60,17 @@ struct ApiQueuePersistenceTests {
         #expect(try ApiQueuePersistence.count(pool) == 0)
     }
 
+    @Test func blockedRowIsNotDue() throws {
+        let (pool, directory) = try makeQueuePool()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: Data(#"{"id":"x"}"#.utf8), createdAt: 1)
+        let row = try #require(try ApiQueuePersistence.fetchAllOrdered(pool).first)
+        try ApiQueuePersistence.markBlocked(pool, rowID: row.id, info: "blocked:leak=path")
+        #expect(try ApiQueuePersistence.fetchDue(pool, now: Date()).isEmpty)
+        #expect(try ApiQueuePersistence.hasDueWork(pool, now: Date()) == false)
+        #expect(try ApiQueuePersistence.count(pool) == 1)
+    }
+
     @Test func nextRetryFindsIssueID() throws {
         let (pool, directory) = try makeQueuePool()
         defer { try? FileManager.default.removeItem(at: directory) }

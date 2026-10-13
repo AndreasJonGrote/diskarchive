@@ -123,5 +123,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | c.0.3.238 | Messung nachher + Schema-Freeze; Bericht; Schwellen Größe/Abfrage ok, Spalten → F29 | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | `Werkzeuge/messung/2026-10-12-nachher-bericht.md` |
 | c.0.3.1.001 | API-Warteschlange `api_queue`; IssueReporter; NWPathMonitor + 60 s | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.239 | Spalten-Cache: `invalidateAll` bumpt Generationen (REPORT 29/A1) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
+| c.0.3.240 | api_queue Robustheit (busy/Flush/Leak/Reachability; REPORT 30+) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 
-**Offen / freigegeben:** `c.0.3.240`. Folge 241–244; F29 → `c.0.3.244`; 0.3.2 Layout/README Nutzer/Claude.
+**Offen / freigegeben:** `c.0.3.241`. Folge 242–244; F29 → `c.0.3.244`; 0.3.2 Layout/README Nutzer/Claude.

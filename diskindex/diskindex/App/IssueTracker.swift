@@ -166,7 +166,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
 
     var sendsImmediately = true
     private let reachability = ApiQueueReachability()
+    private let flushGate = IssueReporterFlushGate()
     private var started = false
+    private static let queuePersistAttempts = 3
 
     init(
         endpoint: URL = ReportTarget.endpoint,
@@ -215,7 +217,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             self?.flushInBackground()
         }
         reachability.queueHasWork = { [weak self] in
-            (try? self?.queuedReportCount()) ?? 0 > 0
+            guard let self else { return false }
+            guard let pool = try? self.resolvePool() else { return false }
+            return (try? ApiQueuePersistence.hasDueWork(pool, now: self.now())) ?? false
         }
     }
 
@@ -252,15 +256,15 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             createdAt: now()
         )
         let createdAt = Int(now().timeIntervalSince1970)
-        do {
-            let pool = try resolvePool()
-            try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: data, createdAt: createdAt)
-            if let url = try? IndexStoreV3.storeFileURL() {
-                FilePrivacy.restrict(url.deletingLastPathComponent())
-            }
-        } catch {
-            log("app report queue failed id=\(id) error=\(error.localizedDescription)")
+        let persisted = persistReport(data: data, createdAt: createdAt, issueID: id)
+        guard persisted else {
+            fallbackOutboxReport(data: data, issueID: id)
+            syncReachabilityTimer()
+            if sendsImmediately { flushInBackground() }
             return
+        }
+        if let url = try? IndexStoreV3.storeFileURL() {
+            FilePrivacy.restrict(url.deletingLastPathComponent())
         }
         log("app report queued kind=\(prepared.kind) id=\(id)")
         syncReachabilityTimer()
@@ -268,10 +272,14 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     }
 
     func flushInBackground() {
-        Task { await flush() }
+        Task { await flushGate.run { await self.flushOnce() } }
     }
 
     func flush() async {
+        await flushGate.run { await flushOnce() }
+    }
+
+    private func flushOnce() async {
         guard IssueEndpointPolicy.allows(endpoint, release: releaseBuild) else {
             log("app report failed kind=any id=- status=scheme")
             return
@@ -336,6 +344,40 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         return try ApiQueuePersistence.openQueuePool()
     }
 
+    private func persistReport(data: Data, createdAt: Int, issueID: String) -> Bool {
+        for attempt in 1...Self.queuePersistAttempts {
+            do {
+                let pool = try resolvePool()
+                try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: data, createdAt: createdAt)
+                return true
+            } catch {
+                if Self.isRetriableQueueError(error), attempt < Self.queuePersistAttempts {
+                    Thread.sleep(forTimeInterval: 0.05 * Double(attempt))
+                    continue
+                }
+                log("app report queue failed id=\(issueID) error=\(error.localizedDescription)")
+                return false
+            }
+        }
+        return false
+    }
+
+    private func fallbackOutboxReport(data: Data, issueID: String) {
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = directory.appendingPathComponent("\(issueID).json")
+            try data.write(to: url, options: .atomic)
+            log("app report queued kind=crash id=\(issueID) fallback=outbox")
+        } catch {
+            log("app report outbox failed id=\(issueID) error=\(error.localizedDescription)")
+        }
+    }
+
+    private static func isRetriableQueueError(_ error: Error) -> Bool {
+        guard let dbError = error as? DatabaseError else { return false }
+        return dbError.resultCode == .SQLITE_BUSY || dbError.resultCode == .SQLITE_LOCKED
+    }
+
     private func syncReachabilityTimer() {
         reachability.syncPeriodicTimer()
     }
@@ -358,6 +400,8 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         let raw = String(decoding: body, as: UTF8.self)
         if let category = ReportScrubber.leakCategory(in: raw, names: knownNames()) {
             log("report blocked leak=\(category)")
+            try? ApiQueuePersistence.markBlocked(pool, rowID: row.id, info: "blocked:leak=\(category)")
+            syncReachabilityTimer()
             return
         }
         var request = URLRequest(url: endpoint)

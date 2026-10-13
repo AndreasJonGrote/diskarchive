@@ -70,10 +70,31 @@ nonisolated enum ApiQueuePersistence {
         return all.filter { isDue($0, now: now) }
     }
 
+    static func isBlocked(_ row: ApiQueueRow) -> Bool {
+        row.info?.hasPrefix("blocked:") == true
+    }
+
     static func isDue(_ row: ApiQueueRow, now: Date) -> Bool {
+        if isBlocked(row) { return false }
         guard let last = row.lastTryAt else { return true }
         let delay = IssueRetry.delay(afterAttempt: row.attempts)
         return now.timeIntervalSince1970 >= Double(last) + delay
+    }
+
+    static func hasDueWork(_ pool: DatabasePool, kind: ApiQueueKind = .issueReport, now: Date) throws -> Bool {
+        try pool.read { db in
+            let rows = try rows(from: db, sql: "SELECT * FROM api_queue WHERE kind = ? ORDER BY id ASC", arguments: [kind.rawValue])
+            return rows.contains { isDue($0, now: now) }
+        }
+    }
+
+    static func markBlocked(_ pool: DatabasePool, rowID: Int64, info: String) throws {
+        try pool.write { db in
+            try db.execute(
+                sql: "UPDATE api_queue SET info = ? WHERE id = ?",
+                arguments: [info, rowID]
+            )
+        }
     }
 
     static func delete(_ pool: DatabasePool, rowID: Int64) throws {
