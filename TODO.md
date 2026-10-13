@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.239` (danach HALT). Folge `240`–`244` in der Spur, noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.240` (danach HALT). `239` abgenommen. Folge `241`–`244` noch nicht freigegeben. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -161,13 +161,17 @@ Status: **Bereit zur Prüfung** — `ApiQueueKind`/`ApiQueuePersistence`, `Issue
 
 **Re-Audit 13.10. — neue Spur (REPORT 29–39 / N1–N5 / A1–A6).** Quelle: [REPORT.md](REPORT.md). N6/N7 Doku → „Offen, ohne Cursor“. N4 kein Fix.
 
-**c.0.3.239 — Spalten-Cache nach Regel-Reconcile (REPORT 29 / A1).** — **FREIGEGEBEN**
+**c.0.3.239 — Spalten-Cache nach Regel-Reconcile (REPORT 29 / A1).** — **ABGENOMMEN**
 `IndexRepository.invalidateAll` darf `loadGenerations` nicht löschen (sonst matchen In-Flight-Loads Token `0` wieder). Stattdessen Generationen bumpen wie `invalidate` / `prepareForTermination`. Aufrufe aus Regel-Queue (`AppState+RuleReconcile`) bleiben.
 a) Fix + Test: laufender `load` nach `invalidateAll` schreibt nicht in den Cache; Sabotage (altes `removeAll` auf Generationen) → rot ✓.
 b) Seriell, Warnungen 0, **Regel 23**. HALT.
-Status:
+Status: `invalidateAll` bumpet `loadGenerations` für `loading`∪Keys statt `removeAll`. Test `IndexRepositoryInvalidateAllTests` (Invalidierung während Load, `loadSessionsCompletedForTesting`). Sabotage `removeAll` → rot ✓. **522/522** seriell, Warnungen 0. Regel 23: App 08:25:11, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
+- **a ok:** `invalidateAll` bumpt `Set(loading)∪loadGenerations.keys`, kein `removeAll` auf Generationen; Cache/`loading` weiter geleert. Test wartet auf Load-Start, setzt `blocksLoadsForRuleReconcile`, `invalidateAll`, erwartet leeren Cache, dann Reload. Regel-Aufrufe unverändert.
+- Sabotage laut Status (Suite 522); Dauerhaft kein Sabotage-Schalter — übliches Muster.
+- Regel 23: Binary **08:25:20**, `IndexRepository.swift` 08:25:07, Test 08:24:31, find -newer leer. Suite 522 nicht erneut. **Keine Nacharbeit.** **c.0.3.240 freigegeben.**
 
-**c.0.3.240 — api_queue Robustheit (REPORT 30/31/33/37 = A2/A3/A5/N3).** — noch nicht freigegeben
+**c.0.3.240 — api_queue Robustheit (REPORT 30/31/33/37 = A2/A3/A5/N3).** — **FREIGEGEBEN**
 Fehlerbericht darf unter Index-Last nicht verloren gehen; Flush nicht doppelt; Leak-Zeilen nicht ewig due; Reachability-State sicher.
 a) Enqueue resilient: `busyMode`/Timeout und/oder gemeinsamer Pool / Retry; bei endgültig fehlgeschlagenem Crash-Enqueue kurzer Fallback (Datei oder erneuter Versuch), nie still verwerfen.
 b) `flush` Single-Flight (Mutex/Flag); Online-Timer und Enqueue teilen denselben Pfad.
@@ -223,7 +227,7 @@ Status:
 - **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29** / `c.0.3.244`). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
-- **Re-Audit** → **c.0.3.239**–**244** in A/Spur (239 freigegeben); N6/N7 ohne Cursor.
+- **Re-Audit** → **c.0.3.239** abgenommen; **240** freigegeben; 241–244 wartend; N6/N7 ohne Cursor.
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester

@@ -25,10 +25,12 @@ final class IndexRepository {
     private let cacheFolderLimit = 30
     #if DEBUG
     private(set) static var loadSessionsStartedForTesting = 0
+    private(set) static var loadSessionsCompletedForTesting = 0
     private(set) static var requestLoadCallsForTesting = 0
 
     static func resetLoadSessionsCounterForTesting() {
         loadSessionsStartedForTesting = 0
+        loadSessionsCompletedForTesting = 0
     }
 
     static func resetRequestLoadCounterForTesting() {
@@ -137,13 +139,15 @@ final class IndexRepository {
     }
 
     func invalidateAll() {
+        for key in Set(loading).union(loadGenerations.keys) {
+            bumpLoadGeneration(key)
+        }
         cache.removeAll()
         cacheOrder.removeAll()
         loading.removeAll()
         loadingLoaded.removeAll()
         loadingTotals.removeAll()
         loadErrors.removeAll()
-        loadGenerations.removeAll()
         generation += 1
     }
 
@@ -202,6 +206,9 @@ final class IndexRepository {
             loading.remove(key)
             loadingLoaded[key] = nil
             loadingTotals[key] = nil
+            #if DEBUG
+            Self.loadSessionsCompletedForTesting += 1
+            #endif
         }
         loadErrors[key] = nil
         guard let store else {
