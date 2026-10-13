@@ -5,6 +5,7 @@
 
 import AppKit
 import Foundation
+import GRDB
 import SwiftUI
 import Testing
 @testable import diskindex
@@ -215,6 +216,66 @@ extension WindowTestGroup {
             return row
         }
         #expect(back.id == file.id)
+    }
+
+    /// Sabotage: Clash wieder `allowGone: false` → rot.
+    @Test func liveRenameReplacesGoneTargetName() async throws {
+        let rig = try await watchRig()
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: nil,
+            entries: [
+                ScannedEntry(name: "keep.txt", isFolder: false, sizeBytes: 1),
+                ScannedEntry(name: "ghost.txt", isFolder: false, sizeBytes: 2),
+            ],
+            seenAt: Date()
+        )
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "keep.txt", isFolder: false, sizeBytes: 1)],
+            seenAt: Date()
+        )
+        let keep = try #require(
+            try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: nil).first { $0.name == "keep.txt" }
+        )
+        let ok = try await rig.store.applyLiveRename(
+            mediumUUID: rig.medium.uuid,
+            mountPath: "/Volumes/DISK",
+            fromPath: "/Volumes/DISK/keep.txt",
+            toPath: "/Volumes/DISK/ghost.txt"
+        )
+        #expect(ok)
+        let rows = try await itemRowsNamed(
+            store: rig.store,
+            mediumUUID: rig.medium.uuid,
+            parentID: nil,
+            name: "ghost.txt"
+        )
+        #expect(rows.count == 1)
+        #expect(rows[0].status == 0)
+        #expect(rows[0].id == keep.id)
+    }
+
+    @Test func liveRenameFailsWhenActiveNameClashes() async throws {
+        let rig = try await watchRig()
+        let parent = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))
+        try await rig.store.applyDirectory(
+            mediumUUID: rig.medium.uuid,
+            parentID: parent,
+            entries: [
+                ScannedEntry(name: "first.txt", isFolder: false, sizeBytes: 1),
+                ScannedEntry(name: "second.txt", isFolder: false, sizeBytes: 2),
+            ],
+            seenAt: Date()
+        )
+        let ok = try await rig.store.applyLiveRename(
+            mediumUUID: rig.medium.uuid,
+            mountPath: "/Volumes/DISK",
+            fromPath: "/Volumes/DISK/A/second.txt",
+            toPath: "/Volumes/DISK/A/first.txt"
+        )
+        #expect(!ok)
     }
 
     @Test func deletedFileIsRemovedAndRestoredWithFavorite() async throws {
@@ -597,6 +658,26 @@ extension WindowTestGroup {
     }
 
     /// Pollt statt fester Sleeps — unter Parallel-Last sonst zu knapp (Aufgabe 140f).
+    private func itemRowsNamed(
+        store: IndexStoreV3,
+        mediumUUID: UUID,
+        parentID: Int64?,
+        name: String
+    ) async throws -> [(id: Int64, status: Int)] {
+        try await store.pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT id, status FROM items
+                    WHERE storageID = ? AND parentID IS ? AND name = ?
+                    """,
+                arguments: [storageID, parentID, name]
+            )
+            return rows.map { (id: $0["id"], status: $0["status"]) }
+        }
+    }
+
     private func waitFor<T>(timeoutMs: Int, _ body: () async throws -> T?) async throws -> T {
         let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1_000)
         while Date() < deadline {

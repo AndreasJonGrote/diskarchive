@@ -37,14 +37,14 @@ nonisolated struct AppVersion: Equatable, Sendable {
         return parse(raw)
     }
 
-    /// `CFBundleVersion` = yyyyMMddHHmm (Aufgabe 220).
+    /// `CFBundleVersion` = yyyyMMddHHmm (Aufgabe 220), gelesen als UTC (246).
     static func buildTimestamp(from bundleVersion: String) -> Date? {
         let digits = bundleVersion.filter(\.isNumber)
         guard digits.count >= 8 else { return nil }
         let prefix = String(digits.prefix(12))
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
         switch prefix.count {
         case 12:
             formatter.dateFormat = "yyyyMMddHHmm"

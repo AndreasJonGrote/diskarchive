@@ -29,6 +29,12 @@ nonisolated enum VersionLockEvaluator {
 
     private static let apiOneZero = AppVersion(major: 1, minor: 0, patch: 0)
 
+    private static var buildExpiryCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }
+
     static func evaluate(
         now: Date,
         appVersion: AppVersion,
@@ -42,7 +48,7 @@ nonisolated enum VersionLockEvaluator {
         var lockReason: VersionLockReason?
 
         if let buildDate,
-           let expiry = calendar.date(byAdding: .day, value: buildExpiryDays, to: buildDate),
+           let expiry = Self.buildExpiryCalendar.date(byAdding: .day, value: buildExpiryDays, to: buildDate),
            now >= expiry {
             lockReason = .buildExpired
         }

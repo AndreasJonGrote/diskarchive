@@ -126,6 +126,24 @@ struct VersionCheckTests {
         #expect(eval.lockState == .locked(.buildExpired))
     }
 
+    @Test func buildExpiryUsesUTCCalendarDays() throws {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        let build = try #require(utc.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 12, minute: 0)))
+        let expiryDay = try #require(utc.date(byAdding: .day, value: 60, to: build))
+        let now = expiryDay.addingTimeInterval(3600)
+        let eval = VersionLockEvaluator.evaluate(
+            now: now,
+            appVersion: app03,
+            apiVersion: nil,
+            settings: .init(betaExpiryNoticedAt: nil, apiLastSeen: now, lockedVersion: nil, skippedUpdateVersion: nil),
+            isFreshInstall: false,
+            buildDate: build,
+            calendar: Calendar.current
+        )
+        #expect(eval.lockState == .locked(.buildExpired))
+    }
+
     @Test func lockedVersionBindsSameAppNewerAppIgnores() {
         let settings = SystemSettingsSnapshot(
             betaExpiryNoticedAt: now,

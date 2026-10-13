@@ -1,6 +1,6 @@
 # Code-Befunde (technische Fehler)
 
-Stand: 13.10.2026 (nach Abnahme `c.0.3.245`). Ursprünglich geprüft gegen Commit `be80c9c`. Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge. **2–28**, **29–37 / 39**, **42–51:** behoben. **38 / 40 / 41:** Spec bzw. Doku. **52–53:** niedrige Restfehler — Spur **`c.0.3.246` freigegeben**.
+Stand: 13.10.2026 (nach Abnahme `c.0.3.246`). Ursprünglich geprüft gegen Commit `be80c9c`. Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge. **2–28**, **29–37 / 39**, **42–53:** behoben (Code). **38 / 40 / 41:** Spec bzw. Doku (ohne Cursor).
 
 ## Behoben in `be80c9c`
 
@@ -89,12 +89,12 @@ Stand: 13.10.2026 (nach Abnahme `c.0.3.245`). Ursprünglich geprüft gegen Commi
 |----|-------|---------|------|------|
 | 51 | A1b | Mittel | `IndexRepository.load`: missing-folder ohne Generations-Check | `c.0.3.245` |
 
-### Offen (52+)
+### Behoben (52–53)
 
-| Nr | Alias | Schwere | Kurz | Spur-Plan |
-|----|-------|---------|------|-----------|
-| 52 | R1 | Niedrig | Live-Rename: Clash ignoriert `status=gone` → Namens-Duplikat möglich | `c.0.3.246` |
-| 53 | R2 | Niedrig | `AppVersion.buildTimestamp` mit `TimeZone.current` (60-Tage-Kante) | `c.0.3.246` |
+| Nr | Alias | Schwere | Kurz | Spur |
+|----|-------|---------|------|------|
+| 52 | R1 | Niedrig | Live-Rename: Clash ignoriert `status=gone` | `c.0.3.246` |
+| 53 | R2 | Niedrig | `buildTimestamp` / 60-Tage-Kante in lokaler TZ | `c.0.3.246` |
 
 \*Produktziel / Schwellen-Guard; mit 244 grün.
 
@@ -539,6 +539,7 @@ Nach `c.0.3.3.001` gilt laut Konzept: bei Sperre **keine Index-/Medium-Schreibpf
 - **Warum:** Clash-Query schließt gone aus.
 - **Vorschlag:** Clash inkl. gone prüfen bzw. gone-Zeile vor Rename behandeln; Test.
 - **Spur:** `c.0.3.246`
+- **Behoben in Cursor-Spur:** `c.0.3.246` (`allowGone: true` + `removeGonePlaceholder`).
 
 ### 53 / R2. Build-Timestamp in lokaler Zeitzone
 
@@ -547,6 +548,7 @@ Nach `c.0.3.3.001` gilt laut Konzept: bei Sperre **keine Index-/Medium-Schreibpf
 - **Warum:** Kein UTC / feste Zone.
 - **Vorschlag:** UTC (oder Bundle-Dokumentation); Test mit fester Zone.
 - **Spur:** `c.0.3.246`
+- **Behoben in Cursor-Spur:** `c.0.3.246` (UTC-Parse + `buildExpiryCalendar` UTC).
 
 ---
 

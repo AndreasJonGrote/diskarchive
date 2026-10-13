@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **`239`–`245` + `c.0.3.3.001`/`002` abgenommen.** **`c.0.3.246` freigegeben** (REPORT 52–53). Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **`239`–`246` + `c.0.3.3.001`/`002` abgenommen.** **Keine Cursor-Aufgabe freigegeben.** Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -265,16 +265,9 @@ Status: `AppVersion`, `SystemSettingsPersistence`, `VersionLockEvaluator`, `Feat
 
 → DONE. `loadToken`-Guard + Test. Prüfung 13.10. (Cursor Nutzerwunsch): ok. Regel 23 Binary **20:36:38**.
 
-#### c.0.3.246 — Live-Rename gone-Clash + Build-TZ (REPORT 52–53) — **freigegeben**
+#### c.0.3.246 — Live-Rename gone-Clash + Build-TZ (REPORT 52–53) — **abgenommen**
 
-Eine Aufgabe.
-
-a) **52 / R1:** In `DirectoryWriterV3.applyLivePathRename`: Clash-Check so, dass eine bestehende `status=gone`-Zeile mit gleichem Parent/Name nicht übersehen wird (Clash inkl. gone bzw. gone vorher auflösen). Kein Namens-Duplikat unter demselben Parent. Test mit Sabotage.
-
-b) **53 / R2:** `AppVersion.buildTimestamp` mit fester Zone (**UTC**), nicht `TimeZone.current`. 60-Tage-Sperrkante unabhängig von der System-Zeitzone. Test mit fester Zone / Sabotage.
-
-c) Seriell; **Regel 23**. HALT. Status ≤ 5 Zeilen + „Bereit zur Prüfung“.
-Status:
+→ DONE. Prüfung 13.10. (Cursor Nutzerwunsch): a–c ok. Regel 23 Binary **21:02:08**.
 
 ### Offen, ohne Cursor (Rest 0.3.2 + Doku Re-Audit)
 
@@ -299,7 +292,7 @@ Status:
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
 - **Re-Audit** → **c.0.3.239**–**244** abgenommen (F29 erledigt); N6/N7 ohne Cursor.
 - **0.3.3** → **c.0.3.3.001** + **002** abgenommen.
-- **Re-Audit Rest** → **c.0.3.245** abgenommen (51); **c.0.3.246** freigegeben (52–53).
+- **Re-Audit Rest** → **c.0.3.245** + **246** abgenommen (51–53).
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester

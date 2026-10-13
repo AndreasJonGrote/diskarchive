@@ -225,8 +225,12 @@ nonisolated final class DirectoryWriterV3 {
         let fromParentID = try folderID(segments: fromParentPath)
         let toParentID = try folderID(segments: toParentPath)
         guard let row = try fetchChildUnique(parentID: fromParentID, name: fromName, allowGone: true) else { return false }
-        if let clash = try fetchChild(parentID: toParentID, name: toName, allowGone: false), clash.id != row.id {
-            return false
+        if let clash = try fetchChild(parentID: toParentID, name: toName, allowGone: true), clash.id != row.id {
+            if clash.status == ItemStatus.gone.rawValue {
+                try removeGonePlaceholder(clash.id)
+            } else {
+                return false
+            }
         }
         let toURL = URL(fileURLWithPath: toAbsolute)
         var sizeBytes: Int64?
@@ -296,6 +300,13 @@ nonisolated final class DirectoryWriterV3 {
             parent = id
         }
         return parent
+    }
+
+    private func removeGonePlaceholder(_ itemID: Int64) throws {
+        try db.execute(
+            sql: "DELETE FROM items WHERE id = ? AND status = ?",
+            arguments: [itemID, ItemStatus.gone.rawValue]
+        )
     }
 
     private func fetchChild(parentID: Int64?, name: String, allowGone: Bool) throws -> ListedRow? {
