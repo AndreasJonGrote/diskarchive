@@ -77,6 +77,7 @@ extension AppState {
 
     /// Falsch, solange ein Klick schon zählt, ein Lauf läuft oder das letzte Ende keine 59 s her ist.
     func canReindex(_ id: UUID, now: Date = Date()) -> Bool {
+        guard featureAccess.canWriteIndex else { return false }
         if reindexRequested.contains(id) { return false }
         guard let medium = medium(with: id) else { return false }
         guard medium.decision == .index else { return false }

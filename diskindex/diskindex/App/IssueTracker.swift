@@ -219,7 +219,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         reachability.queueHasWork = { [weak self] in
             guard let self else { return false }
             guard let pool = try? self.resolvePool() else { return false }
-            return (try? ApiQueuePersistence.hasDueWork(pool, now: self.now())) ?? false
+            return (try? ApiQueuePersistence.hasDueWork(pool, kind: nil, now: self.now())) ?? false
         }
     }
 
@@ -298,6 +298,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             return
         }
         for row in due {
+            if let kind = ApiQueueKind(rawValue: row.kind), kind == .versionCheck {
+                await sendVersionCheck(row: row, pool: pool)
+                continue
+            }
             guard let text = row.payload, let body = text.data(using: .utf8) else { continue }
             let issueID = ApiQueuePersistence.issueID(in: body) ?? "?"
             await send(row: row, body: body, issueID: issueID, pool: pool)
@@ -394,6 +398,23 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             try? FileManager.default.removeItem(at: url)
         }
         try? ApiQueuePersistence.trim(pool)
+    }
+
+    private func sendVersionCheck(row: ApiQueueRow, pool: DatabasePool) async {
+        let url = VersionCheckEndpoint.url
+        guard IssueEndpointPolicy.allows(url, release: releaseBuild) else { return }
+        let response = await VersionCheckClient.fetch(session: session, url: url)
+        if response != nil {
+            try? ApiQueuePersistence.delete(pool, rowID: row.id)
+            log("version check ok")
+            await MainActor.run {
+                guard let store = AppDelegateBridge.appState.indexStore else { return }
+                VersionCheckCoordinator.handleAPIResult(response, appState: AppDelegateBridge.appState, store: store, now: now())
+            }
+            return
+        }
+        scheduleRetry(row: row, pool: pool, info: "version-offline")
+        log("version check failed")
     }
 
     private func send(row: ApiQueueRow, body: Data, issueID: String, pool: DatabasePool) async {

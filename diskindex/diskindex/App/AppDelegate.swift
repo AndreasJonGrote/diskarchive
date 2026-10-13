@@ -19,6 +19,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var changeWatcher: ChangeWatcher?
     private var storeStartupTask: Task<Void, Never>?
     private var storeStartupGeneration = 0
+    private let versionCheckScheduler = VersionCheckScheduler()
     private let recognitionLogger = Logger(subsystem: "app.diskarchive", category: "MediumRecognition")
     private var launchKind = AppLaunchKind.click
     private var handedOff = false
@@ -280,6 +281,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let generation = storeStartupGeneration
         appState.storeOpening = true
         appState.clearIndexStoreOpenFailure()
+        if let url = try? IndexStoreV3.storeFileURL() {
+            VersionCheckCoordinator.freshInstallForVersionCheck = !FileManager.default.fileExists(atPath: url.path)
+        }
         storeStartupTask = StartupSequence.run(
             previousRunUnclean: DiskIndexLog.shared.previousRunUnclean,
             defaults: AppDefaults.current,
@@ -347,6 +351,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator: coordinator,
             startChangeLoop: { appState.startChangeLoop() }
         )
+        appState.onVersionLockEngaged = { [weak self] in
+            Task { @MainActor in
+                self?.indexingService?.cancelAllForTermination()
+                await self?.changeWatcher?.stopAllWatching()
+            }
+        }
+        versionCheckScheduler.start(appState: appState, store: store)
     }
 
     private func postIndexStoreOpenFailureNotification() {

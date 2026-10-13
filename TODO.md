@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Freigegeben:** `c.0.3.3.001` (danach HALT). `239`–`244` abgenommen (F29 Spalten-Guard grün). Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Keine Cursor-Aufgabe freigegeben.** `239`–`244` + **`c.0.3.3.001`** abgenommen. Doku/Layout (REPORT N6/N7, 0.3.2 Mockups) → **ohne Cursor**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -228,7 +228,7 @@ Status: `fetchColumnChildRows`/`storedItemsFromColumnRows`, `parentDirectoryPath
 - **b ok:** `2026-10-13-spalten-244-final-vergleich.md` — Guard S1 **+3,4 %**, S2 **−9,0 %** (innerhalb ±10 %); Größe/Abfrage weiter bestanden; Gesamt 238-Schwellen **bestanden**.
 - Regel 23: Binary **17:08:58**, find -newer leer. Suite 533 nicht erneut. **Keine Nacharbeit.** **c.0.3.3.001 freigegeben.**
 
-**c.0.3.3.001 — Versions-Check / Update-Modal / Beta-Sperre (Vorgriff 0.3.3; Konzept aus 0.4).** — **FREIGEGEBEN**
+**c.0.3.3.001 — Versions-Check / Update-Modal / Beta-Sperre (Vorgriff 0.3.3; Konzept aus 0.4).** — **ABGENOMMEN**
 **Vorgriff (Nutzer 13.10.):** Layout-Mockup fehlt bewusst; Dialog nach Vorlage Fehler-Modal (`IndexingFailureDialog` / `IconWarning`). Umsetzung erst nach Freigabe; vor Abnahme ggf. noch einmal mit Nutzer besprechen. Basis: README 0.4, `datenbank-konzeption.md` (Versions-Check / Sperre), Nutzer-Präzisierung 13.10.
 
 **Update-Modal** (App noch erlaubt, API meldet neuere `n.n`):
@@ -249,7 +249,11 @@ Bei Sperre: Update-Modal **plus** fetter Hinweis + Warnsymbol „Betaphase beend
 a) Version-Check + Queue-Kind; Settings-Keys; Modal + Skip.
 b) Sperrpfade 1–3 + zentrale Read-only-Schranke; Tests (Zeitstempel zurücksetzen / Sabotage).
 c) Seriell; **Regel 23**. HALT nach Aufgabe.
-Status:
+Status: `AppVersion`, `SystemSettingsPersistence`, `VersionLockEvaluator`, `FeatureAccess`, `VersionCheckClient`/Queue-Kind 1/Scheduler/Coordinator; `UpdateAvailableDialog` + Banner; Schranken LiveWiring/Index/Coordinator/Reconcile/Prune/Favorit; Watcher-Stopp bei Sperre. **Neue Texte:** `copy.update.available.*`, `copy.version_lock.banner.*` (de+en). **541/541** seriell. Regel 23: App **19:04:48**, find -newer leer. Bereit zur Prüfung.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 13.10. (Code, ohne xcodebuild):**
+- **a ok:** `ApiQueueKind.versionCheck`; Flush → `VersionCheckClient` + `VersionCheckCoordinator`; Settings-Keys; `UpdateAvailableDialog` (Vorlage Fehler-Modal, Skip, Download → diskarchive.app); Texte de+en.
+- **b ok:** Evaluator 7 Tage / Frisch / 30 Tage API / 60 Tage Build + `lockedVersion`; `FeatureAccess.canWriteIndex` in LiveWiring, Index, Coordinator (keine neuen Medien), Reconcile, Prune, Favoriten-Schreiben; `onVersionLockEngaged` → Index-Cancel + `stopAllWatching`. Tests Skip/Grace/Frisch/API/Build/Lock-Bindung + FeatureAccess.
+- Regel 23: Binary **19:04:48**, find -newer leer. Suite 541 nicht erneut. **Keine Nacharbeit.** Spur A leer (kein Folge-Paket freigegeben).
 
 ### Offen, ohne Cursor (Rest 0.3.2 + Doku Re-Audit)
 
@@ -273,14 +277,14 @@ Status:
 - **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
 - **Re-Audit** → **c.0.3.239**–**244** abgenommen (F29 erledigt); N6/N7 ohne Cursor.
-- **0.3.3** → **c.0.3.3.001** freigegeben (Vorgriff Versions-Check/Sperre).
+- **0.3.3** → **c.0.3.3.001** — **abgenommen/gelöst** (Vorgriff Versions-Check/Sperre).
 
 
 ### 0.4 — Letzte Fixes, Beta für Beta-Tester
 
 - **Download-Seite** auf `https://diskarchive.app/` (Nutzer).
-- **Versions-Check** / Update-Modal / Beta-Sperre → Vorgriff **`c.0.3.3.001`** (0.3.3); Rest-Politur/Layout ggf. später. README 0.4 + `datenbank-konzeption.md`.
-- **Beta-Verfallsdatum: 60 Tage nach Build** (in `c.0.3.3.001`); **`FeatureAccess`**; Laufzeittest **macOS 14**.
+- **Versions-Check** / Update-Modal / Beta-Sperre → **`c.0.3.3.001` abgenommen** (0.3.3 Vorgriff); Rest-Politur/Layout ggf. später. README 0.4 + `datenbank-konzeption.md`.
+- **Beta-Verfallsdatum: 60 Tage** + **`FeatureAccess`** → in **c.0.3.3.001**; Laufzeittest **macOS 14** weiter offen.
 - **Fehlerbericht:** Test mit echten Protokollzeilen.
 - **Update durch Ersetzen der App;** ab 0.4 echte Migrationen (Sicherung, `hasBeenSuperseded`).
 

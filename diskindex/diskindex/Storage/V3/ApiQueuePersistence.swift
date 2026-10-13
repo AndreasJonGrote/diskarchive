@@ -81,9 +81,14 @@ nonisolated enum ApiQueuePersistence {
         return now.timeIntervalSince1970 >= Double(last) + delay
     }
 
-    static func hasDueWork(_ pool: DatabasePool, kind: ApiQueueKind = .issueReport, now: Date) throws -> Bool {
+    static func hasDueWork(_ pool: DatabasePool, kind: ApiQueueKind? = nil, now: Date) throws -> Bool {
         try pool.read { db in
-            let rows = try rows(from: db, sql: "SELECT * FROM api_queue WHERE kind = ? ORDER BY id ASC", arguments: [kind.rawValue])
+            let rows: [ApiQueueRow]
+            if let kind {
+                rows = try Self.rows(from: db, sql: "SELECT * FROM api_queue WHERE kind = ? ORDER BY id ASC", arguments: [kind.rawValue])
+            } else {
+                rows = try Self.rows(from: db, sql: "SELECT * FROM api_queue ORDER BY id ASC")
+            }
             return rows.contains { isDue($0, now: now) }
         }
     }

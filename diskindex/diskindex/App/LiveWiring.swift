@@ -15,6 +15,7 @@ enum LiveWiring {
         watcher: ChangeWatcher,
         appState: AppState
     ) async {
+        guard appState.featureAccess.canWriteIndex else { return }
         guard !appState.globalAutoIndexPaused else { return }
         var stored: StoredMedium?
         do {
@@ -40,6 +41,7 @@ enum LiveWiring {
         store: IndexStoreV3,
         appState: AppState
     ) async {
+        guard appState.featureAccess.canWriteIndex else { return }
         var count = 0
         for (id, volume) in coordinator.connectedVolumes() {
             let stored: StoredMedium?
@@ -78,6 +80,7 @@ enum LiveWiring {
             service?.isRunActive(id) ?? false
         }
         watcher.onFullReconcile = { [weak service, weak watcher] id, volume in
+            guard appState.featureAccess.canWriteIndex else { return }
             Task {
                 await stopWatcherAndStartIndex(
                     watcher: watcher,
@@ -101,6 +104,7 @@ enum LiveWiring {
             await watcher?.stop(mediumID: id)
         }
         coordinator.setIndexHandler { [weak service, weak watcher] id, volume in
+            guard appState.featureAccess.canWriteIndex else { return }
             Task {
                 await stopWatcherAndStartIndex(
                     watcher: watcher,
@@ -112,6 +116,7 @@ enum LiveWiring {
             }
         }
         coordinator.onReconcileRequested = { [weak service, weak watcher] id, volume in
+            guard appState.featureAccess.canWriteIndex else { return }
             Task {
                 await stopWatcherAndStartIndex(
                     watcher: watcher,
@@ -123,6 +128,7 @@ enum LiveWiring {
             }
         }
         appState.onReindexMedium = { [weak service, weak watcher, weak coordinator] id in
+            guard AppDelegateBridge.appState.featureAccess.canWriteIndex else { return }
             guard let volume = coordinator?.volume(for: id) else { return }
             Task {
                 await stopWatcherAndStartIndex(
@@ -150,6 +156,7 @@ enum LiveWiring {
                     return
                 }
                 guard decision == .index, allowIndexing else { return }
+                guard appState.featureAccess.canWriteIndex else { return }
                 guard appState.medium(with: id)?.connectionStatus == .connected else { return }
                 guard !appState.globalAutoIndexPaused else { return }
                 coordinator?.requestIndexingAfterDecision(mediumID: id)

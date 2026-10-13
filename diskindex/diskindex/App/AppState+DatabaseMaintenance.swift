@@ -45,6 +45,11 @@ extension AppState {
                     try? await Task.sleep(for: .seconds(2))
                     continue
                 }
+                await MainActor.run {
+                    if let store = self.indexStore {
+                        VersionCheckCoordinator.reevaluateLocal(appState: self, store: store)
+                    }
+                }
                 guard let store = await MainActor.run(body: { self.indexStore }) else { return }
                 if await store.hasAnyActiveIndexingToken() {
                     try? await Task.sleep(for: .seconds(2))

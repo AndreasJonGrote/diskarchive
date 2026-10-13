@@ -19,10 +19,15 @@ struct MainWindowHostView: View {
     var body: some View {
         ZStack {
             MainWindowScreenScaffold {
-                if appState.isStoreLoading {
-                    StoreLoadingView()
-                } else {
-                    screenContent
+                VStack(spacing: 0) {
+                    if let banner = appState.versionLockBannerText(), appState.updateNotice == nil {
+                        versionLockBanner(banner)
+                    }
+                    if appState.isStoreLoading {
+                        StoreLoadingView()
+                    } else {
+                        screenContent
+                    }
                 }
             }
             .id(appState.appSettings.displayLanguage)
@@ -35,6 +40,16 @@ struct MainWindowHostView: View {
                     }
 
                 MediumDetailModalView(mediumID: detailID)
+            }
+
+            if let update = appState.updateNotice {
+                Color.black.opacity(0.08)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        appState.dismissUpdateNotice(saveSkip: update.skipUpdate)
+                    }
+
+                UpdateAvailableDialog(notice: update)
             }
 
             if let failure = appState.indexingFailure {
@@ -57,6 +72,24 @@ struct MainWindowHostView: View {
                 StoreOpenFailureDialog()
             }
         }
+    }
+
+    private func versionLockBanner(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image("IconWarning")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+                .foregroundStyle(DesignColor.text)
+            Text(text)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(DesignColor.text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(DesignColor.neutral100)
     }
 
     @ViewBuilder

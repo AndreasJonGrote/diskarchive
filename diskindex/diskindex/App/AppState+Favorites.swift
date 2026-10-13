@@ -19,6 +19,7 @@ extension AppState {
     }
 
     func toggleFavorite(_ target: ObjectContextTarget) {
+        guard featureAccess.canWriteIndex else { return }
         DiskIndexLog.shared.ui("toggleFavorite kind=\(target.kind) id=\(target.id) rowID=\(target.rowID.map(String.init) ?? "-") view=\(mainWindowDestination)")
         switch target.kind {
         case .medium:
@@ -45,6 +46,7 @@ extension AppState {
     }
 
     func toggleFavorites(_ targets: [ObjectContextTarget]) {
+        guard featureAccess.canWriteIndex else { return }
         guard !targets.isEmpty else { return }
         let next = FavoriteBatch.nextValue(current: targets.map { isFavorite($0) })
         DiskIndexLog.shared.ui("toggleFavorite kind=multi count=\(targets.count) next=\(next)")

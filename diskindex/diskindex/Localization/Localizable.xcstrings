@@ -1575,6 +1575,134 @@
         }
       }
     },
+    "copy.update.available.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neue Version verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "New version available"
+          }
+        }
+      }
+    },
+    "copy.update.available.body" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sie nutzen Version %1$@. Ein Update auf Version %2$@ ist verfügbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You are using version %1$@. An update to version %2$@ is available."
+          }
+        }
+      }
+    },
+    "copy.update.available.skip" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Update überspringen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skip this update"
+          }
+        }
+      }
+    },
+    "copy.update.available.download" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zum Download"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download"
+          }
+        }
+      }
+    },
+    "copy.update.available.beta_countdown" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Betaphase ist beendet. Diese App-Version wird in sieben Tagen gesperrt — danach ist der Index nur noch lesbar."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The beta period has ended. This app version will lock in seven days — after that, the index is read-only."
+          }
+        }
+      }
+    },
+    "copy.version_lock.banner.beta" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betaphase beendet — der Index ist gesperrt (nur lesen)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beta ended — the index is locked (read-only)."
+          }
+        }
+      }
+    },
+    "copy.version_lock.banner.api" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die App konnte die Versionsserver länger als einen Monat nicht erreichen — der Index ist gesperrt (nur lesen)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app could not reach the version server for over a month — the index is locked (read-only)."
+          }
+        }
+      }
+    },
+    "copy.version_lock.banner.build" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Build ist abgelaufen — der Index ist gesperrt (nur lesen)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This build has expired — the index is locked (read-only)."
+          }
+        }
+      }
+    },
     "copy.index.failed.body" : {
       "extractionState" : "stale",
       "localizations" : {

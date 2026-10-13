@@ -37,6 +37,10 @@ final class IndexingService {
     }
 
     func start(mediumUUID: UUID, volume: VolumeInfo, fromScratch: Bool) {
+        guard appState.featureAccess.canWriteIndex else {
+            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+            return
+        }
         if tasks[mediumUUID] != nil {
             guard fromScratch else {
                 rerunAfterFinish.insert(mediumUUID)

@@ -9,5 +9,6 @@ import Foundation
 
 nonisolated enum ApiQueueKind: Int, Sendable {
     case issueReport = 0
-    // Reserviert: versionCheck = 1, updateCheck = 2, licenseCheck = 3 (0.4 / 0.9)
+    case versionCheck = 1
+    // Reserviert: updateCheck = 2, licenseCheck = 3 (0.4 / 0.9)
 }

@@ -128,5 +128,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | c.0.3.242 | FAT gone-Ordner: Revive nur Name+Eltern (REPORT 34/A6) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.243 | Ordner Live-Pfad-Rename + Kind-Tiefen (REPORT 35/N1) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.244 | Spalten-Guard F29 (parentDirectoryPath; S1 +3,4 % / S2 −9 %) | 13.10. **Cursor** (Cloud aus; Code+Messung) | `Werkzeuge/messung/2026-10-13-spalten-244-final-vergleich.md` |
+| c.0.3.3.001 | Versions-Check / Update-Modal / Beta-Sperre (FeatureAccess, 7 T/60 T/1 Mon) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 
-**Offen / freigegeben:** `c.0.3.3.001` (Versions-Check/Sperre Vorgriff). 0.3.2 Layout/README Nutzer/Claude.
+**Offen / freigegeben:** keine Cursor-Aufgabe. 0.3.2 Layout/README Nutzer/Claude; B.0.4 Rest (Download-Seite, macOS 14, …).

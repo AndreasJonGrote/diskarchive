@@ -61,6 +61,10 @@ final class AppState {
     var settingsScrollTarget: SettingsScrollTarget?
     var heldForSleep = false
     var indexingFailure: IndexingFailureNotice?
+    var versionLockState: VersionLockState = .unlocked
+    var versionLockBannerVisible = false
+    var updateNotice: UpdateNotice?
+    @ObservationIgnored var onVersionLockEngaged: (() -> Void)?
     /// Index konnte nicht geöffnet werden (82).
     var indexStoreOpenFailed = false
     var indexStoreOpenFailureAlert = false
@@ -384,6 +388,7 @@ final class AppState {
     }
 
     func pruneNow() async {
+        guard featureAccess.canWriteIndex else { return }
         guard let indexStore else { return }
         do {
             _ = try await indexStore.pruneToMatch(IndexScope.from(appSettings))

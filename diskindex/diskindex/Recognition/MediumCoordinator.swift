@@ -217,6 +217,7 @@ final class MediumCoordinator {
     }
 
     private func receiveUnknown(_ volume: VolumeInfo) async {
+        guard appState.featureAccess.canWriteIndex else { return }
         let result = await access.probe(volume)
         switch result {
         case .granted:
@@ -229,6 +230,7 @@ final class MediumCoordinator {
     }
 
     private func storeAndPresent(_ volume: VolumeInfo, status: StoredIndexStatus, openDialog: Bool) async {
+        guard appState.featureAccess.canWriteIndex else { return }
         if let existingID = mediumByPath[volume.mountPath], var existing = try? await store.medium(uuid: existingID) {
             existing.indexStatus = status
             existing.lastSeenAt = Date()
@@ -344,6 +346,7 @@ final class MediumCoordinator {
     }
 
     private func requestIndex(mediumID: UUID, volume: VolumeInfo) {
+        guard appState.featureAccess.canWriteIndex else { return }
         guard requestedIndex.insert(mediumID).inserted else {
             DiskIndexLog.shared.record(.medium, .info, "index bereits angefordert id=\(mediumID)")
             return

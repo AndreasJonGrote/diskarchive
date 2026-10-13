@@ -187,6 +187,17 @@ nonisolated enum LayoutCopy {
         L10n.format("copy.index.failed.title", name)
     }
 
+    static var updateAvailableTitle: String { L10n.string("copy.update.available.title") }
+    static func updateAvailableBody(current: String, target: String) -> String {
+        L10n.format("copy.update.available.body", current, target)
+    }
+    static var updateAvailableSkipCheckbox: String { L10n.string("copy.update.available.skip") }
+    static var updateAvailableDownload: String { L10n.string("copy.update.available.download") }
+    static var updateAvailableBetaCountdown: String { L10n.string("copy.update.available.beta_countdown") }
+    static var versionLockBannerBetaEnded: String { L10n.string("copy.version_lock.banner.beta") }
+    static var versionLockBannerApiOffline: String { L10n.string("copy.version_lock.banner.api") }
+    static var versionLockBannerBuildExpired: String { L10n.string("copy.version_lock.banner.build") }
+
     static func pausedFor(_ span: String) -> String {
         L10n.format("copy.menu.paused_for", span)
     }

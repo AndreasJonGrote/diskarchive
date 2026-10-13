@@ -9,6 +9,7 @@ import Foundation
 
 extension AppState {
     func enqueueRuleReconcile() {
+        guard featureAccess.canWriteIndex else { return }
         ruleReconcileNeedsRerun = true
         guard ruleReconcileTask == nil else { return }
         startRuleReconcileWorker()
