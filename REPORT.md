@@ -1,6 +1,6 @@
 # Code-Befunde (technische Fehler)
 
-Stand: 13.10.2026 (nach Abnahme `c.0.3.3.002`). Ursprünglich geprüft gegen Commit `be80c9c`. Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge. **2–28**, **29–37 / 39**, **42–50:** behoben. **38 / 40 / 41:** Spec bzw. Doku. **51:** 239-Restloch Cache (`c.0.3.245`). **52–53:** niedrige Restfehler (`c.0.3.246`).
+Stand: 13.10.2026 (nach Abnahme `c.0.3.245`). Ursprünglich geprüft gegen Commit `be80c9c`. Nur am Quellcode bestätigte Defekte. Keine Konzept-/Layout-Abweichungen, keine Stilvorschläge. **2–28**, **29–37 / 39**, **42–51:** behoben. **38 / 40 / 41:** Spec bzw. Doku. **52–53:** niedrige Restfehler — Spur **`c.0.3.246` freigegeben**.
 
 ## Behoben in `be80c9c`
 
@@ -83,11 +83,16 @@ Stand: 13.10.2026 (nach Abnahme `c.0.3.3.002`). Ursprünglich geprüft gegen Com
 | 49 | L8 | Mittel | Lock-Cancel → UI `.indexing` | `c.0.3.3.002` |
 | 50 | L9 | Mittel | `ChangeWatcher.flush` ohne Lock-Guard | `c.0.3.3.002` |
 
-### Offen (51+)
+### Behoben (51 — A1b)
+
+| Nr | Alias | Schwere | Kurz | Spur |
+|----|-------|---------|------|------|
+| 51 | A1b | Mittel | `IndexRepository.load`: missing-folder ohne Generations-Check | `c.0.3.245` |
+
+### Offen (52+)
 
 | Nr | Alias | Schwere | Kurz | Spur-Plan |
 |----|-------|---------|------|-----------|
-| 51 | A1b | Mittel | `IndexRepository.load`: missing-folder setzt Cache ohne Generations-Check | `c.0.3.245` |
 | 52 | R1 | Niedrig | Live-Rename: Clash ignoriert `status=gone` → Namens-Duplikat möglich | `c.0.3.246` |
 | 53 | R2 | Niedrig | `AppVersion.buildTimestamp` mit `TimeZone.current` (60-Tage-Kante) | `c.0.3.246` |
 
@@ -525,6 +530,7 @@ Nach `c.0.3.3.001` gilt laut Konzept: bei Sperre **keine Index-/Medium-Schreibpf
 - **Warum:** 239 bumpt Generationen; dieser Early-Exit prüft sie nicht.
 - **Vorschlag:** Vor `cache[key] = []` denselben Guard wie bei Erfolgspfad; Test: invalidate während missing-folder-Load.
 - **Spur:** `c.0.3.245`
+- **Behoben in Cursor-Spur:** `c.0.3.245` (`loadToken`-Guard + `invalidateAllDuringMissingFolderLoadDoesNotCacheEmpty`).
 
 ### 52 / R1. Live-Rename Clash ignoriert `gone`
 

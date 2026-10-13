@@ -36,6 +36,9 @@ final class IndexRepository {
     static func resetRequestLoadCounterForTesting() {
         requestLoadCallsForTesting = 0
     }
+
+    /// Tests (245): Pause vor missing-folder-Cache-Write, damit `invalidateAll` dazwischen laufen kann.
+    nonisolated(unsafe) static var awaitMissingFolderCacheGateForTesting: (() async -> Void)?
     #endif
     /// Sequentiell aus der DB, damit sehr große Ordner den Ladevorgang nicht abbrechen.
     static let loadBatchSize = 2_000
@@ -224,6 +227,12 @@ final class IndexRepository {
             } else {
                 parentID = try await store.folderID(mediumUUID: mediumID, path: path)
                 if parentID == nil {
+                    #if DEBUG
+                    if let gate = Self.awaitMissingFolderCacheGateForTesting {
+                        await gate()
+                    }
+                    #endif
+                    guard loadGenerations[key, default: 0] == loadToken else { return }
                     cache[key] = []
                     return
                 }

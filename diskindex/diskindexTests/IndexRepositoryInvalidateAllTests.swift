@@ -66,4 +66,75 @@ struct IndexRepositoryInvalidateAllTests {
         #expect(reloaded)
         #expect(repo.children(mediumID: mediumID, path: []).count == fileCount)
     }
+
+    @Test func invalidateAllDuringMissingFolderLoadDoesNotCacheEmpty() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-missing-folder-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
+        let app = AppState(store: store)
+        var medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Tree", decision: .index, indexStatus: .indexed, completedDepth: 2)
+        try await store.upsertMedium(medium)
+        medium = try #require(try await store.medium(uuid: medium.uuid))
+        try await store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "root.txt", isFolder: false, sizeBytes: 1, modifiedAt: Date())],
+            seenAt: Date()
+        )
+
+        let repo = app.indexRepository
+        let mediumID = medium.uuid
+        let missingPath = ["OrdnerFehlt"]
+        defer { IndexRepository.awaitMissingFolderCacheGateForTesting = nil }
+
+        let gate = MissingFolderLoadGate()
+        IndexRepository.awaitMissingFolderCacheGateForTesting = {
+            await gate.pauseUntilProceed()
+        }
+
+        repo.requestLoad(mediumID: mediumID, path: missingPath)
+        await gate.waitUntilLoadAtGate()
+        #expect(repo.isLoading(mediumID: mediumID, path: missingPath))
+        repo.invalidateAll()
+        gate.proceed()
+
+        let loadFinished = await waitUntil(timeout: 10) {
+            !repo.isLoading(mediumID: mediumID, path: missingPath)
+        }
+        #expect(loadFinished)
+        #expect(!repo.hasCachedChildren(mediumID: mediumID, path: missingPath))
+    }
+}
+
+@MainActor
+private final class MissingFolderLoadGate {
+    private var loadAtGate: CheckedContinuation<Void, Never>?
+    private var testWaitingForGate: CheckedContinuation<Void, Never>?
+    private var proceedWaiter: CheckedContinuation<Void, Never>?
+
+    func pauseUntilProceed() async {
+        if let testWaitingForGate {
+            self.testWaitingForGate = nil
+            testWaitingForGate.resume()
+        } else {
+            await withCheckedContinuation { loadAtGate = $0 }
+        }
+        await withCheckedContinuation { proceedWaiter = $0 }
+    }
+
+    func waitUntilLoadAtGate() async {
+        if loadAtGate != nil {
+            loadAtGate?.resume()
+            loadAtGate = nil
+            return
+        }
+        await withCheckedContinuation { testWaitingForGate = $0 }
+    }
+
+    func proceed() {
+        proceedWaiter?.resume()
+        proceedWaiter = nil
+    }
 }

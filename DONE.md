@@ -130,5 +130,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | c.0.3.244 | Spalten-Guard F29 (parentDirectoryPath; S1 +3,4 % / S2 −9 %) | 13.10. **Cursor** (Cloud aus; Code+Messung) | `Werkzeuge/messung/2026-10-13-spalten-244-final-vergleich.md` |
 | c.0.3.3.001 | Versions-Check / Update-Modal / Beta-Sperre (FeatureAccess, 7 T/60 T/1 Mon) | 13.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.3.002 | Read-only-Sperre schließen (REPORT 42–50; Nacharbeit Defer bei Lock-Cancel) | 13.10. **Cursor** (Nutzerwunsch; Code-Prüfung) | TODO Spur |
+| c.0.3.245 | Spalten-Cache missing-folder Generations-Guard (REPORT 51 / A1b) | 13.10. **Cursor** (Nutzerwunsch; Code-Prüfung) | TODO Spur |
 
-**Offen / freigegeben:** `c.0.3.245` (REPORT 51). `c.0.3.246` noch nicht. 0.3.2 Layout/README Nutzer/Claude; B.0.4 Rest.
+**Offen / freigegeben:** `c.0.3.246` (REPORT 52–53). 0.3.2 Layout/README Nutzer/Claude; B.0.4 Rest.
