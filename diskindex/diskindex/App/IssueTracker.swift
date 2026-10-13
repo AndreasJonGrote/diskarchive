@@ -2,11 +2,12 @@
 //  IssueTracker.swift
 //  diskindex
 //
-//  Berichte an den Issue-Tracker (Aufgabe 61). Der JSON-Vertrag hat genau diese Felder.
+//  Berichte an den Issue-Tracker (Aufgabe 61). Warteschlange in `api_queue` (0.3.1).
 //
 
 import Darwin
 import Foundation
+import GRDB
 
 nonisolated enum ReportTarget {
     #if DEBUG
@@ -152,7 +153,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     static let shared = IssueReporter()
 
     var endpoint: URL
+    /// Legacy-Outbox nur für Migration und Tests.
     var directory: URL
+    var queuePool: DatabasePool?
     var defaults: UserDefaults
     var session: URLSession
     var releaseBuild: Bool
@@ -162,13 +165,13 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     var knownNames: () -> [String]
 
     var sendsImmediately = true
-    private var retries: [String: IssueRetry] = [:]
-    private let lock = NSLock()
-    private var timer: Timer?
+    private let reachability = ApiQueueReachability()
+    private var started = false
 
     init(
         endpoint: URL = ReportTarget.endpoint,
         directory: URL? = nil,
+        queuePool: DatabasePool? = nil,
         defaults: UserDefaults = AppDefaults.current,
         session: URLSession? = nil,
         releaseBuild: Bool = false,
@@ -177,6 +180,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         makeDraft: ((String) -> IssueDraft)? = nil
     ) {
         self.endpoint = endpoint
+        self.queuePool = queuePool
         self.defaults = defaults
         self.releaseBuild = releaseBuild
         self.now = now
@@ -207,14 +211,21 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             self.releaseBuild = true
         }
         #endif
+        reachability.onFlush = { [weak self] in
+            self?.flushInBackground()
+        }
+        reachability.queueHasWork = { [weak self] in
+            (try? self?.queuedReportCount()) ?? 0 > 0
+        }
     }
 
     func start() {
+        guard !started else { return }
+        started = true
+        migrateLegacyOutboxFiles()
+        reachability.start()
+        syncReachabilityTimer()
         flushInBackground()
-        timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 3_600, repeats: true) { [weak self] _ in
-            self?.flushInBackground()
-        }
     }
 
     func noteError(category: String, message: String) {
@@ -240,12 +251,19 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             runtimeSeconds: DiskIndexLog.shared.runtimeSeconds(),
             createdAt: now()
         )
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent("\(id).json")
-        FileManager.default.createFile(atPath: url.path, contents: data)
-        FilePrivacy.restrict(directory)
-        trimOutbox()
+        let createdAt = Int(now().timeIntervalSince1970)
+        do {
+            let pool = try resolvePool()
+            try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: data, createdAt: createdAt)
+            if let url = try? IndexStoreV3.storeFileURL() {
+                FilePrivacy.restrict(url.deletingLastPathComponent())
+            }
+        } catch {
+            log("app report queue failed id=\(id) error=\(error.localizedDescription)")
+            return
+        }
         log("app report queued kind=\(prepared.kind) id=\(id)")
+        syncReachabilityTimer()
         if sendsImmediately { flushInBackground() }
     }
 
@@ -258,23 +276,85 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             log("app report failed kind=any id=- status=scheme")
             return
         }
-        let files = reportFiles()
-        let moment = now()
-        for url in files {
-            let id = url.deletingPathExtension().lastPathComponent
-            if !isDue(id: id, moment: moment) { continue }
-            await send(url: url, id: id)
+        let pool: DatabasePool
+        do {
+            pool = try resolvePool()
+        } catch {
+            return
         }
+        let moment = now()
+        let due: [ApiQueueRow]
+        do {
+            due = try ApiQueuePersistence.fetchDue(pool, now: moment)
+        } catch {
+            return
+        }
+        for row in due {
+            guard let text = row.payload, let body = text.data(using: .utf8) else { continue }
+            let issueID = ApiQueuePersistence.issueID(in: body) ?? "?"
+            await send(row: row, body: body, issueID: issueID, pool: pool)
+        }
+        syncReachabilityTimer()
     }
 
     func discardPendingCrash() {
-        for url in reportFiles() {
-            try? FileManager.default.removeItem(at: url)
+        guard let pool = try? resolvePool() else { return }
+        try? ApiQueuePersistence.deleteAll(pool, kind: .issueReport)
+        syncReachabilityTimer()
+    }
+
+    func nextRetry(id: String) -> IssueRetry? {
+        guard let pool = try? resolvePool() else { return nil }
+        return try? ApiQueuePersistence.nextRetry(pool, issueID: id)
+    }
+
+    func queuedReportCount() throws -> Int {
+        try ApiQueuePersistence.count(try resolvePool(), kind: .issueReport)
+    }
+
+    func firstQueuedPayload() throws -> Data? {
+        try ApiQueuePersistence.firstPayload(try resolvePool(), kind: .issueReport)
+    }
+
+    func firstQueuedIssueID() throws -> String? {
+        guard let data = try firstQueuedPayload() else { return nil }
+        return ApiQueuePersistence.issueID(in: data)
+    }
+
+    /// Tests: Datei-Outbox (Migration).
+    func reportFiles() -> [URL] {
+        let names = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+        return names.filter { $0.pathExtension == "json" }.sorted { lhs, rhs in
+            let left = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            let right = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+            return left < right
         }
     }
 
-    private func send(url: URL, id: String) async {
-        guard let body = try? Data(contentsOf: url) else { return }
+    private func resolvePool() throws -> DatabasePool {
+        if let queuePool { return queuePool }
+        return try ApiQueuePersistence.openQueuePool()
+    }
+
+    private func syncReachabilityTimer() {
+        reachability.syncPeriodicTimer()
+    }
+
+    func migrateLegacyOutboxFiles() {
+        let files = reportFiles()
+        guard !files.isEmpty else { return }
+        guard let pool = try? resolvePool() else { return }
+        for url in files {
+            guard let body = try? Data(contentsOf: url) else { continue }
+            let created = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
+                .map { Int($0.timeIntervalSince1970) } ?? Int(now().timeIntervalSince1970)
+            try? ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: body, createdAt: created)
+            try? FileManager.default.removeItem(at: url)
+        }
+        try? ApiQueuePersistence.trim(pool)
+    }
+
+    private func send(row: ApiQueueRow, body: Data, issueID: String, pool: DatabasePool) async {
         let raw = String(decoding: body, as: UTF8.self)
         if let category = ReportScrubber.leakCategory(in: raw, names: knownNames()) {
             log("report blocked leak=\(category)")
@@ -290,74 +370,32 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             let (data, response) = try await session.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             if status == 201 && Self.bodyAcceptsSuccess(data) {
-                try? FileManager.default.removeItem(at: url)
-                clearRetry(id)
-                log("app report sent kind=\(kind) id=\(id) status=\(status)")
+                try? ApiQueuePersistence.delete(pool, rowID: row.id)
+                log("app report sent kind=\(kind) id=\(issueID) status=\(status)")
                 return
             }
             if (200...299).contains(status) {
-                scheduleRetry(id: id)
-                log("app report failed kind=\(kind) id=\(id) status=\(status) body=nicht-ok")
+                scheduleRetry(row: row, pool: pool, info: "status=\(status) body=nicht-ok")
+                log("app report failed kind=\(kind) id=\(issueID) status=\(status) body=nicht-ok")
                 return
             }
             if (400...499).contains(status), status != 408, status != 429 {
-                try? FileManager.default.removeItem(at: url)
-                clearRetry(id)
-                log("app report failed kind=\(kind) id=\(id) status=\(status)")
+                try? ApiQueuePersistence.delete(pool, rowID: row.id)
+                log("app report failed kind=\(kind) id=\(issueID) status=\(status)")
                 return
             }
-            scheduleRetry(id: id)
-            log("app report failed kind=\(kind) id=\(id) status=\(status)")
+            scheduleRetry(row: row, pool: pool, info: "status=\(status)")
+            log("app report failed kind=\(kind) id=\(issueID) status=\(status)")
         } catch {
-            scheduleRetry(id: id)
-            log("app report failed kind=\(kind) id=\(id) status=offline")
+            scheduleRetry(row: row, pool: pool, info: "offline")
+            log("app report failed kind=\(kind) id=\(issueID) status=offline")
         }
     }
 
-    private func isDue(id: String, moment: Date) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        if let retry = retries[id], moment < retry.next { return false }
-        return true
-    }
-
-    private func clearRetry(_ id: String) {
-        lock.lock()
-        retries[id] = nil
-        lock.unlock()
-    }
-
-    private func scheduleRetry(id: String) {
-        lock.lock()
-        let attempts = (retries[id]?.attempts ?? 0) + 1
-        retries[id] = IssueRetry(attempts: attempts, next: now().addingTimeInterval(IssueRetry.delay(afterAttempt: attempts)))
-        lock.unlock()
-    }
-
-    func nextRetry(id: String) -> IssueRetry? {
-        lock.lock()
-        defer { lock.unlock() }
-        return retries[id]
-    }
-
-    func reportFiles() -> [URL] {
-        let names = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
-        return names.filter { $0.pathExtension == "json" }.sorted { lhs, rhs in
-            let left = (try? lhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-            let right = (try? rhs.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
-            return left < right
-        }
-    }
-
-    private func trimOutbox() {
-        var files = reportFiles()
-        var total = files.reduce(0) { $0 + ((try? FileManager.default.attributesOfItem(atPath: $1.path)[.size] as? NSNumber)?.intValue ?? 0) }
-        while files.count > 50 || total > 5 * 1024 * 1024, let oldest = files.first {
-            let size = (try? FileManager.default.attributesOfItem(atPath: oldest.path)[.size] as? NSNumber)?.intValue ?? 0
-            try? FileManager.default.removeItem(at: oldest)
-            total -= size
-            files.removeFirst()
-        }
+    private func scheduleRetry(row: ApiQueueRow, pool: DatabasePool, info: String) {
+        let attempts = row.attempts + 1
+        let lastTry = Int(now().timeIntervalSince1970)
+        try? ApiQueuePersistence.recordFailure(pool, rowID: row.id, attempts: attempts, lastTryAt: lastTry, info: info)
     }
 
     private func prepare(_ draft: IssueDraft) -> IssueDraft {

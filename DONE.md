@@ -121,5 +121,6 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | c.0.3.236 | Wartung Zeit+Zähler, WAL Truncate (F26), Leerlauf-Compaction | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.237 | App-Einstellungen in `settings` (JSON); Auto-Send; Sprache/Fenster weiter UD | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 | c.0.3.238 | Messung nachher + Schema-Freeze; Bericht; Schwellen Größe/Abfrage ok, Spalten → F29 | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | `Werkzeuge/messung/2026-10-12-nachher-bericht.md` |
+| c.0.3.1.001 | API-Warteschlange `api_queue`; IssueReporter; NWPathMonitor + 60 s | 12.10. **Cursor** (Cloud aus; Code-Prüfung) | TODO Spur |
 
-**Offen / freigegeben:** **c.0.3.1.001** freigegeben (Cursor, Cloud aus). Spalten-Follow-up **F29**.
+**Offen / freigegeben:** keine Cursor-Aufgabe. Spalten-Follow-up **F29**; 0.3.2 Layout/README Nutzer/Claude.

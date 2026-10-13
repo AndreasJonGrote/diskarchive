@@ -32,7 +32,7 @@ Einzige Aufgabenliste. Erledigtes steht in [DONE.md](DONE.md), Verlauf und alte 
 
 ## A. Jetzt — Version 0.3
 
-**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** (Spur, Cursor statt Cloud). **Freigegeben: c.0.3.1.001**. **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat. Nach jeder Aufgabe HALT („Bereit zur Prüfung“).
+**Maßgeblich:** README „Roadmap“, ausführlich [ROADMAP.md](ROADMAP.md). **0.2 eingefroren** (11.10.). **Abgenommen bis 233** + **233b** (DONE) + **235–238** + **c.0.3.1.001** (Spur, Cursor statt Cloud). **Keine Cursor-Aufgabe freigegeben** (0.3.2 Layout/README → Nutzer/Claude; **F29** beobachten). **Nutzer erlaubt Cursor die Claude-Freigabe** in diesem Chat.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–23):**
 - **R1** Nur die genannten Stellen ändern.
@@ -150,10 +150,14 @@ Status: **Bereit zur Prüfung** — Nachher Scale 1: `Werkzeuge/messung/2026-10-
 - Regel 23: Binary **20:01:09**, find -newer leer. Suite 515 nicht erneut.
 - **Abnahme der Aufgabe** (Messung + Report + Einfrieren) — **ja**. Produktziel „alle Schwellen grün“ offen (**F29**). **c.0.3.1.001 freigegeben.**
 
-**c.0.3.1.001 — API-Warteschlange (Original **0.3.1**, README / ROADMAP).**
+**c.0.3.1.001 — API-Warteschlange (Original **0.3.1**, README / ROADMAP).** — **ABGENOMMEN**
 Tabelle `api_queue` nutzen; Fehlerbericht aus `outbox` (`IssueTracker`) hierher; online sofort leeren (macOS-Netzmeldung), offline Ping 60 s.
-**Freigabe Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10.:** nach Abnahme **238**. **Freigegeben zur Umsetzung.** HALT nach dieser Aufgabe.
-Status: freigegeben — Umsetzung ausstehend.
+Status: **Bereit zur Prüfung** — `ApiQueueKind`/`ApiQueuePersistence`, `IssueReporter` → `api_queue` (Retry in DB), `ApiQueueReachability` (NWPathMonitor + 60 s), Outbox-Migration. Tests `ApiQueuePersistenceTests` + `IssueTrackerTests`. Suite **521/521** seriell. Regel 23: Binary **20:27:36**, find -newer leer. **HALT** — kein 0.3.2.x.
+**Prüfung Cursor (Nutzerwunsch / Cloud-Ausfall) 12.10. (Code, ohne xcodebuild):**
+- **Queue ok:** `api_queue` Schema; `ApiQueueKind.issueReport`; enqueue/trim (50 / 5 MB), `fetchDue` + Retry-Felder; `IssueReporter.enqueue` → DB (nicht Datei-Outbox).
+- **Netz ok:** `ApiQueueReachability` — `NWPathMonitor` Flush bei online; 60‑s-Timer solange Queue nicht leer; `start()` migriert Legacy-Outbox + Flush.
+- **Scope ok:** kein Versions-/Update-API (0.4). Tests Persistenz + `migratesLegacyOutboxFiles` / Cap 50.
+- Regel 23: Binary **20:27:47**, find -newer leer. Suite 521 nicht erneut. **Keine Nacharbeit.**
 
 ### Offen, ohne Cursor (Rest 0.3.2)
 
@@ -171,7 +175,7 @@ Status: freigegeben — Umsetzung ausstehend.
 - **236** → **c.0.3.236** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus; F26).
 - **237** → **c.0.3.237** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **238** → **c.0.3.238** — **abgenommen** (Messung/Report/Freeze; Spalten-Guard → **F29**). Bericht: `Werkzeuge/messung/2026-10-12-nachher-bericht.md`.
-- **0.3.1** → **c.0.3.1.001** (API-Warteschlange). *freigegeben in A/Spur — nächste Aufgabe*
+- **0.3.1** → **c.0.3.1.001** — **abgenommen/gelöst** in A/Spur (Cursor, Cloud aus).
 - **0.3.2** → **c.0.3.2.001–007** abgenommen (Produktcode); Layout/README weiter „Offen, ohne Cursor“.
 
 

@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import GRDB
 import Testing
 @testable import diskindex
 
@@ -45,7 +46,7 @@ struct IssueTrackerTests {
         reporter.enqueue(kind: "crash")
         await reporter.flush()
         #expect(IssueStubURL.hits == 1)
-        #expect(reporter.reportFiles().isEmpty)
+        try expectQueued(reporter, 0)
     }
 
     @Test func serverErrorKeepsTheFileAndBacksOff() async throws {
@@ -54,9 +55,9 @@ struct IssueTrackerTests {
         IssueStubURL.status = 500
         IssueStubURL.body = Data("no".utf8)
         reporter.enqueue(kind: "crash")
-        let id = try #require(reporter.reportFiles().first?.deletingPathExtension().lastPathComponent)
+        let id = try #require(try reporter.firstQueuedIssueID())
         await reporter.flush()
-        #expect(reporter.reportFiles().count == 1)
+        try expectQueued(reporter, 1)
         #expect(IssueStubURL.hits == 1)
         let first = try #require(reporter.nextRetry(id: id))
         #expect(first.attempts == 1)
@@ -76,7 +77,7 @@ struct IssueTrackerTests {
         IssueStubURL.status = 400
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        #expect(reporter.reportFiles().isEmpty)
+        try expectQueued(reporter, 0)
     }
 
     @Test func offlineKeepsTheFile() async throws {
@@ -84,7 +85,7 @@ struct IssueTrackerTests {
         IssueStubURL.fail = true
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        #expect(reporter.reportFiles().count == 1)
+        try expectQueued(reporter, 1)
         #expect(IssueStubURL.hits == 1)
     }
 
@@ -107,13 +108,13 @@ struct IssueTrackerTests {
         IssueStubURL.body = Data(#"{"id":""}"#.utf8)
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        #expect(reporter.reportFiles().count == 1)
+        try expectQueued(reporter, 1)
     }
 
     @Test func sentBodyHasRequiredAPIFields() async throws {
         let reporter = try makeReporter()
         reporter.enqueue(kind: "crash")
-        let fileData = try Data(contentsOf: #require(reporter.reportFiles().first))
+        let fileData = try #require(try reporter.firstQueuedPayload())
         await reporter.flush()
         #expect(IssueStubURL.hits == 1)
         let data = try #require(IssueStubURL.lastRequestBody ?? Optional(fileData))
@@ -132,7 +133,7 @@ struct IssueTrackerTests {
         IssueStubURL.body = Data(#"{"ok":true}"#.utf8)
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        #expect(reporter.reportFiles().count == 1)
+        try expectQueued(reporter, 1)
     }
 
     @Test func unprocessableEntityDropsFile() async throws {
@@ -140,7 +141,7 @@ struct IssueTrackerTests {
         IssueStubURL.status = 422
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        #expect(reporter.reportFiles().isEmpty)
+        try expectQueued(reporter, 0)
     }
 
     @Test func successWithoutOKBodyStaysAndBacksOff() async throws {
@@ -150,9 +151,9 @@ struct IssueTrackerTests {
         IssueStubURL.status = 201
         IssueStubURL.body = Data("<html>tracker</html>".utf8)
         reporter.enqueue(kind: "crash")
-        let id = try #require(reporter.reportFiles().first?.deletingPathExtension().lastPathComponent)
+        let id = try #require(try reporter.firstQueuedIssueID())
         await reporter.flush()
-        #expect(reporter.reportFiles().count == 1)
+        try expectQueued(reporter, 1)
         #expect(IssueStubURL.hits == 1)
         #expect(lines.contains { $0.contains("status=201") && $0.contains("body=nicht-ok") })
         let first = try #require(reporter.nextRetry(id: id))
@@ -171,7 +172,7 @@ struct IssueTrackerTests {
     @Test func errorsAreNotSentAsReports() throws {
         let reporter = try makeReporter()
         reporter.noteError(category: "store", message: "applyDirectories /tmp/a 12")
-        #expect(reporter.reportFiles().isEmpty)
+        try expectQueued(reporter, 0)
     }
 
     @Test func scrubberDropsNamesButKeepsTheProfile() throws {
@@ -214,7 +215,7 @@ struct IssueTrackerTests {
     @Test func payloadHasTheContractFields() throws {
         let reporter = try makeReporter()
         reporter.enqueue(kind: "crash")
-        let data = try Data(contentsOf: #require(reporter.reportFiles().first))
+        let data = try #require(try reporter.firstQueuedPayload())
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let keys = Set(object.keys)
         #expect(keys == ["actions", "app", "crash", "createdAt", "id", "inventory", "kind", "logTail", "runtimeSeconds", "schema", "signature", "system"])
@@ -227,15 +228,28 @@ struct IssueTrackerTests {
         #expect(id == id.uppercased())
     }
 
-    @Test func outboxIsPrivateAndCapped() throws {
+    @Test func queueIsCapped() throws {
         let reporter = try makeReporter()
         for _ in 0..<51 {
             reporter.enqueue(kind: "crash")
         }
-        let files = reporter.reportFiles()
-        #expect(files.count == 50)
-        let mode = try #require(try FileManager.default.attributesOfItem(atPath: files[0].path)[.posixPermissions] as? NSNumber)
-        #expect(mode.intValue == 0o600)
+        try expectQueued(reporter, 50)
+    }
+
+    @Test func migratesLegacyOutboxFiles() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let legacyID = UUID().uuidString
+        let legacyBody = Data(#"{"schema":2,"id":"\#(legacyID)","kind":"crash"}"#.utf8)
+        FileManager.default.createFile(atPath: directory.appendingPathComponent("\(legacyID).json").path, contents: legacyBody)
+        let reporter = try makeReporter(outboxDirectory: directory)
+        reporter.migrateLegacyOutboxFiles()
+        #expect(reporter.reportFiles().isEmpty)
+        try expectQueued(reporter, 1)
+        let payload = try #require(try reporter.firstQueuedPayload())
+        let object = try #require(try JSONSerialization.jsonObject(with: payload) as? [String: Any])
+        #expect(object["id"] as? String == legacyID)
     }
 }
 
@@ -244,24 +258,35 @@ private final class LockedDate: @unchecked Sendable {
     init(_ value: Date) { self.value = value }
 }
 
+private func expectQueued(_ reporter: IssueReporter, _ expected: Int) throws {
+    let count = try reporter.queuedReportCount()
+    #expect(count == expected)
+}
+
 private func makeReporter(
     release: Bool = false,
     now: @escaping () -> Date = { Date() },
-    log: @escaping (String) -> Void = { _ in }
+    log: @escaping (String) -> Void = { _ in },
+    outboxDirectory: URL? = nil
 ) throws -> IssueReporter {
     IssueStubURL.status = 201
     IssueStubURL.body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
     IssueStubURL.fail = false
     IssueStubURL.hits = 0
     IssueStubURL.lastRequestBody = nil
-    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let directory = outboxDirectory ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    if outboxDirectory == nil {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
+    let dbDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let pool = try ApiQueuePersistence.openQueuePool(at: dbDirectory.appendingPathComponent("archive.sqlite"))
     let defaults = UserDefaults(suiteName: "diskindex-issue-\(UUID().uuidString)")!
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [IssueStubURL.self]
     let session = URLSession(configuration: configuration)
     let reporter = IssueReporter(
         directory: directory,
+        queuePool: pool,
         defaults: defaults,
         session: session,
         releaseBuild: release,
