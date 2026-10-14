@@ -29,7 +29,8 @@ Cursor implementiert alle Aufgaben aus `TODO.md` im Xcode-Projekt (SwiftUI/AppKi
 
 - **Claude ist der Host.** Von ihm geht alles aus: Konzept, Aufgaben, Prüfung, Abnahme, DONE.md. Umsetzer (Cursor oder ein anderer Agent) können auf **anderen Geräten** arbeiten und über Git/GitHub (macht nur der Nutzer) zusammenfließen. Eine Abnahme durch den Umsetzer selbst gilt nicht; Claude liest den Code, baut (0 Warnungen), lässt den Gesamtlauf seriell laufen und prüft Regel 23.
 - **Zwei Kennungen:** `todo.<Version>.<Nr>` für Aufgaben, `bug.<Version>.<Nr>` für Fehler (Version = Zielversion der Roadmap, Nr dreistellig). Sie stehen in TODO.md, im Status, in Commit-Nachrichten und in DONE.md.
-- **Dateien:** `TODO.md` (offen), `DONE.md` (abgenommen), `README.md` (Konzept inkl. Datenbank), `ROADMAP.md` (Versionen), `REPORT.md` (bleibt leer, Fehler gehen direkt als `bug.*` in TODO.md). Alte Fassungen: `archiv/`.
+- **Übergabe:** `PROMPT.md` enthält **nur** den aktuellen Prompt für den Umsetzer (nur Claude schreibt ihn). Jede Antwort im Chat endet mit einer **Commit-Nachricht**; jeder Bericht des Umsetzers zusätzlich mit einem Prompt für Claude (Aufbau: TODO.md Regel 30). Committen tut nur der Nutzer.
+- **Dateien:** `PROMPT.md` (aktueller Prompt), `TODO.md` (offen), `DONE.md` (abgenommen), `README.md` (Konzept inkl. Datenbank), `ROADMAP.md` (Versionen), `REPORT.md` (bleibt leer, Fehler gehen direkt als `bug.*` in TODO.md). Alte Fassungen: `archiv/`.
 
 ## Workflow
 
