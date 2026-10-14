@@ -120,6 +120,11 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | bug.0.3.246 | c.0.3.246 | Live-Rename gone-Clash, Build-Zeit in UTC (REPORT 52, 53) | 13.10. Cursor | A B |
 | todo.0.4.001 | c.0.3.3.001 | Versions-Check, Update-Modal mit „überspringen“, Beta-Sperre, Nur-Lesen-Schranke (`FeatureAccess`) | 13.10. Cursor | A B |
 | bug.0.4.001 | c.0.3.3.002 | Nur-Lesen-Sperre geschlossen (REPORT 42–50) | 13.10. Cursor | A B |
+| bug.0.4.043 | – | „Ja“ nach „Nein“ springt nicht mehr zurück (`publish` lässt Nutzerfelder stehen, solange ein Schreibvorgang aussteht); Test `AllowIndexingToggleRaceTests` | 14.10. Claude | A C |
+| todo.0.4.010 | – | Purge: 14 tote Namen entfernt, Test-Hilfen in `IndexStoreV3TestHooks` (Test-Ziel); `hasCachedChildren` nur noch `#if DEBUG` | 14.10. Claude | A B |
+| todo.0.4.011 | – | Kaltstart öffnet Menüleiste und Hauptfenster; Anmeldung still außer Update/Sperre (Teil b wartet auf Bestätigung, `todo.0.4.039`) | 14.10. Claude | A C |
+| todo.0.4.012 | – | Panel „Neues Speichermedium“ an Standardposition (mittig, 38,2 % von oben), nicht gemerkt, reine Rechenfunktion mit Test | 14.10. Claude | A C |
+| bug.0.4.010 | – | Warnungen 0 (Debug/Release), `partialMatching` als Parameter, Wackeltests teils stabilisiert; **Parallellauf offen → `bug.0.4.044`** | 14.10. Claude (teilweise) | A |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

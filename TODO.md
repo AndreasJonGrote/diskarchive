@@ -46,7 +46,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 14.10.: 554 Tests seriell grün, 23 Compiler-Warnungen. **Freigegeben: Paket 0 (`bug.0.4.010`, `bug.0.4.043`, `todo.0.4.010`, `todo.0.4.011`, `todo.0.4.012`). HALT nach Paket 0.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
+**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 14.10. (`cb59f64`): 562 Tests seriell grün, 0 Warnungen; Parallellauf wackelt (`bug.0.4.044`). **Freigegeben: `bug.0.4.044` und Paket 1 (`bug.0.4.011`, `bug.0.4.012`). HALT nach Paket 1.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–30):** **R1** Nur die genannten Stellen ändern. **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓. **R3** Status höchstens 5 Zeilen.
 
@@ -56,7 +56,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 | Paket | Kennungen | Thema | Warum in dieser Reihenfolge |
 |---|---|---|---|
-| 0 | `bug.0.4.010`, `bug.0.4.043`, `todo.0.4.010`–`012` | Testbasis stabil, Warnungen 0, toter Code | ohne grüne, stabile Tests ist jede weitere Prüfung unsicher |
+| 0 | `bug.0.4.044` (Rest) | Testbasis stabil, Warnungen 0, toter Code | ohne grüne, stabile Tests ist jede weitere Prüfung unsicher |
 | 1 | `bug.0.4.011`–`012` | Datenschutz im Fehlerbericht | vor jeder Weitergabe zwingend |
 | 2 | `bug.0.4.013`–`016` | Inventar und Favoriten (Datenverlust) | `013` muss vor der ersten Schema-Erweiterung stehen; `015` erst nach `013` und `014` |
 | 3 | `bug.0.4.017`–`020` | Live-Überwachung | |
@@ -67,54 +67,23 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und gelten **mit den Korrekturen der Zweitprüfung** (hier eingearbeitet). Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
 
-#### Paket 0 — Testbasis stabil
+#### Paket 0 — Testbasis stabil (Rest)
 
-**bug.0.4.010 — Vier rote Tests stabil machen (REPORT 109).**
-Ausgangslage: Voller Testlauf 586/590 grün. Rot sind `ItemIdentityTests/fatPartialDisambiguatesGoneCandidates`, `AutoSendToggleTests/autoSendPersistsInDatabase`, `ChangeWatcherTests/newFileAppearsAfterQuiet` und `ChangeWatcherTests/liveRenamePairMovesFolderAndShiftsChildDepth`.
-- a) `DirectoryWriterV3.partialMatchingEnabled` (globales `nonisolated(unsafe) static var`) **durch einen Parameter ersetzen**, z. B. ein Feld im Writer bzw. `IndexStoreV3`, das nur Tests umstellen. Der Sabotage-Test in `ItemIdentityTests` Z. ~166 nutzt dann diesen Parameter. Danach darf die Suite parallel laufen, ohne dass sich Tests gegenseitig beeinflussen.
-- b) `AutoSendToggleTests`: geteilten `AppSettingsRuntimeCache` je Test isolieren oder die Suite `.serialized`; feste 600 ms durch Warten auf die Bedingung ersetzen (`waitUntil`, Grenze ≤ 3 s).
-- c) `ChangeWatcherTests`: Die 800-ms-Grenze in `waitFor` durch Warten auf die Bedingung mit Grenze ≤ 3 s ersetzen. Die Erwartungen bleiben unverändert (Regel 14).
-- d) Zusätzlich die Warnungen aus REPORT 108 beheben, inklusive Testziel:
-  - `checkpoint()` `nonisolated`
-  - captured `var` in `IndexStoreV3` Z. ~210/815
-  - `?? freelistBefore` (Z. ~219)
-  - `loadLegacyPersisted`
-  - `IndexingFinishCancelTests`, `IssueTrackerTests` Z. ~283, `AppSettingsPersistenceTests`
-  - `AppState+VersionLock.swift:38` `variable 'notice' was never mutated` (neu, Claude 14.10.). Stand Claude 14.10.: **23 Warnungen**, seriell 554/554 grün (die vier Wackeltests zeigen sich nur im Parallellauf).
+Abgenommen 14.10. (DONE.md): `bug.0.4.043`, `todo.0.4.010`, `todo.0.4.011`, `todo.0.4.012`, `bug.0.4.010` (Warnungen 0, Teile a–d). **Offen:** der Parallellauf.
 
-**Akzeptanz:** Drei volle Läufe hintereinander, einmal seriell und zweimal parallel, jeweils **alle grün**. Build Debug und Release ohne Warnung. Regel 23.
-Status: bug.0.4.010: partialMatching per Store; Flakes (AutoSend/ChangeWatcher/InvalidateAll/VersionLock/Startup); notice `let`; Warnungen 0. Läufe 22:30–22:42: seriell 562, 2× parallel failed 0. Regel 23 App 22:44:58. Bereit zur Prüfung.
+**bug.0.4.044 — Parallellauf nicht grün (Nacharbeit zu `bug.0.4.010`, Claude 14.10.).** Mein Lauf: `xcodebuild test-without-building … -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120`, dreimal hintereinander (Stand `cb59f64`, nach frischem Build). Seriell: 562/562 grün, Warnungen 0.
+| Test | rot in 3 Läufen |
+|---|---|
+| `IndexStoreTests/insertingTwoHundredThousandEntriesStaysFast` (22 s) | 3 von 3 |
+| `ChangeWatcherTests/newFileAppearsAfterQuiet` | 1 von 3 |
+| `ColumnCacheTests/targetedInvalidateKeepsStaleFolderCache` | 1 von 3 |
+- a) `insertingTwoHundredThousandEntriesStaysFast` ist ein **Zeit-Test im Debug-Build** (Regel 8: Leistungszahlen nur im Release-Build). Aus der normalen Suite nehmen und nur unter `DA_BENCH=1` laufen lassen (wie die Messtests). Die Prüfung nicht abschwächen: Grenzwert unverändert, nur Ort der Ausführung. Zusätzlich ein **deterministischer** Test in die normale Suite, der die Eigenschaft beweist (z. B. alle 200.000 Zeilen vorhanden, Schreiben in Blöcken in wenigen Transaktionen), ohne Zeitgrenze.
+- b) `newFileAppearsAfterQuiet`: nur auf die Bedingung warten (Regel 18), Obergrenze 10 s statt fester kurzer Frist; die Erwartung bleibt. Ursache im Status in 1 Zeile.
+- c) `targetedInvalidateKeepsStaleFolderCache`: Ursache klären (verdächtig: statische Test-Schalter und Zähler in `IndexRepository` wie `awaitMissingFolderCacheGateForTesting`, `requestLoadCallsForTesting` werden von Suiten gleichzeitig benutzt). Statische Schalter je Test isolieren oder die betroffenen Suiten gemeinsam `.serialized` führen.
+- **Akzeptanz:** drei Parallelläufe mit dem **genannten Kommando** alle grün; Kommando und Uhrzeiten im Status; seriell grün; Warnungen 0; Regel 23.
+Status:
 
-**todo.0.4.010 — Purge: toter Code (Claude-Suche 14.10., Wortzählung über `diskindex/` und `diskindexTests/`).**
-- a) **Löschen** (kommt nirgends sonst vor, auch nicht in Tests): `AppVersion.majorMinor` (Z. 16) und `isNewerThanMajorMinor` (Z. 69), `AppWindowPresenter.closeNewMedium` (Z. 138), `FeatureAccess.unrestricted` (Z. 39), `MenuBarPopoverLayout.pauseMenuAnchorFromBottom` (Z. 35), `IndexStoreV3.purgeGoneItems` (Z. 548; dazu den Kommentar „für die Überwachung“ entfernen, REPORT E).
-- b) **Nur von Tests benutzt, im App-Programm unnötig:** `IndexStoreV3+Reading` `columnFirstPageSQL` (Z. 117), `statusOfItem` (Z. 242), `searchMedia` (Z. 398), `storedNames` (Z. 408); `IndexStoreV3` `recordMaintenanceDebt` (Z. 185), `orphanCount` (Z. 108), `databaseFileBytes` (Z. 122); `IndexRepository.hasCachedChildren` (Z. 166). Je Fall: ohne Test-Nutzen → löschen samt Test; sonst als `extension` ins **Test-Ziel** verschieben. Nicht anfassen: `applyDirectory` (19 Tests; bug.0.4.015 c ersetzt es dort, wo es eine Kette beweisen soll).
-- c) **Nicht löschen** (Falschtreffer der Suche): AppDelegate-Rückrufe, `windowWillClose`, `canBecomeKey/Main`, `mouseDown`-Überschreibungen.
-- d) **Nicht anfassen, Entscheidung `todo.0.4.038`:** `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`.
-- **Akzeptanz:** `grep -rnw` auf jeden Namen aus a) → leer; Warnungen 0; seriell grün (Zahl vorher/nachher im Status; sie sinkt nur um gelöschte Tests, Begründung je Test).
-Status: todo.0.4.010: a) gelöscht; b) Hooks → `IndexStoreV3TestHooks.swift`; `hasCachedChildren` bleibt `#if DEBUG`. grep a) leer. Seriell 562 (keine Tests gelöscht). Warnungen 0. Bereit zur Prüfung.
-
-**todo.0.4.011 — Start zeigt Menüleiste und Hauptfenster (Nutzer 14.10., ersetzt README 7 „Kaltstart: nur Menüleiste“).** Gehört zu Paket 0, nach `bug.0.4.010` und `todo.0.4.010`.
-- a) **Kaltstart (Klick/Finder/Spotlight):** Menüleiste **und** Hauptfenster. Stelle: `AppLaunch.opensMainWindow(_:)` und der Aufruf in `AppDelegate` (Symbolnamen suchen, Regel 16). `launchKind == .click` öffnet das Hauptfenster; Fensterposition und -größe aus dem Frame-Autosave wie bisher.
-- b) **Start beim Anmelden (`.login`):** weiter still, **außer** nach dem Versions-Check liegt ein Update-Angebot oder eine Sperre vor: dann öffnet das Hauptfenster **einmal** (nicht bei jedem Check, nicht wenn es schon offen ist). Das ist ein Vorschlag; der Nutzer bestätigt noch. Wird er abgelehnt, entfällt b).
-- c) **Unverändert:** Dock-Reopen, Einzelinstanz-Übergabe (Zweitinstanz öffnet das Fenster der laufenden), Fenster schließen = Hintergrund, Dock-Symbol bleibt.
-- **Tests (keine echte App starten, Regel 19):** `AppLaunch.opensMainWindow(.click) == true`, `.login == false`; Test mit Meldung bei `.login` → `true`, ohne → `false`; echtes `NSWindow` außerhalb des Bildschirms (Regel 10). Sabotage `.click → false` → rot ✓. Warnungen 0, seriell, Regel 23.
-Status: todo.0.4.011: `AppLaunch.opensMainWindow` click/login+updateOrLock; AppDelegate einmalig bei Login. Tests `AppLaunchTests` inkl. Sabotage. Paketläufe grün, Warnungen 0, Regel 23. Bereit zur Prüfung.
-
-**todo.0.4.012 — Erkennungs-Panel „Neues Speichermedium“: immer Standardposition (Nutzer 14.10.).**
-- a) Die Position des Panels wird **nicht gemerkt**: kein Frame-Autosave, kein Wiederverwenden der letzten Lage. Jedes neue Erscheinen eines Panels startet an der Standardposition. Zieht der Nutzer es, bleibt es bis zum Schließen dort (kein erneutes Platzieren bei jedem `syncNewMediumPanels`).
-- b) **Standardposition:** waagerecht **mittig** auf dem Hauptbildschirm (`NSScreen.main`, `visibleFrame`), senkrecht so, dass die **Mitte des Panels beim goldenen Schnitt oben** liegt (38,2 % der sichtbaren Höhe von oben gemessen, also leicht über der Mitte). Mehrere offene Panels: bestehenden Versatz `newMediumStackOffset` beibehalten, der neueste liegt vorn an der Standardposition.
-- c) Stelle: `AppWindowPresenter.placeNewMediumPanel` (heute unten rechts mit `newMediumScreenMargin`). Die Konstante `newMediumScreenMargin` entfällt, wenn sie sonst nirgends gebraucht wird.
-- d) Test mit der reinen Rechenfunktion (Frame aus `visibleFrame` und Panelgröße): Mitte x, Mitte y bei 38,2 %, mit und ohne Menüleisten-Versatz im `visibleFrame`, Versatz bei Stapel. Sabotage (alter Wert) → rot ✓. Warnungen 0, seriell, Regel 23.
-Status: todo.0.4.012: `placeNewMediumPanel` Mitte/0,382; kein Autosave; `NewMediumPanelPlacementTests` + Sabotage. Paketläufe grün, Warnungen 0, Regel 23. Bereit zur Prüfung.
-
-**bug.0.4.043 — „Ja“ nach „Nein“ springt auf „Nein“ zurück (Nutzer 14.10., Medium zoom_h4e).** Ablauf: Erkennungs-Dialog mit „Für dieses Medium merken“ aus, „Nicht indizieren“; die Einstellungen zeigen Nein (richtig). Klick auf **Ja** (Einstellungen → Speichermedien): die Indizierung startet (richtig), aber der Schalter springt wieder auf **Nein**; erst der zweite Klick auf Ja bleibt stehen.
-- **Vermutete Ursache (Claude, am Code gelesen, noch nicht belegt):** Der Schalter schreibt `decision`/`allowIndexing` nur in den Speicher (`AppState.updateMedium(persist: true)`), das Schreiben in die Datenbank ist um ca. 500 ms verzögert (`scheduleMediumWrite`). Gleichzeitig löst `onMediumDecisionChanged` → `MediumCoordinator.requestIndexingAfterDecision` aus, liest die **noch alte Zeile** aus der Datenbank (`allowIndexing = false`) und `publish(_:connection:)` schreibt sie in den Speicher zurück (`current.allowIndexing = medium.allowIndexing`). Danach schreibt `writeMedium` den richtigen Wert in die Datenbank, die Anzeige bleibt aber falsch. Gleiche Wurzel wie `bug.0.4.033` (Lesen → `await` → Zeile zurückschreiben).
-- a) **Zuerst Repro-Test** (Regel 25): Medium `.dontIndex`, in der Datenbank gespeichert; `updateMedium(persist: true)` auf `.index`; `requestIndexingAfterDecision`/`publish` läuft vor `writeMedium` → erwartet `medium.allowIndexing == true` und `decision == .index` nach 2 s; Rot vor dem Fix belegen.
-- b) **Fix:** `publish` überschreibt Nutzerfelder (`decision`, `allowIndexing`, `autoIndexPaused`, `isFavorite`, `showAbsoluteCapacity`) nicht, solange für das Medium ein Schreibvorgang aussteht (`pendingMediumWrites`), oder Entscheidungen werden **sofort** geschrieben statt entprellt. Der Auslöser nach der Entscheidung liest die Werte aus dem Speicher, nicht aus der Datenbank. Nicht erst `bug.0.4.033` abwarten; beide Fixes müssen zusammenpassen.
-- c) **Akzeptanz:** Nein → Ja: Schalter bleibt auf Ja, Indizierung läuft, nach Neustart ebenfalls Ja. Ja → Nein → Ja gleiche Prüfung. Sabotage rot ✓. Warnungen 0, seriell, Regel 23.
-Status: bug.0.4.043: Repro `AllowIndexingToggleRaceTests` vor Fix rot; Fix `reloadMedium`/`publish`+sofort schreiben. Test+Paketläufe grün 22:30–22:42, Warnungen 0, Regel 23 App 22:44:58. Bereit zur Prüfung.
-
-**HALT nach Paket 0** — Freigabe durch Claude:
+**HALT nach Paket 0** — Freigabe durch Claude: nach `bug.0.4.044`.
 
 ---
 
@@ -505,6 +474,7 @@ Status:
 | `todo.0.4.036` | **Versions-Check-Takt:** `Task.sleep` zählt Betriebszeit, nicht Kalenderzeit; auf Laptops mit Ruhezustand seltener als „alle 24 h“. Kalenderzeit gemeint? | `VersionCheckScheduler` |
 | `todo.0.4.037` | **Antwort 201 ohne JSON-`id`** gilt als Fehlschlag und wird erneut gesendet (Doppel auf dem Server). Mit der Server-Seite abstimmen. | Fehlerbericht |
 | `todo.0.4.038` | `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht oder löschen? | `todo.0.4.010` |
+| `todo.0.4.039` | **Start beim Anmelden öffnet das Hauptfenster einmal, wenn ein Update-Angebot oder eine Sperre vorliegt** (gebaut als Teil b von `todo.0.4.011`). Beibehalten oder entfernen? | Anmeldestart |
 
 ### Beobachten (keine Aufgabe)
 

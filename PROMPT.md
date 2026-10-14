@@ -1,9 +1,6 @@
-Paket 0 bereit zur Prüfung: bug.0.4.043, bug.0.4.010, todo.0.4.010–012.
-043: AllowIndexingToggleRaceTests; reloadMedium/publish preserve.
-010: partialMatching; Flakes stabil; notice; Warnungen 0.
-010-purge: a) weg; b) IndexStoreV3TestHooks; grep a) leer.
-011: AppLaunch click/login+lock; AppLaunchTests.
-012: placeNewMediumPanel 0,382; NewMediumPanelPlacementTests.
-Läufe: seriell 562 22:36; 2× parallel failed 0 22:39/22:42; D/R Warn 0.
-Regel 23: App 22:44:58 > Swift 22:43:59; find -newer leer.
-Prüfe die genannten Aufgaben nach Regel 28 und gib mir den nächsten Prompt.
+Lies TODO.md: Regeln 1–30, dann nur `bug.0.4.044` (Paket 0, Rest) und Paket 1 (`bug.0.4.011`, `bug.0.4.012`).
+Reihenfolge: bug.0.4.044, bug.0.4.011, bug.0.4.012. Repro-Tests nach Regel 25: Rot vor dem Fix belegen, Sabotage zurücknehmen vor Regel 23.
+Parallellauf immer mit: xcodebuild test-without-building … -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120. Dieses Kommando und die Uhrzeiten stehen im Status.
+Akzeptanz: Build Debug und Release mit 0 Warnungen; seriell grün; drei Parallelläufe grün; Regel 23.
+Kein Git außer status/log/diff/show. Status je Aufgabe höchstens 5 Zeilen mit Kennung, „Bereit zur Prüfung“. HALT nach Paket 1.
+Beende deine Antwort nach Regel 30: Prompt für Claude im Codeblock und eine Commit-Nachricht.
