@@ -47,7 +47,7 @@ private func columnCacheTree() async throws -> (app: AppState, store: IndexStore
     return (app, store, medium)
 }
 
-@Suite @MainActor struct ColumnCacheTests {
+@Suite(.serialized) @MainActor struct ColumnCacheTests {
     @Test func appearanceChangeDoesNotInvalidateColumnCache() async throws {
         let tree = try await columnCacheTree()
         _ = await tree.app.indexRepository.loadChildren(mediumID: tree.medium.uuid, path: [])

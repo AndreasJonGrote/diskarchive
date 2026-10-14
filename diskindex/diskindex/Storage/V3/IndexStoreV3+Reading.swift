@@ -113,13 +113,6 @@ extension IndexStoreV3 {
         return (filtered, next)
     }
 
-    /// Erste Seite einer Spalte: über die Spalten-Suchhilfe, ohne Zwischensortierung (Test: Abfrageplan).
-    nonisolated static let columnFirstPageSQL = """
-        SELECT id FROM items
-        WHERE storageID = ? AND parentID IS ? AND status = 0
-        ORDER BY slug COLLATE "\(NaturalOrder.collationName)", id LIMIT ? OFFSET ?
-        """
-
     nonisolated static let columnChildRowSelect = """
         SELECT i.id, i.parentID, i.name, i.isFolder, i.depth, i.status, i.modifiedAt, i.fileID,
                i.listedAt, i.unreadable, e.ext AS ext, d.sizeBytes AS sizeBytes, d.isPackage AS isPackage,
@@ -236,13 +229,6 @@ extension IndexStoreV3 {
             return try Self.items(db, ids: [id]).first
         }
     }
-
-    #if DEBUG
-    /// Tests: Status eines Eintrags (auch verschwundene).
-    func statusOfItem(id: Int64) async throws -> Int? {
-        try await pool.read { db in try Int.fetchOne(db, sql: "SELECT status FROM items WHERE id = ?", arguments: [id]) }
-    }
-    #endif
 
     // MARK: Zähler
 
@@ -393,22 +379,6 @@ extension IndexStoreV3 {
             return total
         }
     }
-
-    /// Medien, deren Suchname den Begriff enthält (Mediennamen über `storages.slug`).
-    func searchMedia(query: String) async throws -> [StoredMedium] {
-        let slug = Slug.make(query.trimmingCharacters(in: .whitespacesAndNewlines))
-        return try await pool.read { db in
-            let all = try MediumCodecV3.fetchAll(db, whereClause: slug.isEmpty ? "" : "WHERE slug LIKE ? ESCAPE '\\'",
-                                                 arguments: slug.isEmpty ? [] : ["%" + SearchPlanV3.escapeLike(slug) + "%"])
-            return all.filter { !$0.isForgotten }
-        }
-    }
-
-    #if DEBUG
-    func storedNames() async throws -> [String] {
-        try await pool.read { db in try String.fetchAll(db, sql: "SELECT name FROM items WHERE status = 0 ORDER BY id") }
-    }
-    #endif
 
     // MARK: Parallele Suche
 

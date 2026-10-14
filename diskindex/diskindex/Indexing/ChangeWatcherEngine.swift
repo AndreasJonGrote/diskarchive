@@ -27,17 +27,20 @@ actor ChangeWatcherEngine {
         mount: String,
         directories: [String],
         matcher: IgnoreMatcher,
-        maxDepth: Int?
+        maxDepth: Int?,
+        writeAllowed: @Sendable () async -> Bool = { true }
     ) async -> Outcome {
         if await store.hasActiveIndexingToken(mediumUUID: mediumID) {
             return .deferred
         }
+        guard await writeAllowed() else { return .deferred }
         let eventPaths = Set(directories.map { URL(fileURLWithPath: $0).standardizedFileURL.path })
         var queue = Array(eventPaths)
         var seen = Set<String>()
         var attempts: [String: Int] = [:]
         var index = 0
         while index < queue.count {
+            guard await writeAllowed() else { return .deferred }
             let directory = queue[index]
             index += 1
             if seen.contains(directory) { continue }
@@ -125,6 +128,7 @@ actor ChangeWatcherEngine {
                 if await store.hasActiveIndexingToken(mediumUUID: mediumID) {
                     return .deferred
                 }
+                guard await writeAllowed() else { return .deferred }
                 try await store.applyDirectories(
                     mediumUUID: mediumID,
                     batches: [(parentID: parentID, path: nil, depth: nil, entries: entries, finalize: true)],

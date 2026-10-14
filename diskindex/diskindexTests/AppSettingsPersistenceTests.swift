@@ -10,7 +10,8 @@ import GRDB
 import Testing
 @testable import diskindex
 
-@Suite struct AppSettingsPersistenceTests {
+@Suite @MainActor
+struct AppSettingsPersistenceTests {
     @Test func persistedAppSettingsRoundTrip() async throws {
         let harness = try StoreHarness.make()
         var snapshot = PersistedAppSettings()

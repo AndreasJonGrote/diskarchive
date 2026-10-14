@@ -12,8 +12,9 @@ import SwiftUI
 enum AppWindowPresenter {
     private static let mainWindowAutosaveName = "DiskIndexMainWindow"
     private static let defaultMainWindowSize = NSSize(width: 1100, height: 750)
-    private static let newMediumStackOffset: CGFloat = 24
-    private static let newMediumScreenMargin: CGFloat = 24
+    nonisolated private static let newMediumStackOffset: CGFloat = 24
+    /// Goldener Schnitt von oben (todo.0.4.012): Panel-Mitte bei 38,2 % der sichtbaren Höhe.
+    nonisolated private static let newMediumGoldenRatioFromTop: CGFloat = 0.382
 
     private static var mainWindow: NSWindow?
     private static var newMediumPanels: [UUID: NSPanel] = [:]
@@ -22,6 +23,9 @@ enum AppWindowPresenter {
 
     /// Anzahl offener Erkennungs-Panels (Tests).
     static var openNewMediumPanelCount: Int { newMediumPanels.count }
+
+    /// Ob das Hauptfenster existiert und sichtbar ist (todo.0.4.011).
+    static var isMainWindowVisible: Bool { mainWindow?.isVisible == true }
 
     /// Öffnet bzw. holt das Hauptfenster nach vorn; `destination == nil` behält die aktuelle Ansicht.
     static func openMain(appState: AppState, destination: MainWindowDestination? = nil) {
@@ -136,12 +140,6 @@ enum AppWindowPresenter {
         newMediumPanels[mediumID]?.close()
     }
 
-    static func closeNewMedium() {
-        for id in Array(newMediumPanels.keys) {
-            newMediumPanels[id]?.close()
-        }
-    }
-
     /// Fenster ohne Animation ausblenden — vor dem Prozessende, damit SwiftUI nicht mehr rendert.
     static func prepareForTermination() {
         mainWindow?.orderOut(nil)
@@ -225,24 +223,38 @@ enum AppWindowPresenter {
                 newMediumPanels.removeValue(forKey: mediumID)
             }
             newMediumPanels[mediumID] = panel
+            let depthFromNewest = stackCount - 1 - stackIndex
+            placeNewMediumPanel(panel, depthFromNewest: depthFromNewest)
         }
 
         guard let panel = newMediumPanels[mediumID] else { return }
-        let depthFromNewest = stackCount - 1 - stackIndex
-        placeNewMediumPanel(panel, depthFromNewest: depthFromNewest)
         panel.orderFrontRegardless()
+    }
+
+    /// Reine Lage-Rechnung (todo.0.4.012); Tests ohne AppKit-Fenster.
+    nonisolated static func newMediumPanelFrame(
+        visibleFrame: CGRect,
+        panelSize: CGSize,
+        depthFromNewest: Int
+    ) -> CGRect {
+        let offset = CGFloat(depthFromNewest) * newMediumStackOffset
+        let centerX = visibleFrame.midX - offset
+        let centerY = visibleFrame.maxY - visibleFrame.height * newMediumGoldenRatioFromTop - offset
+        return CGRect(
+            x: centerX - panelSize.width / 2,
+            y: centerY - panelSize.height / 2,
+            width: panelSize.width,
+            height: panelSize.height
+        )
     }
 
     private static func placeNewMediumPanel(_ panel: NSPanel, depthFromNewest: Int) {
         let visible = NSScreen.main?.visibleFrame ?? .zero
-        let offset = CGFloat(depthFromNewest) * newMediumStackOffset
-        var frame = panel.frame
-        if frame.width < 10 || frame.height < 10, let hosting = panel.contentView as? NSHostingView<AnyView> {
-            let size = hosting.fittingSize
-            frame.size = size
+        var size = panel.frame.size
+        if size.width < 10 || size.height < 10, let hosting = panel.contentView as? NSHostingView<AnyView> {
+            size = hosting.fittingSize
         }
-        frame.origin.x = visible.maxX - frame.width - newMediumScreenMargin - offset
-        frame.origin.y = visible.minY + newMediumScreenMargin + offset
+        let frame = newMediumPanelFrame(visibleFrame: visible, panelSize: size, depthFromNewest: depthFromNewest)
         panel.setFrame(frame, display: true)
     }
 

@@ -163,14 +163,13 @@ struct ItemIdentityTests {
     }
 
     @Test func sabotagePartialDisabledDoesNotReconnectAmbiguous() async throws {
-        DirectoryWriterV3.partialMatchingEnabled = false
-        defer { DirectoryWriterV3.partialMatchingEnabled = true }
         let mount = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-partial-sabotage-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: mount) }
         let seen = Date(timeIntervalSince1970: 1_700_000_200)
         let harness = try StoreHarness.make()
+        await harness.store.setPartialMatchingEnabled(false)
         let medium = try await harness.insert(name: "Stick", fsType: "msdos", bytes: 1_000)
         try await harness.store.applyDirectory(
             mediumUUID: medium.uuid,

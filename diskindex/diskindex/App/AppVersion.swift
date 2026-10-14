@@ -12,9 +12,6 @@ nonisolated struct AppVersion: Equatable, Sendable {
     var minor: Int
     var patch: Int
 
-    /// Nur Haupt- und Nebennummer (Patch ignoriert).
-    var majorMinor: (Int, Int) { (major, minor) }
-
     var isBeta: Bool { major == 0 }
 
     var displayString: String {
@@ -65,10 +62,6 @@ nonisolated struct AppVersion: Equatable, Sendable {
         if major != other.major { return major < other.major ? .orderedAscending : .orderedDescending }
         if minor != other.minor { return minor < other.minor ? .orderedAscending : .orderedDescending }
         return .orderedSame
-    }
-
-    func isNewerThanMajorMinor(_ other: AppVersion) -> Bool {
-        compareMajorMinor(to: other) == .orderedDescending
     }
 
     func isOlderThanMajorMinor(_ other: AppVersion) -> Bool {

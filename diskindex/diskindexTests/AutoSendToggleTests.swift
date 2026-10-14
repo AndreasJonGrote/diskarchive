@@ -8,7 +8,8 @@ import Testing
 @testable import diskindex
 
 @MainActor
-@Suite struct AutoSendToggleTests {
+@Suite(.serialized)
+struct AutoSendToggleTests {
     @Test func autoSendPersistsInDatabase() async throws {
         AppSettingsRuntimeCache.resetBootstrapForTests()
         let harness = try StoreHarness.make()
@@ -17,10 +18,16 @@ import Testing
         await app.hydrateSettingsFromStore()
 
         app.setAutoSendCrashReports(true)
-        try await Task.sleep(for: .milliseconds(600))
-
-        let loaded = await harness.store.loadPersistedAppSettings()
-        #expect(loaded?.autoSendCrashReports == true)
+        #expect(IssueConsent.autoSendEnabled() == true)
+        let persisted = await waitUntil(timeout: 3) {
+            let loaded = await harness.store.loadPersistedAppSettings()
+            return loaded?.autoSendCrashReports == true
+        }
+        #expect(persisted)
+        // Paralleltests können `resetBootstrapForTests` den Cache leeren — Stand aus DB zurückholen.
+        if let loaded = await harness.store.loadPersistedAppSettings() {
+            AppSettingsRuntimeCache.setAutoSend(loaded.autoSendCrashReports)
+        }
         #expect(IssueConsent.autoSendEnabled() == true)
     }
 

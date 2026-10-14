@@ -19,9 +19,8 @@ extension AppState {
         if let offer = evaluation.updateOffer {
             if updateNotice?.offer.targetMajorMinor != offer.targetMajorMinor {
                 updateNotice = UpdateNotice(offer: offer, skipUpdate: false)
-            } else if var notice = updateNotice {
-                notice.offer = offer
-                updateNotice = notice
+            } else if let existing = updateNotice {
+                updateNotice = UpdateNotice(offer: offer, skipUpdate: existing.skipUpdate)
             } else {
                 updateNotice = UpdateNotice(offer: offer, skipUpdate: false)
             }
@@ -35,7 +34,7 @@ extension AppState {
     }
 
     func dismissUpdateNotice(saveSkip: Bool) {
-        guard var notice = updateNotice else { return }
+        guard let notice = updateNotice else { return }
         if saveSkip, notice.offer.showSkipCheckbox, let store = indexStore {
             VersionCheckCoordinator.recordSkippedUpdate(target: notice.offer.targetMajorMinor, store: store)
         }

@@ -35,6 +35,4 @@ nonisolated struct FeatureAccess: Equatable, Sendable {
     var lockState: VersionLockState
 
     var canWriteIndex: Bool { !lockState.isLocked }
-
-    static let unrestricted = FeatureAccess(lockState: .unlocked)
 }

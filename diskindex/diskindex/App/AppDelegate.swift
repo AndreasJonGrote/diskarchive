@@ -22,6 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let versionCheckScheduler = VersionCheckScheduler()
     private let recognitionLogger = Logger(subsystem: "app.diskarchive", category: "MediumRecognition")
     private var launchKind = AppLaunchKind.click
+    /// todo.0.4.011 b: Anmeldung öffnet höchstens einmal wegen Update/Sperre.
+    private var didOpenMainForLoginVersionNotice = false
     private var handedOff = false
 
     /// Vor `install`, damit kein zweites Menüleisten-Icon aufblitzt (Aufgabe 30.1).
@@ -238,7 +240,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated {
                 appState.heldForSleep = true
                 appState.onAutoIndexPauseChanged?()
-                Task { await appState.indexStore?.checkpoint() }
+                Task { appState.indexStore?.checkpoint() }
             }
         }
         workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -357,9 +359,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 appState.cancelRuleReconcileForVersionLock()
                 await self?.indexingService?.cancelAllActiveForVersionLock()
                 await self?.changeWatcher?.stopAllWatching()
+                self?.openMainOnceForLoginVersionNoticeIfNeeded(appState: appState)
             }
         }
+        appState.onVersionCheckEvaluationApplied = { [weak self] in
+            self?.openMainOnceForLoginVersionNoticeIfNeeded(appState: AppDelegateBridge.appState)
+        }
         versionCheckScheduler.start(appState: appState, store: store)
+    }
+
+    private func openMainOnceForLoginVersionNoticeIfNeeded(appState: AppState) {
+        guard launchKind == .login, !didOpenMainForLoginVersionNotice else { return }
+        let presents = appState.versionLockState.isLocked || appState.updateNotice != nil
+        guard AppLaunch.opensMainWindow(.login, presentsUpdateOrLock: presents) else { return }
+        guard !AppWindowPresenter.isMainWindowVisible else { return }
+        didOpenMainForLoginVersionNotice = true
+        AppWindowPresenter.openMain(appState: appState)
     }
 
     private func postIndexStoreOpenFailureNotification() {

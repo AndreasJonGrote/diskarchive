@@ -149,38 +149,43 @@ struct VersionLockReadOnlyTests {
         rig.app.globalAutoIndexPaused = false
         rig.app.onAutoIndexPauseChanged?()
         rig.service.start(mediumUUID: mediumID, volume: rig.volume, fromScratch: true)
-        try await Task.sleep(for: .milliseconds(200))
+        let started = await waitUntil(timeout: 3) {
+            rig.app.medium(with: mediumID)?.indexStatus == .indexing || rig.service.isRunActive(mediumID)
+        }
+        #expect(started)
         rig.app.versionLockState = .locked(.buildExpired)
         await rig.service.cancelAllActiveForVersionLock()
-        #expect(rig.app.medium(with: mediumID)?.indexStatus != .indexing)
+        let cleared = await waitUntil(timeout: 3) {
+            rig.app.medium(with: mediumID)?.indexStatus != .indexing
+        }
+        #expect(cleared)
     }
 
     @Test @MainActor func watcherFlushSkipsWritesWhenLocked() async throws {
-        let volume = try MountedTestVolume.make()
-        defer { volume.detach() }
-        let root = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
-        try Data("x".utf8).write(to: root.appendingPathComponent("seed.txt"))
-
-        let rig = try await LiveWatchRig.make(mountPath: volume.mountPath, volumeName: volume.volumeName)
-        rig.app.globalAutoIndexPaused = true
-        await rig.coordinator.handle(.appeared(rig.volume))
-        let mediumID = try #require(rig.app.newMediumDialogMediumID)
-        rig.app.onNewMediumChoice?(mediumID, true, true)
-        await rig.coordinator.waitForChoice()
-        rig.app.globalAutoIndexPaused = false
-        rig.app.onAutoIndexPauseChanged?()
-        await rig.service.waitUntilIdle(mediumID)
-        await LiveWiring.startWatching(
-            id: mediumID,
-            volume: rig.volume,
-            store: rig.store,
-            watcher: rig.watcher,
-            appState: rig.app
-        )
+        // Scripted source statt echter FSEvents/DMG — unter Parallel-Last sonst Wackeln.
+        let rig = try await watchRig()
+        let mediumID = rig.medium.uuid
+        rig.access.listings["/Volumes/DISK"] = [
+            ListedDirectoryEntry(
+                name: "live.txt",
+                isDirectory: false,
+                isPackage: false,
+                isSymbolicLink: false,
+                isHidden: false,
+                fileSize: 1,
+                modifiedAt: nil
+            ),
+        ]
+        rig.watcher.quietInterval = .milliseconds(40)
+        rig.watcher.start(mediumID: mediumID, volume: rig.volume, source: rig.source)
         rig.app.versionLockState = .locked(.betaExpired)
-        try Data("y".utf8).write(to: root.appendingPathComponent("live.txt"))
-        try await Task.sleep(for: .seconds(3))
+        #expect(!rig.app.featureAccess.canWriteIndex)
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/live.txt", eventID: 7, itemCreated: true))
+        try await Task.sleep(for: .milliseconds(200))
         #expect(try await rig.store.item(mediumUUID: mediumID, path: [], name: "live.txt") == nil)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(try await rig.store.item(mediumUUID: mediumID, path: [], name: "live.txt") == nil)
+        #expect(rig.access.listCount["/Volumes/DISK"] == nil)
     }
 }
 

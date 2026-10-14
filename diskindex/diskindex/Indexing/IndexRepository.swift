@@ -79,7 +79,9 @@ final class IndexRepository {
         let needsLoad = cache[key] == nil || stale.contains(key)
         if !needsLoad { return }
         guard store != nil, loading.insert(key).inserted else { return }
-        Task { await load(mediumID: mediumID, path: path, key: key) }
+        // Token hier binden: sonst liest `load` nach `invalidateAll` die neue Generation und schreibt trotzdem.
+        let loadToken = loadGenerations[key, default: 0]
+        Task { await load(mediumID: mediumID, path: path, key: key, loadToken: loadToken) }
     }
 
     func folderLoadError(mediumID: UUID, path: [String]) -> String? {
@@ -142,12 +144,13 @@ final class IndexRepository {
     }
 
     func invalidateAll() {
-        for key in Set(loading).union(loadGenerations.keys) {
+        for key in Set(loading).union(loadGenerations.keys).union(cache.keys) {
             bumpLoadGeneration(key)
         }
         cache.removeAll()
         cacheOrder.removeAll()
-        loading.removeAll()
+        // `loading` bleibt: laufende Loads beenden sich per Token und räumen selbst auf.
+        // Sonst kann ein zweiter Load starten, während der erste noch läuft (bug.0.4.010).
         loadingLoaded.removeAll()
         loadingTotals.removeAll()
         loadErrors.removeAll()
@@ -200,11 +203,10 @@ final class IndexRepository {
         return cache[key] ?? []
     }
 
-    private func load(mediumID: UUID, path: [String], key: String) async {
+    private func load(mediumID: UUID, path: [String], key: String, loadToken: UInt) async {
         #if DEBUG
         Self.loadSessionsStartedForTesting += 1
         #endif
-        let loadToken = loadGenerations[key, default: 0]
         defer {
             loading.remove(key)
             loadingLoaded[key] = nil
@@ -270,6 +272,11 @@ final class IndexRepository {
             }
             guard loadGenerations[key, default: 0] == loadToken else { return }
             remember(key, accumulated)
+            // invalidateAll may race between the guard and remember; drop stale write.
+            if loadGenerations[key, default: 0] != loadToken {
+                forgetCached(key)
+                return
+            }
             stale.remove(key)
             if totalCount == 0, !accumulated.isEmpty {
                 loadingTotals[key] = accumulated.count
@@ -284,6 +291,11 @@ final class IndexRepository {
             if cache[key] == nil {
                 cache[key] = []
                 generation += 1
+            }
+            if loadGenerations[key, default: 0] != loadToken {
+                forgetCached(key)
+                loadErrors.removeValue(forKey: key)
+                return
             }
         }
     }
@@ -300,6 +312,12 @@ final class IndexRepository {
             let oldest = cacheOrder.removeFirst()
             if oldest != key { cache[oldest] = nil }
         }
+        generation += 1
+    }
+
+    private func forgetCached(_ key: String) {
+        cache.removeValue(forKey: key)
+        cacheOrder.removeAll { $0 == key }
         generation += 1
     }
 

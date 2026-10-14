@@ -113,7 +113,7 @@ nonisolated struct AppSettings: Equatable, Codable {
 
     private static let defaultsKey = persistenceKey
 
-    static func load(from defaults: UserDefaults) -> AppSettings {
+    nonisolated static func load(from defaults: UserDefaults) -> AppSettings {
         guard let data = defaults.data(forKey: defaultsKey),
               let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) else {
             return AppSettings()

@@ -31,8 +31,6 @@ enum MenuBarPopoverLayout {
     static let panelMaxHeight: CGFloat = 480
     static let panelMinHeight: CGFloat = 130
 
-    /// Layout 03: Pause-Menü `top: calc(100% - 54px)` (Mockup Screen 03).
-    static let pauseMenuAnchorFromBottom: CGFloat = 54
     static let pauseMenuWidth: CGFloat = 210
     /// Layout: Pfeil `right: 24px` am Pause-Menü — Spitze auf Schaltermitte.
     static let pauseMenuArrowInsetFromTrailing: CGFloat = 24

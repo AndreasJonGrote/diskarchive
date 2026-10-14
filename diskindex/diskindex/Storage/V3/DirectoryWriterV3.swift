@@ -12,17 +12,16 @@ import Foundation
 import GRDB
 
 nonisolated final class DirectoryWriterV3 {
-    /// Tests: Sabotage für Teil-Prüfsummen-Abgleich (235b).
-    nonisolated(unsafe) static var partialMatchingEnabled = true
-
     private let db: Database
     private let storageID: Int64
     private let trustsFileID: Bool
+    private let partialMatchingEnabled: Bool
     private var extensionIDs: [String: Int64] = [:]
 
-    init(db: Database, storageID: Int64) throws {
+    init(db: Database, storageID: Int64, partialMatchingEnabled: Bool = true) throws {
         self.db = db
         self.storageID = storageID
+        self.partialMatchingEnabled = partialMatchingEnabled
         let fsCode: Int = try Int.fetchOne(db, sql: "SELECT fsType FROM storages WHERE id = ?", arguments: [storageID]) ?? 0
         let fsName = MediumCodecV3.fileSystemName(fsCode) ?? ""
         trustsFileID = FileIdentity.trustsFileID(fsType: fsName)
@@ -464,7 +463,7 @@ nonisolated final class DirectoryWriterV3 {
         if entry.isFolder {
             return folderGoneCandidateIsConfident(candidate, entry: entry, parentID: parentID) ? candidate : nil
         }
-        guard Self.partialMatchingEnabled,
+        guard partialMatchingEnabled,
               let mountPath,
               let stored = try fetchPartial(itemID: candidate.id) else { return candidate }
         guard let incoming = try incomingPartialDigest(
@@ -490,7 +489,7 @@ nonisolated final class DirectoryWriterV3 {
         mountPath: String?
     ) throws -> ListedRow? {
         guard !entry.isFolder,
-              Self.partialMatchingEnabled,
+              partialMatchingEnabled,
               let mountPath,
               let incoming = try incomingPartialDigest(
                 mountPath: mountPath, parentID: parentID, name: entry.name

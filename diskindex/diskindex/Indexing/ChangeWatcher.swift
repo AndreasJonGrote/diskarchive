@@ -295,9 +295,20 @@ final class ChangeWatcher {
         let itemEvents = pendingItemEvents[mediumID] ?? []
         pendingItemEvents[mediumID] = []
         pendingSince[mediumID] = nil
+        // Erneut prüfen: Sperre kann zwischen Guard und Schreiben greifen (VersionLock-Tests).
+        guard appState.featureAccess.canWriteIndex else {
+            pending[mediumID, default: []].formUnion(events)
+            pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
+            return
+        }
         let exists = pathExistsForLiveRename
         let pairs = LiveRenamePairs.pair(events: itemEvents, fileExists: exists)
         for pair in pairs {
+            guard appState.featureAccess.canWriteIndex else {
+                pending[mediumID, default: []].formUnion(events)
+                pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
+                return
+            }
             if (try? await store.applyLiveRename(
                 mediumUUID: mediumID,
                 mountPath: mount,
@@ -308,6 +319,11 @@ final class ChangeWatcher {
                 events.insert(parentDirectory(pair.toPath, mount: mount))
             }
         }
+        guard appState.featureAccess.canWriteIndex else {
+            pending[mediumID, default: []].formUnion(events)
+            pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
+            return
+        }
         let matcher = appState.appSettings.matcher
         let maxDepth = appState.appSettings.indexedMaxDepth
         appState.beginMediumLiveSync(mediumID)
@@ -317,7 +333,10 @@ final class ChangeWatcher {
             mount: mount,
             directories: Array(events),
             matcher: matcher,
-            maxDepth: maxDepth
+            maxDepth: maxDepth,
+            writeAllowed: { @MainActor [appState] in
+                appState.featureAccess.canWriteIndex
+            }
         )
         switch outcome {
         case .ok:
@@ -329,7 +348,10 @@ final class ChangeWatcher {
         case .deferred:
             pending[mediumID, default: []].formUnion(events)
             pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
-            scheduleDeferredFlush(mediumID)
+            // Bei Sperre nicht erneut planen — nächster Flush nach Entsperren.
+            if appState.featureAccess.canWriteIndex {
+                scheduleDeferredFlush(mediumID)
+            }
         }
     }
 

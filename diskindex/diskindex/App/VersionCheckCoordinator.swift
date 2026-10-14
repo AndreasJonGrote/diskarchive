@@ -78,6 +78,7 @@ enum VersionCheckCoordinator {
         if !wasLocked, evaluation.lockState.isLocked {
             appState.onVersionLockEngaged?()
         }
+        appState.onVersionCheckEvaluationApplied?()
     }
 
     static func enqueueCheckIfNeeded(store: IndexStoreV3, now: Date = Date()) {

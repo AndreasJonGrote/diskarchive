@@ -49,9 +49,18 @@ extension AppState {
             armReindexGate(id)
         }
         if persist {
-            scheduleMediumWrite(id)
-            if before.decision != after.decision || before.allowIndexing != after.allowIndexing {
+            let decisionChanged = before.decision != after.decision || before.allowIndexing != after.allowIndexing
+            if decisionChanged {
+                // bug.0.4.043: Entscheidung sofort schreiben (kein 500-ms-Fenster gegen reloadMedium).
+                pendingMediumWrites[id]?.cancel()
+                pendingMediumWrites[id] = Task { [weak self] in
+                    guard let self, !Task.isCancelled else { return }
+                    await self.writeMedium(id)
+                    self.pendingMediumWrites[id] = nil
+                }
                 onMediumDecisionChanged?(id, after.decision, after.allowIndexing)
+            } else {
+                scheduleMediumWrite(id)
             }
         }
         noteIndexSample(id: id, status: after.indexStatus, fraction: after.indexProgressFraction, now: Date())

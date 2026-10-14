@@ -2,7 +2,7 @@
 //  AppLaunch.swift
 //  diskindex
 //
-//  Kaltstart (Dock/Finder): nur Menüleiste; Fenster bei Reopen/Handoff. Anmeldung still (README §7).
+//  Kaltstart: Menüleiste + Hauptfenster (todo.0.4.011); Anmeldung still, außer Update/Sperre.
 //
 
 import Foundation
@@ -23,9 +23,14 @@ nonisolated enum AppLaunch {
         return .click
     }
 
-    /// Nur Handoff öffnet beim Start sofort ein Fenster; Kaltstart und Anmeldung nicht.
-    static func opensMainWindow(_ kind: AppLaunchKind) -> Bool {
-        kind == .handoff
+    /// Kaltstart und Handoff öffnen das Hauptfenster; Anmeldung nur bei Update-Angebot oder Sperre.
+    static func opensMainWindow(_ kind: AppLaunchKind, presentsUpdateOrLock: Bool = false) -> Bool {
+        switch kind {
+        case .click, .handoff:
+            return true
+        case .login:
+            return presentsUpdateOrLock
+        }
     }
 
     /// Dock-Klick ohne sichtbares Fenster holt das Hauptfenster nach vorn.

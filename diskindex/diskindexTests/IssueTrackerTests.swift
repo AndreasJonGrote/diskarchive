@@ -272,17 +272,17 @@ struct IssueTrackerTests {
     @Test func enqueueSurvivesConcurrentExclusiveWrite() async throws {
         let reporter = try makeReporter()
         let pool = try #require(reporter.queuePool)
-        let entered = DispatchSemaphore(value: 0)
-        let release = DispatchSemaphore(value: 0)
+        let gate = ExclusiveWriteGate()
         let writer = Task {
             try pool.write { _ in
-                entered.signal()
-                _ = release.wait(timeout: .now() + 5)
+                gate.markEntered()
+                gate.waitForRelease(timeoutSeconds: 5)
             }
         }
-        #expect(entered.wait(timeout: .now() + 2) == .success)
+        let entered = await waitUntil(timeout: 2) { gate.hasEntered }
+        #expect(entered)
         reporter.enqueue(kind: "crash")
-        release.signal()
+        gate.release()
         try await writer.value
         try expectQueued(reporter, 1)
         #expect(reporter.reportFiles().isEmpty)
@@ -361,4 +361,31 @@ private func makeReporter(
     )
     reporter.sendsImmediately = false
     return reporter
+}
+
+/// Sync-Gate für `pool.write` (kein `DispatchSemaphore.wait` im async-Testpfad, bug.0.4.010).
+private final class ExclusiveWriteGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private let releaseSem = DispatchSemaphore(value: 0)
+    private var entered = false
+
+    var hasEntered: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return entered
+    }
+
+    func markEntered() {
+        lock.lock()
+        entered = true
+        lock.unlock()
+    }
+
+    func waitForRelease(timeoutSeconds: Double) {
+        _ = releaseSem.wait(timeout: .now() + timeoutSeconds)
+    }
+
+    func release() {
+        releaseSem.signal()
+    }
 }

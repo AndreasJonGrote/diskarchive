@@ -38,7 +38,7 @@ extension AppSettings {
         autoSendCrashReports = persisted.autoSendCrashReports
     }
 
-    func persistedSnapshot() -> PersistedAppSettings {
+    nonisolated func persistedSnapshot() -> PersistedAppSettings {
         PersistedAppSettings(
             scanDepth: scanDepth,
             favoriteOnlineNotificationsEnabled: favoriteOnlineNotificationsEnabled,
@@ -56,7 +56,7 @@ extension AppSettings {
     }
 
     /// Legacy-Import: UserDefaults-Blob + optional separater Auto-Send-Key.
-    static func loadLegacyPersisted(from defaults: UserDefaults) -> PersistedAppSettings {
+    nonisolated static func loadLegacyPersisted(from defaults: UserDefaults) -> PersistedAppSettings {
         var snapshot = load(from: defaults).persistedSnapshot()
         if defaults.object(forKey: IssueConsent.legacyAutoSendKey) != nil {
             snapshot.autoSendCrashReports = defaults.bool(forKey: IssueConsent.legacyAutoSendKey)

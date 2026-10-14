@@ -293,9 +293,10 @@ extension WindowTestGroup {
         rig.watcher.quietInterval = .milliseconds(30)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/keep.txt", eventID: 3, itemRemoved: true))
-        try await Task.sleep(for: .milliseconds(160))
-        let remaining = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent)
-        #expect(remaining.isEmpty)
+        let removed = await waitUntil(timeout: 3) {
+            (try? await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent))?.isEmpty == true
+        }
+        #expect(removed)
         rig.access.listings["/Volumes/DISK/A"] = [
             ListedDirectoryEntry(
                 name: "keep.txt",
@@ -309,10 +310,12 @@ extension WindowTestGroup {
             ),
         ]
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/keep.txt", eventID: 4, itemCreated: true))
-        try await Task.sleep(for: .milliseconds(160))
-        let back = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent)
-        #expect(back.first?.id == file.id)
-        #expect(back.first?.isFavorite == true)
+        let restored = await waitUntil(timeout: 3) {
+            guard let back = try? await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent),
+                  let first = back.first else { return false }
+            return first.id == file.id && first.isFavorite
+        }
+        #expect(restored)
     }
 
     @Test func appleDoubleAndExcludedNamesDoNothing() async throws {
@@ -678,13 +681,15 @@ extension WindowTestGroup {
         }
     }
 
+    /// bug.0.4.010: Aufrufer mit 800 ms behalten die Signatur; Untergrenze 3 s gegen Wackeln.
     private func waitFor<T>(timeoutMs: Int, _ body: () async throws -> T?) async throws -> T {
-        let deadline = Date().addingTimeInterval(Double(timeoutMs) / 1_000)
+        let effectiveMs = max(timeoutMs, 3_000)
+        let deadline = Date().addingTimeInterval(Double(effectiveMs) / 1_000)
         while Date() < deadline {
             if let value = try await body() { return value }
             try await Task.sleep(for: .milliseconds(25))
         }
-        Issue.record("waitFor timeout \(timeoutMs)ms")
+        Issue.record("waitFor timeout \(effectiveMs)ms")
         return try #require(try await body())
     }
 

@@ -425,8 +425,17 @@ extension AppState {
         if let index = media.firstIndex(where: { $0.id == id }) {
             let progress = media[index].indexingProgress
             let connection = media[index].connectionStatus
+            let preserveUserFields = pendingMediumWrites[id] != nil
             var replacement = fresh
             replacement.connectionStatus = connection
+            if preserveUserFields {
+                // bug.0.4.043: ausstehende UI-Entscheidung nicht mit alter DB-Zeile überschreiben.
+                replacement.decision = media[index].decision
+                replacement.allowIndexing = media[index].allowIndexing
+                replacement.autoIndexPaused = media[index].autoIndexPaused
+                replacement.isFavorite = media[index].isFavorite
+                replacement.showAbsoluteCapacity = media[index].showAbsoluteCapacity
+            }
             if replacement.indexStatus == .indexing {
                 replacement.indexingProgress = progress
             } else if replacement.indexStatus == .indexed {

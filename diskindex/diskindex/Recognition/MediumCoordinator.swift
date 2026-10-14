@@ -423,14 +423,13 @@ final class MediumCoordinator {
         if appState.medium(with: medium.id) == nil {
             appState.media.append(medium)
         } else {
+            let preserveUserFields = appState.pendingMediumWrites[medium.id] != nil
             appState.updateMedium(id: medium.id) { current in
                 let progress = current.indexingProgress
                 current.name = medium.name
                 current.type = medium.type
                 current.connectionStatus = connection
                 current.indexStatus = medium.indexStatus
-                current.allowIndexing = medium.allowIndexing
-                current.autoIndexPaused = medium.autoIndexPaused
                 current.capacityTotalBytes = medium.capacityTotalBytes
                 current.capacityUsedBytes = medium.capacityUsedBytes
                 current.fileCount = medium.fileCount
@@ -439,10 +438,15 @@ final class MediumCoordinator {
                 current.lastIndexedAt = medium.lastIndexedAt
                 current.lastIndexActivityAt = medium.lastIndexActivityAt
                 current.completedDepth = medium.completedDepth
-                current.decision = medium.decision
                 current.isForgotten = medium.isForgotten
-                current.showAbsoluteCapacity = medium.showAbsoluteCapacity
-                current.isFavorite = medium.isFavorite
+                if !preserveUserFields {
+                    // bug.0.4.043: Nutzerfelder nicht zurücksetzen, solange ein Write aussteht.
+                    current.allowIndexing = medium.allowIndexing
+                    current.autoIndexPaused = medium.autoIndexPaused
+                    current.decision = medium.decision
+                    current.showAbsoluteCapacity = medium.showAbsoluteCapacity
+                    current.isFavorite = medium.isFavorite
+                }
                 if medium.indexStatus == .indexing {
                     current.indexingProgress = progress
                 } else {

@@ -36,6 +36,18 @@ final class IndexingService {
         tasks[mediumUUID] != nil
     }
 
+    fileprivate func isRunToken(_ mediumUUID: UUID, _ token: UUID) -> Bool {
+        runs[mediumUUID] == token
+    }
+
+    fileprivate func markRunIndexing(_ mediumUUID: UUID) {
+        appState.noteMenuBarIndexingSpinner(mediumUUID, active: true)
+        appState.updateMedium(id: mediumUUID) {
+            $0.indexStatus = .indexing
+            $0.indexingProgress = 0
+        }
+    }
+
     func activeMediumUUIDs() -> [UUID] {
         Array(Set(tasks.keys).union(runs.keys))
     }
@@ -87,7 +99,6 @@ final class IndexingService {
         let indexer = indexer
         let store = store
         let access = access
-        let appState = appState
         let bridge = Bridge(service: self)
         tasks[mediumUUID] = Task.detached(priority: .utility) {
             var storedBeforeRun: StoredMedium?
@@ -100,15 +111,8 @@ final class IndexingService {
                 storedBeforeRun = nil
             }
             let reconcileRun = !fromScratch && storedBeforeRun?.indexStatus == .indexed
-            await MainActor.run {
-                if !reconcileRun {
-                    appState.noteMenuBarIndexingSpinner(mediumUUID, active: true)
-                    appState.updateMedium(id: mediumUUID) {
-                        $0.indexStatus = .indexing
-                        $0.indexingProgress = 0
-                    }
-                }
-            }
+            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: reconcileRun)
+            guard began else { return }
             let outcome = await indexer.run(
                 store: store,
                 access: access,
@@ -312,6 +316,17 @@ private final class Bridge: @unchecked Sendable {
 
     init(service: IndexingService) {
         self.service = service
+    }
+
+    /// false, wenn der Lauf zwischenzeitlich abgebrochen wurde (sonst setzt UI wieder `.indexing`).
+    func beginRunUI(_ mediumUUID: UUID, token: UUID, reconcileRun: Bool) async -> Bool {
+        await MainActor.run {
+            guard let service, service.isRunToken(mediumUUID, token) else { return false }
+            if !reconcileRun {
+                service.markRunIndexing(mediumUUID)
+            }
+            return true
+        }
     }
 
     func halt(_ mediumUUID: UUID) async -> ScanHalt {

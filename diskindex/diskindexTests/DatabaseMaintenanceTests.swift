@@ -10,7 +10,7 @@ import GRDB
 import Testing
 @testable import diskindex
 
-@Suite struct DatabaseMaintenanceTests {
+@Suite(.serialized) struct DatabaseMaintenanceTests {
     @Test func maintenanceDebtAccumulatesAndCompactionClearsIt() async throws {
         let harness = try StoreHarness.make()
         let store = harness.store
@@ -85,7 +85,9 @@ import Testing
         appState.attach(store: harness.store)
         await harness.store.recordMaintenanceDebt(MaintenancePolicy.changeThreshold)
         appState.scheduleDatabaseMaintenance()
-        try await Task.sleep(for: .milliseconds(500))
-        #expect(await harness.store.maintenanceDebt() == 0)
+        let cleared = await waitUntil(timeout: 5) {
+            await harness.store.maintenanceDebt() == 0
+        }
+        #expect(cleared)
     }
 }

@@ -38,7 +38,7 @@ import Testing
             try await Task.sleep(for: .milliseconds(10))
         }
         #expect(sawSpinner)
-        access.release()
+        await access.release()
         await service.waitUntilIdle(harness.mediumID)
         let done = try #require(try await harness.store.medium(uuid: harness.mediumID))
         #expect(done.indexStatus == .indexed)
@@ -86,9 +86,9 @@ import Testing
         service.start(mediumUUID: id, volume: volume, fromScratch: true)
         await access.entered.wait()
         await service.cancel(mediumUUID: id)
-        access.releaseGate()
+        await access.releaseGate()
         await service.waitUntilIdle(id)
-        #expect(access.listCalls <= 4)
+        #expect(await access.listCalls <= 4)
     }
 
     @Test func cancelDuringBackgroundRecountDoesNotBumpScanTotal() async throws {
@@ -109,7 +109,7 @@ import Testing
         service.start(mediumUUID: harness.mediumID, volume: volume, fromScratch: false)
         await access.entered.wait()
         await service.cancel(mediumUUID: harness.mediumID)
-        access.release()
+        await access.release()
         await service.waitUntilIdle(harness.mediumID)
         let after = try #require(try await harness.store.medium(uuid: harness.mediumID))
         #expect(after.scanTotal == 999)
@@ -148,36 +148,25 @@ import Testing
 
 private final class GateUntilReleaseAccess: MediumAccess, @unchecked Sendable {
     let inner: MemoryVolume
-    private let lock = NSLock()
-    private var released = false
-    private var enteredOnce = false
+    private let state = FinishCancelGateState()
     let entered = FinishCancelSignal()
 
     init(inner: MemoryVolume) {
         self.inner = inner
     }
 
-    func release() {
-        lock.lock()
-        released = true
-        lock.unlock()
+    func release() async {
+        await state.release()
     }
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
 
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
         if Task.isCancelled { throw CancellationError() }
-        lock.lock()
-        let shouldSignal = !enteredOnce
-        if shouldSignal { enteredOnce = true }
-        lock.unlock()
-        if shouldSignal { await entered.signal() }
+        if await state.markEnteredOnce() { await entered.signal() }
         while true {
             if Task.isCancelled { throw CancellationError() }
-            lock.lock()
-            let open = released
-            lock.unlock()
-            if open { break }
+            if await state.isReleased { break }
             try await Task.sleep(for: .milliseconds(5))
         }
         return try await inner.listDirectory(at: url)
@@ -186,45 +175,67 @@ private final class GateUntilReleaseAccess: MediumAccess, @unchecked Sendable {
 
 private final class CountingHoldAccess: MediumAccess, @unchecked Sendable {
     let inner: MemoryVolume
-    private let lock = NSLock()
-    private var hold = true
-    private var released = false
-    private(set) var listCalls = 0
+    private let state = FinishCancelHoldState()
     let entered = FinishCancelSignal()
 
     init(inner: MemoryVolume) {
         self.inner = inner
     }
 
-    func releaseGate() {
-        lock.lock()
-        released = true
-        lock.unlock()
+    var listCalls: Int {
+        get async { await state.listCalls }
+    }
+
+    func releaseGate() async {
+        await state.release()
     }
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
 
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
-        lock.lock()
-        listCalls += 1
-        let waiting = hold
-        lock.unlock()
+        let waiting = await state.beginList()
         if waiting {
             await entered.signal()
             while true {
                 if Task.isCancelled { throw CancellationError() }
-                lock.lock()
-                let open = released
-                lock.unlock()
-                if open { break }
+                if await state.isReleased { break }
                 try await Task.sleep(for: .milliseconds(5))
             }
-            lock.lock()
-            hold = false
-            lock.unlock()
+            await state.clearHold()
         }
         return try await inner.listDirectory(at: url)
     }
+}
+
+private actor FinishCancelGateState {
+    private var released = false
+    private var enteredOnce = false
+
+    func release() { released = true }
+    var isReleased: Bool { released }
+
+    /// true beim ersten Eintritt.
+    func markEnteredOnce() -> Bool {
+        if enteredOnce { return false }
+        enteredOnce = true
+        return true
+    }
+}
+
+private actor FinishCancelHoldState {
+    private var hold = true
+    private var released = false
+    private(set) var listCalls = 0
+
+    func release() { released = true }
+    var isReleased: Bool { released }
+
+    func beginList() -> Bool {
+        listCalls += 1
+        return hold
+    }
+
+    func clearHold() { hold = false }
 }
 
 private actor FinishCancelSignal {

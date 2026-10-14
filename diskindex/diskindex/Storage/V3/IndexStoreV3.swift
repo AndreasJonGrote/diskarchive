@@ -28,6 +28,12 @@ actor IndexStoreV3 {
     var searchQueryDelay: Duration?
     /// Tests: `deleteMedium` schlägt für diese UUIDs fehl (forgetAll, 007).
     var deleteMediumFailUUIDs: Set<UUID> = []
+    /// Tests: Teil-Prüfsummen-Abgleich (235b); kein globales Flag (bug.0.4.010).
+    var partialMatchingEnabled = true
+
+    func setPartialMatchingEnabled(_ enabled: Bool) {
+        partialMatchingEnabled = enabled
+    }
     /// Zählt Zeilen, deren Name in Swift gegen `IndexScope` geprüft wurde (Tests: ohne ausstehende Bereinigung 0).
     nonisolated let nameChecks = NameCheckCounter()
     /// Zahl der Bereiche der parallelen Suche; `nil` = Kerne − 1 (mindestens 2), 1 = eine einzelne Abfrage.
@@ -104,28 +110,6 @@ actor IndexStoreV3 {
         directoryWritesFail = failing
     }
 
-    /// Tests: Einträge, deren Elternordner fehlt (darf es durch die Kaskade nie geben).
-    func orphanCount() async throws -> Int {
-        try await pool.read { db in
-            try Int.fetchOne(
-                db,
-                sql: """
-                    SELECT COUNT(*) FROM items AS child
-                    LEFT JOIN items AS parent ON parent.id = child.parentID
-                    WHERE child.parentID IS NOT NULL AND parent.id IS NULL
-                    """
-            ) ?? 0
-        }
-    }
-
-    /// Tests: Größe der Datenbankdatei samt Journal.
-    func databaseFileBytes() -> Int {
-        let path = pool.path
-        let main = (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? NSNumber)?.intValue ?? 0
-        let wal = (try? FileManager.default.attributesOfItem(atPath: path + "-wal")[.size] as? NSNumber)?.intValue ?? 0
-        return main + wal
-    }
-
     /// Tests: `children`/`childrenPage`/`childCount` werfen einen Speicherfehler.
     func setChildrenReadsFailing(_ failing: Bool) {
         childrenReadsFail = failing
@@ -163,7 +147,7 @@ actor IndexStoreV3 {
     nonisolated(unsafe) static var recordEventCursorCallCount = 0
     #endif
 
-    func checkpoint() {
+    nonisolated func checkpoint() {
         try? pool.writeWithoutTransaction { db in
             try DatabaseMaintenance.truncateWriteAheadLog(db)
         }
@@ -183,13 +167,6 @@ actor IndexStoreV3 {
 
     // MARK: Wartung (236)
 
-    func recordMaintenanceDebt(_ rows: Int) async {
-        guard rows > 0 else { return }
-        try? await pool.write { db in
-            try DatabaseMaintenance.addDebt(db, rows: rows)
-        }
-    }
-
     func maintenanceDebt() async -> Int {
         (try? await pool.read { db in
             try DatabaseMaintenance.readDebt(db)
@@ -204,19 +181,19 @@ actor IndexStoreV3 {
         let debt = await maintenanceDebt()
         guard debt >= minDebt else { return }
         let started = ContinuousClock.now
-        var freelistBefore = 0
         do {
-            try await pool.writeWithoutTransaction { db in
-                freelistBefore = try DatabaseMaintenance.freelistCount(db)
+            let freelistBefore = try await pool.writeWithoutTransaction { db -> Int in
+                let before = try DatabaseMaintenance.freelistCount(db)
                 try DatabaseMaintenance.runIncrementalVacuum(db)
                 try DatabaseMaintenance.truncateWriteAheadLog(db)
+                return before
             }
             try await pool.write { db in
                 try DatabaseMaintenance.setDebt(db, 0)
                 try DatabaseMaintenance.setLastCompaction(db, atSeconds: SchemaTime.seconds(Date()))
             }
             let ms = Int(started.duration(to: .now) / Duration.milliseconds(1))
-            let freelistAfter = try? await pool.read { db in try DatabaseMaintenance.freelistCount(db) } ?? freelistBefore
+            let freelistAfter = (try? await pool.read { db in try DatabaseMaintenance.freelistCount(db) }) ?? freelistBefore
             DiskIndexLog.shared.record(
                 .index,
                 .info,
@@ -339,9 +316,10 @@ actor IndexStoreV3 {
         seenAt: Date,
         mountPath: String? = nil
     ) async throws {
+        let partialMatching = partialMatchingEnabled
         let folderPath: [String] = try await pool.write { db -> [String] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
-            let writer = try DirectoryWriterV3(db: db, storageID: storageID)
+            let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
             let step = try writer.apply(
                 parentID: parentID, path: nil, depth: nil, entries: entries, seenAt: seenAt, finalize: true,
                 mountPath: mountPath
@@ -363,9 +341,10 @@ actor IndexStoreV3 {
         do {
             if directoryWritesFail { throw IndexStoreError.directoryWriteFailed }
             let forceMeta = batches.contains { $0.finalize }
+            let partialMatching = partialMatchingEnabled
             let result = try await pool.write { db -> (delta: MediumCountDelta, parentPaths: [String]) in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
-                let writer = try DirectoryWriterV3(db: db, storageID: storageID)
+                let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
                 var delta = MediumCountDelta.zero
                 var parentPaths: [String] = []
                 for batch in batches {
@@ -543,26 +522,6 @@ actor IndexStoreV3 {
         return true
     }
 
-    /// Löscht alle verschwundenen Einträge des Mediums samt allem, was daran hängt. Für die Überwachung nach einem
-    /// abgearbeiteten Ereignis-Stapel. Liefert die Zahl der gelöschten Zeilen in `items`.
-    @discardableResult
-    func purgeGoneItems(mediumUUID: UUID) async throws -> Int {
-        let deleted = try await pool.write { db in
-            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
-            let count = try Self.deleteGoneItems(db, storageID: storageID)
-            if count > 0 {
-                try DatabaseMaintenance.addDebt(db, rows: count)
-            }
-            return count
-        }
-        if deleted > 0 {
-            try? await pool.writeWithoutTransaction { db in
-                try DatabaseMaintenance.truncateWriteAheadLog(db)
-            }
-        }
-        return deleted
-    }
-
     @discardableResult
     private nonisolated static func deleteGoneItems(_ db: Database, storageID: Int64) throws -> Int {
         try db.execute(
@@ -637,9 +596,10 @@ actor IndexStoreV3 {
 
     /// Live-Rename aus FSEvents-Paar (235b).
     func applyLiveRename(mediumUUID: UUID, mountPath: String, fromPath: String, toPath: String) async throws -> Bool {
+        let partialMatching = partialMatchingEnabled
         let folderPaths: [[String]] = try await pool.write { db -> [[String]] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
-            let writer = try DirectoryWriterV3(db: db, storageID: storageID)
+            let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
             guard try writer.applyLivePathRename(
                 mountPath: mountPath,
                 fromAbsolute: fromPath,
@@ -722,10 +682,12 @@ actor IndexStoreV3 {
 
     /// Setzt `status` je Eintrag passend zum Scope (sichtbar vs. zu-löschen), ohne Zeilen zu löschen (234).
     func reconcileScopeToStatus(_ scope: IndexScope, batchSize: Int = 5_000, maxBatches: Int? = nil) async throws -> Int {
+        #if DEBUG
         if reconcileShouldFail {
             reconcileShouldFail = false
             throw CocoaError(.fileWriteUnknown)
         }
+        #endif
         let started = ContinuousClock.now
         var changed = 0
         var batches = 0
@@ -736,7 +698,9 @@ actor IndexStoreV3 {
 
         while true {
             if let maxBatches, batches >= maxBatches { break }
+            #if DEBUG
             if let delay = reconcileBatchDelay { try await Task.sleep(for: delay) }
+            #endif
             let afterID = cursor
             let step: (updated: Int, last: Int64?, storages: Set<Int64>) = try await pool.write { db in
                 let rows = try Row.fetchAll(
@@ -811,8 +775,9 @@ actor IndexStoreV3 {
             cursor = last
         }
         if removed > 0 {
+            let debtRows = removed
             try? await pool.write { db in
-                try DatabaseMaintenance.addDebt(db, rows: removed)
+                try DatabaseMaintenance.addDebt(db, rows: debtRows)
             }
             try? await pool.writeWithoutTransaction { db in
                 try DatabaseMaintenance.compactAfterLargeDelete(db)

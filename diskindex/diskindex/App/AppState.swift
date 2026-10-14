@@ -65,6 +65,8 @@ final class AppState {
     var versionLockBannerVisible = false
     var updateNotice: UpdateNotice?
     @ObservationIgnored var onVersionLockEngaged: (() -> Void)?
+    /// Nach Versions-Check (todo.0.4.011): Anmeldung kann einmal das Hauptfenster öffnen.
+    @ObservationIgnored var onVersionCheckEvaluationApplied: (() -> Void)?
     /// Index konnte nicht geöffnet werden (82).
     var indexStoreOpenFailed = false
     var indexStoreOpenFailureAlert = false
