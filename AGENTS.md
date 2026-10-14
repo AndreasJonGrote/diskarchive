@@ -25,6 +25,12 @@ Cursor implementiert alle Aufgaben aus `TODO.md` im Xcode-Projekt (SwiftUI/AppKi
 
 **Keiner der Agenten macht etwas mit Git oder GitHub, das etwas verändert.** Verboten sind `git commit`, `git commit --amend`, `git push`, `git pull`, `git merge`, `git rebase`, `git reset`, `git checkout`/`git switch`, `git stash`, `git tag`, `git branch -d`, `git worktree`, `git rm`, `git add` sowie jede Aktion auf GitHub (Pull Requests, Issues, Releases, `gh`). Commits und Pushes macht **nur der Nutzer** (GitHub Desktop). Erlaubt sind nur lesende Befehle (`git status`, `git log`, `git diff`, `git show`). Nach einer Abnahme schlägt Claude höchstens eine Commit-Nachricht vor.
 
+## Host, Geräte und Kennungen (Nutzer 14.10.)
+
+- **Claude ist der Host.** Von ihm geht alles aus: Konzept, Aufgaben, Prüfung, Abnahme, DONE.md. Umsetzer (Cursor oder ein anderer Agent) können auf **anderen Geräten** arbeiten und über Git/GitHub (macht nur der Nutzer) zusammenfließen. Eine Abnahme durch den Umsetzer selbst gilt nicht; Claude liest den Code, baut (0 Warnungen), lässt den Gesamtlauf seriell laufen und prüft Regel 23.
+- **Zwei Kennungen:** `todo.<Version>.<Nr>` für Aufgaben, `bug.<Version>.<Nr>` für Fehler (Version = Zielversion der Roadmap, Nr dreistellig). Sie stehen in TODO.md, im Status, in Commit-Nachrichten und in DONE.md.
+- **Dateien:** `TODO.md` (offen), `DONE.md` (abgenommen), `README.md` (Konzept inkl. Datenbank), `ROADMAP.md` (Versionen), `REPORT.md` (bleibt leer, Fehler gehen direkt als `bug.*` in TODO.md). Alte Fassungen: `archiv/`.
+
 ## Workflow
 
 1. Claude schreibt/aktualisiert Aufgaben in `TODO.md` (eine Aufgabe = ein klar abgegrenzter Screen oder Teilschritt).

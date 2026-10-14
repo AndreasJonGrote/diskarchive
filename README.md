@@ -13,16 +13,16 @@
 
 ## Roadmap (Nutzer 10.10.)
 
-Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgeblich ist dieser Abschnitt.** Die Nummern sind die Versionsnummern der App (`MARKETING_VERSION`, ab 11.10. dreistellig `n.n.n`: 0.2.0, 0.3.0, 0.3.1, 0.3.2 …; Aufgabe 220). **0.2 am 11.10. eingefroren, 0.3 begonnen** (Nutzer); Fehler aus dem Alltag haben weiter Vorrang.
+Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgeblich ist dieser Abschnitt.** Die Nummern sind die Versionsnummern der App (`MARKETING_VERSION`, ab 11.10. dreistellig `n.n.n`: 0.2.0, 0.3.0, 0.3.1, 0.3.2 …; Aufgabe 220). **0.2 am 11.10. eingefroren; 0.3 (Datenbank), 0.3.1 (API-Warteschlange) und der Code von 0.3.2 sind abgenommen (14.10.); vom Umfang 0.4 sind Versions-Check, Update-Modal und Beta-Sperre schon gebaut.** Die Versionsnummer im Xcode-Projekt steht noch auf 0.2.0 (Aufgabe `todo.0.3.2.002`). Fehler aus dem Alltag haben weiter Vorrang. Aufgaben und Fehler heißen `todo.<Version>.<Nr>` und `bug.<Version>.<Nr>` (siehe TODO.md).
 
 | Version | Inhalt |
 |---|---|
 | **0.1 Beta** | **jetzt** |
 | **0.2** | alle bekannten Fehler beheben (Live-Überwachung, Indizieren, nicht angezeigte Dinge, Glitches) |
-| **0.3** | neue Datenbankstruktur |
-| **0.3.1** | **API-Warteschlange** (Nutzer 11.10.): ein Weg ins Netz für Fehlerberichte (später Update-, Versions-, Lizenz-Check); online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Details: `datenbank-konzeption.md` |
-| **0.3.2** | **Erkennung und Dashboard (Alltag):** Warteschlange für den Erkennungs-Dialog (je Medium, nacheinander; keine Indizierung ohne explizites Ja/Nein); Dashboard-Kacheln mit Belegung und „Zuletzt indiziert“ in der unteren Meta-Zeile. Details: [ROADMAP.md](ROADMAP.md) § 0.3.2 |
-| **0.4** | letzte Fixes. **Beta für Beta-Tester.** Ab hier laden andere die App |
+| **0.3** | neue Datenbankstruktur ✓ (Schema eingefroren, Abschnitt „Datenbank“) |
+| **0.3.1** | ✓ **API-Warteschlange** (Nutzer 11.10.): ein Weg ins Netz für Fehlerberichte (später Update-, Versions-, Lizenz-Check); online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Details: Abschnitt „Datenbank“ |
+| **0.3.2** | **Erkennung und Dashboard (Alltag), Code ✓, Layout 02 und 04 offen:** Warteschlange für den Erkennungs-Dialog (je Medium, nacheinander; keine Indizierung ohne explizites Ja/Nein); Dashboard-Kacheln mit Belegung und „Zuletzt indiziert“ in der unteren Meta-Zeile. Details: [ROADMAP.md](ROADMAP.md) § 0.3.2 |
+| **0.4** | letzte Fixes (Audit-Fehler `bug.0.4.*`). **Beta für Beta-Tester.** Ab hier laden andere die App. Versions-Check, Update-Modal und Beta-Sperre sind schon gebaut ✓ |
 | **0.5** | Metadaten und EXIF (Code und Design) |
 | **0.6** | Vorschaubilder |
 | **0.7** | Export von CSV-Listen |
@@ -30,17 +30,17 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 | **0.9** | Lizenz |
 | **1.0** | erste fertige Version |
 
-- **Layout-Reminder (0.3.2, vor Code):** Für die Korrekturen in **0.3.2** müssen die Mockups in [layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html) nachgezogen werden — mindestens **02** (Erkennungs-Dialog: mehrere Medien, Warteschlange/Stapel statt nur ein Dialog) und **04** (Dashboard-`card-meta`: Belegung und Zeitpunkt des letzten Scans unten in der Kachel, stabile eine Zeile). Heute zeigt Layout 02 nur einen Dialog; die App weicht bei der Meta-Zeile ab. Erst Layout, dann Aufgabe in `TODO.md`.
+- **Layout-Reminder (0.3.2):** Der Code für den Erkennungs-Stapel und die Dashboard-Meta-Zeile ist gebaut (`todo.0.3.2.003`). Die Mockups in [layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html) müssen nachgezogen werden: **02** (Erkennungs-Dialog: mehrere Medien, Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts in einer unteren Zeile). Aufgabe `todo.0.3.2.001` (Nutzer). Künftig gilt wieder: erst Layout, dann Aufgabe in `TODO.md`.
 - **Grundsatz (Nutzer):** Mit 0.4 sind **alle Probleme erledigt**. Was Fehler ist, muss **in 0.2** gelöst sein. 0.3 und 0.4 sind Umbau und Politur. Neues, das kein Fehler ist, kommt ins Backlog der nächsten Version.
 - **Bis 1.0 keine Rücksicht auf vorhandene Daten (Nutzer 10.10.):** Datenbank, Einstellungen und Protokolle **auf dem Mac des Nutzers** dürfen jederzeit verändert, verworfen oder gelöscht werden; Agenten müssen dabei nicht vorsichtig sein. Für andere Rechner ab 0.4 siehe „Stichtag“.
 - **Nach 0.3 nur noch erweitern (Nutzer 11.10.):** Keine bestehende Tabelle wird mehr verändert; neue Funktionen über neue Schlüssel in `settings`/`storage_meta`/`item_meta` oder neue Tabellen (Beispiel: Scan-Tiefe je Medium = Schlüssel in `storage_meta`).
 - **Stichtag:** 0.3 ist die letzte Version, in der die Datenbank frei verworfen und neu gebaut werden darf. **Ab 0.4 nur noch erweitern (Nutzer 10.10.):** Die Struktur aus 0.3 ist so gebaut, dass spätere Funktionen (Metadaten, EXIF, Vorschaubilder, Prüfsummen) **nur neue Tabellen oder neue Spalten hinzufügen**, nie bestehende umbauen. Die Baumtabelle enthält nur den Baum und die Grunddaten aus dem Dateisystem (Name, Endung, Größe, Änderungsdatum); alles Weitere kommt erst nach 0.4 als eigene Tabelle dazu. Auf **anderen Rechnern** (ab 0.4) wird nie etwas gelöscht: ein Update erweitert die Datenbank einmalig beim Start, die App funktioniert danach mit den vorhandenen Daten weiter. Auf dem **Mac des Nutzers** darf bis 1.0 alles gelöscht werden. Vor jeder Erweiterung eine Sicherungskopie, Schutz vor Rückschritt (ältere App öffnet eine neuere Datenbank nicht).
-- **0.3 Datenbank:** erst Messwerkzeug (synthetisch 1 Mio. Einträge auf einem Medium, 9 Mio. auf 300 Medien), dann Entscheidung nach [datenbank-konzeption.md](datenbank-konzeption.md). Claude-Empfehlung (offen bis zur Messung): eine gemeinsame Datei, schlanke `item`-Tabelle (Baum + Felder, nach denen gesucht oder gefiltert wird: Name, Endung, Größe, Änderungsdatum), Nebentabellen `item_<funktion>` für alles, was nur in Details gebraucht wird. Muss vor den neuen Funktionen stehen.
+- **0.3 Datenbank (abgenommen, Schema eingefroren):** Aufbau, Regeln und Messergebnisse im Abschnitt „Datenbank“ weiter unten.
 - **0.4 zusätzlich (Nutzer 11.10.):** Versions-Check gegen `api/version/` mit **Update-Modal**; Beta-Sperre (API ≥ 1.0: 7 Tage, frisch installiert sofort, keine Entsperrung), „API 1 Monat nicht erreicht“ → gesperrt; gesperrt = 100 % nur ansehen (auch Überwachung aus).
 - **0.4 Voraussetzungen für die Weitergabe [Annahme]:** Developer-ID-Signatur und Notarisierung, Download-Seite, Versions-Check (`GET …/api/version/` existiert), Beta-Verfallsdatum, zentrale Stelle „Darf der Nutzer das?“ (immer ja), Test auf macOS 14, Fehlerbericht mit echten Protokollzeilen, Update durch Ersetzen der App (Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe, Launch-Agent neu registrieren).
 - **Funktionen 0.5 bis 0.9 sind Entwürfe (Nutzer 10.10.):** Jede muss **vor dem Start einzeln besprochen** werden (Umfang, Last, Layout, Grenzen). Die Angaben unten sind Ausgangspunkte, keine Beschlüsse.
-- **Ab 0.5 kommen neue Layouts** dazu; Claude übersetzt sie wie bisher in Aufgaben. Darunter ein **Wartescreen der Suche** (Nutzer 11.10.), der auch das Warten auf den Markierungslauf nach Regeländerungen abdeckt (siehe `datenbank-konzeption.md`, „Status je Eintrag“).
-- **0.5 Metadaten:** je Dateityp (Felder in datenbank-konzeption.md), als zweiter Durchgang nach dem Index, damit das Indizieren so schnell bleibt.
+- **Ab 0.5 kommen neue Layouts** dazu; Claude übersetzt sie wie bisher in Aufgaben. Darunter ein **Wartescreen der Suche** (Nutzer 11.10.), der auch das Warten auf den Markierungslauf nach Regeländerungen abdeckt (siehe Abschnitt „Datenbank“, „Status je Eintrag“).
+- **0.5 Metadaten:** je Dateityp (Felder: [ROADMAP.md](ROADMAP.md) § 0.5), als zweiter Durchgang nach dem Index, damit das Indizieren so schnell bleibt.
 - **0.6 Vorschaubilder [offen, zu besprechen]:** mit **Abschalter** (global und je Medium), eigene Datei mit Obergrenze. **Größe: 250 px lange Seite** (Nutzer 10.10.; 400 px wären problematisch: etwa 20 KB je Bild, 5.000 Fotos ca. 100 MB). Bei 250 px etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB, 100.000 Fotos ca. 1 GB (Überschlag, nicht gemessen). Zu klären: Schärfe auf Retina-Anzeige in der Detailspalte.
 - **0.7 CSV-Export:** noch nicht ausgearbeitet **[offen]** (Was wird exportiert, welche Spalten, Trennzeichen und Kodierung für deutsches Excel, Metadaten dabei?).
 - **0.8 Duplikate:** über alle Medien, stufenweise (Größe → Anfang/Ende → volle Prüfsumme nur bei Treffern), nur im Hintergrund.
@@ -165,7 +165,7 @@ Weitere Information (Dateizahl, „zuletzt gesehen …“, „Fehler vor 2 Std. 
   - **Löschen nach 1 Stunde:** Die Einträge werden **erst nach 1 Stunde endgültig aus der Datenbank gelöscht**, **auch Favoriten, ohne Warnung**, auch bei Medien, die gerade **nicht angeschlossen** sind. **Jede weitere Verringerung startet die Stunde neu.** Der Termin überlebt einen Neustart; ist er beim Start überfällig, wird sofort bereinigt.
   - **Sofort:** Einstellungen → Erweitert → **„Index jetzt bereinigen“** (schwarze Zwei-Klick-Bestätigung) löscht sofort, **ein Knopf für alle** Einschränkungen. Die Dateien auf den Medien bleiben immer unberührt.
   - **Wieder erweitern** (Tiefe höher, Schalter aus, Ausschluss entfernt): Es erscheint **alles, was noch im Index ist**; **unvollständige Ordner** (deren Inhalt fehlt) werden beim nächsten Lauf nachgelesen, das Medium zeigt bis dahin „x % indiziert“. Es gibt **keine Terminzeile** in den Einstellungen.
-  - **Technik (für die Umsetzung):** Löschen in Blöcken, Volltextindex mitpflegen, danach Platz freigeben (`incremental_vacuum`, WAL-Checkpoint). Die **Inhaltsstempel der Ordner** an der neuen Tiefengrenze zurücksetzen, sonst liest der Abgleich sie nicht mehr nach.
+  - **Technik (für die Umsetzung):** Einträge außerhalb der Tiefe bekommen `status = 1` (Warteschlange, Abschnitt „Datenbank“), Löschen in Blöcken nach der Frist, danach Platz freigeben (`incremental_vacuum`, WAL kürzen). Ein Zurücksetzen der Inhaltsstempel ist nicht mehr nötig.
   - **Ausschlüsse verschwinden ebenfalls sofort**, das gelbe Prohibit-Icon an Objekten entfällt; das rote Häkchen im Kontextmenü bleibt, solange der Ausschluss besteht *(bestätigt 02.10., Layout 08:44 angepasst)*.
 - **Live-Überwachung** angeschlossener Medien (FSEvents, nach Ruhezeit gebündelt, mit Höchstwartezeit) **startet bei jedem Einhängen und nach dem Aufwachen des Macs neu** (Nutzer 09.10.: nach Ruhezustand wurde der Stick neu eingehängt, die alte Überwachung lieferte nichts mehr) **ergänzt** den Abgleich beim Anschließen, **ersetzt** ihn nie. **Vollständiger Abgleich** (kein „Neu indizieren“, kein Badge) außerdem bei FSEvents `MustScanSubDirs`/`RootChanged` oder erkannter Abweichung (Claude 09.10.: ein Neu-Lauf mit grünem Spinner beim Kopieren vieler Dateien wäre unerklärlich); läuft gerade ein Lauf, wird der Abgleich danach einmal nachgeholt. Unvollständiger Index (`pending`) setzt den Lauf fort. **Nach dem Ende einer Pause** läuft für jedes angeschlossene, indizierte Medium ein vollständiger Abgleich (während der Pause ruht auch die Überwachung). **Lesen großer Ordner (Nutzer 04.10., Stresstest 30.000 Dateien auf FAT32-Stick: 2 × 700 und 2 × 14.300 Dateien):** Ein Ordner wird **vollständig und in Stücken** gelesen; es gibt **kein festes Zeitlimit pro Ordner**, sondern eine **Wächterzeit ohne Lebenszeichen** (kommen 30 s lang keine Einträge mehr, gilt das Medium als hängend). Ein **nicht lesbarer Ordner wird nie stillschweigend übersprungen**: wiederholen (3×), sonst als **nicht lesbar** markieren und im Status melden, der Index gilt dann als **unvollständig** („x % indiziert“). **Eine Wahrheit in der DB:** Inventar in `item`; aggregierte Kennzahlen pro Medium (`fileCount`, `folderCount`, `lastIndexActivityAt`, `lastIndexedAt`) werden bei **jedem** Schreibvorgang (Watcher, Scanner-Batch, Bereinigung) in derselben Transaktion aktualisiert (`commitMediumMeta`). **`lastIndexActivityAt`** = letzte Index-Aktivität; **`lastIndexedAt`** = Ende eines Ebenen-/Vollabschlusses. **Dateizahlen** in Popover/Dashboard-Spec nutzen die **DB-Gesamtzahlen** auf `medium`; Filter wirken auf Spalteninhalte, nicht auf diese Summe. Nach Meta-Commit: Medium neu laden; Spalten-Cache für das Medium **debounced** invalidieren (~450 ms). **Invalidieren heißt „veraltet“, nicht „leeren“** (Nutzer 09.10.): Sichtbare Spalten zeigen den alten Inhalt, bis der neue geladen ist, dann Tausch in einem Schritt; keine leere Spalte, keine Ladefläche. **Kein Menüleisten-Badge** während Live-Abgleich (Nutzer 08.10.); **„indexing“** (grüner Spinner) nur während Erstlauf/„Neu indizieren“. Schwerer Watcher-Flush läuft im **`ChangeWatcherEngine`** abseits des Main Actors.
 - **Zuverlässigkeit hat Vorrang:** Fortschritt, Pause, Wiederaufnahme, hängende Platten, Datenbankschäden und Speicherplatz sind abgesichert und getestet (Aufgabe 70).
@@ -199,7 +199,7 @@ Weitere Information (Dateizahl, „zuletzt gesehen …“, „Fehler vor 2 Std. 
 - **Bestätigungsknopf, Maße:** **Breite = der längste der drei Texte („Beschriftung“, „Bestätigen“, „✓ Bestätigt“) plus Innenabstand, nie gestreckt (Nutzer 05.10.: „so breit wie er muss“)**, bleibt in allen drei Stufen **gleich**; Höhe wie alle Standard-Knöpfe (siehe „Button-Regeln“ in 10). Die ganze Fläche ist klickbar. Gilt für „Alle Speichermedien vergessen“, „Vergessen“ (Medium-Details), „Index jetzt bereinigen“ und **„Voreinstellungen anwenden“** (alle vier brauchen den Bestätigungsmodus). **Zusätzlich** (Nutzer: „soll über die Mitteilungen kommen“) **(vom Nutzer bestätigt 02.10.)**: Nach Ausführung geht eine **Systemmeldung** (Schalter „Systemmeldungen“ in Erweitert) mit dem Ergebnis raus, z. B. „Alle Speichermedien wurden vergessen.“, „Index bereinigt.“, „Voreinstellungen angewendet.“ Die Texte sind von Claude vorgeschlagen und gelten, bis das Layout sie festlegt (Nutzer: „Genau so“).
 
 ## 7. Start und Dock
-- Die App kann **fest im Dock** liegen. **Kaltstart** (erster Klick auf das Dock-Symbol, Start aus Finder oder Spotlight, solange kein Prozess läuft): nur **Menüleisten-App** (Index, Erkennung) — **kein Hauptfenster**. **Erneuter Klick auf das Dock**, während die Instanz läuft und kein Hauptfenster sichtbar ist, **öffnet das Hauptfenster** (`applicationShouldHandleReopen`). **Start beim Anmelden** bleibt **still** (kein Fenster). Fenster schließen = zurück in den Hintergrund; **das Dock-Symbol bleibt sichtbar**, solange der Prozess läuft. **Einzelinstanz:** startet der Nutzer die App erneut, während sie läuft, übernimmt die laufende Instanz (Release: Handoff → Hauptfenster). Explizite Aktionen (Menü „Disk Index anzeigen“, Popover „Disk Index öffnen“) öffnen das Fenster **sofort**. Das Dock-Symbol ist das Bundle-Icon.
+- Die App kann **fest im Dock** liegen. **Kaltstart** (erster Klick auf das Dock-Symbol, Start aus Finder oder Spotlight, solange kein Prozess läuft; **Nutzer 14.10., ersetzt die frühere Regel „nur Menüleiste“**): **Menüleiste und Hauptfenster** starten zusammen, damit Meldungen (Update, Betaphase beendet, Fehler) nicht unbemerkt bleiben. **Erneuter Klick auf das Dock**, während die Instanz läuft und kein Hauptfenster sichtbar ist, **öffnet das Hauptfenster** (`applicationShouldHandleReopen`). **Start beim Anmelden** bleibt **still** (kein Fenster) — **außer es liegt eine Meldung vor** (Update-Angebot oder Sperre): dann öffnet das Hauptfenster einmal **[Vorschlag Claude, Nutzer bestätigt noch]**. Fenster schließen = zurück in den Hintergrund; **das Dock-Symbol bleibt sichtbar**, solange der Prozess läuft. **Einzelinstanz:** startet der Nutzer die App erneut, während sie läuft, übernimmt die laufende Instanz (Release: Handoff → Hauptfenster). Explizite Aktionen (Menü „Disk Index anzeigen“, Popover „Disk Index öffnen“) öffnen das Fenster **sofort**. Das Dock-Symbol ist das Bundle-Icon.
 - **Fenster:** Hauptfenster per **`AppWindowPresenter`** (kein SwiftUI-Window-Restore); **Position/Größe** über Frame-Autosave. macOS-Fenster-Wiederherstellung ist **abgeschaltet** (`NSQuitAlwaysKeepsWindows`, `isRestorable = false`) — vermeidet Konsolenwarnungen; kein Einfluss auf die App-Funktion.
 
 ## 8. Fehlerberichte und Datenschutz
@@ -210,7 +210,7 @@ Weitere Information (Dateizahl, „zuletzt gesehen …“, „Fehler vor 2 Std. 
 
 ## 9. Plattform und Sicherheit
 - **Ohne App-Sandbox** (damit Medien automatisch lesbar sind), **Hardened Runtime** an, keine Ausnahmen. Datenbank und Protokoll sind nur für den Benutzer lesbar (700/600). Netzwerk nur über die API-Warteschlange (ab 0.3.1: Fehlerbericht, Versions-, Update-, Lizenz-Check) zu `diskarchive.app`. Keine Verschlüsselung der Datenbank (FileVault schützt die Ruhedaten). Weitergabe braucht Developer-ID-Signatur und Notarisierung.
-- Daten: SQLite (GRDB, WAL, Volltext FTS5), `~/Library/Application Support/Disk Index/`; Protokoll `~/Library/Logs/Disk Index/`.
+- Daten: SQLite (GRDB, WAL), `~/Library/Application Support/Disk Archive/archive.sqlite`; Protokoll `~/Library/Logs/Disk Archive/`. Schema und Regeln: Abschnitt „Datenbank“.
 
 ## 10. Darstellung
 - **Chips werden nie gekürzt (Nutzer 05.10.):** Passt der Text nicht in die Zeile, bricht der Chip um; ist der Text länger als der Behälter, bricht er im Chip um. Gilt für alle Chips (Ausschlüsse, Filter, Medien, Status).
@@ -410,9 +410,52 @@ Info-Text (eine Zeile, keine Regelliste in der UI):
 
 ---
 
-# Architektur (Stand 04.10.2026, aus dem Code gelesen)
+# Datenbank (seit 0.3, Schema eingefroren)
 
-**Prinzip:** Die App schreibt nie auf Medien. Sie liest Medien, speichert ein Inventar in SQLite und hält es mit Live-Überwachung aktuell. Kein Sandbox, kein iCloud, kein Server außer dem Fehlerbericht-Endpunkt (nur nach Absturz, nur mit Zustimmung).
+Kurzfassung der früheren `datenbank-konzeption.md` (Volltext: [archiv/datenbank-konzeption-bis-2026-10-14.md](archiv/datenbank-konzeption-bis-2026-10-14.md)). ✓ = gebaut und von Claude abgenommen, ○ = offen (Aufgabe in [TODO.md](TODO.md)).
+
+**Grundsatz (Nutzer 11.10.):** Nach 0.3 wird **keine Tabelle mehr verändert, nur erweitert**: neue Schlüssel in `settings`, `storage_meta`, `item_meta` oder neue Tabellen. Das Schema ist die erste GRDB-Migration `0.3.0-schema`; spätere Versionen hängen nur Migrationen an. Ab 0.4 wird auf fremden Rechnern nie etwas gelöscht (Sicherung vor Erweiterung, Schutz vor Rückschritt ○ `bug.0.4.013`).
+
+**Datei:** `~/Library/Application Support/Disk Archive/archive.sqlite` (eine Datei für alle Medien, WAL, `auto_vacuum` inkrementell, Journal auf 64 MB begrenzt ✓). Die alte `index.sqlite` wird nie geöffnet (kein Übernehmen, keine Sicherung). Kennungen sind `AUTOINCREMENT` (nie wiederverwendet), Zeiten ganze Sekunden seit 1970, Ja/Nein und Aufzählungen kleine Zahlen. Besitz-Verweise löschen mit (`ON DELETE CASCADE`), Nachschlage-Verweise (`extID`, `keyID`) nicht.
+
+| Tabelle | Inhalt |
+|---|---|
+| `storages` | ein Medium: Kennungen, Name und `slug`, Typ, Dateisystem, Kapazität, Entscheidung, Status, Pause, Zähler, Zeitpunkte |
+| `storage_meta` | alles Weitere je Medium als Schlüssel/Wert (abgeschlossene Tiefe, Überwachungsstand, Anzeige absolut/Prozent …); **Einstellungen je Medium immer hier** („Medium-Wert, sonst globaler Wert“) |
+| `items` | der Baum: `storageID`, `parentID`, `name`, `slug`, `extID`, `kind`, `isFolder`, `depth`, `status`, `modifiedAt`, `fileID`; nur Ordner: `contentStamp`, `listedAt`, `unreadable`. **Kein gespeicherter Pfad** (Pfad = Kette der Elternordner), **kein Suchindex** |
+| `item_details` | Größe, Erstelldatum, Paket ja/nein (nur Detailansicht) |
+| `item_meta` | Metadaten je Datei als Schlüssel/Wert mit Herkunft (gelesen / Nutzer / System); angelegt, gefüllt ab 0.5 ○ |
+| `item_checksum` | Teil- und volle Prüfsumme; Teil-Prüfsumme für Favoriten ✓, volle ab 0.8 ○ |
+| `favorites`, `extensions`, `meta_keys` | Favoriten; Nachschlagelisten Endung und Schlüssel |
+| `settings` | Einstellungen und Systemzustand als Schlüssel/Wert ✓ (außer Sprache und Fensterposition) |
+| `api_queue` | Aufträge ins Netz (Fehlerberichte, Versions-Check) ✓ |
+
+**Keine Tabelle:** Vorschaubilder (Dateien `Thumbnails/<storageID>/<itemID>` ○ 0.6), Protokoll (Datei), Statistik.
+
+**Suche und Sortierung ✓:** `slug` = Name klein, Umlaute und Akzente zum Stammlaut, ß → ss; der Suchbegriff wird gleich umgewandelt. Teilwortsuche per `LIKE '%…%'` auf `slug` von Dateien, Ordnern und Medien. Trefferliste läuft einzeln und hört nach 500 Treffern auf, die Trefferzahl läuft parallel über Kennungsbereiche. Spalten sortieren wie der Finder (natürlich, Ordner und Dateien gemischt). Filter über Zahlenfelder (`kind`, `extID`, `modifiedAt`, `storageID`, `depth`). Alter-Filter = Änderungsdatum der Datei.
+
+**Status je Eintrag ✓:** 0 sichtbar, 1 zu-löschen (Regel schließt ihn aus), 2 verschwunden (wird am Laufende gelöscht, nachdem Umbenennungen verbunden wurden). Regeländerungen laufen als Warteschlange im Hintergrund; eine Stunde nach der letzten Änderung wird gelöscht („Index jetzt bereinigen“ sofort). Lesewege filtern nur `status = 0` in SQL. Die Suche wartet, die Spalten zeigen „Inhalte werden geladen“; ein Ereignis „Warteschlange leer“ plus Sicherung bei Fehler/Beenden verhindert Hängen. Wartescreen der Suche ○ 0.5.
+
+**Umbenennen und Verschieben erkennen ✓:** Die Kennung bleibt erhalten, damit Favoriten und später Metadaten nicht verloren gehen. APFS/HFS+: `fileID` (FAT/exFAT liefern sie nicht verlässlich: bei Verschieben neu, exFAT in der ersten Sitzung ein Fantasiewert). Live: FSEvents-Ereignispaare „alt → neu“. FAT/exFAT außerhalb der Überwachung: Größe + Änderungsdatum (±1 h wegen Ortszeit) + Erstelldatum + Endung, Ordner über Name und Eltern; nur eindeutige Treffer, bei Mehrdeutigkeit entscheidet die Teil-Prüfsumme (erste und letzte 64 KB), sonst gilt „neu“. Ändern sich Größe oder Datum einer Datei, werden ihre gelesenen Metadaten und Prüfsummen gelöscht (Nutzerwerte bleiben).
+
+**Wartung ✓:** Schadenprüfung (`quick_check`) alle 7 Tage oder nach Absturz, im Hintergrund. Aufräumen und Verkleinern nach N = 10.000 Änderungen im Leerlauf; WAL wird nach Läufen gekürzt. Kein Startbildschirm (Menüleiste bereit nach 0,1–0,25 s). Ein Fenster „Datenbank wird aktualisiert“ gibt es erst bei einer Schema-Erweiterung durch ein Update ○.
+
+**Netz (API) ✓:** Der einzige Weg ins Netz ist die Warteschlange `api_queue`: online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Versions-Check `GET https://diskarchive.app/api/version/` (Antwort heute `{"version":"1.0.0"}`); verglichen wird `n.n`.
+- App älter als API → Update-Modal (mit „Dieses Update überspringen“).
+- **Beta (0.x) und API ≥ 1.0** → Hinweis und **7 Tage** Frist (`betaExpiryNoticedAt`); auf einer **frischen Installation (keine Datenbank) sofort gesperrt**. Eine gesperrte Version bleibt gesperrt (`lockedVersion`); heraus kommt man nur mit einer neueren App.
+- API 1 Monat nicht erreicht → gesperrt; Beta-Verfallsdatum 60 Tage nach dem Build → gesperrt.
+- **Gesperrt = 100 % nur ansehen:** kein Indizieren, keine Überwachung, keine neuen Medien, keine Schreibzugriffe (`FeatureAccess`). Uhr des Macs genügt.
+- Zählen aktiver Installationen: erst mit der Lizenz (0.9).
+
+**Messung (196 vorher / 238 nachher, 1 Mio. und 8,6 Mio. Einträge) ✓:** Datenbank 54–63 % kleiner; häufige Suche 91–98 % schneller; Filter nach Dateityp von 6,5 s auf 0,13 s; Spaltenansicht mit 50.000 Kindern innerhalb ±10 % (S1 +3,4 %, S2 −9 %). Schwellen bestanden. Berichte: `Werkzeuge/messung/`.
+
+**Noch offen im Konzept:** Metadaten-Durchgang mit Markierung „schon analysiert“ (Zeile `_analyzed`, 0.5); Vorschaubilder löschen mit dem Eintrag (0.6); Duplikate über volle Prüfsumme nach Größe gruppiert (0.8); Export mit vorab geladenen Ordnerpfaden (0.7); Duplikat-Screen und Export dürfen auch im gesperrten Zustand laufen (nur lesen).
+
+---
+
+# Architektur (Stand 14.10.2026)
+
+**Prinzip:** Die App schreibt nie auf Medien. Sie liest Medien, speichert ein Inventar in SQLite und hält es mit Live-Überwachung aktuell. Kein Sandbox, kein iCloud, Netz nur über die API-Warteschlange (Fehlerbericht nur mit Zustimmung, Versions-Check).
 
 | Baustein | Datei(en) | Aufgabe |
 |---|---|---|
@@ -420,7 +463,7 @@ Info-Text (eine Zeile, keine Regelliste in der UI):
 | Entscheidung und Lebenszyklus | `Recognition/MediumCoordinator`, `MediumRecognitionStartup` | bekannt/unbekannt (Volume-UUID, sonst Fingerabdruck aus Erstelldatum, Größe, Dateisystem), Erkennungs-Dialog, `decision` Ja/Nein/offen, Start der Läufe |
 | Indizieren | `Indexing/IndexingService`, `DirectoryIndexer`, `IgnoreMatcher`, `ArtifactRules` | ebenenweise (Breitensuche), je Ordner lesen, Stapel zu 5.000 Einträgen, `completedDepth`, Fortschritt höchstens 0,99, Pause/Abbruch/Ruhezustand, Ausschlussregeln |
 | Live-Überwachung | `Indexing/ChangeWatcher`, `ChangeWatcherEngine` | FSEvents je Medium, gebündelt nach Ruhezeit, liest betroffene Ordner neu; `MustScanSubDirs`/`RootChanged` lösen Vollabgleich aus |
-| Speicher | `Storage/IndexStore` (Actor), `IndexDatabase`, `IndexRecords` | SQLite über GRDB (`DatabasePool`, WAL), FTS5-Trigram für Namen, `removedAt` statt Löschen, Migrationen `v1`–`v5`, `quick_check` beim Öffnen, Quarantäne beschädigter Dateien |
+| Speicher | `Storage/V3/` (`IndexStoreV3` Actor, `SchemaV3`, `DirectoryWriterV3`, `IndexStoreV3+Reading`, `SearchPlanV3`), `IndexRecords` | SQLite über GRDB (`DatabasePool`, WAL), Migration `0.3.0-schema`, Schreibwege je Ordner in einer Transaktion, Lesewege für Spalten, Suche, Favoriten; Wartung und `quick_check` im Hintergrund. Siehe Abschnitt „Datenbank“ |
 | Lesezugriff der Oberfläche | `Indexing/IndexRepository`, `Models/SearchIndex`, `SearchState` | Ordnerinhalte (Cache, 30 Ordner), Suche, Favoriten |
 | Zustand | `App/AppState`, `AppSettings`, `GlobalPause` | ein `@Observable` für Fenster, Medien, Filter, Einstellungen, Pause |
 | Oberfläche | `Views/*`, `MenuBar/*`, `DesignSystem/*` | SwiftUI plus AppKit (Panels, Menüleiste); Texte aus `LayoutCopy` (dem Layout entnommen) |
@@ -429,10 +472,10 @@ Info-Text (eine Zeile, keine Regelliste in der UI):
 
 **Ablauf beim Anschließen:** Ereignis → Kandidat? → bekannt? (Volume-UUID) → unbekannt: Zugriffsprobe, Eintrag `.undecided`, Erkennungs-Dialog → „Indizieren“: Lauf (ebenenweise, jede Ebene wird gespeichert, Abbruch durch Abziehen setzt später fort) **und sofort Live-Überwachung** (Nutzer 09.10.: Änderungen nach dem Erstlauf kamen nicht an) → **bekannt und `indexed`: vollständiger Abgleich** (jeder Ordner wird gelesen, neu/geändert/entfernt) und danach Live-Überwachung. Abziehen: Überwachung stoppen, Stand speichern, Medium „Offline“, Index bleibt durchsuchbar.
 
-**Speicherung:** `~/Library/Application Support/Disk Index/index.sqlite`. Tabellen `medium` (Registrierung, Entscheidung, Status, Zähler, `completedDepth`, FSEvents-Stand), `item` (Inventar: `mediumID`, `parentID`, `name`, `isFolder`, `isPackage`, `ext`, `sizeBytes`, `modifiedAt`, `depth`, `path`, `lastSeenAt`, `removedAt`, `isFavorite`, `contentStamp`), `item_fts` (Namenssuche, Trigram; Suchbegriffe unter 3 Zeichen weichen auf `LIKE` aus). Indizes u. a. `item_parent`, `item_identity` (eindeutig je Elternordner und Name), `item_path`. **Zeilen werden nie gelöscht, sondern mit `removedAt` markiert** (Bereinigung nach 1 Stunde oder „Index jetzt bereinigen“). Favoriten hängen an der Zeile.
+**Speicherung:** `~/Library/Application Support/Disk Archive/archive.sqlite` (Tabellen und Regeln: Abschnitt „Datenbank“). Einstellungen liegen in der Tabelle `settings` (Ausnahmen: Sprache und Fensterposition in den Voreinstellungen). Fehlerberichte und Versions-Check laufen über die Warteschlange `api_queue`.
 
 **Scan-Regeln:** Ebene 1 = Inhalt der Wurzel; Tiefe *d* = *d* Ebenen mit Inhalt, die Ordner der letzten Ebene bleiben ungeöffnet (Hinweis „Inhalt wird nicht indiziert“). Pakete (`.app` u. a.) zählen als Datei, Symlinks werden nicht verfolgt. Immer ausgeschlossen: siehe „Regelliste Artefakte“. Ein nicht lesbarer Ordner markiert seinen bisherigen Inhalt **nie** als entfernt. Nur Leseoperationen auf dem Medium.
 
-**Grenzen:** FSEvents sieht nur Änderungen, die dieser Mac macht, solange das Medium hängt (FAT-Sticks haben keinen Verlauf). Deshalb der vollständige Abgleich beim Anschließen. Verschieben/Umbenennen erkennt nur die Datei-ID (APFS/HFS+), bei FAT gilt Löschen plus Neu.
+**Grenzen:** FSEvents sieht nur Änderungen, die dieser Mac macht, solange das Medium hängt (FAT-Sticks haben keinen Verlauf). Deshalb der vollständige Abgleich beim Anschließen. Verschieben/Umbenennen: APFS/HFS+ über die Datei-ID, live über Ereignispaare, FAT/exFAT über Größe, Datum und Teil-Prüfsumme (Abschnitt „Datenbank“); im Zweifel gilt Löschen plus Neu.
 
 **Messwerte und Spike-Ergebnisse:** `archiv/readme-technik-bis-2026-10-04.md`.

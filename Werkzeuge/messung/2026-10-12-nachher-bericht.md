@@ -53,14 +53,14 @@ Vollständige Tabellen: siehe [`2026-10-12-nachher-vergleich.md`](2026-10-12-nac
 
 - Migration **`0.3.0-schema`** in `SchemaV3.swift` ist die **eingefrorene Basis** (Kommentar „Schema 0.3 eingefroren (238)“).
 - **Ab 0.4:** nur Erweiterung — neue Tabellen/Schlüssel, Anbau-Migrationen; **keine** Umbauten bestehender Spalten (README „Nach 0.3 nur noch erweitern“).
-- **Tabellen** (`SchemaV3.tableNames`): `storages`, `storage_meta`, `items`, `item_details`, `favorites`, `extensions`, `meta_keys`, `settings`, plus vorbereitet und bewusst noch leer/ungenutzt in 0.3: **`item_meta`**, **`item_checksum`**, **`api_queue`**.
+- **Tabellen** (`SchemaV3.tableNames`): `storages`, `storage_meta`, `items`, `item_details`, `favorites`, `extensions`, `meta_keys`, `settings`, plus vorbereitet und bewusst noch leer in 0.3: **`item_meta`**, **`item_checksum`**; **`api_queue`** wird seit 0.3.1 genutzt (Fehlerberichte, Versions-Check).
 
 ## 6. Offene Risiken / Folge
 
 - Spalten 50k über Guard — gezielt messen/optimieren (Layout 0.3.2).
 - `pruneToMatch` bei Millionen-Einträgen: 10-min-Cap im Bench; Produktiv-Wartung (236) separat beobachten.
 - Seltenes Wort / Filterkombinationen: in 196 teils FTS-spezifisch; V3-Verhalten dokumentiert in Roh-MD.
-- **0.3.1:** `api_queue` / Fehlerbericht-Outbox — **nicht** Teil von 238.
+- **0.3.1:** `api_queue` / Fehlerbericht-Outbox — **nicht** Teil von 238; inzwischen gebaut und abgenommen.
 - **238 löst nicht:** UI-Layout, API-Versand, vollständiges Prune in Bench.
 
 ## 7. Kurzverweis für Abnahme

@@ -47,6 +47,14 @@ Ausgangslage: Voller Testlauf 586/590 grün. Rot sind `ItemIdentityTests/fatPart
 **Akzeptanz:** Drei volle Läufe hintereinander, einmal seriell und zweimal parallel, jeweils **alle grün**. Build Debug und Release ohne Warnung. Regel 23.
 Status:
 
+**ZA-00b — Purge: toter Code (Claude-Suche 14.10., Wortzählung über `diskindex/` und `diskindexTests/`).**
+- a) **Löschen** (kommt nirgends sonst vor, auch nicht in Tests): `AppVersion.majorMinor` (Z. 16) und `isNewerThanMajorMinor` (Z. 69), `AppWindowPresenter.closeNewMedium` (Z. 138), `FeatureAccess.unrestricted` (Z. 39), `MenuBarPopoverLayout.pauseMenuAnchorFromBottom` (Z. 35), `IndexStoreV3.purgeGoneItems` (Z. 548; dazu den Kommentar „für die Überwachung“ entfernen, REPORT E).
+- b) **Nur von Tests benutzt, im App-Programm unnötig:** `IndexStoreV3+Reading` `columnFirstPageSQL` (Z. 117), `statusOfItem` (Z. 242), `searchMedia` (Z. 398), `storedNames` (Z. 408); `IndexStoreV3` `recordMaintenanceDebt` (Z. 185), `orphanCount` (Z. 108), `databaseFileBytes` (Z. 122); `IndexRepository.hasCachedChildren` (Z. 166). Je Fall: ohne Test-Nutzen → löschen samt Test; sonst als `extension` ins **Test-Ziel** verschieben. Nicht anfassen: `applyDirectory` (19 Tests; ZA-05 c ersetzt es dort, wo es eine Kette beweisen soll).
+- c) **Nicht löschen** (Falschtreffer der Suche): AppDelegate-Rückrufe, `windowWillClose`, `canBecomeKey/Main`, `mouseDown`-Überschreibungen.
+- d) **Frage an Nutzer, nicht anfassen:** `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht?
+- **Akzeptanz:** `grep -rnw` auf jeden Namen aus a) → leer; Warnungen 0; seriell grün (Zahl vorher/nachher im Status; sie sinkt nur um gelöschte Tests, Begründung je Test).
+Status:
+
 **HALT Paket 0** — Freigabe:
 
 ---
