@@ -53,6 +53,9 @@ final class ChangeWatcher {
     private var volumes: [UUID: VolumeInfo] = [:]
     private var cursorTimer: Task<Void, Never>?
     private var watchGenerations: [UUID: Int] = [:]
+    private var flushInFlight: Set<UUID> = []
+    private var flushAgain: Set<UUID> = []
+    private var pauseGeneration = 0
     private let engine: ChangeWatcherEngine
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
@@ -77,7 +80,6 @@ final class ChangeWatcher {
         )
         sources[mediumID] = source
         mounts[mediumID] = volume.mountPath
-        WriteGuard.registerMediumMountPath(volume.mountPath)
         volumes[mediumID] = volume
         let generation = watchGenerations[mediumID, default: 0] + 1
         watchGenerations[mediumID] = generation
@@ -138,6 +140,7 @@ final class ChangeWatcher {
 
     func stop(mediumID: UUID) async {
         DiskIndexLog.shared.record(.watcher, .info, "stop medium=\(mediumID)")
+        let cursor = cursors[mediumID]
         watchGenerations[mediumID, default: 0] += 1
         savedCursors[mediumID] = nil
         quietTasks[mediumID]?.cancel()
@@ -148,21 +151,40 @@ final class ChangeWatcher {
         pending[mediumID] = nil
         pendingItemEvents[mediumID] = nil
         pendingSince[mediumID] = nil
-        await saveCursor(mediumID: mediumID)
         mounts[mediumID] = nil
         volumes[mediumID] = nil
+        flushInFlight.remove(mediumID)
+        flushAgain.remove(mediumID)
+        if let cursor {
+            do {
+                try await store.recordEventCursor(
+                    mediumUUID: mediumID,
+                    fsEventsUUID: cursor.uuid,
+                    lastEventID: cursor.eventID
+                )
+                savedCursors[mediumID] = cursor.eventID
+            } catch {
+                DiskIndexLog.shared.record(.watcher, .error, "ereignisstand \(error)")
+            }
+        }
     }
 
     func pauseChanged() {
-        Task { await applyPause() }
+        pauseGeneration += 1
+        let generation = pauseGeneration
+        Task { await applyPause(generation: generation) }
     }
 
-    private func applyPause() async {
+    private func applyPause(generation: Int) async {
         if appState.globalAutoIndexPaused {
-            for id in Array(tasks.keys) { await stop(mediumID: id) }
+            for id in Array(tasks.keys) {
+                guard generation == pauseGeneration else { return }
+                await stop(mediumID: id)
+            }
             return
         }
         for pair in connectedVolumes() {
+            guard generation == pauseGeneration, !appState.globalAutoIndexPaused else { return }
             let id = pair.id
             guard tasks[id] == nil else { continue }
             let stored: StoredMedium?
@@ -263,6 +285,10 @@ final class ChangeWatcher {
         guard let mount = mounts[mediumID],
               let directory = directoryToReread(change.path, mount: mount, mediumID: mediumID) else { return }
         pending[mediumID, default: []].insert(directory)
+        if flushInFlight.contains(mediumID) {
+            flushAgain.insert(mediumID)
+            return
+        }
         let now = ContinuousClock.now
         if pendingSince[mediumID] == nil {
             pendingSince[mediumID] = now
@@ -279,12 +305,24 @@ final class ChangeWatcher {
         quietTasks[mediumID] = Task { [weak self] in
             try? await Task.sleep(for: interval)
             guard let self, !Task.isCancelled else { return }
+            self.quietTasks[mediumID] = nil
             self.pendingSince[mediumID] = nil
             await self.flush(mediumID)
         }
     }
 
     private func flush(_ mediumID: UUID) async {
+        if flushInFlight.contains(mediumID) {
+            flushAgain.insert(mediumID)
+            return
+        }
+        flushInFlight.insert(mediumID)
+        defer {
+            flushInFlight.remove(mediumID)
+            if flushAgain.remove(mediumID) != nil {
+                Task { await self.flush(mediumID) }
+            }
+        }
         guard let mount = mounts[mediumID] else { return }
         guard appState.featureAccess.canWriteIndex else { return }
         if isIndexingActive(mediumID) {

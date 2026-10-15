@@ -97,7 +97,8 @@ enum LiveWiring {
         coordinator.onIndexingInterrupted = { [weak service] id in
             await service?.cancel(mediumUUID: id)
         }
-        coordinator.onWillUnmount = { [weak watcher] id in
+        coordinator.onWillUnmount = { [weak watcher, weak service] id in
+            await service?.cancel(mediumUUID: id)
             await watcher?.saveCursor(mediumID: id)
         }
         coordinator.onMediumDisappeared = { [weak watcher] id in

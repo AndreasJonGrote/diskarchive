@@ -58,13 +58,30 @@ nonisolated enum BulkDirectoryReader {
     static func chunkedStream(
         at directoryURL: URL,
         mode: BulkDirectoryReadMode = .fullMetadata,
-        chunkSize: Int = IndexingRunLimits.standard.directoryChunkSize
+        chunkSize: Int = IndexingRunLimits.standard.directoryChunkSize,
+        isCancelled: @escaping @Sendable () -> Bool = { false }
     ) -> AsyncStream<Result<[ListedDirectoryEntry], Error>> {
         AsyncStream { continuation in
+            final class CancelFlag: @unchecked Sendable {
+                var value = false
+            }
+            let cancelled = CancelFlag()
+            continuation.onTermination = { @Sendable _ in
+                cancelled.value = true
+            }
+            let checkCancelled = {
+                cancelled.value || isCancelled()
+            }
             DispatchQueue.global(qos: .utility).async {
                 do {
                     var stats = BulkDirectoryReadStats()
-                    try readStreaming(at: directoryURL, mode: mode, chunkSize: chunkSize, stats: &stats) { chunk in
+                    try readStreaming(
+                        at: directoryURL,
+                        mode: mode,
+                        chunkSize: chunkSize,
+                        stats: &stats,
+                        isCancelled: checkCancelled
+                    ) { chunk in
                         if chunk.isEmpty { return }
                         continuation.yield(.success(chunk))
                     }
@@ -82,6 +99,7 @@ nonisolated enum BulkDirectoryReader {
         mode: BulkDirectoryReadMode,
         chunkSize: Int,
         stats: inout BulkDirectoryReadStats,
+        isCancelled: @escaping () -> Bool = { false },
         onChunk: ([ListedDirectoryEntry]) -> Void
     ) throws {
         defer {
@@ -99,7 +117,7 @@ nonisolated enum BulkDirectoryReader {
             var pending: [ListedDirectoryEntry] = []
             pending.reserveCapacity(chunkSize)
             do {
-                try readBulk(fd: fd, directoryURL: directoryURL, mode: mode, buffer: &buffer) { entry in
+                try readBulk(fd: fd, directoryURL: directoryURL, mode: mode, buffer: &buffer, isCancelled: isCancelled) { entry in
                     pending.append(entry)
                     if pending.count >= chunkSize {
                         onChunk(pending)
@@ -137,6 +155,7 @@ nonisolated enum BulkDirectoryReader {
         directoryURL: URL,
         mode: BulkDirectoryReadMode,
         buffer: inout [UInt8],
+        isCancelled: @escaping () -> Bool = { false },
         onEntry: (ListedDirectoryEntry) -> Void
     ) throws {
         var attrList = attrlist()
@@ -152,6 +171,9 @@ nonisolated enum BulkDirectoryReader {
         }
 
         while true {
+            if isCancelled() {
+                throw CancellationError()
+            }
             let readCount: Int = buffer.withUnsafeMutableBytes { raw in
                 guard let base = raw.baseAddress?.assumingMemoryBound(to: UInt8.self) else { return -1 }
                 return Int(getattrlistbulk(

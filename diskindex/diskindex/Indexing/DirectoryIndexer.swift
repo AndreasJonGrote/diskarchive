@@ -200,7 +200,12 @@ nonisolated struct DirectoryIndexer: Sendable {
             if let queuedParents {
                 parents = queuedParents
             } else {
-                parents = await parentsFor(depth: depth, store: store, mediumUUID: mediumUUID, volume: volume)
+                do {
+                    parents = try await parentsFor(depth: depth, store: store, mediumUUID: mediumUUID, volume: volume)
+                } catch {
+                    try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
+                    return await failWrite(error, store, mediumUUID, token, stored, readErrors, samples, completedDepths)
+                }
             }
             queuedParents = nil
             if parents.isEmpty { break }
@@ -246,16 +251,23 @@ nonisolated struct DirectoryIndexer: Sendable {
                     let url = directoryURL(mountPath: volume.mountPath, itemPath: parent.path)
                     do {
                         var folderEntries: [ScannedEntry] = []
-                        try await readFolderWithRetry(access: access, url: url, limits: limits) { chunk in
+                        try await readFolderWithRetry(
+                            access: access, url: url, limits: limits,
+                            onAttemptBegin: { folderEntries.removeAll(keepingCapacity: true) }
+                        ) { chunk in
                             let parentPath = IgnoreMatcher.storedPathSegments(parent.path)
                             let entries = scannedEntries(from: chunk, matcher: matcher, parentPath: parentPath)
                             if !entries.isEmpty {
-                                try await store.applyDirectories(
-                                    mediumUUID: mediumUUID,
-                                    batches: [(parentID: parent.id, path: parent.path ?? "/", depth: depth, entries: entries, finalize: false)],
-                                    seenAt: seenAt,
-                                    mountPath: volume.mountPath
-                                )
+                                do {
+                                    try await store.applyDirectories(
+                                        mediumUUID: mediumUUID,
+                                        batches: [(parentID: parent.id, path: parent.path ?? "/", depth: depth, entries: entries, finalize: false)],
+                                        seenAt: seenAt,
+                                        mountPath: volume.mountPath
+                                    )
+                                } catch {
+                                    throw IndexWriteFailed(underlying: error)
+                                }
                                 entriesCompleted += entries.count
                                 await noteIndexing(finished: false)
                             }
@@ -277,6 +289,9 @@ nonisolated struct DirectoryIndexer: Sendable {
                     } catch let interrupted as DirectoryIndexInterrupted {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
                         return await stop(store, mediumUUID, token, interrupted.halt, fullReconcile, stored, readErrors, samples, completedDepths)
+                    } catch let writeFailed as IndexWriteFailed {
+                        try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
+                        return await failWrite(writeFailed.underlying, store, mediumUUID, token, stored, readErrors, samples, completedDepths)
                     } catch is DirectoryReadStalled {
                         consecutiveTimeouts += 1
                         readErrors += 1
@@ -355,7 +370,13 @@ nonisolated struct DirectoryIndexer: Sendable {
             }
             if needsCounting, depth >= preludeEnd { await countWholeTree() }
             if let maxDepth = configuration.maxDepth, depth >= maxDepth { break }
-            let next = await parentsFor(depth: depth + 1, store: store, mediumUUID: mediumUUID, volume: volume)
+            let next: [(id: Int64?, path: String?)]
+            do {
+                next = try await parentsFor(depth: depth + 1, store: store, mediumUUID: mediumUUID, volume: volume)
+            } catch {
+                try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
+                return await failWrite(error, store, mediumUUID, token, stored, readErrors, samples, completedDepths)
+            }
             if next.isEmpty { break }
             queuedParents = next
             depth += 1
@@ -463,16 +484,22 @@ nonisolated struct DirectoryIndexer: Sendable {
         url: URL,
         limits: IndexingRunLimits,
         counting: Bool = false,
+        onAttemptBegin: @escaping () -> Void = {},
         onChunk: @escaping ([ListedDirectoryEntry]) async throws -> Void
     ) async throws {
         var lastError: Error = CocoaError(.fileReadUnknown)
         for attempt in 0..<(limits.readRetryDelays.count + 1) {
+            onAttemptBegin()
             do {
                 for try await chunk in Self.directoryChunks(access: access, at: url, limits: limits, counting: counting) {
                     try await onChunk(chunk)
                 }
                 return
             } catch {
+                if error is IndexWriteFailed || error is DirectoryIndexInterrupted || error is CancellationError
+                    || error is DirectoryReadStalled {
+                    throw error
+                }
                 lastError = error
                 if attempt < limits.readRetryDelays.count {
                     try await Task.sleep(for: limits.readRetryDelays[attempt])
@@ -562,13 +589,43 @@ nonisolated struct DirectoryIndexer: Sendable {
         counting: Bool = false
     ) -> AsyncThrowingStream<[ListedDirectoryEntry], Error> {
         AsyncThrowingStream { continuation in
+            final class CancelFlag: @unchecked Sendable {
+                var value = false
+            }
+            let cancelled = CancelFlag()
+            continuation.onTermination = { @Sendable _ in
+                cancelled.value = true
+            }
             let chunkSize = limits.directoryChunkSize
-            let stream = counting
-                ? access.listDirectoryCountChunks(at: url, chunkSize: chunkSize)
-                : access.listDirectoryChunks(at: url, chunkSize: chunkSize)
+            let cancelCheck: @Sendable () -> Bool = { cancelled.value }
+            let stream: AsyncStream<Result<[ListedDirectoryEntry], Error>>
+            if access is DirectMediumAccess {
+                stream = counting
+                    ? BulkDirectoryReader.chunkedStream(at: url, mode: .nameAndTypeOnly, chunkSize: chunkSize, isCancelled: cancelCheck)
+                    : BulkDirectoryReader.chunkedStream(at: url, mode: .fullMetadata, chunkSize: chunkSize, isCancelled: cancelCheck)
+            } else {
+                stream = counting
+                    ? access.listDirectoryCountChunks(at: url, chunkSize: chunkSize)
+                    : access.listDirectoryChunks(at: url, chunkSize: chunkSize)
+            }
             Task {
                 var lastLifeSign = ContinuousClock.now
+                let watchdog = Task {
+                    while !cancelled.value {
+                        try await Task.sleep(for: .seconds(1))
+                        let now = ContinuousClock.now
+                        if lastLifeSign.duration(to: now) > .seconds(limits.directoryStallTimeout) {
+                            continuation.finish(throwing: DirectoryReadStalled())
+                            return
+                        }
+                    }
+                }
+                defer { watchdog.cancel() }
                 for await result in stream {
+                    if cancelled.value {
+                        continuation.finish(throwing: CancellationError())
+                        return
+                    }
                     let now = ContinuousClock.now
                     if lastLifeSign.duration(to: now) > .seconds(limits.directoryStallTimeout) {
                         continuation.finish(throwing: DirectoryReadStalled())
@@ -593,14 +650,14 @@ nonisolated struct DirectoryIndexer: Sendable {
         store: IndexStoreV3,
         mediumUUID: UUID,
         volume: VolumeInfo
-    ) async -> [(id: Int64?, path: String?)] {
+    ) async throws -> [(id: Int64?, path: String?)] {
         if depth == 1 {
             return [(id: nil, path: nil)]
         }
         var result: [(id: Int64?, path: String?)] = []
         var offset = 0
         while true {
-            let page = (try? await store.folders(mediumUUID: mediumUUID, depth: depth - 1, offset: offset)) ?? []
+            let page = try await store.folders(mediumUUID: mediumUUID, depth: depth - 1, offset: offset)
             if page.isEmpty { break }
             result.append(contentsOf: page.map { (id: $0.id, path: $0.path) })
             offset += page.count

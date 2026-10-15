@@ -410,10 +410,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
 
     private func fallbackOutboxReport(data: Data, issueID: String) {
         do {
-            WriteGuard.assertAppOwned(directory)
+            guard WriteGuard.permitsWrite(to: directory) else { return }
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let url = directory.appendingPathComponent("\(issueID).json")
-            WriteGuard.assertAppOwned(url)
+            guard WriteGuard.permitsWrite(to: url) else { return }
             try data.write(to: url, options: .atomic)
             log("app report queued kind=crash id=\(issueID) fallback=outbox")
         } catch {
@@ -439,7 +439,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             let created = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
                 .map { Int($0.timeIntervalSince1970) } ?? Int(now().timeIntervalSince1970)
             try? ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: body, createdAt: created)
-            WriteGuard.assertAppOwned(url)
+            guard WriteGuard.permitsWrite(to: url) else { continue }
             try? FileManager.default.removeItem(at: url)
         }
         try? ApiQueuePersistence.trim(pool)

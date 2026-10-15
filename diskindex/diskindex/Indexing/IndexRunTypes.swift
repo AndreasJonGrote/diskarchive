@@ -5,6 +5,11 @@
 
 import Foundation
 
+/// Schreibfehler während eines Index-Laufs (bug.0.4.020 a).
+nonisolated struct IndexWriteFailed: Error, Sendable {
+    var underlying: Error
+}
+
 nonisolated struct IndexingRunLimits: Sendable, Equatable {
     var parallelDirectoryReads: Int = 1
     var batchEntryLimit: Int = 5_000

@@ -19,8 +19,7 @@ nonisolated enum DatabaseCare {
         let aside = fileURL.deletingLastPathComponent()
             .appendingPathComponent("index-damaged-\(stamp).sqlite")
         let manager = FileManager.default
-        WriteGuard.assertAppOwned(fileURL)
-        WriteGuard.assertAppOwned(aside)
+        guard WriteGuard.permitsWrite(to: fileURL), WriteGuard.permitsWrite(to: aside) else { return }
         if manager.fileExists(atPath: fileURL.path) {
             try manager.moveItem(at: fileURL, to: aside)
         }
@@ -28,8 +27,7 @@ nonisolated enum DatabaseCare {
             let side = URL(fileURLWithPath: fileURL.path + suffix)
             if manager.fileExists(atPath: side.path) {
                 let dest = URL(fileURLWithPath: aside.path + suffix)
-                WriteGuard.assertAppOwned(side)
-                WriteGuard.assertAppOwned(dest)
+                guard WriteGuard.permitsWrite(to: side), WriteGuard.permitsWrite(to: dest) else { continue }
                 try? manager.moveItem(at: side, to: dest)
             }
         }

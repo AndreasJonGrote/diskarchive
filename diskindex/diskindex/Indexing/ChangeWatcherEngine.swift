@@ -136,6 +136,8 @@ actor ChangeWatcherEngine {
                     mountPath: mount
                 )
                 DiskIndexLog.shared.record(.watcher, .info, "reread entries=\(entries.count)", privateDetail: directory)
+            } catch is CancellationError {
+                return .deferred
             } catch {
                 DiskIndexLog.shared.record(.watcher, .error, "reread \(DiskIndexLog.errorSummary(error))", privateDetail: directory)
                 return .needsFullReconcile

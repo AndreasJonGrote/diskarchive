@@ -76,8 +76,9 @@ nonisolated enum SchemaV3 {
     /// Öffnet die Datei, legt sie bei Bedarf an und lässt den Migrator laufen.
     static func openPool(at fileURL: URL) throws -> DatabasePool {
         let folder = fileURL.deletingLastPathComponent()
-        WriteGuard.assertAppOwned(folder)
-        WriteGuard.assertAppOwned(fileURL)
+        guard WriteGuard.permitsWrite(to: folder), WriteGuard.permitsWrite(to: fileURL) else {
+            throw IndexStoreError.directoryWriteFailed
+        }
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         // DatabasePool schaltet WAL selbst ein; `auto_vacuum` muss davor (und vor Tabellen) stehen.
         if !FileManager.default.fileExists(atPath: fileURL.path) {

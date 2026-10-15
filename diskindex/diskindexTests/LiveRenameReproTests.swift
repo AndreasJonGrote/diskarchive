@@ -39,7 +39,7 @@ struct LiveRenameReproTests {
             fromPath: "/Volumes/T/A/B/C/readme.txt",
             toPath: "/Volumes/T/A/B/C/readme2.txt"
         )
-        let fetched = try await harness.store.pool.read { db -> Row? in
+        let fetched = try harness.store.pool.read { db -> Row? in
             try Row.fetchOne(db, sql: "SELECT id, parentID, name, status, depth FROM items WHERE id = ?", arguments: [before.id])
         }
         let afterRow = try #require(fetched)

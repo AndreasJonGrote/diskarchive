@@ -919,12 +919,18 @@ actor IndexStoreV3 {
         guard force || seenAt.timeIntervalSince(last) >= 0.35 else { return }
         let toCommit = pendingMetaDelta[mediumUUID, default: .zero]
         guard toCommit != .zero || force else { return }
-        try await pool.write { db in
-            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
-            try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: seenAt, delta: toCommit)
-        }
         pendingMetaDelta[mediumUUID] = .zero
-        lastMetaCommitTime[mediumUUID] = seenAt
+        let commitTime = seenAt
+        do {
+            try await pool.write { db in
+                guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
+                try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: commitTime, delta: toCommit)
+            }
+            lastMetaCommitTime[mediumUUID] = commitTime
+        } catch {
+            pendingMetaDelta[mediumUUID, default: .zero] = pendingMetaDelta[mediumUUID, default: .zero] + toCommit
+            throw error
+        }
     }
 
     /// Zähler über die Änderungs-Differenzen (nicht durch Zählen der ganzen Tabelle); `forceRecount` zählt neu.

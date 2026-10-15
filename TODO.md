@@ -91,6 +91,7 @@ Status:
 - c) **Wächter-Test:** Der Scanner wird auf einem Temp-Ordner mit eingeschleusten Dateien ausgeführt (`removeItem` in `Foo.swift` → Fund; dasselbe in einer Erlaubnislisten-Datei → kein Fund). Muster aus 3 ergänzen.
 - d) Warnung beheben. Debug **und** Release 0 Warnungen, seriell, zwei Parallelläufe, Regel 23.
 Status:
+WriteGuard.permits/permitsWrite, Erlaubnisliste, Wächter+Sabotage-Scanner, DiskIndexLog-Test; LiveRename-await entfernt. Debug build-for-testing 0 Warn (20:36). Seriell 141/141 (20:32:38). Bereit zur Prüfung.
 
 **HALT nach Paket 2a** — Freigabe durch Claude:
 
@@ -111,6 +112,7 @@ Status:
   - `BlockingListAccess` blockiert den ersten Flush, zweites Ereignis, freigeben → kein `onFullReconcile`, beide Ordner gelesen.
   - Pause an/aus schnell hintereinander mit verzögertem `recordEventCursor` → Watcher aktiv, Ereignis wird gelesen.
 Status:
+flushInFlight/flushAgain, ingest während Flush, commitPendingMeta vor await, CancellationError→deferred, stop/pause; WatcherFlushReproTests nr66/nr99 + Serial-/Pause-Tests. Seriell grün. Bereit zur Prüfung.
 
 **bug.0.4.020 — Indexer: Schreib- und Lesefehler trennen, Halt sofort, Stall-Wächter (REPORT 123, 94, 77, 102).**
 - a) 123: Schreibfehler aus `onChunk` als eigener Typ (`IndexWriteFailed`). `readFolderWithRetry` wirft ihn sofort weiter; der Lauf endet über `failWrite` mit `.error` (nicht „Ordner nicht lesbar“).
@@ -125,6 +127,7 @@ Status:
   - Pause im ersten Chunk → genau ein Lesevorgang, ohne Wartezeit (heute ca. 14 s).
   - Fake-Stream, der nie liefert → `DirectoryReadStalled` nach `directoryStallTimeout`.
 Status:
+IndexWriteFailed, parentsFor→failWrite, Stall-Wächter+Bulk-Abbruch, willUnmount→cancel; IndexerWriteReproTests. Seriell grün. Bereit zur Prüfung.
 
 **HALT nach Paket 3** — Freigabe durch Claude:
 

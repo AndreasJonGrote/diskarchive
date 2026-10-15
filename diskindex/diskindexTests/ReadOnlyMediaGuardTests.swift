@@ -26,7 +26,9 @@ struct ReadOnlyMediaGuardTests {
     private static let forbidden: [String] = [
         "removeItem", "trashItem", "moveItem", "copyItem", "replaceItem",
         "createFile", "createDirectory", "createSymbolicLink", "linkItem",
-        "FileHandle(forWritingTo", "FileHandle(forUpdating", ".write(to",
+        "FileHandle(forWritingTo", "FileHandle(forUpdating", "FileHandle(forWritingAtPath:",
+        ".write(to", ".write(toFile", "forWriting",
+        "OutputStream(", "fopen(", "fwrite(", "recycle(", "performFileOperation",
         "setAttributes", "setxattr", "removexattr",
         "O_WRONLY", "O_RDWR", "O_CREAT", "O_APPEND", "O_TRUNC",
         "unlink(", "rename(", "mkdir(", "truncate(", "ftruncate(", "symlink(", "link(",
@@ -44,11 +46,17 @@ struct ReadOnlyMediaGuardTests {
         for case let url as URL in enumerator {
             guard url.pathExtension == "swift" else { continue }
             let relative = url.path.replacingOccurrences(of: root.path + "/", with: "")
-            if isAllowed(relative: relative) { continue }
             guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
-            for pattern in forbidden where text.contains(pattern) {
-                violations.append((relative, pattern))
-            }
+            violations.append(contentsOf: scan(relativePath: relative, contents: text))
+        }
+        return violations
+    }
+
+    static func scan(relativePath: String, contents: String) -> [(file: String, pattern: String)] {
+        if isAllowed(relative: relativePath) { return [] }
+        var violations: [(String, String)] = []
+        for pattern in forbidden where contents.contains(pattern) {
+            violations.append((relativePath, pattern))
         }
         return violations
     }
@@ -71,27 +79,50 @@ struct ReadOnlyMediaGuardTests {
         #expect(violations.isEmpty, "ReadOnlyMediaGuard: \(violations.map { "\($0.file): \($0.pattern)" }.joined(separator: "; "))")
     }
 
-    @Test func sabotageDetectorFindsInjectedPattern() {
-        let sample = """
-        func oops() { try FileManager.default.removeItem(at: url) }
-        """
-        let hit = Self.forbidden.contains { sample.contains($0) }
-        #expect(hit)
+    @Test func sabotageScannerFindsInjectedFileOutsideAllowlist() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-guard-sabotage-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let bad = dir.appendingPathComponent("Foo.swift")
+        try "try FileManager.default.removeItem(at: u)".write(to: bad, atomically: true, encoding: .utf8)
+        let text = try String(contentsOf: bad, encoding: .utf8)
+        let hits = Self.scan(relativePath: "Foo.swift", contents: text)
+        #expect(!hits.isEmpty)
     }
 
-    @Test func writeGuardBlocksRegisteredMediumMount() throws {
-        let mount = FileManager.default.temporaryDirectory
-            .appendingPathComponent("diskindex-writeguard-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
-        defer {
-            WriteGuard.clearMediumMountPathsForTesting()
-            try? FileManager.default.removeItem(at: mount)
-        }
-        WriteGuard.registerMediumMountPath(mount.path)
-        let target = mount.appendingPathComponent("blocked.txt")
-        #expect(WriteGuard.wouldBlock(target))
+    @Test func sabotageScannerIgnoresSamePatternOnAllowlistPath() {
+        let text = "try FileManager.default.removeItem(at: u)"
+        #expect(Self.scan(relativePath: "App/DiskIndexLog.swift", contents: text).isEmpty)
+    }
+
+    @Test func permitsBlocksVolumeAndDocuments() throws {
+        defer { WriteGuard.clearTestingOverrides() }
+        #expect(!WriteGuard.permits(URL(fileURLWithPath: "/Volumes/X/foo.txt")))
+        let docs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents/x.txt")
+        #expect(!WriteGuard.permits(docs))
         let appDir = try IndexStoreV3.storeFileURL().deletingLastPathComponent()
-        #expect(!WriteGuard.wouldBlock(appDir))
+        #expect(WriteGuard.permits(appDir))
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("wg-ok.txt")
+        #expect(WriteGuard.permits(tmp))
+    }
+
+    @Test func permitsAllowsDataFolderWhenHomeOnExternalVolume() throws {
+        defer { WriteGuard.clearTestingOverrides() }
+        let externalHome = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-ext-home-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: externalHome, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: externalHome) }
+        let dataRoot = externalHome.appendingPathComponent("Library/Application Support/Disk Archive", isDirectory: true)
+        WriteGuard.setExtraAllowedRootsForTesting([dataRoot.path])
+        #expect(WriteGuard.permits(dataRoot.appendingPathComponent("archive.sqlite")))
+    }
+
+    @Test func diskIndexLogSkipsWriteWhenDirectoryBlocked() {
+        let blocked = URL(fileURLWithPath: "/Volumes/BLOCKEDLOG/diskindex.log")
+        let log = DiskIndexLog(directory: blocked.deletingLastPathComponent())
+        log.record(.app, .info, "blocked test line")
+        #expect(!FileManager.default.fileExists(atPath: blocked.path))
     }
 
     @Test func partialChecksumReadsWriteProtectedFile() throws {
