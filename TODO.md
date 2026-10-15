@@ -80,6 +80,7 @@ Konzept: README §9 („Speichermedien: ausschließlich Lesezugriff“). Befund 
 - e) **Bestandsaufnahme im Status:** Liste der Dateien der Erlaubnisliste mit je einer Zeile Grund; Ergebnis des Wächter-Tests; Sabotage (eingeschleustes `FileManager.default.removeItem` in einer anderen Datei) → rot ✓.
 - **Akzeptanz:** Wächter-Test und `WriteGuard`-Test grün, Sabotage rot ✓, Warnungen 0, seriell und zwei Parallelläufe grün, Regel 23.
 Status:
+todo.0.4.014: ReadOnlyMediaGuardTests (Erlaubnisliste unverändert), WriteGuard+wouldBlock, PartialChecksum chmod 0444; Sabotage-Detector grün. Seriell 587 (19:31–19:37), Parallel 2× YES (19:37–19:42). Debug 0 Warn. Bereit zur Prüfung.
 
 **HALT nach Paket 2a** — Freigabe durch Claude:
 
@@ -97,11 +98,13 @@ Status:
   - Papierkorb-Fall (`X/f` → `.Trashes/501/f`): kein `onFullReconcile`.
   - NFC-Ordner `Fotos M\u{00E4}rz`, Ereignis mit NFC-Pfad: Ordner wird gelesen, kein Voll-Abgleich, neue Datei im Index.
 Status:
+bug.0.4.017: folderID missing/root, Inode-Check (70), commitMediumMeta, MediaMountPath, slug, Trashes-Filter; LiveRenameReproTests nr56/nr70. Bereit zur Prüfung.
 
 **bug.0.4.018 — Änderungen innerhalb von Paketen (REPORT 111).**
 - Liegt ein Vorfahr des Ereignispfads als Paket vor (DB `isPackage = 1` bzw. `isFolder = 0` mit Paket-Endung, oder `URLResourceValues.isPackage` auf der Platte), wird **der Elternordner des Pakets** zum Neulesen eingereiht. Ereignisse unterhalb des Pakets werden verworfen, ohne `.needsFullReconcile`.
 - **Akzeptanz:** Wurzel mit Paketzeile `X.app`, Ereignis `/Volumes/DISK/X.app/Contents/Info.plist` → `.ok`, Wurzel gelesen, kein `onFullReconcile`. Ebenso für `Y.photoslibrary/database/a.sqlite-wal`.
 Status:
+bug.0.4.018: packageRereadDirectory + Innenereignisse verworfen; PackageAndTrashesWatcherTests. Bereit zur Prüfung.
 
 **bug.0.4.019 — Flush je Medium serialisieren (REPORT 64, 66, 99, 79).** Repro: `nr66_…`, `nr99_…`.
 - a) Quiet-Timer und Flush trennen:

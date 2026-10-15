@@ -14,6 +14,7 @@ enum ScreenshotRunner {
     @MainActor
     static func run(folder: String, appState: AppState) {
         let url = URL(fileURLWithPath: folder, isDirectory: true)
+        WriteGuard.assertAppOwned(url)
         try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         let fixture = ScreenshotFixture.make()
         var failed: [String] = []
@@ -33,7 +34,9 @@ enum ScreenshotRunner {
                 failed.append(name)
                 continue
             }
-            try? data.write(to: url.appendingPathComponent("\(name).png"))
+            let png = url.appendingPathComponent("\(name).png")
+            WriteGuard.assertAppOwned(png)
+            try? data.write(to: png)
         }
         NSApp.appearance = nil
         if !failed.isEmpty {

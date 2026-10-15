@@ -264,13 +264,16 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         let source = crashFileURL
         guard FileManager.default.fileExists(atPath: source.path) else { return }
         let folder = directory.appendingPathComponent("crash-handled", isDirectory: true)
+        WriteGuard.assertAppOwned(folder)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let stamp = formatter.string(from: Date()).replacingOccurrences(of: " ", with: "_").replacingOccurrences(of: ":", with: "-")
         let destination = folder.appendingPathComponent("\(stamp).txt")
+        WriteGuard.assertAppOwned(destination)
         try? FileManager.default.moveItem(at: source, to: destination)
         let kept = ((try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? [])
             .sorted { $0.lastPathComponent > $1.lastPathComponent }
         for extra in kept.dropFirst(5) {
+            WriteGuard.assertAppOwned(extra)
             try? FileManager.default.removeItem(at: extra)
         }
         if crashFD >= 0 {
@@ -347,6 +350,8 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         do {
+            WriteGuard.assertAppOwned(directory)
+            WriteGuard.assertAppOwned(fileURL)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             FilePrivacy.restrict(directory)
             if handle == nil {
@@ -383,11 +388,16 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     private func rotateClosedFileUnlocked() {
         let previous = directory.appendingPathComponent("diskindex.1.log")
         let oldest = directory.appendingPathComponent("diskindex.2.log")
+        WriteGuard.assertAppOwned(oldest)
         try? FileManager.default.removeItem(at: oldest)
         if FileManager.default.fileExists(atPath: previous.path) {
+            WriteGuard.assertAppOwned(previous)
+            WriteGuard.assertAppOwned(oldest)
             try? FileManager.default.moveItem(at: previous, to: oldest)
         }
         if FileManager.default.fileExists(atPath: fileURL.path) {
+            WriteGuard.assertAppOwned(fileURL)
+            WriteGuard.assertAppOwned(previous)
             try? FileManager.default.moveItem(at: fileURL, to: previous)
         }
     }

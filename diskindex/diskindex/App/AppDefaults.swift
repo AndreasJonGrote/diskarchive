@@ -37,6 +37,7 @@ nonisolated enum AppDefaults {
                   pid != ownPID, !isRunning(pid)
             else { continue }
             UserDefaults.standard.removePersistentDomain(forName: name)
+            WriteGuard.assertAppOwned(file)
             try? FileManager.default.removeItem(at: file)
         }
     }

@@ -282,37 +282,52 @@ nonisolated final class DirectoryWriterV3 {
         return delta
     }
 
+    private enum FolderLookup: Equatable {
+        case root
+        case found(Int64?)
+        case missing
+    }
+
     /// Live-Umbenennen/Verschieben per absolutem Pfad (235b).
     func applyLivePathRename(
         mountPath: String,
         fromAbsolute: String,
         toAbsolute: String,
         seenAt: Date
-    ) throws -> Bool {
+    ) throws -> (applied: Bool, delta: MediumCountDelta) {
         guard let fromParts = Self.relativeComponents(absolute: fromAbsolute, mountPath: mountPath),
               let toParts = Self.relativeComponents(absolute: toAbsolute, mountPath: mountPath),
               let fromName = fromParts.last,
               let toName = toParts.last,
               !fromName.isEmpty,
-              !toName.isEmpty else { return false }
+              !toName.isEmpty else { return (false, .zero) }
         let fromParentPath = Array(fromParts.dropLast())
         let toParentPath = Array(toParts.dropLast())
-        let fromParentID = try folderID(segments: fromParentPath)
-        let toParentID = try folderID(segments: toParentPath)
-        guard let row = try fetchChildUnique(parentID: fromParentID, name: fromName, allowGone: true) else { return false }
-        if let clash = try fetchChild(parentID: toParentID, name: toName, allowGone: true), clash.id != row.id {
-            if clash.status == ItemStatus.gone.rawValue {
-                try removeGonePlaceholder(clash.id)
-            } else {
-                return false
-            }
-        }
+        let fromLookup = try resolveFolderLookup(segments: fromParentPath)
+        let toLookup = try resolveFolderLookup(segments: toParentPath)
+        if !fromParentPath.isEmpty, fromLookup == .missing { return (false, .zero) }
+        if !toParentPath.isEmpty, toLookup == .missing { return (false, .zero) }
+        let fromParentID = folderParentID(fromLookup)
+        let toParentID = folderParentID(toLookup)
+        guard let row = try fetchChildUnique(parentID: fromParentID, name: fromName, allowGone: true) else { return (false, .zero) }
         let toURL = URL(fileURLWithPath: toAbsolute)
         var sizeBytes: Int64?
         var modifiedAt: Date?
         if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) {
             sizeBytes = values.fileSize.map(Int64.init)
             modifiedAt = values.contentModificationDate
+        }
+        guard try liveRenameTargetMatches(
+            row: row, mountPath: mountPath, toAbsolute: toAbsolute, toParentID: toParentID, toName: toName, sizeBytes: sizeBytes
+        ) else {
+            return (false, .zero)
+        }
+        if let clash = try fetchChild(parentID: toParentID, name: toName, allowGone: true), clash.id != row.id {
+            if clash.status == ItemStatus.gone.rawValue {
+                try removeGonePlaceholder(clash.id)
+            } else {
+                return (false, .zero)
+            }
         }
         let childDepth = toParentPath.count + 1
         let entry: ScannedEntry
@@ -356,25 +371,84 @@ nonisolated final class DirectoryWriterV3 {
             try shiftDescendantDepths(folderID: row.id, by: childDepth - row.depth)
         }
         _ = seenAt
-        _ = delta
-        return true
+        return (true, delta)
     }
 
     // MARK: Hilfen
 
-    private func folderID(segments: [String]) throws -> Int64? {
+    private func folderParentID(_ lookup: FolderLookup) -> Int64? {
+        switch lookup {
+        case .root: return nil
+        case .found(let id): return id
+        case .missing: return nil
+        }
+    }
+
+    private func resolveFolderLookup(segments: [String]) throws -> FolderLookup {
+        if segments.isEmpty { return .root }
         var parent: Int64?
         for name in segments {
-            guard let id = try Int64.fetchOne(
-                db,
-                sql: """
-                    SELECT id FROM items WHERE storageID = ? AND parentID IS ? AND name = ? AND isFolder = 1 AND status = 0
-                    """,
-                arguments: [storageID, parent, name]
-            ) else { return nil }
+            guard let id = try fetchFolderRowID(parentID: parent, name: name) else { return .missing }
             parent = id
         }
-        return parent
+        return .found(parent)
+    }
+
+    private func fetchFolderRowID(parentID: Int64?, name: String) throws -> Int64? {
+        if let exact = try Int64.fetchOne(
+            db,
+            sql: """
+                SELECT id FROM items WHERE storageID = ? AND parentID IS ? AND name = ? AND isFolder = 1 AND status = 0
+                """,
+            arguments: [storageID, parentID, name]
+        ) {
+            return exact
+        }
+        let slug = Slug.make(name)
+        let rows = try Row.fetchAll(
+            db,
+            sql: """
+                SELECT id, name FROM items
+                WHERE storageID = ? AND parentID IS ? AND slug = ? AND isFolder = 1 AND status = 0
+                """,
+            arguments: [storageID, parentID, slug]
+        )
+        let exactName = rows.filter { ($0["name"] as String) == name }
+        if exactName.count == 1 { return exactName[0]["id"] }
+        if rows.count == 1 { return rows[0]["id"] }
+        return nil
+    }
+
+    private func liveRenameTargetMatches(
+        row: ListedRow,
+        mountPath: String,
+        toAbsolute: String,
+        toParentID: Int64?,
+        toName: String,
+        sizeBytes: Int64?
+    ) throws -> Bool {
+        if trustsFileID {
+            if let expectedID = row.fileID {
+                var st = stat()
+                guard stat(toAbsolute, &st) == 0 else { return false }
+                guard expectedID == Int64(st.st_ino) else { return false }
+            }
+            return true
+        }
+        guard sizeBytes == row.sizeBytes else { return false }
+        guard partialMatchingEnabled, let stored = try fetchPartial(itemID: row.id) else { return true }
+        guard let incoming = try incomingPartialDigest(
+            mountPath: mountPath, parentID: toParentID, name: toName
+        ) else { return false }
+        return stored == incoming
+    }
+
+    private func folderID(segments: [String]) throws -> Int64? {
+        switch try resolveFolderLookup(segments: segments) {
+        case .root: return nil
+        case .found(let id): return id
+        case .missing: return nil
+        }
     }
 
     private func removeGonePlaceholder(_ itemID: Int64) throws {
@@ -398,7 +472,7 @@ nonisolated final class DirectoryWriterV3 {
 
     private func fetchChildRows(parentID: Int64?, name: String, allowGone: Bool) throws -> [Row] {
         let statusSQL = allowGone ? "i.status IN (0, 2)" : "i.status = 0"
-        return try Row.fetchAll(
+        let exact = try Row.fetchAll(
             db,
             sql: """
                 SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
@@ -408,6 +482,22 @@ nonisolated final class DirectoryWriterV3 {
                 """,
             arguments: [storageID, parentID, name]
         )
+        if !exact.isEmpty { return exact }
+        let slug = Slug.make(name)
+        let slugRows = try Row.fetchAll(
+            db,
+            sql: """
+                SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
+                FROM items i LEFT JOIN item_details d ON d.itemID = i.id
+                WHERE i.storageID = ? AND i.parentID IS ? AND i.slug = ? AND \(statusSQL)
+                LIMIT 4
+                """,
+            arguments: [storageID, parentID, slug]
+        )
+        let nameMatches = slugRows.filter { ($0["name"] as String) == name }
+        if !nameMatches.isEmpty { return Array(nameMatches.prefix(2)) }
+        if slugRows.count == 1 { return slugRows }
+        return []
     }
 
     private func shiftDescendantDepths(folderID: Int64, by delta: Int) throws {

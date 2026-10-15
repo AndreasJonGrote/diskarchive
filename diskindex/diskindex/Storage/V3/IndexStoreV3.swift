@@ -426,12 +426,33 @@ actor IndexStoreV3 {
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return nil }
             var parent: Int64?
             for name in path {
-                guard let id = try Int64.fetchOne(
+                if let exact = try Int64.fetchOne(
                     db,
                     sql: "SELECT id FROM items WHERE storageID = ? AND parentID IS ? AND name = ? AND isFolder = 1 AND status = 0",
                     arguments: [storageID, parent, name]
-                ) else { return nil }
-                parent = id
+                ) {
+                    parent = exact
+                    continue
+                }
+                let slug = Slug.make(name)
+                let rows = try Row.fetchAll(
+                    db,
+                    sql: """
+                        SELECT id, name FROM items
+                        WHERE storageID = ? AND parentID IS ? AND slug = ? AND isFolder = 1 AND status = 0
+                        """,
+                    arguments: [storageID, parent, slug]
+                )
+                let exactName = rows.filter { ($0["name"] as String) == name }
+                if exactName.count == 1 {
+                    parent = exactName[0]["id"]
+                    continue
+                }
+                if rows.count == 1 {
+                    parent = rows[0]["id"]
+                    continue
+                }
+                return nil
             }
             return parent
         }
@@ -628,12 +649,14 @@ actor IndexStoreV3 {
         let folderPaths: [[String]] = try await pool.write { db -> [[String]] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
             let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
-            guard try writer.applyLivePathRename(
+            let step = try writer.applyLivePathRename(
                 mountPath: mountPath,
                 fromAbsolute: fromPath,
                 toAbsolute: toPath,
                 seenAt: Date()
-            ) else { return [] }
+            )
+            guard step.applied else { return [] }
+            try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: Date(), delta: step.delta)
             var paths: [[String]] = []
             if let fromParts = DirectoryWriterV3.relativeComponents(absolute: fromPath, mountPath: mountPath) {
                 paths.append(Array(fromParts.dropLast()))
