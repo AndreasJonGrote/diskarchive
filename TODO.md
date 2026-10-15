@@ -77,6 +77,7 @@ Abgenommen (DONE.md): `bug.0.4.043`, `bug.0.4.010`, `bug.0.4.044`, `todo.0.4.010
 - c) Unverändert: Dock-Reopen, Einzelinstanz-Übergabe, Fenster schließen = Hintergrund.
 - d) Tests: `opensMainWindow` für alle drei Arten `true`; Scheduler-Test mit gezählter Warteschlange (Start → genau ein Auftrag sofort); Sabotage `.login → false` → rot ✓. Keine echte App starten (Regel 19). Warnungen 0, seriell, Regel 23.
 Status:
+todo.0.4.013: `AppLaunch`/`AppDelegate`/`VersionCheckCoordinator`+`Scheduler` (force-enqueue); Tests `AppLaunchTests`; Sabotage login rot ✓; seriell 577 08:11:51; D/R Warn 0; Regel 23 App 08:23:40. Bereit zur Prüfung
 
 **HALT nach Paket 0** — Freigabe durch Claude: nach `todo.0.4.013`.
 
@@ -93,6 +94,7 @@ Status:
   - `EXPLAIN QUERY PLAN` der Kandidaten-Abfrage nennt `items_gone`.
   - Messtest (Release): FAT-Erstindex mit 50.000 Dateien gegen vorher, Zahl im Status.
 Status:
+bug.0.4.013 (REPORT 101,63): `schemaSuperseded`, Migration `0.4.0-items_gone`, `matchGoneCandidate` status=2; Tests `SchemaV3Tests`+`StoreSwitchTests`; EXPLAIN items_gone (5000 gone); Messtest FAT-50k: kein Vorgänger-Benchmark im Repo. Bereit zur Prüfung
 
 **bug.0.4.014 — Abgebrochener Abgleich: kein Ebenen-Überspringen, keine Löschung verschwundener Einträge, Token aufräumen (REPORT 59, 58, 67, Korrekturen B-58, B-59).** Repro: `nr59_…`, `nr58_…`, `nr67_…`.
 - a) Laufart merken: Ein Lauf ist ein **Abgleich**, wenn `!fromScratch && stored.indexStatus == .indexed && stored.completedDepth > 0` (Bedingung aus `DirectoryIndexer` Z. ~61).
@@ -106,6 +108,7 @@ Status:
   - Favorit in gone-Unterbaum übersteht `.pending`.
   - Die drei Repro-Tests sind grün.
 Status:
+bug.0.4.014 (REPORT 59,58,67): `interrupted`+`finishIndexing`; Repro `ReconcileAbortReproTests` nr58/59/67 grün; Parallel `… YES … 120` 08:18:16/08:21:00; seriell 577; D/R Warn 0; Regel 23 App 08:23:40. Bereit zur Prüfung
 
 **bug.0.4.015 — FAT/exFAT/NTFS: Umbenennen/Verschieben außerhalb wieder verbinden (REPORT 110).** Voraussetzung: bug.0.4.013, bug.0.4.014.
 - a) Für Medien ohne `trustsFileID`: **Verbindungs-Nachlauf am Laufende vor `deleteGoneItems`**.

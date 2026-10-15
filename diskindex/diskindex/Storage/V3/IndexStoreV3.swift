@@ -462,12 +462,17 @@ actor IndexStoreV3 {
     func beginIndexing(mediumUUID: UUID, token: UUID) async throws -> Bool {
         if revokedIndexingTokens.remove(token) != nil { return false }
         indexingToken[mediumUUID] = token
-        try await pool.write { db in
-            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
-            try db.execute(
-                sql: "UPDATE storages SET indexStatus = ? WHERE id = ?",
-                arguments: [MediumCodecV3.code(.indexing), storageID]
-            )
+        do {
+            try await pool.write { db in
+                guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
+                try db.execute(
+                    sql: "UPDATE storages SET indexStatus = ? WHERE id = ?",
+                    arguments: [MediumCodecV3.code(.indexing), storageID]
+                )
+            }
+        } catch {
+            if indexingToken[mediumUUID] == token { indexingToken[mediumUUID] = nil }
+            throw error
         }
         guard indexingToken[mediumUUID] == token else {
             try await pool.write { db in
@@ -487,7 +492,8 @@ actor IndexStoreV3 {
         mediumUUID: UUID,
         token: UUID,
         status: StoredIndexStatus,
-        firstIndexedAt: Date?
+        firstIndexedAt: Date?,
+        interrupted: Bool = false
     ) async throws -> Bool {
         guard indexingToken[mediumUUID] == token else {
             revokedIndexingTokens.insert(token)
@@ -506,13 +512,15 @@ actor IndexStoreV3 {
                     arguments: [SchemaTime.seconds(firstIndexedAt), storageID]
                 )
             }
-            if status == .indexed {
+            if status == .indexed, !interrupted {
                 let total = try Int.fetchOne(db, sql: "SELECT fileCount + folderCount FROM storages WHERE id = ?", arguments: [storageID]) ?? 0
                 try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
             }
-            let deleted = try Self.deleteGoneItems(db, storageID: storageID)
-            if deleted > 0 {
-                try DatabaseMaintenance.addDebt(db, rows: deleted)
+            if status == .indexed, !interrupted {
+                let deleted = try Self.deleteGoneItems(db, storageID: storageID)
+                if deleted > 0 {
+                    try DatabaseMaintenance.addDebt(db, rows: deleted)
+                }
             }
         }
         try? await pool.writeWithoutTransaction { db in

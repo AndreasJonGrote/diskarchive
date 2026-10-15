@@ -20,7 +20,13 @@ final class IndexingService {
     private var runStartedAt: [UUID: Date] = [:]
     private var runVolumes: [UUID: VolumeInfo] = [:]
     private var rerunAfterFinish: Set<UUID> = []
+    /// Abgleich-Lauf (bug.0.4.014), damit `cancel` wie `DirectoryIndexer.stop` endet.
+    private var runFullReconcile: [UUID: Bool] = [:]
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
+
+    fileprivate func setRunFullReconcile(_ mediumUUID: UUID, _ value: Bool) {
+        runFullReconcile[mediumUUID] = value
+    }
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
         self.store = store
@@ -110,6 +116,10 @@ final class IndexingService {
                 }
                 storedBeforeRun = nil
             }
+            let fullReconcile = !fromScratch
+                && storedBeforeRun?.indexStatus == .indexed
+                && (storedBeforeRun?.completedDepth ?? 0) > 0
+            await bridge.rememberFullReconcile(mediumUUID, fullReconcile)
             let reconcileRun = !fromScratch && storedBeforeRun?.indexStatus == .indexed
             let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: reconcileRun)
             guard began else { return }
@@ -150,8 +160,16 @@ final class IndexingService {
         }
         runStartedAt.removeValue(forKey: mediumUUID)
         pauseIDs.remove(mediumUUID)
+        let fullReconcile = runFullReconcile.removeValue(forKey: mediumUUID) ?? false
+        let reconcileInterrupted = fullReconcile
         do {
-            _ = try await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .pending, firstIndexedAt: nil)
+            _ = try await store.finishIndexing(
+                mediumUUID: mediumUUID,
+                token: token,
+                status: reconcileInterrupted ? .indexed : .pending,
+                firstIndexedAt: nil,
+                interrupted: reconcileInterrupted
+            )
         } catch {
             DiskIndexLog.shared.record(.index, .error, "abbruch \(error)")
         }
@@ -159,7 +177,7 @@ final class IndexingService {
         if runs[mediumUUID] == nil {
             appState.clearMenuBarRunIndicators(mediumUUID)
             appState.updateMedium(id: mediumUUID) {
-                $0.indexStatus = .pending
+                $0.indexStatus = reconcileInterrupted ? .indexed : .pending
             }
         }
         await task?.value
@@ -243,7 +261,7 @@ final class IndexingService {
             } else {
                 $0.indexStatus = .pending
             }
-            if $0.indexStatus == .indexed {
+            if $0.indexStatus == .indexed, !outcome.interrupted {
                 $0.indexingProgress = 1
             }
             if let stored {
@@ -256,7 +274,7 @@ final class IndexingService {
             }
             $0.indexRunPhase = .indexing
         }
-        if outcome.status == .indexed, let medium = appState.medium(with: mediumUUID) {
+        if outcome.status == .indexed, !outcome.interrupted, let medium = appState.medium(with: mediumUUID) {
             let duration = started.map { Date().timeIntervalSince($0) } ?? 0
             let objects = medium.fileCount + medium.folderCount
             SystemNotice.postIndexedComplete(
@@ -269,12 +287,13 @@ final class IndexingService {
         if outcome.status == .error, let medium = appState.medium(with: mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
-        if outcome.status == .indexed, let volume = runVolumes[mediumUUID] {
+        if outcome.status == .indexed, !outcome.interrupted, let volume = runVolumes[mediumUUID] {
             onRunIndexed?(mediumUUID, volume)
         }
-        if outcome.status == .indexed {
+        if outcome.status == .indexed, !outcome.interrupted {
             appState.scheduleDatabaseMaintenance()
         }
+        runFullReconcile.removeValue(forKey: mediumUUID)
         runVolumes.removeValue(forKey: mediumUUID)
         if rerunAfterFinish.contains(mediumUUID) {
             rerunAfterFinish.remove(mediumUUID)
@@ -316,6 +335,12 @@ private final class Bridge: @unchecked Sendable {
 
     init(service: IndexingService) {
         self.service = service
+    }
+
+    func rememberFullReconcile(_ mediumUUID: UUID, _ fullReconcile: Bool) async {
+        await MainActor.run {
+            service?.setRunFullReconcile(mediumUUID, fullReconcile)
+        }
     }
 
     /// false, wenn der Lauf zwischenzeitlich abgebrochen wurde (sonst setzt UI wieder `.indexing`).

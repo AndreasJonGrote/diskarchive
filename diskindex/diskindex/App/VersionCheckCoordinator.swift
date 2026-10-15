@@ -81,8 +81,8 @@ enum VersionCheckCoordinator {
         appState.onVersionCheckEvaluationApplied?()
     }
 
-    static func enqueueCheckIfNeeded(store: IndexStoreV3, now: Date = Date()) {
-        if let last = lastVersionCheckEnqueue, now.timeIntervalSince(last) < enqueueCooldown { return }
+    static func enqueueCheckIfNeeded(store: IndexStoreV3, now: Date = Date(), force: Bool = false) {
+        if !force, let last = lastVersionCheckEnqueue, now.timeIntervalSince(last) < enqueueCooldown { return }
         lastVersionCheckEnqueue = now
         let created = Int(now.timeIntervalSince1970)
         let payload = Data("{}".utf8)

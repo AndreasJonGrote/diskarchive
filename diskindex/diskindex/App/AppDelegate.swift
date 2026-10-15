@@ -22,8 +22,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let versionCheckScheduler = VersionCheckScheduler()
     private let recognitionLogger = Logger(subsystem: "app.diskarchive", category: "MediumRecognition")
     private var launchKind = AppLaunchKind.click
-    /// todo.0.4.011 b: Anmeldung öffnet höchstens einmal wegen Update/Sperre.
-    private var didOpenMainForLoginVersionNotice = false
     private var handedOff = false
 
     /// Vor `install`, damit kein zweites Menüleisten-Icon aufblitzt (Aufgabe 30.1).
@@ -91,10 +89,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             IssueReporter.shared.noteError(category: category, message: message)
         }
         IssueReporter.shared.start()
-        if launchKind == .click {
-            NSApp.setActivationPolicy(.regular)
-        }
         if AppLaunch.opensMainWindow(launchKind) {
+            NSApp.setActivationPolicy(.regular)
             AppWindowPresenter.openMain(appState: AppDelegateBridge.appState)
         }
 
@@ -315,9 +311,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         appState.reportIndexStoreOpenFailure()
         if launchKind == .login {
             postIndexStoreOpenFailureNotification()
-        } else {
-            AppWindowPresenter.openMain(appState: appState)
         }
+        AppWindowPresenter.openMain(appState: appState)
     }
 
     private func wireStore(_ store: IndexStoreV3, appState: AppState) {
@@ -353,28 +348,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             coordinator: coordinator,
             startChangeLoop: { appState.startChangeLoop() }
         )
-        appState.onVersionLockEngaged = { [weak self] in
-            Task { @MainActor in
-                let appState = AppDelegateBridge.appState
-                appState.cancelRuleReconcileForVersionLock()
-                await self?.indexingService?.cancelAllActiveForVersionLock()
-                await self?.changeWatcher?.stopAllWatching()
-                self?.openMainOnceForLoginVersionNoticeIfNeeded(appState: appState)
-            }
-        }
-        appState.onVersionCheckEvaluationApplied = { [weak self] in
-            self?.openMainOnceForLoginVersionNoticeIfNeeded(appState: AppDelegateBridge.appState)
-        }
         versionCheckScheduler.start(appState: appState, store: store)
-    }
-
-    private func openMainOnceForLoginVersionNoticeIfNeeded(appState: AppState) {
-        guard launchKind == .login, !didOpenMainForLoginVersionNotice else { return }
-        let presents = appState.versionLockState.isLocked || appState.updateNotice != nil
-        guard AppLaunch.opensMainWindow(.login, presentsUpdateOrLock: presents) else { return }
-        guard !AppWindowPresenter.isMainWindowVisible else { return }
-        didOpenMainForLoginVersionNotice = true
-        AppWindowPresenter.openMain(appState: appState)
     }
 
     private func postIndexStoreOpenFailureNotification() {

@@ -249,6 +249,58 @@ struct SchemaV3Tests {
     }
 
     // Aufgabe 233b: neue Datei muss incremental auto_vacuum (2) und WAL haben.
+    @Test func openPoolRejectsDatabaseWithFutureMigration() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-v3-future-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let fileURL = directory.appendingPathComponent("future.sqlite")
+        let pool = try SchemaV3.openPool(at: fileURL)
+        try pool.write { db in
+            try db.execute(sql: "INSERT INTO grdb_migrations (identifier) VALUES (?)", arguments: ["9.9-future"])
+        }
+        try pool.close()
+        do {
+            _ = try SchemaV3.openPool(at: fileURL)
+            Issue.record("openPool hätte schemaSuperseded werfen müssen")
+        } catch IndexStoreError.schemaSuperseded {
+        } catch {
+            Issue.record("falscher Fehler: \(error)")
+        }
+    }
+
+    @Test func goneCandidateQueryUsesItemsGoneIndex() throws {
+        let (pool, directory) = try makeV3()
+        defer {
+            try? pool.close()
+            try? FileManager.default.removeItem(at: directory)
+        }
+        let storage = try pool.write { db -> Int64 in
+            let id = try insertStorage(db, name: "Vol")
+            for index in 0..<5_000 {
+                _ = try insertItem(db, storage: id, name: "gone-\(index).txt", isFolder: false)
+            }
+            try db.execute(sql: "UPDATE items SET status = 2 WHERE storageID = ?", arguments: [id])
+            try db.execute(sql: "ANALYZE items")
+            return id
+        }
+        let planLines = try pool.read { db in
+            try Row.fetchAll(
+                db,
+                sql: """
+                    EXPLAIN QUERY PLAN
+                    SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
+                    FROM items i LEFT JOIN item_details d ON d.itemID = i.id
+                    WHERE i.storageID = ? AND i.status = 2 AND i.isFolder = ?
+                    """,
+                arguments: [storage, false]
+            ).map { row in
+                [row[0], row[1], row[2], row[3]].compactMap { $0 }.map { "\($0)" }.joined(separator: " ")
+            }
+        }
+        let plan = planLines.joined(separator: " | ")
+        #expect(plan.contains("items_gone"), "plan=\(plan)")
+    }
+
     @Test func freshFileHasIncrementalAutoVacuumAndWAL() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-v3-vacuum-\(UUID().uuidString)", isDirectory: true)

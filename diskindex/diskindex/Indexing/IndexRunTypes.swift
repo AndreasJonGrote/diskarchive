@@ -36,4 +36,6 @@ nonisolated struct IndexRunOutcome: Sendable, Equatable {
     var firstIndexedAt: Date?
     /// Nur bei `.error` (und Abbruch durch Zeitüberschreitung): Grund aus dem Fehlerobjekt.
     var failureReason: IndexFailureReason?
+    /// Abgebrochener Abgleich: DB `.indexed`, aber kein vollständiger Lauf (bug.0.4.014).
+    var interrupted: Bool = false
 }

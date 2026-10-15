@@ -2,9 +2,10 @@
 //  AppLaunchTests.swift
 //  diskindexTests
 //
-//  todo.0.4.011 — Kaltstart öffnet Hauptfenster; Anmeldung nur bei Update/Sperre.
+//  todo.0.4.013 — Jeder Start öffnet Hauptfenster; Versions-Check sofort.
 //
 
+import GRDB
 import Testing
 @testable import diskindex
 
@@ -14,7 +15,7 @@ struct AppLaunchTests {
     @Test func backgroundArgumentIsASilentLogin() {
         let kind = AppLaunch.kind(arguments: ["Disk Archive", "--background"], environment: [:])
         #expect(kind == .login)
-        #expect(!AppLaunch.opensMainWindow(kind))
+        #expect(AppLaunch.opensMainWindow(kind))
     }
 
     @Test func launcherServiceNameIsASilentLogin() {
@@ -23,7 +24,7 @@ struct AppLaunchTests {
             environment: ["XPC_SERVICE_NAME": "app.diskarchive.launcher"]
         )
         #expect(kind == .login)
-        #expect(!AppLaunch.opensMainWindow(kind))
+        #expect(AppLaunch.opensMainWindow(kind))
     }
 
     @Test func coldStartOpensMainWindow() {
@@ -31,6 +32,7 @@ struct AppLaunchTests {
         #expect(kind == .click)
         #expect(AppLaunch.opensMainWindow(kind))
         #expect(AppLaunch.opensMainWindow(.handoff))
+        #expect(AppLaunch.opensMainWindow(.login))
     }
 
     /// Sabotage: `.click → false` → rot.
@@ -38,9 +40,9 @@ struct AppLaunchTests {
         #expect(AppLaunch.opensMainWindow(.click) == true)
     }
 
-    @Test func loginOpensOnlyWithUpdateOrLock() {
-        #expect(!AppLaunch.opensMainWindow(.login, presentsUpdateOrLock: false))
-        #expect(AppLaunch.opensMainWindow(.login, presentsUpdateOrLock: true))
+    /// Sabotage: `.login → false` → rot.
+    @Test func sabotageLoginMustOpenMainWindow() {
+        #expect(AppLaunch.opensMainWindow(.login) == true)
     }
 
     @Test func reopenWithoutAVisibleWindowOpensTheMainWindow() {
@@ -53,5 +55,22 @@ struct AppLaunchTests {
         AppWindowPresenter.openMain(appState: app)
         #expect(AppWindowPresenter.isMainWindowVisible)
         AppWindowPresenter.prepareForTermination()
+    }
+
+    @Test func schedulerEnqueuesVersionCheckImmediatelyOnStart() throws {
+        VersionCheckCoordinator.lastVersionCheckEnqueue = nil
+        let testStore = try TestStore.make()
+        let countBefore = try testStore.store.pool.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
+        }
+        #expect(countBefore == 0)
+        let scheduler = VersionCheckScheduler()
+        let appState = AppState()
+        scheduler.start(appState: appState, store: testStore.store)
+        defer { scheduler.stop() }
+        let countAfter = try testStore.store.pool.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
+        }
+        #expect(countAfter == 1)
     }
 }

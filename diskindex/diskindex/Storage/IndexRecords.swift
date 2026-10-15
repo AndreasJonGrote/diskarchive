@@ -63,6 +63,8 @@ nonisolated enum IndexStoreError: Error, Equatable, Sendable {
     case invalidStoredUUID
     case directoryWriteFailed
     case childrenReadFailed
+    /// Migrationen der DB sind neuer als diese App (bug.0.4.013).
+    case schemaSuperseded
 }
 
 /// Was der Scanner von einem einzelnen Objekt meldet.

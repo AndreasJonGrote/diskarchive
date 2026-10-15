@@ -2,7 +2,7 @@
 //  AppLaunch.swift
 //  diskindex
 //
-//  Kaltstart: Menüleiste + Hauptfenster (todo.0.4.011); Anmeldung still, außer Update/Sperre.
+//  Kaltstart: Menüleiste + Hauptfenster (todo.0.4.013).
 //
 
 import Foundation
@@ -23,13 +23,11 @@ nonisolated enum AppLaunch {
         return .click
     }
 
-    /// Kaltstart und Handoff öffnen das Hauptfenster; Anmeldung nur bei Update-Angebot oder Sperre.
-    static func opensMainWindow(_ kind: AppLaunchKind, presentsUpdateOrLock: Bool = false) -> Bool {
+    /// Jeder Start (Klick, Anmeldung, Handoff) öffnet das Hauptfenster (todo.0.4.013).
+    static func opensMainWindow(_ kind: AppLaunchKind) -> Bool {
         switch kind {
-        case .click, .handoff:
+        case .click, .login, .handoff:
             return true
-        case .login:
-            return presentsUpdateOrLock
         }
     }
 

@@ -20,8 +20,11 @@ nonisolated enum SchemaV3 {
 
     static let indexNames = [
         "items_identity", "items_children", "items_search", "items_modified", "items_fileid",
-        "items_parent", "item_checksum_full", "storages_slug", "storages_uuid",
+        "items_parent", "item_checksum_full", "storages_slug", "storages_uuid", "items_gone",
     ]
+
+    /// Teilindex für verschwundene Einträge (bug.0.4.013).
+    static let itemsGoneMigration = "0.4.0-items_gone"
 
     /// Größe der Journal-Datei nach einem Checkpoint (64 MB).
     static let journalSizeLimit = 64 * 1024 * 1024
@@ -33,6 +36,9 @@ nonisolated enum SchemaV3 {
         var migrator = DatabaseMigrator()
         migrator.registerMigration(firstMigration) { db in
             try create(in: db)
+        }
+        migrator.registerMigration(itemsGoneMigration) { db in
+            try db.execute(sql: "CREATE INDEX items_gone ON items(storageID, isFolder) WHERE status = 2")
         }
         return migrator
     }
@@ -76,6 +82,9 @@ nonisolated enum SchemaV3 {
             try prepareNewFile(at: fileURL)
         }
         let pool = try DatabasePool(path: fileURL.path, configuration: makeConfiguration())
+        if try pool.read({ try migrator.hasBeenSuperseded($0) }) {
+            throw IndexStoreError.schemaSuperseded
+        }
         try migrator.migrate(pool)
         FilePrivacy.restrict(folder)
         return pool

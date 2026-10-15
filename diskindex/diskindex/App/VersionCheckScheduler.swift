@@ -17,7 +17,7 @@ final class VersionCheckScheduler {
         self.appState = appState
         self.store = store
         VersionCheckCoordinator.reevaluateLocal(appState: appState, store: store)
-        VersionCheckCoordinator.enqueueCheckIfNeeded(store: store)
+        VersionCheckCoordinator.enqueueCheckIfNeeded(store: store, force: true)
         timerTask?.cancel()
         timerTask = Task { [weak self] in
             while !Task.isCancelled {

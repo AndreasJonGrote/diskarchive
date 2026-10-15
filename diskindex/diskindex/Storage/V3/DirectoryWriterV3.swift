@@ -417,9 +417,9 @@ nonisolated final class DirectoryWriterV3 {
             sql: """
                 SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
                 FROM items i LEFT JOIN item_details d ON d.itemID = i.id
-                WHERE i.storageID = ? AND i.status = ? AND i.isFolder = ?
+                WHERE i.storageID = ? AND i.status = 2 AND i.isFolder = ?
                 """,
-            arguments: [storageID, ItemStatus.gone.rawValue, entry.isFolder]
+            arguments: [storageID, entry.isFolder]
         )
         let extName = Self.fileExtension(entry.name)
         var matches: [ListedRow] = []
