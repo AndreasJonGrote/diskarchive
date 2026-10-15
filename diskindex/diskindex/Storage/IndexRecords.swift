@@ -75,6 +75,8 @@ nonisolated struct ScannedEntry: Sendable, Equatable {
     var sizeBytes: Int64?
     var modifiedAt: Date?
     var fileID: String?
+    /// Hardlink-Zähler aus Bulk-Lesen (`ATTR_FILE_LINKCOUNT`); `nil` = unbekannt.
+    var linkCount: Int? = nil
 }
 
 /// Wie stark ein gespeichertes Medium zu einem angeschlossenen Volume passt.

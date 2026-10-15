@@ -13,6 +13,7 @@ actor IndexStoreV3 {
     nonisolated let pool: DatabasePool
     private var indexingToken: [UUID: UUID] = [:]
     private var revokedIndexingTokens: Set<UUID> = []
+    private var insertedIDsDuringRun: [UUID: Set<Int64>] = [:]
     private var pendingMetaDelta: [UUID: MediumCountDelta] = [:]
     private var lastMetaCommitTime: [UUID: Date] = [:]
     private let changesContinuation: AsyncStream<IndexChangeEvent>.Continuation
@@ -342,11 +343,16 @@ actor IndexStoreV3 {
             if directoryWritesFail { throw IndexStoreError.directoryWriteFailed }
             let forceMeta = batches.contains { $0.finalize }
             let partialMatching = partialMatchingEnabled
-            let result = try await pool.write { db -> (delta: MediumCountDelta, parentPaths: [String]) in
+            let trackInserts = indexingToken[mediumUUID] != nil
+            let result = try await pool.write { db -> (delta: MediumCountDelta, parentPaths: [String], inserted: [Int64]) in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
                 var delta = MediumCountDelta.zero
                 var parentPaths: [String] = []
+                var inserted: [Int64] = []
+                if trackInserts {
+                    writer.onInsertedItemID = { inserted.append($0) }
+                }
                 for batch in batches {
                     let step = try writer.apply(
                         parentID: batch.parentID, path: batch.path, depth: batch.depth,
@@ -356,7 +362,10 @@ actor IndexStoreV3 {
                     delta = delta + step.delta
                     parentPaths.append(step.parentPath)
                 }
-                return (delta, parentPaths)
+                return (delta, parentPaths, inserted)
+            }
+            if trackInserts, !result.inserted.isEmpty {
+                insertedIDsDuringRun[mediumUUID, default: []].formUnion(result.inserted)
             }
             try await commitPendingMetaIfNeeded(mediumUUID: mediumUUID, seenAt: seenAt, delta: result.delta, force: forceMeta)
             DiskIndexLog.shared.record(.store, .info, "applyDirectories count=\(batches.count)")
@@ -462,6 +471,7 @@ actor IndexStoreV3 {
     func beginIndexing(mediumUUID: UUID, token: UUID) async throws -> Bool {
         if revokedIndexingTokens.remove(token) != nil { return false }
         indexingToken[mediumUUID] = token
+        insertedIDsDuringRun[mediumUUID] = []
         do {
             try await pool.write { db in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
@@ -493,12 +503,15 @@ actor IndexStoreV3 {
         token: UUID,
         status: StoredIndexStatus,
         firstIndexedAt: Date?,
-        interrupted: Bool = false
+        interrupted: Bool = false,
+        mountPath: String? = nil
     ) async throws -> Bool {
         guard indexingToken[mediumUUID] == token else {
             revokedIndexingTokens.insert(token)
             return false
         }
+        let insertedIDs = insertedIDsDuringRun.removeValue(forKey: mediumUUID) ?? []
+        let partialMatching = partialMatchingEnabled
         indexingToken[mediumUUID] = nil
         try await pool.write { db in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
@@ -517,6 +530,13 @@ actor IndexStoreV3 {
                 try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
             }
             if status == .indexed, !interrupted {
+                let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
+                let reconnectDelta = try writer.reconnectInsertedWithGone(
+                    insertedIDs: insertedIDs, mountPath: mountPath
+                )
+                if reconnectDelta != .zero {
+                    try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: Date(), delta: reconnectDelta)
+                }
                 let deleted = try Self.deleteGoneItems(db, storageID: storageID)
                 if deleted > 0 {
                     try DatabaseMaintenance.addDebt(db, rows: deleted)

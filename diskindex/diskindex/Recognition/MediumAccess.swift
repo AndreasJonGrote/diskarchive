@@ -47,6 +47,7 @@ nonisolated struct ListedDirectoryEntry: Sendable, Equatable {
     var fileSize: Int64?
     var modifiedAt: Date?
     var fileID: Int64?
+    var linkCount: Int? = nil
 }
 
 enum MediumAccessResult: Sendable, Equatable {

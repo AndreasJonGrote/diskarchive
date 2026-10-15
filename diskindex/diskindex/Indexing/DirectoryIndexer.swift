@@ -371,7 +371,8 @@ nonisolated struct DirectoryIndexer: Sendable {
                 mediumUUID: mediumUUID,
                 token: token,
                 status: .indexed,
-                firstIndexedAt: stamped
+                firstIndexedAt: stamped,
+                mountPath: volume.mountPath
             )
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
@@ -626,16 +627,22 @@ nonisolated struct DirectoryIndexer: Sendable {
     }
 
     private func scannedEntries(from listed: [ListedDirectoryEntry], matcher: IgnoreMatcher, parentPath: [String]) -> [ScannedEntry] {
-        listed.compactMap { entry in
+        var fileIDCounts: [Int64: Int] = [:]
+        for entry in listed {
+            if let id = entry.fileID { fileIDCounts[id, default: 0] += 1 }
+        }
+        return listed.compactMap { entry in
             if matcher.shouldSkip(name: entry.name, isHidden: entry.isHidden, parentPath: parentPath) { return nil }
             let asFile = entry.isSymbolicLink || entry.isPackage || !entry.isDirectory
+            let duplicateFileID = entry.fileID.map { fileIDCounts[$0, default: 0] > 1 } ?? false
             return ScannedEntry(
                 name: entry.name,
                 isFolder: !asFile,
                 isPackage: entry.isPackage && !entry.isSymbolicLink,
                 sizeBytes: asFile && !entry.isPackage && !entry.isSymbolicLink ? entry.fileSize : nil,
                 modifiedAt: entry.modifiedAt,
-                fileID: FileIdentity.scannedFileID(entry.fileID)
+                fileID: FileIdentity.scannedFileID(entry.fileID),
+                linkCount: duplicateFileID ? 2 : entry.linkCount
             )
         }
     }

@@ -145,7 +145,7 @@ nonisolated enum BulkDirectoryReader {
         case .fullMetadata:
             attrList.commonattr = attrBit(ATTR_CMN_RETURNED_ATTRS) | attrBit(ATTR_CMN_NAME)
                 | attrBit(ATTR_CMN_OBJTYPE) | attrBit(ATTR_CMN_FILEID) | attrBit(ATTR_CMN_MODTIME)
-            attrList.fileattr = attrBit(ATTR_FILE_DATALENGTH)
+            attrList.fileattr = attrBit(ATTR_FILE_DATALENGTH) | attrBit(ATTR_FILE_LINKCOUNT)
         case .nameAndTypeOnly:
             attrList.commonattr = attrBit(ATTR_CMN_RETURNED_ATTRS) | attrBit(ATTR_CMN_NAME) | attrBit(ATTR_CMN_OBJTYPE)
             attrList.fileattr = 0
@@ -236,27 +236,39 @@ nonisolated enum BulkDirectoryReader {
         }
 
         var modifiedAt: Date?
-        if mode == .fullMetadata, commonReturned & attrgroupBit(ATTR_CMN_MODTIME) != 0 {
-            guard
-                let sec = loadUnaligned(Int64.self, from: base, at: offset),
-                let nsec = loadUnaligned(Int64.self, from: base, at: offset + 8)
-            else { return nil }
+        if mode == .fullMetadata {
+            if commonReturned & attrgroupBit(ATTR_CMN_MODTIME) != 0 {
+                guard
+                    let sec = loadUnaligned(Int64.self, from: base, at: offset),
+                    let nsec = loadUnaligned(Int64.self, from: base, at: offset + 8)
+                else { return nil }
+                modifiedAt = Date(timeIntervalSince1970: TimeInterval(sec) + TimeInterval(nsec) / 1_000_000_000)
+            }
             offset += 16
-            modifiedAt = Date(timeIntervalSince1970: TimeInterval(sec) + TimeInterval(nsec) / 1_000_000_000)
         }
 
         var fileID: Int64?
-        if mode == .fullMetadata, commonReturned & attrgroupBit(ATTR_CMN_FILEID) != 0 {
-            guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
+        if mode == .fullMetadata {
+            if commonReturned & attrgroupBit(ATTR_CMN_FILEID) != 0 {
+                guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
+                fileID = Int64(bitPattern: raw)
+            }
             offset += MemoryLayout<UInt64>.size
-            fileID = Int64(bitPattern: raw)
         }
 
         var dataLength: UInt64 = 0
-        if mode == .fullMetadata, fileReturned & attrgroupBit(ATTR_FILE_DATALENGTH) != 0 {
-            guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
-            dataLength = raw
+        var linkCount: Int?
+        if mode == .fullMetadata {
+            if fileReturned & attrgroupBit(ATTR_FILE_DATALENGTH) != 0 {
+                guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
+                dataLength = raw
+            }
             offset += MemoryLayout<UInt64>.size
+            if fileReturned & attrgroupBit(ATTR_FILE_LINKCOUNT) != 0 {
+                guard let raw = loadUnaligned(UInt32.self, from: base, at: offset) else { return nil }
+                linkCount = Int(raw)
+            }
+            offset += MemoryLayout<UInt32>.size
         }
 
         guard let name else { return nil }
@@ -283,7 +295,8 @@ nonisolated enum BulkDirectoryReader {
             isHidden: isHidden,
             fileSize: fileSize,
             modifiedAt: modifiedAt,
-            fileID: isSymlink ? nil : fileID
+            fileID: isSymlink ? nil : fileID,
+            linkCount: isSymlink ? nil : linkCount
         )
     }
 

@@ -36,24 +36,31 @@ final class StatusLog: @unchecked Sendable {
 struct ScanHarness {
     let store: IndexStoreV3
     let mediumID: UUID
+    let fsType: String
     private let indexer = DirectoryIndexer()
 
-    static func make() async throws -> ScanHarness {
+    init(store: IndexStoreV3, mediumID: UUID, fsType: String = "apfs") {
+        self.store = store
+        self.mediumID = mediumID
+        self.fsType = fsType
+    }
+
+    static func make(fsType: String = "apfs") async throws -> ScanHarness {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-scan-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
         let store = IndexStoreV3(database: database)
-        let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "TEST", type: .usb, decision: .index)
+        let medium = StoredMedium(fsType: fsType, volumeTotalBytes: 1_000, name: "TEST", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
-        return ScanHarness(store: store, mediumID: medium.uuid)
+        return ScanHarness(store: store, mediumID: medium.uuid, fsType: fsType)
     }
 
     func volume(at path: String) -> VolumeInfo {
         VolumeInfo(
             mountPath: path,
             name: "TEST",
-            fsType: "apfs",
+            fsType: fsType,
             volumeTotalBytes: 1_000,
             volumeFreeBytes: nil,
             diskSizeBytes: nil,

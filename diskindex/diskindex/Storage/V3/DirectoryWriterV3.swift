@@ -17,6 +17,8 @@ nonisolated final class DirectoryWriterV3 {
     private let trustsFileID: Bool
     private let partialMatchingEnabled: Bool
     private var extensionIDs: [String: Int64] = [:]
+    /// Lauf-Tracking für bug.0.4.015 (Verbindungs-Nachlauf).
+    var onInsertedItemID: ((Int64) -> Void)?
 
     init(db: Database, storageID: Int64, partialMatchingEnabled: Bool = true) throws {
         self.db = db
@@ -94,33 +96,49 @@ nonisolated final class DirectoryWriterV3 {
 
         var preservedIDs = Set<Int64>()
         var vacatedNames = Set<String>()
+        var pass1Handled = Set<String>()
+        let sortedEntries = entries.sorted { $0.name < $1.name }
 
-        for entry in incoming.values {
+        for entry in sortedEntries {
             let ext = entry.isFolder ? nil : Self.fileExtension(entry.name)
             let extID = try ext.map(extensionID)
             let fileID = entry.fileID.flatMap(Int64.init)
             let modified = entry.modifiedAt.map(SchemaTime.seconds)
             let kind = ItemKind.classify(ext: Self.fileExtension(entry.name), isFolder: entry.isFolder, isPackage: entry.isPackage).rawValue
-            if trustsFileID, let fileID, existingByName[entry.name] == nil,
-               let located = try fetchByFileID(fileID) {
-                if located.parentID != parentID || located.name != entry.name {
-                    if located.parentID == parentID { vacatedNames.insert(located.name) }
-                    try relocateRow(
-                        located: located,
-                        entry: entry,
-                        parentID: parentID,
-                        childDepth: parent.childDepth,
-                        extID: extID,
-                        kind: kind,
-                        modified: modified,
-                        fileID: fileID,
-                        delta: &delta
-                    )
-                    preservedIDs.insert(located.id)
-                    existingByName.removeValue(forKey: located.name)
-                    continue
-                }
+            guard shouldRelocateByFileID(entry: entry, fileID: fileID),
+                  let fileID,
+                  existingByName[entry.name] == nil,
+                  let located = try fetchByFileID(fileID) else { continue }
+            if located.parentID == parentID, located.name == entry.name { continue }
+            if located.parentID == parentID { vacatedNames.insert(located.name) }
+            try relocateRow(
+                located: located,
+                entry: entry,
+                parentID: parentID,
+                childDepth: parent.childDepth,
+                extID: extID,
+                kind: kind,
+                modified: modified,
+                fileID: fileID,
+                delta: &delta
+            )
+            if located.isFolder, located.depth != parent.childDepth {
+                try shiftDescendantDepths(folderID: located.id, by: parent.childDepth - located.depth)
             }
+            preservedIDs.insert(located.id)
+            if located.parentID == parentID {
+                existingByName.removeValue(forKey: located.name)
+            }
+            pass1Handled.insert(entry.name)
+        }
+
+        for entry in sortedEntries {
+            if pass1Handled.contains(entry.name) { continue }
+            let ext = entry.isFolder ? nil : Self.fileExtension(entry.name)
+            let extID = try ext.map(extensionID)
+            let fileID = entry.fileID.flatMap(Int64.init)
+            let modified = entry.modifiedAt.map(SchemaTime.seconds)
+            let kind = ItemKind.classify(ext: Self.fileExtension(entry.name), isFolder: entry.isFolder, isPackage: entry.isPackage).rawValue
             if let row = existingByName[entry.name] {
                 let same = row.status == 0
                     && row.isFolder == entry.isFolder
@@ -147,6 +165,28 @@ nonisolated final class DirectoryWriterV3 {
                         try db.execute(sql: "DELETE FROM item_checksum WHERE itemID = ?", arguments: [row.id])
                     }
                 }
+            } else if let revived = try matchVacatedLocalCandidate(
+                entry: entry,
+                parentID: parentID,
+                extID: extID,
+                existingByName: existingByName,
+                incoming: incoming,
+                preservedIDs: preservedIDs,
+                mountPath: mountPath
+            ) {
+                try relocateRow(
+                    located: revived,
+                    entry: entry,
+                    parentID: parentID,
+                    childDepth: parent.childDepth,
+                    extID: extID,
+                    kind: kind,
+                    modified: modified,
+                    fileID: fileID,
+                    delta: &delta
+                )
+                preservedIDs.insert(revived.id)
+                vacatedNames.insert(revived.name)
             } else if let revived = try matchGoneCandidate(
                 entry: entry, parentID: parentID, extID: extID, mountPath: mountPath
             ) {
@@ -176,7 +216,9 @@ nonisolated final class DirectoryWriterV3 {
                         parent.childDepth, modified, fileID,
                     ]
                 )
-                try writeDetails(itemID: db.lastInsertedRowID, entry)
+                let newID = db.lastInsertedRowID
+                try writeDetails(itemID: newID, entry)
+                onInsertedItemID?(newID)
             }
         }
 
@@ -204,6 +246,40 @@ nonisolated final class DirectoryWriterV3 {
             }
         }
         return (delta, parent.path)
+    }
+
+    /// Verbindet in diesem Lauf neu eingefügte Zeilen mit `status = 2` (bug.0.4.015 a), vor `deleteGoneItems`.
+    func reconnectInsertedWithGone(insertedIDs: Set<Int64>, mountPath: String?) throws -> MediumCountDelta {
+        guard !trustsFileID, !insertedIDs.isEmpty else { return .zero }
+        var delta = MediumCountDelta.zero
+        for insertedID in insertedIDs {
+            guard let inserted = try fetchListedRow(id: insertedID), inserted.status == 0 else { continue }
+            let entry = scannedEntry(from: inserted)
+            let extID = inserted.extID
+            guard let gone = try matchGoneCandidate(
+                entry: entry, parentID: inserted.parentID, extID: extID, mountPath: mountPath
+            ) else { continue }
+            let kind = ItemKind.classify(
+                ext: Self.fileExtension(entry.name), isFolder: entry.isFolder, isPackage: entry.isPackage
+            ).rawValue
+            let modified = entry.modifiedAt.map(SchemaTime.seconds)
+            let fileID = entry.fileID.flatMap(Int64.init)
+            delta.removeVisible(isFolder: entry.isFolder)
+            try db.execute(sql: "DELETE FROM item_details WHERE itemID = ?", arguments: [insertedID])
+            try db.execute(sql: "DELETE FROM items WHERE id = ?", arguments: [insertedID])
+            try relocateRow(
+                located: gone,
+                entry: entry,
+                parentID: inserted.parentID,
+                childDepth: inserted.depth,
+                extID: extID,
+                kind: kind,
+                modified: modified,
+                fileID: fileID,
+                delta: &delta
+            )
+        }
+        return delta
     }
 
     /// Live-Umbenennen/Verschieben per absolutem Pfad (235b).
@@ -405,6 +481,70 @@ nonisolated final class DirectoryWriterV3 {
         }
     }
 
+    private func shouldRelocateByFileID(entry: ScannedEntry, fileID: Int64?) -> Bool {
+        guard trustsFileID, fileID != nil else { return false }
+        if let linkCount = entry.linkCount, linkCount > 1 { return false }
+        return true
+    }
+
+    private func fetchListedRow(id: Int64) throws -> ListedRow? {
+        guard let row = try Row.fetchOne(
+            db,
+            sql: """
+                SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
+                FROM items i LEFT JOIN item_details d ON d.itemID = i.id
+                WHERE i.id = ?
+                """,
+            arguments: [id]
+        ) else { return nil }
+        return ListedRow(row)
+    }
+
+    private func scannedEntry(from row: ListedRow) -> ScannedEntry {
+        if row.isFolder {
+            return ScannedEntry(
+                name: row.name,
+                isFolder: true,
+                isPackage: row.isPackage,
+                modifiedAt: row.modifiedAt.map(SchemaTime.date),
+                fileID: row.fileID.map { String($0) }
+            )
+        }
+        return ScannedEntry(
+            name: row.name,
+            isFolder: false,
+            sizeBytes: row.sizeBytes,
+            modifiedAt: row.modifiedAt.map(SchemaTime.date),
+            fileID: row.fileID.map { String($0) }
+        )
+    }
+
+    private func matchVacatedLocalCandidate(
+        entry: ScannedEntry,
+        parentID: Int64?,
+        extID: Int64?,
+        existingByName: [String: ListedRow],
+        incoming: [String: ScannedEntry],
+        preservedIDs: Set<Int64>,
+        mountPath: String?
+    ) throws -> ListedRow? {
+        guard !trustsFileID else { return nil }
+        var vacated: [ListedRow] = []
+        for (name, row) in existingByName {
+            if incoming[name] != nil { continue }
+            if row.status != 0 { continue }
+            if preservedIDs.contains(row.id) { continue }
+            vacated.append(row)
+        }
+        return try resolveIdentityMatch(
+            candidates: vacated.filter { $0.isFolder == entry.isFolder },
+            entry: entry,
+            parentID: parentID,
+            extID: extID,
+            mountPath: mountPath
+        )
+    }
+
     private func matchGoneCandidate(
         entry: ScannedEntry,
         parentID: Int64?,
@@ -421,10 +561,21 @@ nonisolated final class DirectoryWriterV3 {
                 """,
             arguments: [storageID, entry.isFolder]
         )
-        let extName = Self.fileExtension(entry.name)
+        let candidates = rows.map { ListedRow($0) }
+        return try resolveIdentityMatch(
+            candidates: candidates, entry: entry, parentID: parentID, extID: extID, mountPath: mountPath
+        )
+    }
+
+    private func resolveIdentityMatch(
+        candidates: [ListedRow],
+        entry: ScannedEntry,
+        parentID: Int64?,
+        extID: Int64?,
+        mountPath: String?
+    ) throws -> ListedRow? {
         var matches: [ListedRow] = []
-        for row in rows {
-            let listed = ListedRow(row)
+        for listed in candidates {
             if listed.isPackage != entry.isPackage { continue }
             if listed.sizeBytes != entry.sizeBytes { continue }
             if listed.extID != extID, !entry.isFolder { continue }
@@ -432,11 +583,6 @@ nonisolated final class DirectoryWriterV3 {
                 listed.modifiedAt.map(SchemaTime.date),
                 entry.modifiedAt
             ) { continue }
-            if entry.isFolder {
-                matches.append(listed)
-                continue
-            }
-            _ = extName
             matches.append(listed)
         }
         if matches.isEmpty { return nil }

@@ -82,6 +82,7 @@ Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und g
   - `/A/B/x.txt` → `/x.txt` (nach oben): wie oben.
   - Zwei gleich große Kandidaten ohne Prüfsumme: **kein** Verbinden.
 Status:
+bug.0.4.015: Insert-Tracking, `reconnectInsertedWithGone` vor `deleteGoneItems`, vacated same-folder, `mountPath`; `FatReconnectIndexerTests` (4× DirectoryIndexer). Seriell 579 grün (12:19–12:26). Bereit zur Prüfung.
 
 **bug.0.4.016 — fileID-Zweig im Writer: fremde gleichnamige Zeile, Tiefe der Kinder, Reihenfolge, Hardlinks (REPORT 57, 69, 129, 112).** Repro: `nr57_…` (beide), `nr69_…`.
 - a) 57: `existingByName.removeValue(forKey: located.name)` nur, wenn `located.parentID == parentID`.
@@ -93,6 +94,7 @@ Status:
   - Umbenennen + neue Datei mit altem Namen: 30 Läufe mit stabilem Ergebnis (Favorit folgt der fileID).
   - Temp-Ordner mit `link()`-Hardlinks in zwei Ordnern: zweimal echter Lauf → zwei Zeilen mit stabilen IDs.
 Status:
+bug.0.4.016: `FileIdentityWriterReproTests` (nr57/nr69), zwei Durchgänge apply, Parent-Check removeValue, `shiftDescendantDepths`, Bulk LINKCOUNT+Offsets, `HardlinkIndexerTests`. Parallele 2× YES (12:26–12:31). Debug 0 Warn. Bereit zur Prüfung.
 
 **HALT nach Paket 2** — Freigabe durch Claude:
 
