@@ -46,7 +46,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 14.10. (`cb59f64`): 562 Tests seriell grün, 0 Warnungen; Parallellauf wackelt (`bug.0.4.044`). **Freigegeben: `bug.0.4.044` und Paket 1 (`bug.0.4.011`, `bug.0.4.012`). HALT nach Paket 1.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
+**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`cfbf7d5`): 571 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: `todo.0.4.013` und aus Paket 2 `bug.0.4.013`, `bug.0.4.014`. HALT nach `bug.0.4.014`.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–30):** **R1** Nur die genannten Stellen ändern. **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓. **R3** Status höchstens 5 Zeilen.
 
@@ -56,8 +56,8 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 | Paket | Kennungen | Thema | Warum in dieser Reihenfolge |
 |---|---|---|---|
-| 0 | `bug.0.4.044` (Rest) | Testbasis stabil, Warnungen 0, toter Code | ohne grüne, stabile Tests ist jede weitere Prüfung unsicher |
-| 1 | `bug.0.4.011`–`012` | Datenschutz im Fehlerbericht | vor jeder Weitergabe zwingend |
+| 0 | `todo.0.4.013` (Rest) | Testbasis stabil, Warnungen 0, toter Code | ohne grüne, stabile Tests ist jede weitere Prüfung unsicher |
+| 1 | ~~`bug.0.4.011`–`012`~~ | Datenschutz im Fehlerbericht | **abgenommen 15.10.** |
 | 2 | `bug.0.4.013`–`016` | Inventar und Favoriten (Datenverlust) | `013` muss vor der ersten Schema-Erweiterung stehen; `015` erst nach `013` und `014` |
 | 3 | `bug.0.4.017`–`020` | Live-Überwachung | |
 | 4 | `bug.0.4.021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | beseitigt das Einfrieren („Spinning Ball“) |
@@ -69,59 +69,16 @@ Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und g
 
 #### Paket 0 — Testbasis stabil (Rest)
 
-Abgenommen 14.10. (DONE.md): `bug.0.4.043`, `todo.0.4.010`, `todo.0.4.011`, `todo.0.4.012`, `bug.0.4.010` (Warnungen 0, Teile a–d). **Offen:** der Parallellauf.
+Abgenommen (DONE.md): `bug.0.4.043`, `bug.0.4.010`, `bug.0.4.044`, `todo.0.4.010`–`012` und Paket 1. **Offen:** `todo.0.4.013`.
 
-**bug.0.4.044 — Parallellauf nicht grün (Nacharbeit zu `bug.0.4.010`, Claude 14.10.).** Mein Lauf: `xcodebuild test-without-building … -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120`, dreimal hintereinander (Stand `cb59f64`, nach frischem Build). Seriell: 562/562 grün, Warnungen 0.
-| Test | rot in 3 Läufen |
-|---|---|
-| `IndexStoreTests/insertingTwoHundredThousandEntriesStaysFast` (22 s) | 3 von 3 |
-| `ChangeWatcherTests/newFileAppearsAfterQuiet` | 1 von 3 |
-| `ColumnCacheTests/targetedInvalidateKeepsStaleFolderCache` | 1 von 3 |
-- a) `insertingTwoHundredThousandEntriesStaysFast` ist ein **Zeit-Test im Debug-Build** (Regel 8: Leistungszahlen nur im Release-Build). Aus der normalen Suite nehmen und nur unter `DA_BENCH=1` laufen lassen (wie die Messtests). Die Prüfung nicht abschwächen: Grenzwert unverändert, nur Ort der Ausführung. Zusätzlich ein **deterministischer** Test in die normale Suite, der die Eigenschaft beweist (z. B. alle 200.000 Zeilen vorhanden, Schreiben in Blöcken in wenigen Transaktionen), ohne Zeitgrenze.
-- b) `newFileAppearsAfterQuiet`: nur auf die Bedingung warten (Regel 18), Obergrenze 10 s statt fester kurzer Frist; die Erwartung bleibt. Ursache im Status in 1 Zeile.
-- c) `targetedInvalidateKeepsStaleFolderCache`: Ursache klären (verdächtig: statische Test-Schalter und Zähler in `IndexRepository` wie `awaitMissingFolderCacheGateForTesting`, `requestLoadCallsForTesting` werden von Suiten gleichzeitig benutzt). Statische Schalter je Test isolieren oder die betroffenen Suiten gemeinsam `.serialized` führen.
-- **Akzeptanz:** drei Parallelläufe mit dem **genannten Kommando** alle grün; Kommando und Uhrzeiten im Status; seriell grün; Warnungen 0; Regel 23.
+**todo.0.4.013 — Jeder Start zeigt Menüleiste und Hauptfenster und prüft sofort die Version (Nutzer 15.10., ersetzt `todo.0.4.011` b).**
+- a) `AppLaunch.opensMainWindow` gilt für **alle** Startarten (`.click`, `.login`, `.handoff`) ohne Bedingung. Der Parameter `presentsUpdateOrLock` und der Pfad dazu in `AppDelegate` (~Z. 374) entfallen. Gilt auch für den Start durch den Launch-Agent beim Anmelden.
+- b) **Versions-Check bei jedem Start:** `VersionCheckScheduler.start` stellt den Check sofort in die Warteschlange (nicht erst nach 24 h, nicht gedrosselt), unabhängig davon, ob schon einer ansteht (Entdoppelung, `bug.0.4.051` bleibt Backlog). Offline: Aufträge bleiben stehen, der 60-s-Ping und die Netzmeldung leeren sie (unverändert). Ergebnis wirkt im offenen Fenster (Update-Modal, Sperr-Hinweis) ohne Neustart.
+- c) Unverändert: Dock-Reopen, Einzelinstanz-Übergabe, Fenster schließen = Hintergrund.
+- d) Tests: `opensMainWindow` für alle drei Arten `true`; Scheduler-Test mit gezählter Warteschlange (Start → genau ein Auftrag sofort); Sabotage `.login → false` → rot ✓. Keine echte App starten (Regel 19). Warnungen 0, seriell, Regel 23.
 Status:
-bug.0.4.044: 200k→`DA_BENCH`+deterministisch InBlocks; ChangeWatcher 10s/`serialized` (Race feste Frist); ColumnCache Gates/changeLoop weg; ColumnAndSearch COUNT vor reconcile. Kommando `… -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120` 00:32:20 / 00:34:54 / 00:37:39 alle grün; seriell 571 00:26:13; D/R Warn 0; Regel 23 App 00:40:42, `find … -newer` leer. Bereit zur Prüfung
 
-**HALT nach Paket 0** — Freigabe durch Claude: nach `bug.0.4.044`.
-
----
-
-#### Paket 1 — Datenschutz im Fehlerbericht (vor 0.4 zwingend)
-
-**bug.0.4.011 — Keine Namen, Pfade oder Fehlertexte mit Namen im Datei-Protokoll; Scrubber verlässlich (REPORT 54, 124, 91).**
-- a) `DiskIndexLog.record`: `privateDetail` **nicht mehr in die Protokolldatei** schreiben. In der Datei steht stattdessen ` pathDepth=<n> pathLen=<utf8-Bytes>`. In `os_log` bleibt `privateDetail` `.private`.
-- b) Datei-Protokoll ohne `error.localizedDescription` und ohne `\(error)` bei Datei-/Ordnerfehlern. Stattdessen eine technische Kurzform `domain=<NSError.domain> code=<code> posix=<code>`. Eine Hilfsfunktion an **einer** Stelle, alle Aufrufer umstellen. Der Grund: lokalisierte NSError-Texte enthalten Dateinamen in „…“. Fundstellen u. a.:
-  - `ChangeWatcherEngine` Z. ~101/136
-  - `DirectoryIndexer` Z. ~298/319/450
-  - `MediumCoordinator` Z. ~141
-- c) `os_log`: `message` standardmäßig `.private`, öffentlich nur feste technische Präfixe. Die Zeile `ui("search query=…")` (`AppState` Z. ~19) im `os_log` nicht mehr mit Suchbegriff.
-- d) `ReportScrubber` als zweite Schicht:
-  - Pfad-Regex bis Zeilenende (`(?:/Volumes|/Users|~|file://)[^\n]*`).
-  - Typografische Anführungszeichen „…“ ‚…‘ «…» wie `"`/`'` behandeln.
-  - `scrubRemainder` lässt nur selbst erzeugte Profile `‹(path|name|query) [^‹›]*›` durch, nicht jedes `‹…›`.
-  - Deutsche Buchstaben (ä ö ü Ä Ö Ü ß) und typografischer Apostroph gelten als **gewöhnlich**, damit feste Meldungstexte samt Zeitstempel, ID und Status erhalten bleiben (124).
-  - `ext=‹odd›` ohne Winkelklammern (`ext=odd`).
-- **Tests:**
-  - `ReportScrubber.text` mit `/Volumes/Jon's Passport/Clients/Acme Corp`, `/Volumes/A/My "Best" Photos`, `/Volumes/A/‹Kunde Acme›/x`, `file:///Volumes/O'Brien/x`, `Die Datei „Präsentation.key“ …` → weder `Passport`, `Acme`, `Photos`, `O'Brien` noch `Präsentation` im Ergebnis.
-  - `2026-10-13T20:01:02Z medium info candidate=ja eingehängt id=1234 stärke=uuid` → Zeitstempel, `id=1234`, `stärke=uuid` bleiben.
-  - `DiskIndexLog` in ein Testverzeichnis schreiben lassen, `record(…, privateDetail: "/Volumes/X/geheim")` → die Datei enthält `geheim` nicht.
-- **Sabotage:** Pfad-Regex auf den alten Stand → rot.
-Status:
-bug.0.4.011 (REPORT 54,124,91): `DiskIndexLog` pathDepth/pathLen, `errorSummary`, ui `chars=`; Scrubber file://+DE+Profile+ext=odd; Aufrufer ChangeWatcherEngine/DirectoryIndexer. Sabotage alter Regex→rot 00:06:18 ✓ zurück. Tests `PrivacyLogAndScrubberTests`. Seriell 571 00:26:13; D/R Warn 0; Regel 23 App 00:40:42. Bereit zur Prüfung
-
-**bug.0.4.012 — Leak-Wächter vor dem Senden wirksam machen (REPORT 55, Korrektur B-55).**
-- a) `ReportScrubber.leakCategory` prüft den **dekodierten** Body: JSON parsen, alle String-Werte rekursiv prüfen auf `/Volumes/`, `/Users/`, `~/`, `file://`. Alternativ mit `.withoutEscapingSlashes` serialisieren und zusätzlich dekodiert prüfen.
-- b) Namensabgleich (`knownNames`): Mediennamen aus der DB **beim Start einmal** im Hintergrund laden, nicht auf main, nicht beim Senden. Prüfung nur mit Wortgrenzen und mindestens 4 Zeichen. **Ausschlussliste:** App- und Image-Namen („Disk Archive“, „diskindex“, Systemframework-Namen aus Backtraces). Ein Medium „Disk“ oder „Archive“ darf keinen Bericht blockieren.
-- **Tests:**
-  - Payload mit `/Volumes/X/geheim` direkt in die Queue legen → `flush` → Zeile `blocked:leak=path`, kein Request beim Mock.
-  - Medium „Archive“ registriert, Bericht mit Backtrace „Disk Archive“ → **nicht** blockiert.
-  - Bestehender Test `IssueTrackerTests` Z. ~212–217 zusätzlich mit echt serialisiertem JSON.
-Status:
-bug.0.4.012 (REPORT 55): `leakCategory` dekodiert+Wortgrenzen≥4; `knownNames` Cache beim Start; Ausschluss Disk/Archive; `leakWatchBlocksQueuedPathPayload` in IssueTrackerTests. Parallel 3× grün 00:32:20–00:40:24; seriell 571; D/R Warn 0; Regel 23 App 00:40:42. Bereit zur Prüfung
-
-**HALT nach Paket 1** — Freigabe durch Claude:
+**HALT nach Paket 0** — Freigabe durch Claude: nach `todo.0.4.013`.
 
 ---
 
@@ -443,7 +400,7 @@ Status:
 - `ensureSingleInstance()` **vor** `DiskIndexLog.shared.start()`.
 - Bei `handedOff` in `applicationWillTerminate` nichts protokollieren und nichts abbauen.
 - Protokoll-Handle mit `O_APPEND`.
-- Bei `launchKind == .login` die Übergabe ohne `showMainWindow`.
+- Entfällt (Nutzer 15.10.): Der Anmeldestart zeigt das Hauptfenster ebenfalls (`todo.0.4.013`).
 - SIGTERM: aus der sigaction-Liste nehmen; `signal(SIGTERM, SIG_IGN)` plus `DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)` → `NSApp.terminate(nil)`.
 - **Akzeptanz:**
   - Test der Startreihenfolge: Bei Übergabe schreibt die Zweitinstanz keine Protokollzeile und fasst `crash-last.txt` nicht an.
@@ -477,7 +434,7 @@ Status:
 | `todo.0.4.036` | **Versions-Check-Takt:** `Task.sleep` zählt Betriebszeit, nicht Kalenderzeit; auf Laptops mit Ruhezustand seltener als „alle 24 h“. Kalenderzeit gemeint? | `VersionCheckScheduler` |
 | `todo.0.4.037` | **Antwort 201 ohne JSON-`id`** gilt als Fehlschlag und wird erneut gesendet (Doppel auf dem Server). Mit der Server-Seite abstimmen. | Fehlerbericht |
 | `todo.0.4.038` | `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht oder löschen? | `todo.0.4.010` |
-| `todo.0.4.039` | **Start beim Anmelden öffnet das Hauptfenster einmal, wenn ein Update-Angebot oder eine Sperre vorliegt** (gebaut als Teil b von `todo.0.4.011`). Beibehalten oder entfernen? | Anmeldestart |
+| `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
 
 ### Beobachten (keine Aufgabe)
 
