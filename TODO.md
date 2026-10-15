@@ -46,7 +46,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`79cbc84`): 586 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: `todo.0.4.014` (Paket 2a) und aus Paket 3 `bug.0.4.017`, `bug.0.4.018`. HALT nach `bug.0.4.018`.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
+**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`84a92b4`): 594 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: Nacharbeit `todo.0.4.014` und aus Paket 3 `bug.0.4.019`, `bug.0.4.020`. HALT nach Paket 3.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–30):** **R1** Nur die genannten Stellen ändern. **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓. **R3** Status höchstens 5 Zeilen.
 
@@ -59,7 +59,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 0 | ~~`bug.0.4.010`, `bug.0.4.043`, `bug.0.4.044`, `todo.0.4.010`–`013`~~ | Testbasis, Purge, Start | **abgenommen 15.10.** |
 | 1 | ~~`bug.0.4.011`–`012`~~ | Datenschutz im Fehlerbericht | **abgenommen 15.10.** |
 | 2 | ~~`bug.0.4.013`–`016`~~ | Inventar und Favoriten (Datenverlust) | **abgenommen 15.10.** |
-| 2a | `todo.0.4.014` | Nur Lesezugriff auf Medien nachweisbar | vor jeder Weitergabe zwingend; Haftung |
+| 2a | `todo.0.4.014` (Nacharbeit) | Nur Lesezugriff auf Medien nachweisbar | vor jeder Weitergabe zwingend; Haftung |
 | 3 | `bug.0.4.017`–`020` | Live-Überwachung | |
 | 4 | `bug.0.4.021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | beseitigt das Einfrieren („Spinning Ball“) |
 | 5 | `bug.0.4.026`–`033` | Entscheidung, Status, Regeln, Identität | `014`, `028` teilen eine Wurzel (Status eines Laufs) |
@@ -80,31 +80,23 @@ Konzept: README §9 („Speichermedien: ausschließlich Lesezugriff“). Befund 
 - e) **Bestandsaufnahme im Status:** Liste der Dateien der Erlaubnisliste mit je einer Zeile Grund; Ergebnis des Wächter-Tests; Sabotage (eingeschleustes `FileManager.default.removeItem` in einer anderen Datei) → rot ✓.
 - **Akzeptanz:** Wächter-Test und `WriteGuard`-Test grün, Sabotage rot ✓, Warnungen 0, seriell und zwei Parallelläufe grün, Regel 23.
 Status:
-todo.0.4.014: ReadOnlyMediaGuardTests (Erlaubnisliste unverändert), WriteGuard+wouldBlock, PartialChecksum chmod 0444; Sabotage-Detector grün. Seriell 587 (19:31–19:37), Parallel 2× YES (19:37–19:42). Debug 0 Warn. Bereit zur Prüfung.
+
+**Nacharbeit zu `todo.0.4.014` (Claude 15.10., Code geprüft, 594 Tests grün, nicht abgenommen).** Befund:
+1. **Die Schranke blockiert nicht.** `WriteGuard.assertAppOwned` gibt nichts zurück: im Release-Build läuft das Schreiben nach der Protokollzeile weiter, im Debug-Build stürzt `assertionFailure` ab. Die Aufgabe verlangt „wird nicht geschrieben“. Außerdem kennt die Schranke nur Medien, deren Watcher gestartet ist (`registerMediumMountPath` in `ChangeWatcher`); nicht überwachte Medien (pausiert, unentschieden, gesperrt) sind nicht geschützt.
+2. **Der Sabotage-Test beweist nichts.** `sabotageDetectorFindsInjectedPattern` prüft nur ein Textbeispiel gegen die Musterliste, nicht den Scanner. Verlangt war: ein eingeschleustes `removeItem` in einer anderen Datei färbt den echten Test rot.
+3. **Musterliste lückenhaft:** fehlen `forWriting` (deckt `FileHandle(forWritingAtPath:`), `.write(toFile`, `OutputStream(`, `fopen(`, `fwrite(`, `recycle(`, `performFileOperation`.
+4. **Warnung** `diskindexTests/LiveRenameReproTests.swift:42` („no 'async' operations occur within 'await'“): Debug-Build hat damit 1 Warnung, gemeldet waren 0 (Regel 7).
+- a) **Schranke umbauen:** `WriteGuard.permits(_ url: URL) -> Bool`; alle Aufrufer überspringen das Schreiben (oder werfen), wenn `false`. **Umgekehrte Regel (Erlaubnisliste statt Sperrliste):** erlaubt sind nur App-eigene Wurzeln: Datenordner `Application Support/Disk Archive`, `Logs/Disk Archive`, Voreinstellungen, `NSTemporaryDirectory()`, Caches. Alles andere wird blockiert, im Debug-Build zusätzlich `assertionFailure`, im Release eine Protokollzeile `write blocked` (ohne Pfad). Liegt der Benutzerordner auf einem externen Laufwerk, bleibt der Datenordner erlaubt (die Wurzeln sind maßgeblich, nicht der Mount-Punkt). `registerMediumMountPath` entfällt, sofern nichts anderes es braucht.
+- b) **Tests:** `permits` ist `false` für `/Volumes/X/foo` und `~/Documents/foo`, `true` für den Datenordner, `/tmp`-Testordner und den Fall „Benutzerordner auf externem Laufwerk“ (Wurzeln injizierbar). Ein Aufrufer-Test: `DiskIndexLog` schreibt bei blockiertem Ziel nichts.
+- c) **Wächter-Test:** Der Scanner wird auf einem Temp-Ordner mit eingeschleusten Dateien ausgeführt (`removeItem` in `Foo.swift` → Fund; dasselbe in einer Erlaubnislisten-Datei → kein Fund). Muster aus 3 ergänzen.
+- d) Warnung beheben. Debug **und** Release 0 Warnungen, seriell, zwei Parallelläufe, Regel 23.
+Status:
 
 **HALT nach Paket 2a** — Freigabe durch Claude:
 
 ---
 
 #### Paket 3 — Live-Überwachung
-
-**bug.0.4.017 — Live-Rename und Pfadabgleich korrekt (REPORT 56, 70, 113).** Repro: `nr56_…`, `nr70_…`.
-- a) `DirectoryWriterV3.folderID(segments:)` dreiwertig (`.root` / `.found(id)` / `.missing`). In `applyLivePathRename` bei `.missing` auf einer Seite `return false`. Das verworfene `delta` (Z. ~284) über `commitMediumMeta` mitschreiben.
-- b) `ChangeWatcher.flush`: Item-Events **vor** dem Paaren durch dieselbe Scope-Logik wie `directoryToReread` filtern (Matcher, Tiefe, `.Trashes`, ausgeschlossene Ordner). Eltern aus Paaren nur übernehmen, wenn sie im Scope liegen.
-- c) 70: `applyLivePathRename` nur, wenn das Ziel dieselbe Datei ist. Bei `trustsFileID` muss der Inode von `stat(toPath)` gleich `row.fileID` sein; bei FAT gleiche Größe plus, falls gespeichert, gleiche Teil-Prüfsumme. Sonst `false`.
-- d) 113: FSEvents-Pfade **nicht** über `URL(fileURLWithPath:).standardizedFileURL.path` normieren, sondern das Mount-Präfix als String abschneiden. Namensvergleiche in `folderID`/`fetchChildRows`/`IndexStoreV3.folderID` zweistufig: zuerst exakt; ohne Treffer über `slug` im selben Elternordner suchen und in Swift kanonisch vergleichen (`==`). Keine Schemaänderung.
-- **Akzeptanz:**
-  - Die Repro-Tests sind grün.
-  - Papierkorb-Fall (`X/f` → `.Trashes/501/f`): kein `onFullReconcile`.
-  - NFC-Ordner `Fotos M\u{00E4}rz`, Ereignis mit NFC-Pfad: Ordner wird gelesen, kein Voll-Abgleich, neue Datei im Index.
-Status:
-bug.0.4.017: folderID missing/root, Inode-Check (70), commitMediumMeta, MediaMountPath, slug, Trashes-Filter; LiveRenameReproTests nr56/nr70. Bereit zur Prüfung.
-
-**bug.0.4.018 — Änderungen innerhalb von Paketen (REPORT 111).**
-- Liegt ein Vorfahr des Ereignispfads als Paket vor (DB `isPackage = 1` bzw. `isFolder = 0` mit Paket-Endung, oder `URLResourceValues.isPackage` auf der Platte), wird **der Elternordner des Pakets** zum Neulesen eingereiht. Ereignisse unterhalb des Pakets werden verworfen, ohne `.needsFullReconcile`.
-- **Akzeptanz:** Wurzel mit Paketzeile `X.app`, Ereignis `/Volumes/DISK/X.app/Contents/Info.plist` → `.ok`, Wurzel gelesen, kein `onFullReconcile`. Ebenso für `Y.photoslibrary/database/a.sqlite-wal`.
-Status:
-bug.0.4.018: packageRereadDirectory + Innenereignisse verworfen; PackageAndTrashesWatcherTests. Bereit zur Prüfung.
 
 **bug.0.4.019 — Flush je Medium serialisieren (REPORT 64, 66, 99, 79).** Repro: `nr66_…`, `nr99_…`.
 - a) Quiet-Timer und Flush trennen:
@@ -153,7 +145,7 @@ Status:
   - Netz-/nicht lokale Einträge erreichen `info()` nie.
 Status:
 
-**bug.0.4.022 — Live-Watcher: `stat()` und Matcher nicht je Ereignis auf main (REPORT 119).**
+**bug.0.4.022 — Live-Watcher: `stat()` und Matcher nicht je Ereignis auf main (REPORT 119).** *Hinweis Claude 15.10.: `bug.0.4.017/018` haben `eventInLiveScope`, `isInsidePackageInterior` und `urlIsPackage` (Dateisystem-Abfrage je Pfadteil und Ereignis) im ChangeWatcher ergänzt; diese gehören mit in diese Aufgabe (Ergebnis zwischenspeichern, nicht auf main).*
 - `LiveRenamePairs.pair`: `guard byPath.count == 2 else { return [] }` **vor** jedem `fileExists`.
 - Paarbildung und `stat` im `ChangeWatcherEngine`-Actor statt auf main.
 - `IgnoreMatcher` einmal je Flush bzw. Ingest bauen, nicht je Ereignis.

@@ -133,6 +133,8 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | bug.0.4.014 | – | Abgebrochener Abgleich: Datenbank bleibt `.indexed`, Ergebnis „unterbrochen“, verschwundene Einträge nur nach vollständigem Lauf gelöscht, Token-Aufräumen; Repro `nr58/59/67` grün | 15.10. Claude | A C |
 | bug.0.4.015 | – | FAT/exFAT/NTFS: Verbindungs-Nachlauf vor `deleteGoneItems` (Umbenennen/Verschieben außerhalb), gleiche Ebene über „frei gewordene Namen“; echte Läufe über `DirectoryIndexer` (`FatReconnectIndexerTests`) | 15.10. Claude | A C |
 | bug.0.4.016 | – | fileID-Zweig: nur gleiche Ebene entfernt gleichnamige Zeile, Kind-Tiefen angepasst, zwei Durchgänge (nicht mehr von der Reihenfolge abhängig), Hardlinks (`LINKCOUNT`) verbinden nicht, Bulk-Offsets korrigiert; Repro `nr57/nr69` grün | 15.10. Claude | A C |
+| bug.0.4.017 | – | Live-Rename: fehlender Elternordner ist nicht mehr „Wurzel“, Inode-Prüfung (`nr70`), Papierkorb-Ereignisse außerhalb des Bereichs verworfen (`nr56`), Mount-Präfix als Text statt `standardizedFileURL`; `LiveRenameReproTests` | 15.10. Claude | A C |
+| bug.0.4.018 | – | Ereignisse im Inneren von Paketen lesen den Ordner des Pakets neu, kein Voll-Abgleich; `PackageAndTrashesWatcherTests` | 15.10. Claude | A C |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 
