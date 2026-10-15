@@ -46,7 +46,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`cfbf7d5`): 571 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: `todo.0.4.013` und aus Paket 2 `bug.0.4.013`, `bug.0.4.014`. HALT nach `bug.0.4.014`.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
+**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`c5570c1`): 577 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: `bug.0.4.015` und `bug.0.4.016` (Rest von Paket 2). HALT nach Paket 2.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–30):** **R1** Nur die genannten Stellen ändern. **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓. **R3** Status höchstens 5 Zeilen.
 
@@ -56,9 +56,9 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 | Paket | Kennungen | Thema | Warum in dieser Reihenfolge |
 |---|---|---|---|
-| 0 | `todo.0.4.013` (Rest) | Testbasis stabil, Warnungen 0, toter Code | ohne grüne, stabile Tests ist jede weitere Prüfung unsicher |
+| 0 | ~~`bug.0.4.010`, `bug.0.4.043`, `bug.0.4.044`, `todo.0.4.010`–`013`~~ | Testbasis, Purge, Start | **abgenommen 15.10.** |
 | 1 | ~~`bug.0.4.011`–`012`~~ | Datenschutz im Fehlerbericht | **abgenommen 15.10.** |
-| 2 | `bug.0.4.013`–`016` | Inventar und Favoriten (Datenverlust) | `013` muss vor der ersten Schema-Erweiterung stehen; `015` erst nach `013` und `014` |
+| 2 | ~~`bug.0.4.013`~~, ~~`bug.0.4.014`~~, `bug.0.4.015`, `bug.0.4.016` | Inventar und Favoriten (Datenverlust) | `013` muss vor der ersten Schema-Erweiterung stehen; `015` erst nach `013` und `014` |
 | 3 | `bug.0.4.017`–`020` | Live-Überwachung | |
 | 4 | `bug.0.4.021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | beseitigt das Einfrieren („Spinning Ball“) |
 | 5 | `bug.0.4.026`–`033` | Entscheidung, Status, Regeln, Identität | `014`, `028` teilen eine Wurzel (Status eines Laufs) |
@@ -67,48 +67,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und gelten **mit den Korrekturen der Zweitprüfung** (hier eingearbeitet). Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
 
-#### Paket 0 — Testbasis stabil (Rest)
-
-Abgenommen (DONE.md): `bug.0.4.043`, `bug.0.4.010`, `bug.0.4.044`, `todo.0.4.010`–`012` und Paket 1. **Offen:** `todo.0.4.013`.
-
-**todo.0.4.013 — Jeder Start zeigt Menüleiste und Hauptfenster und prüft sofort die Version (Nutzer 15.10., ersetzt `todo.0.4.011` b).**
-- a) `AppLaunch.opensMainWindow` gilt für **alle** Startarten (`.click`, `.login`, `.handoff`) ohne Bedingung. Der Parameter `presentsUpdateOrLock` und der Pfad dazu in `AppDelegate` (~Z. 374) entfallen. Gilt auch für den Start durch den Launch-Agent beim Anmelden.
-- b) **Versions-Check bei jedem Start:** `VersionCheckScheduler.start` stellt den Check sofort in die Warteschlange (nicht erst nach 24 h, nicht gedrosselt), unabhängig davon, ob schon einer ansteht (Entdoppelung, `bug.0.4.051` bleibt Backlog). Offline: Aufträge bleiben stehen, der 60-s-Ping und die Netzmeldung leeren sie (unverändert). Ergebnis wirkt im offenen Fenster (Update-Modal, Sperr-Hinweis) ohne Neustart.
-- c) Unverändert: Dock-Reopen, Einzelinstanz-Übergabe, Fenster schließen = Hintergrund.
-- d) Tests: `opensMainWindow` für alle drei Arten `true`; Scheduler-Test mit gezählter Warteschlange (Start → genau ein Auftrag sofort); Sabotage `.login → false` → rot ✓. Keine echte App starten (Regel 19). Warnungen 0, seriell, Regel 23.
-Status:
-todo.0.4.013: `AppLaunch`/`AppDelegate`/`VersionCheckCoordinator`+`Scheduler` (force-enqueue); Tests `AppLaunchTests`; Sabotage login rot ✓; seriell 577 08:11:51; D/R Warn 0; Regel 23 App 08:23:40. Bereit zur Prüfung
-
-**HALT nach Paket 0** — Freigabe durch Claude: nach `todo.0.4.013`.
-
----
-
 #### Paket 2 — Inventar und Favoriten (Datenverlust)
-
-**bug.0.4.013 — Schema: Schutz vor Rückschritt + Teilindex für verschwundene Einträge (REPORT 101, 63, Korrekturen B-101, B-63).**
-- a) `SchemaV3.openPool`: Vor `migrate` `try pool.read(migrator.hasBeenSuperseded)`. Bei `true` mit eigenem Fehler abbrechen; dieser läuft über den bestehenden Store-Fehlerdialog, ohne neuen Text (Regel 3: falls einer nötig ist, „Frage:“). **Muss in derselben Lieferung wie b) sein**, also vor der ersten Schema-Erweiterung.
-- b) Neue Migration (eigener Name, nach `firstMigration`): `CREATE INDEX items_gone ON items(storageID, isFolder) WHERE status = 2`.
-- c) `DirectoryWriterV3.matchGoneCandidate`: SQL mit **Literal** `status = 2` (nicht als Parameter), damit der Teilindex greift. Keinen Vorabtest je Writer zwischenspeichern.
-- **Tests:**
-  - Zeile `grdb_migrations('9.9-future')` einfügen → `openPool` wirft.
-  - `EXPLAIN QUERY PLAN` der Kandidaten-Abfrage nennt `items_gone`.
-  - Messtest (Release): FAT-Erstindex mit 50.000 Dateien gegen vorher, Zahl im Status.
-Status:
-bug.0.4.013 (REPORT 101,63): `schemaSuperseded`, Migration `0.4.0-items_gone`, `matchGoneCandidate` status=2; Tests `SchemaV3Tests`+`StoreSwitchTests`; EXPLAIN items_gone (5000 gone); Messtest FAT-50k: kein Vorgänger-Benchmark im Repo. Bereit zur Prüfung
-
-**bug.0.4.014 — Abgebrochener Abgleich: kein Ebenen-Überspringen, keine Löschung verschwundener Einträge, Token aufräumen (REPORT 59, 58, 67, Korrekturen B-58, B-59).** Repro: `nr59_…`, `nr58_…`, `nr67_…`.
-- a) Laufart merken: Ein Lauf ist ein **Abgleich**, wenn `!fromScratch && stored.indexStatus == .indexed && stored.completedDepth > 0` (Bedingung aus `DirectoryIndexer` Z. ~61).
-  - Wird ein Abgleich angehalten (`stop()`: pause/cancel/none) oder über `IndexingService.cancel` abgebrochen, schreibt die DB **`.indexed`** (nicht `.pending`), und die UI zeigt `.indexed`.
-  - Das Laufergebnis an `IndexingService.finish` muss trotzdem **„unterbrochen“** melden. Keine Meldung „vollständig indiziert“, kein `onRunIndexed`, keine Wartung (B-59).
-  - Bei Erst- und „Neu indizieren“-Läufen bleibt `.pending` wie heute.
-- b) `finishIndexing`: `deleteGoneItems` **nur**, wenn der Lauf vollständig endet (`.indexed` und nicht unterbrochen). Bei pending, error oder unterbrochen bleiben gone-Zeilen stehen (B-58: nur zusammen mit a).
-- c) `beginIndexing`: Wirft der Schreibvorgang, das Token zurücksetzen (`if indexingToken[uuid] == token { … = nil }`), dann erneut werfen.
-- **Akzeptanz:**
-  - Medium `.indexed`, Abgleich nach Ebene 1 pausiert → DB `.indexed`, Folgelauf liest Ebenen 2…n (neue Datei auf Ebene 3 wird gefunden).
-  - Favorit in gone-Unterbaum übersteht `.pending`.
-  - Die drei Repro-Tests sind grün.
-Status:
-bug.0.4.014 (REPORT 59,58,67): `interrupted`+`finishIndexing`; Repro `ReconcileAbortReproTests` nr58/59/67 grün; Parallel `… YES … 120` 08:18:16/08:21:00; seriell 577; D/R Warn 0; Regel 23 App 08:23:40. Bereit zur Prüfung
 
 **bug.0.4.015 — FAT/exFAT/NTFS: Umbenennen/Verschieben außerhalb wieder verbinden (REPORT 110).** Voraussetzung: bug.0.4.013, bug.0.4.014.
 - a) Für Medien ohne `trustsFileID`: **Verbindungs-Nachlauf am Laufende vor `deleteGoneItems`**.

@@ -128,6 +128,9 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | bug.0.4.044 | – | Parallellauf grün: Zeit-Test nur unter `DA_BENCH` (plus Test ohne Zeitgrenze), `ChangeWatcherTests` wartet auf Bedingung, Test-Schalter isoliert | 15.10. Claude | A |
 | bug.0.4.011 | – | Datei-Protokoll ohne `privateDetail` (nur `pathDepth`/`pathLen`), Fehler als `domain/code/posix` über `DiskIndexLog.errorSummary`, `os_log` privat, Suchbegriff nicht protokolliert, Scrubber: Pfade bis Zeilenende, typografische Anführungszeichen, nur eigene Profile | 15.10. Claude | A C |
 | bug.0.4.012 | – | Leak-Wächter prüft den dekodierten JSON-Inhalt, Namen mit Wortgrenzen (≥ 4 Zeichen, Ausschlussliste), Medien­namen im Hintergrund geladen | 15.10. Claude | A C |
+| todo.0.4.013 | ersetzt `todo.0.4.011` b | Jeder Start (Klick, Anmeldung, Handoff) zeigt Menüleiste und Hauptfenster, Versions-Check bei jedem Start sofort (`force: true`) | 15.10. Claude | A C |
+| bug.0.4.013 | – | App öffnet keine neuere Datenbank (`hasBeenSuperseded` → `schemaSuperseded`), Migration `0.4.0-items_gone` (Teilindex, im Plan belegt), Kandidatenabfrage mit Literal `status = 2` | 15.10. Claude | A C |
+| bug.0.4.014 | – | Abgebrochener Abgleich: Datenbank bleibt `.indexed`, Ergebnis „unterbrochen“, verschwundene Einträge nur nach vollständigem Lauf gelöscht, Token-Aufräumen; Repro `nr58/59/67` grün | 15.10. Claude | A C |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 
