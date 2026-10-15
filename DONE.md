@@ -131,6 +131,8 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | todo.0.4.013 | ersetzt `todo.0.4.011` b | Jeder Start (Klick, Anmeldung, Handoff) zeigt Menüleiste und Hauptfenster, Versions-Check bei jedem Start sofort (`force: true`) | 15.10. Claude | A C |
 | bug.0.4.013 | – | App öffnet keine neuere Datenbank (`hasBeenSuperseded` → `schemaSuperseded`), Migration `0.4.0-items_gone` (Teilindex, im Plan belegt), Kandidatenabfrage mit Literal `status = 2` | 15.10. Claude | A C |
 | bug.0.4.014 | – | Abgebrochener Abgleich: Datenbank bleibt `.indexed`, Ergebnis „unterbrochen“, verschwundene Einträge nur nach vollständigem Lauf gelöscht, Token-Aufräumen; Repro `nr58/59/67` grün | 15.10. Claude | A C |
+| bug.0.4.015 | – | FAT/exFAT/NTFS: Verbindungs-Nachlauf vor `deleteGoneItems` (Umbenennen/Verschieben außerhalb), gleiche Ebene über „frei gewordene Namen“; echte Läufe über `DirectoryIndexer` (`FatReconnectIndexerTests`) | 15.10. Claude | A C |
+| bug.0.4.016 | – | fileID-Zweig: nur gleiche Ebene entfernt gleichnamige Zeile, Kind-Tiefen angepasst, zwei Durchgänge (nicht mehr von der Reihenfolge abhängig), Hardlinks (`LINKCOUNT`) verbinden nicht, Bulk-Offsets korrigiert; Repro `nr57/nr69` grün | 15.10. Claude | A C |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

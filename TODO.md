@@ -46,7 +46,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`c5570c1`): 577 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: `bug.0.4.015` und `bug.0.4.016` (Rest von Paket 2). HALT nach Paket 2.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
+**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`79cbc84`): 586 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: `todo.0.4.014` (Paket 2a) und aus Paket 3 `bug.0.4.017`, `bug.0.4.018`. HALT nach `bug.0.4.018`.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–30):** **R1** Nur die genannten Stellen ändern. **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓. **R3** Status höchstens 5 Zeilen.
 
@@ -58,7 +58,8 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 |---|---|---|---|
 | 0 | ~~`bug.0.4.010`, `bug.0.4.043`, `bug.0.4.044`, `todo.0.4.010`–`013`~~ | Testbasis, Purge, Start | **abgenommen 15.10.** |
 | 1 | ~~`bug.0.4.011`–`012`~~ | Datenschutz im Fehlerbericht | **abgenommen 15.10.** |
-| 2 | ~~`bug.0.4.013`~~, ~~`bug.0.4.014`~~, `bug.0.4.015`, `bug.0.4.016` | Inventar und Favoriten (Datenverlust) | `013` muss vor der ersten Schema-Erweiterung stehen; `015` erst nach `013` und `014` |
+| 2 | ~~`bug.0.4.013`–`016`~~ | Inventar und Favoriten (Datenverlust) | **abgenommen 15.10.** |
+| 2a | `todo.0.4.014` | Nur Lesezugriff auf Medien nachweisbar | vor jeder Weitergabe zwingend; Haftung |
 | 3 | `bug.0.4.017`–`020` | Live-Überwachung | |
 | 4 | `bug.0.4.021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | beseitigt das Einfrieren („Spinning Ball“) |
 | 5 | `bug.0.4.026`–`033` | Entscheidung, Status, Regeln, Identität | `014`, `028` teilen eine Wurzel (Status eines Laufs) |
@@ -67,36 +68,20 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und gelten **mit den Korrekturen der Zweitprüfung** (hier eingearbeitet). Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
 
-#### Paket 2 — Inventar und Favoriten (Datenverlust)
+#### Paket 2a — Nur Lesezugriff auf Medien nachweisbar machen (Nutzer 15.10., vor jeder Weitergabe zwingend)
 
-**bug.0.4.015 — FAT/exFAT/NTFS: Umbenennen/Verschieben außerhalb wieder verbinden (REPORT 110).** Voraussetzung: bug.0.4.013, bug.0.4.014.
-- a) Für Medien ohne `trustsFileID`: **Verbindungs-Nachlauf am Laufende vor `deleteGoneItems`**.
-  - Paare bilden aus „in diesem Lauf neu eingefügt“ (Kennzeichnung im Lauf, z. B. Menge der neuen IDs oder Zeitstempel) und `status = 2`.
-  - Regeln wie heute: gleiche Art (Ordner/Datei/Paket), gleiche Größe, Datum ±FAT-Toleranz, gleiche Endung, bei Mehrdeutigkeit Teil-Prüfsumme. Ordner nur mit Name + Eltern (wie Nr. 34).
-  - Bei **eindeutigem** Treffer: Die **alte** Zeile übernimmt Elternordner, Namen, Slug und Tiefe der neuen. Favorit, Meta und Prüfsumme bleiben an der alten ID, die neue Zeile wird gelöscht.
-- b) Zusätzlich im `finalize` eines Ordners die im selben Ordner verschwindenden Zeilen (`status = 0`, nicht in `incoming`) **vorab** als Kandidaten für die Neueinträge desselben Ordners zulassen (Umbenennen im selben Ordner).
-- c) Die Tests `ItemIdentityTests` mit künstlichem `applyDirectory(entries: [])` durch **echte Läufe** über `DirectoryIndexer` mit `MemoryVolume` ergänzen (Regel 18).
-- **Akzeptanz (je ein Test, FAT-Medium, Favorit):**
-  - `alt.txt` → `neu.txt` im selben Ordner: gleiche ID, Favorit bleibt.
-  - `P/a.txt` → `Q/a.txt` (gleiche Ebene): wie oben.
-  - `/A/B/x.txt` → `/x.txt` (nach oben): wie oben.
-  - Zwei gleich große Kandidaten ohne Prüfsumme: **kein** Verbinden.
+Konzept: README §9 („Speichermedien: ausschließlich Lesezugriff“). Befund Claude 15.10.: Die Suche im Quelltext findet heute **keinen** schreibenden Zugriff auf einen Medienpfad; alle Schreibaufrufe betreffen den Datenordner, das Protokoll, den Fehlerbericht-Ausgang, die Absturzdatei und `DatabaseCare`. Es fehlt der **Nachweis, der so bleibt**.
+
+**todo.0.4.014 — Schreibschranke und Wächter-Test.**
+- a) **Wächter-Test über den Quelltext** (`ReadOnlyMediaGuardTests`): liest alle `.swift`-Dateien unter `diskindex/diskindex/` und schlägt rot, wenn eine verbotene Schreib-API außerhalb der **Erlaubnisliste** vorkommt. Verboten: `removeItem`, `trashItem`, `moveItem`, `copyItem`, `replaceItem`, `createFile`, `createDirectory`, `createSymbolicLink`, `linkItem`, `FileHandle(forWritingTo`, `FileHandle(forUpdating`, `.write(to`, `setAttributes`, `setxattr`, `removexattr`, `O_WRONLY`, `O_RDWR`, `O_CREAT`, `O_APPEND`, `O_TRUNC`, `unlink(`, `rename(`, `mkdir(`, `truncate(`, `ftruncate(`, `symlink(`, `link(`, `DADiskUnmount`, `DADiskEject`, `unmountAndEjectDevice`. Erlaubnisliste (Datei → Grund): `DiskIndexLog.swift`, `IssueTracker.swift`, `DatabaseCare.swift`, `AppDefaults.swift`, `FilePrivacy.swift`, `Storage/V3/SchemaV3.swift`, `DebugTools/` (Datenordner, Protokoll, Ausgang, Voreinstellungen, Rechte der eigenen Dateien). Eine neue Datei mit solchen Aufrufen macht den Test rot und braucht eine Entscheidung von Claude (Erlaubnisliste ändert nur Claude).
+- b) **Schreibschranke zur Laufzeit** `WriteGuard.assertAppOwned(_ url: URL)`: in den erlaubten Schreib-Dateien vor jedem Schreiben aufgerufen. Liegt der Zielpfad **unter dem Mount-Punkt eines bekannten Mediums** (`/Volumes/…` oder ein Medium aus der Datenbank; auch wenn der Benutzerordner selbst auf einem externen Laufwerk liegt), wird **nicht geschrieben**, im Debug-Build `assertionFailure`, im Release eine Zeile im Protokoll (`write blocked`, ohne Pfad). Test mit einem Fake-Medium unter einem Temp-Ordner.
+- c) **Nur-Lesen beim Öffnen:** `BulkDirectoryReader` (`O_RDONLY`, bereits so), `PartialChecksum` und jede künftige Dateilesung benutzen ausschließlich `O_RDONLY` bzw. `FileHandle(forReadingFrom:)`. Test: Teil-Prüfsumme auf einer **schreibgeschützt eingehängten** Testdatei (`chmod 0444` in einem Temp-Ordner) funktioniert; kein Aufruf scheitert an fehlender Schreibberechtigung.
+- d) **Keine Funktion in der Oberfläche:** Prüfliste in Review-Regel (Claude): Menü, Kontextmenü und Tastenkürzel bieten kein Löschen, Umbenennen, Verschieben, Auswerfen, Papierkorb auf Medien. Der Wächter-Test aus a) deckt die Aufrufe, der Test `ContextMenuPlan` bleibt Referenz. Keine neuen Texte.
+- e) **Bestandsaufnahme im Status:** Liste der Dateien der Erlaubnisliste mit je einer Zeile Grund; Ergebnis des Wächter-Tests; Sabotage (eingeschleustes `FileManager.default.removeItem` in einer anderen Datei) → rot ✓.
+- **Akzeptanz:** Wächter-Test und `WriteGuard`-Test grün, Sabotage rot ✓, Warnungen 0, seriell und zwei Parallelläufe grün, Regel 23.
 Status:
-bug.0.4.015: Insert-Tracking, `reconnectInsertedWithGone` vor `deleteGoneItems`, vacated same-folder, `mountPath`; `FatReconnectIndexerTests` (4× DirectoryIndexer). Seriell 579 grün (12:19–12:26). Bereit zur Prüfung.
 
-**bug.0.4.016 — fileID-Zweig im Writer: fremde gleichnamige Zeile, Tiefe der Kinder, Reihenfolge, Hardlinks (REPORT 57, 69, 129, 112).** Repro: `nr57_…` (beide), `nr69_…`.
-- a) 57: `existingByName.removeValue(forKey: located.name)` nur, wenn `located.parentID == parentID`.
-- b) 69: Im fileID-Zweig bei Ordnern mit geänderter Tiefe `shiftDescendantDepths(folderID:by:)`; gilt auch für den Watcher-Pfad (`finalize: true`).
-- c) 129: `apply` in **zwei Durchgängen**: zuerst Einträge ohne Namenstreffer (fileID-Umbenennungen), dann Namenstreffer. Das Ergebnis darf nicht mehr von der Dictionary-Reihenfolge abhängen.
-- d) 112: `ATTR_FILE_LINKCOUNT` in `BulkDirectoryReader` mitlesen (Feld in `ListedDirectoryEntry`/`ScannedEntry`). Bei `linkCount > 1`, bei Ordner-Hardlinks oder wenn dieselbe fileID im Listing mehrfach vorkommt, die fileID **speichern, aber nicht zum Verbinden/Verschieben** nutzen. Offset-Regel aus REPORT 96 beachten (Offset immer um die Attributgröße erhöhen).
-- **Akzeptanz:**
-  - Die Repro-Tests sind grün. `nr57_moveInto…` 30/30 fehlerfrei.
-  - Umbenennen + neue Datei mit altem Namen: 30 Läufe mit stabilem Ergebnis (Favorit folgt der fileID).
-  - Temp-Ordner mit `link()`-Hardlinks in zwei Ordnern: zweimal echter Lauf → zwei Zeilen mit stabilen IDs.
-Status:
-bug.0.4.016: `FileIdentityWriterReproTests` (nr57/nr69), zwei Durchgänge apply, Parent-Check removeValue, `shiftDescendantDepths`, Bulk LINKCOUNT+Offsets, `HardlinkIndexerTests`. Parallele 2× YES (12:26–12:31). Debug 0 Warn. Bereit zur Prüfung.
-
-**HALT nach Paket 2** — Freigabe durch Claude:
+**HALT nach Paket 2a** — Freigabe durch Claude:
 
 ---
 
