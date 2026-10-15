@@ -11,18 +11,19 @@ import Testing
 @testable import diskindex
 
 extension WindowTestGroup {
-/// Seriell: feste Quiet-Intervalle + gemeinsame Temp-/CPU-Last machen Parallel-Flakes (Aufgabe 140).
-@Suite @MainActor struct ChangeWatcherTests {
+/// Seriell: feste Quiet-Intervalle + gemeinsame Temp-/CPU-Last machen Parallel-Flakes (Aufgabe 140, bug.0.4.044).
+@Suite(.serialized) @MainActor struct ChangeWatcherTests {
     @Test func newFileAppearsAfterQuiet() async throws {
         let rig = try await watchRig()
         rig.access.listings["/Volumes/DISK/A"] = [ListedDirectoryEntry(name: "neu.txt", isDirectory: false, isPackage: false, isSymbolicLink: false, isHidden: false, fileSize: 3, modifiedAt: Date())]
         rig.watcher.quietInterval = .milliseconds(40)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/neu.txt", eventID: 7))
-        let parent = try await waitFor(timeoutMs: 800) {
+        // bug.0.4.044: auf Bedingung warten, Obergrenze 10 s (feste 800 ms war unter Parallel-Last zu knapp).
+        let parent = try await waitFor(timeoutMs: 10_000) {
             try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"])
         }
-        let names = try await waitFor(timeoutMs: 800) {
+        let names = try await waitFor(timeoutMs: 10_000) {
             let n = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent).map(\.name)
             return n == ["neu.txt"] ? n : nil
         }

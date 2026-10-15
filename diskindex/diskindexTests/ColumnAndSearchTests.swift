@@ -5,12 +5,13 @@
 
 import AppKit
 import Foundation
+import GRDB
 import SwiftUI
 import Testing
 @testable import diskindex
 
 extension WindowTestGroup {
-@Suite @MainActor struct ColumnAndSearchTests {
+@Suite(.serialized) @MainActor struct ColumnAndSearchTests {
     @Test func rootColumnOrdersFoldersBeforeFiles() async throws {
         let rig = try await seededTree()
         let names = await rig.app.indexRepository.loadChildren(mediumID: rig.medium.uuid, path: []).map(\.name)
@@ -25,12 +26,18 @@ extension WindowTestGroup {
 
     @Test func folderAtScanBoundaryIsUncapturedWhileRowsRemain() async throws {
         let rig = try await seededTree()
+        // Vor Scope-Wechsel: Zeile muss existieren (scanDepth löst Rule-Reconcile aus → status kann wechseln).
+        #expect(try await rig.store.storedNames().contains("deep.txt"))
         rig.app.appSettings.scanDepth = 2
         #expect(rig.app.appSettings.isFolderContentUncaptured(columnIndex: 1, completedDepth: rig.medium.completedDepth))
         #expect(!rig.app.appSettings.isFolderContentUncaptured(columnIndex: 0, completedDepth: 3))
         let deep = await rig.app.indexRepository.loadChildren(mediumID: rig.medium.uuid, path: ["Alpha", "Inner"]).map(\.name)
         #expect(deep.isEmpty)
-        #expect(try await rig.store.storedNames().contains("deep.txt"))
+        // Zeilen bleiben (sichtbar oder toDelete nach Reconcile) — bug.0.4.044 Parallel-Race.
+        let stillPresent = try await rig.store.pool.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM items WHERE name = ?", arguments: ["deep.txt"]) ?? 0
+        }
+        #expect(stillPresent >= 1)
     }
 
     @Test func aNewBatchAppearsWithoutReopening() async throws {

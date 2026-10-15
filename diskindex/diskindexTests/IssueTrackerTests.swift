@@ -209,11 +209,19 @@ struct IssueTrackerTests {
         #expect(scrubbed.contains("‹query chars="))
     }
 
-    @Test func leakCheckBlocksAnInjectedPath() {
+    @Test func leakCheckBlocksAnInjectedPath() throws {
         let json = #"{"schema":2,"logTail":["/Volumes/KUNDE/geheim"]}"#
         #expect(ReportScrubber.leakCategory(in: json, names: []) == "path")
         #expect(ReportScrubber.leakCategory(in: #"{"ok":true}"#, names: ["Archiv"]) == nil)
-        #expect(ReportScrubber.leakCategory(in: #"{"name":"Archivplatte"}"#, names: ["Archiv"]) == "name")
+        // Wortgrenzen (bug.0.4.012): Teilstring „Archiv“ in „Archivplatte“ zählt nicht.
+        #expect(ReportScrubber.leakCategory(in: #"{"name":"Archivplatte"}"#, names: ["Archiv"]) == nil)
+        #expect(ReportScrubber.leakCategory(in: #"{"name":"Archivplatte"}"#, names: ["Archivplatte"]) == "name")
+        let encodedData = try JSONSerialization.data(withJSONObject: [
+            "schema": 2,
+            "logTail": ["/Volumes/KUNDE/geheim"],
+        ])
+        let encoded = try #require(String(data: encodedData, encoding: .utf8))
+        #expect(ReportScrubber.leakCategory(in: encoded, names: []) == "path")
     }
 
     @Test func payloadHasTheContractFields() throws {
@@ -266,6 +274,29 @@ struct IssueTrackerTests {
         #expect(try ApiQueuePersistence.fetchDue(pool, now: Date()).isEmpty)
         IssueStubURL.hits = 0
         await reporter.flush()
+        #expect(IssueStubURL.hits == 0)
+    }
+
+    /// bug.0.4.012: Payload mit Pfad direkt in die Queue → flush → blocked:leak=path, kein Request.
+    @Test func leakWatchBlocksQueuedPathPayload() async throws {
+        var logs: [String] = []
+        let reporter = try makeReporter(log: { logs.append($0) })
+        reporter.knownNames = { [] }
+        let leakBody = try JSONSerialization.data(withJSONObject: [
+            "schema": 2,
+            "kind": "crash",
+            "logTail": ["/Volumes/X/geheim"],
+            "id": UUID().uuidString.uppercased(),
+        ])
+        let pool = try #require(reporter.queuePool)
+        try ApiQueuePersistence.enqueue(
+            pool,
+            kind: .issueReport,
+            payload: leakBody,
+            createdAt: Int(Date().timeIntervalSince1970)
+        )
+        await reporter.flush()
+        #expect(logs.contains { $0.contains("blocked:leak=path") })
         #expect(IssueStubURL.hits == 0)
     }
 

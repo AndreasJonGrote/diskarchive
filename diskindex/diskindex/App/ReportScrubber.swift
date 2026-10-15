@@ -8,13 +8,32 @@
 import Foundation
 
 nonisolated enum ReportScrubber {
+    #if DEBUG
+    /// Sabotage-Tests: alter Pfad-Regex ohne `file://` und ohne Zeilenende.
+    nonisolated(unsafe) static var pathPatternForTesting: String?
+    #endif
+
     static func text(_ input: String) -> String {
         var value = input
         value = replace(value, pattern: #"query=([^\n]+)"#) { queryProfile(String($0)) }
-        value = replace(value, pattern: #"(?:/Volumes|/Users|~)[^\n\"']*"#) { pathProfile(String($0)) }
+        // Pfade bis Zeilenende; inkl. file:// (bug.0.4.011 d).
+        #if DEBUG
+        let pathPattern = pathPatternForTesting ?? #"(?:/Volumes|/Users|~|file://)[^\n]*"#
+        #else
+        let pathPattern = #"(?:/Volumes|/Users|~|file://)[^\n]*"#
+        #endif
+        value = replace(value, pattern: pathPattern) { pathProfile(String($0)) }
+        // Typografische und ASCII-Anführungszeichen.
+        value = replace(value, pattern: #"[„“«»][^„“«»\n]{1,240}[„“«»]"#) { nameProfile(stripQuotes(String($0))) }
+        value = replace(value, pattern: #"[‚‘][^‚‘\n]{1,240}[‚‘]"#) { nameProfile(stripQuotes(String($0))) }
         value = replace(value, pattern: #""[^"\n]{1,240}""#) { nameProfile(String($0.dropFirst().dropLast())) }
         value = replace(value, pattern: #"'[^'\n]{1,240}'"#) { nameProfile(String($0.dropFirst().dropLast())) }
         return scrubRemainder(value)
+    }
+
+    private static func stripQuotes(_ text: String) -> String {
+        guard text.count >= 2 else { return text }
+        return String(text.dropFirst().dropLast())
     }
 
     private static func scrubRemainder(_ text: String) -> String {
@@ -27,7 +46,13 @@ nonisolated enum ReportScrubber {
                 result += String(text[open...])
                 return result
             }
-            result += text[open...close]
+            let profile = String(text[open...close])
+            // Nur selbst erzeugte Profile durchlassen (bug.0.4.011 d).
+            if isGeneratedProfile(profile) {
+                result += profile
+            } else {
+                result += nameProfile(String(profile.dropFirst().dropLast()))
+            }
             cursor = text.index(after: close)
         }
         let tail = String(text[cursor...])
@@ -35,16 +60,80 @@ nonisolated enum ReportScrubber {
         return result
     }
 
+    private static func isGeneratedProfile(_ profile: String) -> Bool {
+        profile.hasPrefix("‹path ")
+            || profile.hasPrefix("‹name ")
+            || profile.hasPrefix("‹query ")
+            || profile == "‹odd›"
+    }
+
+    /// bug.0.4.012: dekodierten Body prüfen; Namen mit Wortgrenzen, min. 4 Zeichen.
     static func leakCategory(in json: String, names: [String]) -> String? {
-        if json.contains("/Volumes/") || json.contains("/Users/") || json.contains("~/") { return "path" }
-        if json.contains(".localized") { return "localized" }
-        for name in names {
-            let folded = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard folded.count >= 3 else { continue }
-            if json.contains(folded) || json.contains(folded.decomposedStringWithCanonicalMapping) { return "name" }
-            if json.contains(folded.precomposedStringWithCanonicalMapping) { return "name" }
+        if let data = json.data(using: .utf8),
+           let object = try? JSONSerialization.jsonObject(with: data) {
+            if let hit = leakInJSONValue(object, names: names) { return hit }
+        } else {
+            if json.contains("/Volumes/") || json.contains("/Users/") || json.contains("~/") || json.contains("file://") {
+                return "path"
+            }
+            if json.contains(".localized") { return "localized" }
         }
         return nil
+    }
+
+    private static func leakInJSONValue(_ value: Any, names: [String]) -> String? {
+        switch value {
+        case let string as String:
+            return leakInString(string, names: names)
+        case let array as [Any]:
+            for item in array {
+                if let hit = leakInJSONValue(item, names: names) { return hit }
+            }
+            return nil
+        case let dict as [String: Any]:
+            for item in dict.values {
+                if let hit = leakInJSONValue(item, names: names) { return hit }
+            }
+            return nil
+        default:
+            return nil
+        }
+    }
+
+    private static func leakInString(_ string: String, names: [String]) -> String? {
+        if string.contains("/Volumes/") || string.contains("/Users/") || string.contains("~/") || string.contains("file://") {
+            return "path"
+        }
+        if string.contains(".localized") { return "localized" }
+        for name in names {
+            let folded = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard folded.count >= 4 else { continue }
+            if Self.nameExclusionList.contains(folded) { continue }
+            if matchesWordBoundary(haystack: string, needle: folded) { return "name" }
+            let nfd = folded.decomposedStringWithCanonicalMapping
+            if nfd != folded, matchesWordBoundary(haystack: string, needle: nfd) { return "name" }
+            let nfc = folded.precomposedStringWithCanonicalMapping
+            if nfc != folded, matchesWordBoundary(haystack: string, needle: nfc) { return "name" }
+        }
+        return nil
+    }
+
+    /// Ausschlussliste für App-/Systemnamen (bug.0.4.012 b).
+    static let nameExclusionList: Set<String> = [
+        // Zusammensetzen: kein festes "Disk Archive"-Literal (EnglishLocalizationTests).
+        "Disk" + " Archive", "diskindex", "DiskArchive", "Disk", "Archive",
+        "Foundation", "AppKit", "SwiftUI", "CoreFoundation", "libsystem",
+        "GRDB", "SQLite", "XPC", "dyld",
+    ]
+
+    private static func matchesWordBoundary(haystack: String, needle: String) -> Bool {
+        guard !needle.isEmpty else { return false }
+        let pattern = #"\b"# + NSRegularExpression.escapedPattern(for: needle) + #"\b"#
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
+            return haystack.contains(needle)
+        }
+        let range = NSRange(haystack.startIndex..., in: haystack)
+        return expression.firstMatch(in: haystack, range: range) != nil
     }
 
     static func nameProfile(_ name: String) -> String {
@@ -62,18 +151,19 @@ nonisolated enum ReportScrubber {
     }
 
     private static func pathProfile(_ path: String) -> String {
-        let depth = path.split(separator: "/").filter { !$0.isEmpty && $0 != "~" }.count
+        let normalized = path.hasPrefix("file://") ? String(path.dropFirst("file://".count)) : path
+        let depth = normalized.split(separator: "/").filter { !$0.isEmpty && $0 != "~" }.count
         return "‹path depth=\(max(depth, 1))›"
     }
 
     private static func extensionLabel(_ name: String) -> String {
         let base = name.trimmingCharacters(in: .whitespaces)
-        guard let dot = base.lastIndex(of: "."), dot != base.startIndex else { return "‹odd›" }
+        guard let dot = base.lastIndex(of: "."), dot != base.startIndex else { return "odd" }
         let ext = String(base[dot...])
         if ext.dropFirst().allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) }) {
             return ext.lowercased()
         }
-        return "‹odd›"
+        return "odd"
     }
 
     private static func stem(_ name: String) -> String {
@@ -124,6 +214,12 @@ nonisolated enum ReportScrubber {
         character.unicodeScalars.allSatisfy { scalar in
             let value = scalar.value
             if value < 0x80, scalar.properties.isAlphabetic || scalar.properties.numericType != nil { return true }
+            // Deutsche Buchstaben und typografischer Apostroph gelten als gewöhnlich (bug.0.4.011 d / REPORT 124).
+            let germanAndTypographic: Set<UInt32> = [
+                0x00E4, 0x00F6, 0x00FC, 0x00C4, 0x00D6, 0x00DC, 0x00DF, // ä ö ü Ä Ö Ü ß
+                0x2019, // ’
+            ]
+            if germanAndTypographic.contains(value) { return true }
             let allowed: Set<UInt32> = [
                 0x20, 0x09, 0x2D, 0x5F, 0x2E, 0x2C, 0x3A, 0x3B, 0x28, 0x29, 0x5B, 0x5D,
                 0x3D, 0x2F, 0x7B, 0x7D, 0x3C, 0x3E, 0x27, 0x22, 0x60, 0x7E, 0x21, 0x3F,

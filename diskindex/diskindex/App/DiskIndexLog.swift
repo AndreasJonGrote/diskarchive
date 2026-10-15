@@ -124,14 +124,22 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     func record(_ category: DiskLogCategory, _ level: DiskLogLevel, _ message: String, privateDetail: String? = nil) {
-        let lineBody = privateDetail.map { "\(message) \($0)" } ?? message
+        // Datei: kein privateDetail; nur pathDepth/pathLen (bug.0.4.011).
+        let fileBody: String
+        if let privateDetail {
+            let depth = privateDetail.split(separator: "/").filter { !$0.isEmpty && $0 != "~" }.count
+            let len = privateDetail.utf8.count
+            fileBody = "\(message) pathDepth=\(max(depth, 1)) pathLen=\(len)"
+        } else {
+            fileBody = message
+        }
         if level == .error, category == .store || category == .index || category == .watcher || category == .medium {
-            if !lineBody.contains("CancellationError()") {
-                onTrackedError?(category.rawValue, lineBody)
+            if !fileBody.contains("CancellationError()") {
+                onTrackedError?(category.rawValue, fileBody)
             }
         }
         guard writesToDisk else { return }
-        let stamped = "\(timestamp()) \(category.rawValue) \(level.rawValue) \(lineBody)"
+        let stamped = "\(timestamp()) \(category.rawValue) \(level.rawValue) \(fileBody)"
         if category == .ui {
             lock.lock()
             breadcrumbs.append(stamped)
@@ -144,15 +152,36 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         write(stamped)
         let logger = loggers[category]
         let privateText = privateDetail ?? ""
+        // os_log: Nachricht .private; feste Präfixe bleiben technisch lesbar über getrennte Felder.
         if level == .error {
-            logger?.error("\(message, privacy: .public) \(privateText, privacy: .private)")
+            logger?.error("\(message, privacy: .private) \(privateText, privacy: .private)")
         } else {
-            logger?.info("\(message, privacy: .public) \(privateText, privacy: .private)")
+            logger?.info("\(message, privacy: .private) \(privateText, privacy: .private)")
         }
     }
 
+    /// UI-Brotkrumen ohne Suchbegriff in Datei/os_log (bug.0.4.011 c).
     func ui(_ message: String) {
+        if message.hasPrefix("search query=") {
+            let query = String(message.dropFirst("search query=".count))
+            record(.ui, .info, "search query chars=\(query.count)")
+            return
+        }
         record(.ui, .info, message)
+    }
+
+    /// Technische Kurzform für Datei-/Ordnerfehler — keine lokalisierten Texte mit Namen (bug.0.4.011 b).
+    static func errorSummary(_ error: Error) -> String {
+        let ns = error as NSError
+        var parts = ["domain=\(ns.domain)", "code=\(ns.code)"]
+        if let posix = ns.userInfo["NSPOSIXErrorKey"] as? NSNumber {
+            parts.append("posix=\(posix.intValue)")
+        } else if ns.domain == NSPOSIXErrorDomain {
+            parts.append("posix=\(ns.code)")
+        } else if let posix = error as? POSIXError {
+            parts.append("posix=\(posix.code.rawValue)")
+        }
+        return parts.joined(separator: " ")
     }
 
     func perfIfSlow(_ name: String, since start: ContinuousClock.Instant) {

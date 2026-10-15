@@ -137,8 +137,8 @@ final class MediumCoordinator {
         var recoveredFromError = false
         if stored.indexStatus == .error {
             switch await access.probe(volume) {
-            case .denied(let reason):
-                DiskIndexLog.shared.record(.medium, .error, "kein Zugriff \(reason)", privateDetail: volume.mountPath)
+            case .denied:
+                DiskIndexLog.shared.record(.medium, .error, "kein Zugriff", privateDetail: volume.mountPath)
                 var denied = stored
                 denied.lastSeenAt = Date()
                 try await store.updateMedium(uuid: denied.uuid, denied)

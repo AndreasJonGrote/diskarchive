@@ -101,7 +101,7 @@ actor ChangeWatcherEngine {
             do {
                 listed = try await access.listDirectory(at: URL(fileURLWithPath: directory, isDirectory: true))
             } catch {
-                DiskIndexLog.shared.record(.watcher, .error, "nicht lesbar \(error.localizedDescription)", privateDetail: directory)
+                DiskIndexLog.shared.record(.watcher, .error, "nicht lesbar \(DiskIndexLog.errorSummary(error))", privateDetail: directory)
                 seen.insert(directory)
                 continue
             }
@@ -137,7 +137,7 @@ actor ChangeWatcherEngine {
                 )
                 DiskIndexLog.shared.record(.watcher, .info, "reread entries=\(entries.count)", privateDetail: directory)
             } catch {
-                DiskIndexLog.shared.record(.watcher, .error, "reread \(error)", privateDetail: directory)
+                DiskIndexLog.shared.record(.watcher, .error, "reread \(DiskIndexLog.errorSummary(error))", privateDetail: directory)
                 return .needsFullReconcile
             }
             let childDepth = relative.count + 1

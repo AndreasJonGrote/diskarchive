@@ -11,13 +11,17 @@ import Testing
 
 @MainActor
 private func columnCacheTree() async throws -> (app: AppState, store: IndexStoreV3, medium: StoredMedium) {
+    // bug.0.4.044: globale Test-Gates anderer Suiten zurücksetzen.
+    IndexRepository.awaitMissingFolderCacheGateForTesting = nil
+    IndexRepository.resetLoadSessionsCounterForTesting()
+    IndexRepository.resetRequestLoadCounterForTesting()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-cache-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
     let store = IndexStoreV3(database: database)
     let app = AppState()
     app.attach(store: store)
-    app.startChangeLoop()
+    // Kein startChangeLoop: Index-Change-Events invalidieren den Cache unter Parallel-Last (bug.0.4.044).
     var medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Baum", decision: .index, indexStatus: .indexed, completedDepth: 3)
     try await store.upsertMedium(medium)
     medium = try #require(try await store.medium(uuid: medium.uuid))
@@ -43,7 +47,6 @@ private func columnCacheTree() async throws -> (app: AppState, store: IndexStore
         seenAt: Date()
     )
     await app.loadStoredMedia()
-    try await Task.sleep(for: .milliseconds(900))
     return (app, store, medium)
 }
 

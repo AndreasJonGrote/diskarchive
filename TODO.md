@@ -82,6 +82,7 @@ Abgenommen 14.10. (DONE.md): `bug.0.4.043`, `todo.0.4.010`, `todo.0.4.011`, `tod
 - c) `targetedInvalidateKeepsStaleFolderCache`: Ursache klären (verdächtig: statische Test-Schalter und Zähler in `IndexRepository` wie `awaitMissingFolderCacheGateForTesting`, `requestLoadCallsForTesting` werden von Suiten gleichzeitig benutzt). Statische Schalter je Test isolieren oder die betroffenen Suiten gemeinsam `.serialized` führen.
 - **Akzeptanz:** drei Parallelläufe mit dem **genannten Kommando** alle grün; Kommando und Uhrzeiten im Status; seriell grün; Warnungen 0; Regel 23.
 Status:
+bug.0.4.044: 200k→`DA_BENCH`+deterministisch InBlocks; ChangeWatcher 10s/`serialized` (Race feste Frist); ColumnCache Gates/changeLoop weg; ColumnAndSearch COUNT vor reconcile. Kommando `… -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120` 00:32:20 / 00:34:54 / 00:37:39 alle grün; seriell 571 00:26:13; D/R Warn 0; Regel 23 App 00:40:42, `find … -newer` leer. Bereit zur Prüfung
 
 **HALT nach Paket 0** — Freigabe durch Claude: nach `bug.0.4.044`.
 
@@ -108,6 +109,7 @@ Status:
   - `DiskIndexLog` in ein Testverzeichnis schreiben lassen, `record(…, privateDetail: "/Volumes/X/geheim")` → die Datei enthält `geheim` nicht.
 - **Sabotage:** Pfad-Regex auf den alten Stand → rot.
 Status:
+bug.0.4.011 (REPORT 54,124,91): `DiskIndexLog` pathDepth/pathLen, `errorSummary`, ui `chars=`; Scrubber file://+DE+Profile+ext=odd; Aufrufer ChangeWatcherEngine/DirectoryIndexer. Sabotage alter Regex→rot 00:06:18 ✓ zurück. Tests `PrivacyLogAndScrubberTests`. Seriell 571 00:26:13; D/R Warn 0; Regel 23 App 00:40:42. Bereit zur Prüfung
 
 **bug.0.4.012 — Leak-Wächter vor dem Senden wirksam machen (REPORT 55, Korrektur B-55).**
 - a) `ReportScrubber.leakCategory` prüft den **dekodierten** Body: JSON parsen, alle String-Werte rekursiv prüfen auf `/Volumes/`, `/Users/`, `~/`, `file://`. Alternativ mit `.withoutEscapingSlashes` serialisieren und zusätzlich dekodiert prüfen.
@@ -117,6 +119,7 @@ Status:
   - Medium „Archive“ registriert, Bericht mit Backtrace „Disk Archive“ → **nicht** blockiert.
   - Bestehender Test `IssueTrackerTests` Z. ~212–217 zusätzlich mit echt serialisiertem JSON.
 Status:
+bug.0.4.012 (REPORT 55): `leakCategory` dekodiert+Wortgrenzen≥4; `knownNames` Cache beim Start; Ausschluss Disk/Archive; `leakWatchBlocksQueuedPathPayload` in IssueTrackerTests. Parallel 3× grün 00:32:20–00:40:24; seriell 571; D/R Warn 0; Regel 23 App 00:40:42. Bereit zur Prüfung
 
 **HALT nach Paket 1** — Freigabe durch Claude:
 

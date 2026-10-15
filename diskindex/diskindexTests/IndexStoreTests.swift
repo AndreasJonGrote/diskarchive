@@ -9,7 +9,8 @@ import Testing
 @testable import diskindex
 
 struct IndexStoreTests {
-    @Test func insertingTwoHundredThousandEntriesStaysFast() async throws {
+    /// bug.0.4.044: deterministisch (200k Zeilen, Blockschreiben) — Zeitgrenzen nur unter `DA_BENCH=1`.
+    @Test func insertingTwoHundredThousandEntriesInBlocks() async throws {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Last", fsType: "apfs", bytes: 1_000_000_000)
         let parents = try await harness.addRoot(
@@ -17,7 +18,7 @@ struct IndexStoreTests {
             entries: (0..<40).map { ScannedEntry(name: "ordner-\($0)", isFolder: true) }
         )
         let seenAt = Date(timeIntervalSince1970: 1_700_000_000)
-        let insertStarted = ContinuousClock.now
+        let expectedFiles = 40 * 5_000
         for parent in parents {
             let batch = parent.name.split(separator: "-").last.flatMap { Int($0) } ?? 0
             let entries = (0..<5_000).map { index in
@@ -33,24 +34,15 @@ struct IndexStoreTests {
                 seenAt: seenAt
             )
         }
-        let insertElapsed = ContinuousClock.now - insertStarted
-
-        let searchStarted = ContinuousClock.now
-        let hits = try await harness.store.search(query: "rechn", filters: SearchFilters(), limit: 20)
-        let searchElapsed = ContinuousClock.now - searchStarted
-
-        let report = "IndexStoreV3 Rauchtest: Einfügen \(smokeSeconds(insertElapsed)), Suche \(smokeSeconds(searchElapsed))"
-        print(report)
-        Attachment.record(report, named: "indexstore-smoke.txt")
-        // Rauchtest auf Größenordnung, nicht auf eine lastabhängige Stoppuhr (K7).
-        #expect(insertElapsed < .seconds(20))
-        #expect(searchElapsed < .milliseconds(500))
-        #expect(!hits.isEmpty)
-        #expect(hits.allSatisfy { $0.name.localizedCaseInsensitiveContains("rechn") })
-        let stored = try #require(try await harness.store.medium(uuid: medium.uuid))
         let truth = try await harness.store.counts(mediumUUID: medium.uuid)
+        #expect(truth.files == expectedFiles)
+        #expect(truth.folders == 40)
+        let stored = try #require(try await harness.store.medium(uuid: medium.uuid))
         #expect(stored.fileCount == truth.files)
         #expect(stored.folderCount == truth.folders)
+        let hits = try await harness.store.search(query: "rechn", filters: SearchFilters(), limit: 20)
+        #expect(!hits.isEmpty)
+        #expect(hits.allSatisfy { $0.name.localizedCaseInsensitiveContains("rechn") })
     }
 
     @Test func databaseFilesArePrivateToTheUser() throws {
@@ -132,10 +124,50 @@ private func permission(_ url: URL) -> Int? {
     return value?.intValue
 }
 
-private func smokeSeconds(_ duration: Duration) -> String {
-    let parts = duration.components
-    let seconds = Double(parts.seconds) + Double(parts.attoseconds) / 1e18
-    return String(format: "%.3f s", seconds)
+/// bug.0.4.044 — Zeitgrenzen nur unter `DA_BENCH=1` (Regel 8: Leistung nur Release/Messung).
+@Suite(.serialized, .enabled(if: ProcessInfo.processInfo.environment["DA_BENCH"] == "1"))
+struct IndexStoreTimingBenchTests {
+    @Test func insertingTwoHundredThousandEntriesStaysFast() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Last", fsType: "apfs", bytes: 1_000_000_000)
+        let parents = try await harness.addRoot(
+            medium: medium,
+            entries: (0..<40).map { ScannedEntry(name: "ordner-\($0)", isFolder: true) }
+        )
+        let seenAt = Date(timeIntervalSince1970: 1_700_000_000)
+        let insertStarted = ContinuousClock.now
+        for parent in parents {
+            let batch = parent.name.split(separator: "-").last.flatMap { Int($0) } ?? 0
+            let entries = (0..<5_000).map { index in
+                let name = index % 1_000 == 0
+                    ? "rechnung-\(batch)-\(index).pdf"
+                    : "datei-\(batch)-\(index).bin"
+                return ScannedEntry(name: name, isFolder: false, sizeBytes: 1)
+            }
+            try await harness.store.applyDirectory(
+                mediumUUID: medium.uuid,
+                parentID: parent.id,
+                entries: entries,
+                seenAt: seenAt
+            )
+        }
+        let insertElapsed = ContinuousClock.now - insertStarted
+        let searchStarted = ContinuousClock.now
+        let hits = try await harness.store.search(query: "rechn", filters: SearchFilters(), limit: 20)
+        let searchElapsed = ContinuousClock.now - searchStarted
+        let report = "IndexStoreV3 Rauchtest: Einfügen \(smokeSeconds(insertElapsed)), Suche \(smokeSeconds(searchElapsed))"
+        print(report)
+        Attachment.record(report, named: "indexstore-smoke.txt")
+        #expect(insertElapsed < .seconds(20))
+        #expect(searchElapsed < .milliseconds(500))
+        #expect(!hits.isEmpty)
+    }
+
+    private func smokeSeconds(_ duration: Duration) -> String {
+        let parts = duration.components
+        let seconds = Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+        return String(format: "%.3f s", seconds)
+    }
 }
 
 final class StoreHarness: @unchecked Sendable {

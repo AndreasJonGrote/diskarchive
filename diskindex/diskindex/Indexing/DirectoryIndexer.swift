@@ -295,7 +295,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                     } catch {
                         consecutiveTimeouts = 0
                         if parent.id == nil {
-                            DiskIndexLog.shared.record(.index, .error, "wurzel \(error.localizedDescription)", privateDetail: url.path)
+                            DiskIndexLog.shared.record(.index, .error, "wurzel \(DiskIndexLog.errorSummary(error))", privateDetail: url.path)
                             do {
                                 _ = try await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .error, firstIndexedAt: nil)
                             } catch {
@@ -316,7 +316,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         if let folderID = parent.id {
                             try? await store.markFolderUnreadable(mediumUUID: mediumUUID, folderID: folderID)
                         }
-                        DiskIndexLog.shared.record(.index, .error, "ordner übersprungen \(error.localizedDescription)", privateDetail: url.path)
+                        DiskIndexLog.shared.record(.index, .error, "ordner übersprungen \(DiskIndexLog.errorSummary(error))", privateDetail: url.path)
                     }
                 }
                 offset = end
@@ -447,7 +447,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 }
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.index, .error, "zählen \(error.localizedDescription)", privateDetail: item.url.path)
+                    DiskIndexLog.shared.record(.index, .error, "zählen \(DiskIndexLog.errorSummary(error))", privateDetail: item.url.path)
                 }
             }
         }
@@ -492,7 +492,7 @@ nonisolated struct DirectoryIndexer: Sendable {
         _ completedDepths: [Int]
     ) async -> IndexRunOutcome {
         if DiskIndexLog.isOperationalFailure(error) {
-            DiskIndexLog.shared.record(.index, .error, "stapel \(error.localizedDescription)")
+            DiskIndexLog.shared.record(.index, .error, "stapel \(DiskIndexLog.errorSummary(error))")
         }
         do {
             _ = try await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .error, firstIndexedAt: nil)

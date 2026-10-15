@@ -169,6 +169,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     private let flushGate = IssueReporterFlushGate()
     private var started = false
     private static let queuePersistAttempts = 3
+    /// Mediennamen einmal beim Start geladen (bug.0.4.012 b) — nicht auf dem Main Thread.
+    private let knownNamesLock = NSLock()
+    private var cachedKnownNames: [String] = []
 
     init(
         endpoint: URL = ReportTarget.endpoint,
@@ -221,16 +224,55 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             guard let pool = try? self.resolvePool() else { return false }
             return (try? ApiQueuePersistence.hasDueWork(pool, kind: nil, now: self.now())) ?? false
         }
+        knownNames = { [weak self] in
+            guard let self else { return [] }
+            self.knownNamesLock.lock()
+            defer { self.knownNamesLock.unlock() }
+            return self.cachedKnownNames
+        }
     }
 
     func start() {
         guard !started else { return }
         started = true
         migrateLegacyOutboxFiles()
+        refreshKnownNamesInBackground()
         reachability.start()
         syncReachabilityTimer()
         flushInBackground()
     }
+
+    /// Mediennamen einmal im Hintergrund laden (bug.0.4.012 b).
+    func refreshKnownNamesInBackground() {
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self else { return }
+            var names: [String] = []
+            if let url = try? IndexStoreV3.storeFileURL() {
+                do {
+                    let pool = try SchemaV3.openPool(at: url)
+                    let store = IndexStoreV3(pool: pool)
+                    let media = try await store.media()
+                    names = media.map(\.name).filter { $0.count >= 4 }
+                } catch {
+                    names = []
+                }
+            }
+            self.storeCachedKnownNames(names)
+        }
+    }
+
+    private func storeCachedKnownNames(_ names: [String]) {
+        knownNamesLock.lock()
+        cachedKnownNames = names
+        knownNamesLock.unlock()
+    }
+
+    #if DEBUG
+    /// Tests: Cache sofort setzen (ohne Dateisystem).
+    func setCachedKnownNamesForTesting(_ names: [String]) {
+        storeCachedKnownNames(names)
+    }
+    #endif
 
     func noteError(category: String, message: String) {
         DiskIndexLog.shared.record(.app, .error, "index error category=\(category)")
@@ -420,7 +462,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     private func send(row: ApiQueueRow, body: Data, issueID: String, pool: DatabasePool) async {
         let raw = String(decoding: body, as: UTF8.self)
         if let category = ReportScrubber.leakCategory(in: raw, names: knownNames()) {
-            log("report blocked leak=\(category)")
+            log("app report blocked:leak=\(category)")
             try? ApiQueuePersistence.markBlocked(pool, rowID: row.id, info: "blocked:leak=\(category)")
             syncReachabilityTimer()
             return
