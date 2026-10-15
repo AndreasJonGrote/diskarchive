@@ -13,7 +13,11 @@ import Testing
 @Suite @MainActor
 struct DashboardLastSeenTests {
     @Test func lastSeenDescriptionCasesGermanAndEnglish() throws {
-        var medium = try #require(PreviewData.media.first)
+        guard let first = PreviewData.media.first else {
+            Issue.record("PreviewData.media empty")
+            return
+        }
+        var medium = first
         medium.connectionStatus = .connected
         #expect(medium.lastSeenDescription(language: .german) == "jetzt")
         #expect(medium.lastSeenDescription(language: .english) == "now")
@@ -36,7 +40,11 @@ struct DashboardLastSeenTests {
     }
 
     @Test func dashboardShowsClockAndLastIndexedWithoutPrefix() async throws {
-        var medium = try #require(PreviewData.media.first)
+        guard let first = PreviewData.media.first else {
+            Issue.record("PreviewData.media empty")
+            return
+        }
+        var medium = first
         medium.connectionStatus = .connected
         medium.indexStatus = .indexed
         medium.completedDepth = 2
@@ -73,7 +81,11 @@ struct DashboardLastSeenTests {
 
 
     @Test func dashboardShowsClockWithAbsoluteOccupancy() async throws {
-        var medium = try #require(PreviewData.media.first)
+        guard let first = PreviewData.media.first else {
+            Issue.record("PreviewData.media empty")
+            return
+        }
+        var medium = first
         medium.connectionStatus = .connected
         medium.indexStatus = .indexed
         medium.completedDepth = 2

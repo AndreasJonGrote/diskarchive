@@ -119,10 +119,12 @@ struct ReadOnlyMediaGuardTests {
     }
 
     @Test func diskIndexLogSkipsWriteWhenDirectoryBlocked() {
+        WriteGuard.clearTestingOverrides()
         let blocked = URL(fileURLWithPath: "/Volumes/BLOCKEDLOG/diskindex.log")
         let log = DiskIndexLog(directory: blocked.deletingLastPathComponent())
         log.record(.app, .info, "blocked test line")
         #expect(!FileManager.default.fileExists(atPath: blocked.path))
+        #expect(WriteGuard.blockedWriteCount >= 1)
     }
 
     @Test func partialChecksumReadsWriteProtectedFile() throws {

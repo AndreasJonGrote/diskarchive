@@ -223,7 +223,11 @@ import Testing
 @Suite @MainActor struct DetailLastSeenTests {
     // (6) Detailspalte: „Zuletzt gesehen“ mit dem Datum des Mediums
     @Test func detailColumnShowsTheLastSeenDateOfTheMedium() async throws {
-        var medium = try #require(PreviewData.media.first)
+        guard let first = PreviewData.media.first else {
+            Issue.record("PreviewData.media empty")
+            return
+        }
+        var medium = first
         let seen = Date(timeIntervalSince1970: 1_700_000_000)
         medium.lastSeenAt = seen
         let formatted = seen.formatted(date: .abbreviated, time: .omitted)

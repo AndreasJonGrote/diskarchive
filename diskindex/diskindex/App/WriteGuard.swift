@@ -10,6 +10,14 @@ import Foundation
 nonisolated enum WriteGuard {
     private static let lock = NSLock()
     private static var extraAllowedRoots: [String] = []
+    private static var blockedWriteCountStorage = 0
+
+    /// Anzahl blockierter Schreibversuche (Tests).
+    static var blockedWriteCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return blockedWriteCountStorage
+    }
 
     /// Nur für Tests: zusätzliche erlaubte Wurzeln (z. B. simuliertes externes Home).
     static func setExtraAllowedRootsForTesting(_ paths: [String]) {
@@ -22,6 +30,7 @@ nonisolated enum WriteGuard {
         lock.lock()
         defer { lock.unlock() }
         extraAllowedRoots = []
+        blockedWriteCountStorage = 0
     }
 
     /// `true`, wenn die App an diesem Pfad schreiben darf.
@@ -38,9 +47,9 @@ nonisolated enum WriteGuard {
     @discardableResult
     static func permitsWrite(to url: URL) -> Bool {
         guard permits(url) else {
-            #if DEBUG
-            assertionFailure("WriteGuard: write blocked outside app roots")
-            #endif
+            lock.lock()
+            blockedWriteCountStorage += 1
+            lock.unlock()
             DiskIndexLog.shared.record(.store, .info, "write blocked")
             return false
         }
