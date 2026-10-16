@@ -46,7 +46,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 15.10. (`84a92b4`): 594 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: Nacharbeit `todo.0.4.014` und aus Paket 3 `bug.0.4.019`, `bug.0.4.020`. HALT nach Paket 3.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
+**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 16.10. (`7172680`): 604 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Freigegeben: `bug.0.4.045` und aus Paket 4 `bug.0.4.021`, `bug.0.4.022`, `bug.0.4.023`. HALT nach `bug.0.4.023`.** Danach gibt Claude Paket für Paket frei, in der Reihenfolge der Tabelle. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–30):** **R1** Nur die genannten Stellen ändern. **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓. **R3** Status höchstens 5 Zeilen.
 
@@ -59,8 +59,8 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 0 | ~~`bug.0.4.010`, `bug.0.4.043`, `bug.0.4.044`, `todo.0.4.010`–`013`~~ | Testbasis, Purge, Start | **abgenommen 15.10.** |
 | 1 | ~~`bug.0.4.011`–`012`~~ | Datenschutz im Fehlerbericht | **abgenommen 15.10.** |
 | 2 | ~~`bug.0.4.013`–`016`~~ | Inventar und Favoriten (Datenverlust) | **abgenommen 15.10.** |
-| 2a | `todo.0.4.014` (Nacharbeit) | Nur Lesezugriff auf Medien nachweisbar | vor jeder Weitergabe zwingend; Haftung |
-| 3 | `bug.0.4.017`–`020` | Live-Überwachung | |
+| 2a | ~~`todo.0.4.014`~~ | Nur Lesezugriff auf Medien | **abgenommen 16.10.** (Rest `bug.0.4.045`) |
+| 3 | ~~`bug.0.4.017`–`020`~~ | Live-Überwachung | **abgenommen 15./16.10.** |
 | 4 | `bug.0.4.021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | beseitigt das Einfrieren („Spinning Ball“) |
 | 5 | `bug.0.4.026`–`033` | Entscheidung, Status, Regeln, Identität | `014`, `028` teilen eine Wurzel (Status eines Laufs) |
 | 6 | `bug.0.4.034`–`040` | Oberfläche | |
@@ -68,74 +68,15 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und gelten **mit den Korrekturen der Zweitprüfung** (hier eingearbeitet). Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
 
-#### Paket 2a — Nur Lesezugriff auf Medien nachweisbar machen (Nutzer 15.10., vor jeder Weitergabe zwingend)
-
-Konzept: README §9 („Speichermedien: ausschließlich Lesezugriff“). Befund Claude 15.10.: Die Suche im Quelltext findet heute **keinen** schreibenden Zugriff auf einen Medienpfad; alle Schreibaufrufe betreffen den Datenordner, das Protokoll, den Fehlerbericht-Ausgang, die Absturzdatei und `DatabaseCare`. Es fehlt der **Nachweis, der so bleibt**.
-
-**todo.0.4.014 — Schreibschranke und Wächter-Test.**
-- a) **Wächter-Test über den Quelltext** (`ReadOnlyMediaGuardTests`): liest alle `.swift`-Dateien unter `diskindex/diskindex/` und schlägt rot, wenn eine verbotene Schreib-API außerhalb der **Erlaubnisliste** vorkommt. Verboten: `removeItem`, `trashItem`, `moveItem`, `copyItem`, `replaceItem`, `createFile`, `createDirectory`, `createSymbolicLink`, `linkItem`, `FileHandle(forWritingTo`, `FileHandle(forUpdating`, `.write(to`, `setAttributes`, `setxattr`, `removexattr`, `O_WRONLY`, `O_RDWR`, `O_CREAT`, `O_APPEND`, `O_TRUNC`, `unlink(`, `rename(`, `mkdir(`, `truncate(`, `ftruncate(`, `symlink(`, `link(`, `DADiskUnmount`, `DADiskEject`, `unmountAndEjectDevice`. Erlaubnisliste (Datei → Grund): `DiskIndexLog.swift`, `IssueTracker.swift`, `DatabaseCare.swift`, `AppDefaults.swift`, `FilePrivacy.swift`, `Storage/V3/SchemaV3.swift`, `DebugTools/` (Datenordner, Protokoll, Ausgang, Voreinstellungen, Rechte der eigenen Dateien). Eine neue Datei mit solchen Aufrufen macht den Test rot und braucht eine Entscheidung von Claude (Erlaubnisliste ändert nur Claude).
-- b) **Schreibschranke zur Laufzeit** `WriteGuard.assertAppOwned(_ url: URL)`: in den erlaubten Schreib-Dateien vor jedem Schreiben aufgerufen. Liegt der Zielpfad **unter dem Mount-Punkt eines bekannten Mediums** (`/Volumes/…` oder ein Medium aus der Datenbank; auch wenn der Benutzerordner selbst auf einem externen Laufwerk liegt), wird **nicht geschrieben**, im Debug-Build `assertionFailure`, im Release eine Zeile im Protokoll (`write blocked`, ohne Pfad). Test mit einem Fake-Medium unter einem Temp-Ordner.
-- c) **Nur-Lesen beim Öffnen:** `BulkDirectoryReader` (`O_RDONLY`, bereits so), `PartialChecksum` und jede künftige Dateilesung benutzen ausschließlich `O_RDONLY` bzw. `FileHandle(forReadingFrom:)`. Test: Teil-Prüfsumme auf einer **schreibgeschützt eingehängten** Testdatei (`chmod 0444` in einem Temp-Ordner) funktioniert; kein Aufruf scheitert an fehlender Schreibberechtigung.
-- d) **Keine Funktion in der Oberfläche:** Prüfliste in Review-Regel (Claude): Menü, Kontextmenü und Tastenkürzel bieten kein Löschen, Umbenennen, Verschieben, Auswerfen, Papierkorb auf Medien. Der Wächter-Test aus a) deckt die Aufrufe, der Test `ContextMenuPlan` bleibt Referenz. Keine neuen Texte.
-- e) **Bestandsaufnahme im Status:** Liste der Dateien der Erlaubnisliste mit je einer Zeile Grund; Ergebnis des Wächter-Tests; Sabotage (eingeschleustes `FileManager.default.removeItem` in einer anderen Datei) → rot ✓.
-- **Akzeptanz:** Wächter-Test und `WriteGuard`-Test grün, Sabotage rot ✓, Warnungen 0, seriell und zwei Parallelläufe grün, Regel 23.
-Status:
-
-**Nacharbeit zu `todo.0.4.014` (Claude 15.10., Code geprüft, 594 Tests grün, nicht abgenommen).** Befund:
-1. **Die Schranke blockiert nicht.** `WriteGuard.assertAppOwned` gibt nichts zurück: im Release-Build läuft das Schreiben nach der Protokollzeile weiter, im Debug-Build stürzt `assertionFailure` ab. Die Aufgabe verlangt „wird nicht geschrieben“. Außerdem kennt die Schranke nur Medien, deren Watcher gestartet ist (`registerMediumMountPath` in `ChangeWatcher`); nicht überwachte Medien (pausiert, unentschieden, gesperrt) sind nicht geschützt.
-2. **Der Sabotage-Test beweist nichts.** `sabotageDetectorFindsInjectedPattern` prüft nur ein Textbeispiel gegen die Musterliste, nicht den Scanner. Verlangt war: ein eingeschleustes `removeItem` in einer anderen Datei färbt den echten Test rot.
-3. **Musterliste lückenhaft:** fehlen `forWriting` (deckt `FileHandle(forWritingAtPath:`), `.write(toFile`, `OutputStream(`, `fopen(`, `fwrite(`, `recycle(`, `performFileOperation`.
-4. **Warnung** `diskindexTests/LiveRenameReproTests.swift:42` („no 'async' operations occur within 'await'“): Debug-Build hat damit 1 Warnung, gemeldet waren 0 (Regel 7).
-- a) **Schranke umbauen:** `WriteGuard.permits(_ url: URL) -> Bool`; alle Aufrufer überspringen das Schreiben (oder werfen), wenn `false`. **Umgekehrte Regel (Erlaubnisliste statt Sperrliste):** erlaubt sind nur App-eigene Wurzeln: Datenordner `Application Support/Disk Archive`, `Logs/Disk Archive`, Voreinstellungen, `NSTemporaryDirectory()`, Caches. Alles andere wird blockiert: Rückgabe `false`, Protokollzeile `write blocked` (ohne Pfad) und ein Zähler `blockedWriteCount` für Tests. **Kein `assertionFailure` und kein `fatalError`** (Korrektur Claude 15.10.: Der erste Entwurf verlangte ein `assertionFailure` im Debug-Build; ein Test, der den gesperrten Pfad prüft, beendet damit den Test-Host. Absturzbericht 15.10. 20:14, `ReadOnlyMediaGuardTests.diskIndexLogSkipsWriteWhenDirectoryBlocked` → `WriteGuard.permitsWrite` → `assertionFailure`; Regel 20 und 19: Absturzmeldungen auf dem Bildschirm des Nutzers). Vorhandene `assertionFailure` in `WriteGuard` entfernen. Liegt der Benutzerordner auf einem externen Laufwerk, bleibt der Datenordner erlaubt (die Wurzeln sind maßgeblich, nicht der Mount-Punkt). `registerMediumMountPath` entfällt, sofern nichts anderes es braucht.
-- b) **Tests:** `permits` ist `false` für `/Volumes/X/foo` und `~/Documents/foo`, `true` für den Datenordner, `/tmp`-Testordner und den Fall „Benutzerordner auf externem Laufwerk“ (Wurzeln injizierbar). Ein Aufrufer-Test: `DiskIndexLog` schreibt bei blockiertem Ziel nichts.
-- c) **Wächter-Test:** Der Scanner wird auf einem Temp-Ordner mit eingeschleusten Dateien ausgeführt (`removeItem` in `Foo.swift` → Fund; dasselbe in einer Erlaubnislisten-Datei → kein Fund). Muster aus 3 ergänzen.
-- d) Warnung beheben. Debug **und** Release 0 Warnungen, seriell, zwei Parallelläufe, Regel 23.
-Status:
-WriteGuard ohne assertionFailure, blockedWriteCount; diskIndexLogSkipsWriteWhenDirectoryBlocked grün. Debug/Release 0 Warn. Seriell 604/604 (~21:03). IPS unverändert seit 20:39. Bereit zur Prüfung.
-
-**HALT nach Paket 2a** — Freigabe durch Claude:
-
----
-
-#### Paket 3 — Live-Überwachung
-
-**bug.0.4.019 — Flush je Medium serialisieren (REPORT 64, 66, 99, 79).** Repro: `nr66_…`, `nr99_…`.
-- a) Quiet-Timer und Flush trennen:
-  - Der Quiet-Task trägt sich vor dem Flush aus `quietTasks` aus (66).
-  - Ein Flush je Medium zur Zeit (`flushInFlight`). Kommt während eines Flushs ein Ereignis, folgt danach genau ein weiterer Flush.
-  - Laufende Flushes werden nur in `stop`/`stopAllForTermination` abgebrochen, nicht durch neue Ereignisse (64).
-- b) `ChangeWatcherEngine`: `CancellationError` gesondert behandeln. `pending` zurücklegen, **kein** `.needsFullReconcile`.
-- c) 99: `IndexStoreV3.commitPendingMetaIfNeeded` entnimmt das Delta **vor** dem `await` und setzt es auf null, ebenso `lastMetaCommitTime`. Bei Fehler wieder addieren.
-- d) 79: `ChangeWatcher.stop` leert `tasks`, `mounts`, `volumes` und `sources` **synchron vor** dem `await saveCursor` (Cursor vorher in eine lokale Variable). `applyPause`/`pauseChanged` serialisieren und nach jedem `await` `globalAutoIndexPaused` erneut prüfen.
-- **Akzeptanz:**
-  - Die Repro-Tests sind grün.
-  - `BlockingListAccess` blockiert den ersten Flush, zweites Ereignis, freigeben → kein `onFullReconcile`, beide Ordner gelesen.
-  - Pause an/aus schnell hintereinander mit verzögertem `recordEventCursor` → Watcher aktiv, Ereignis wird gelesen.
-Status:
-nr66/nr99 + Serial-/Pause-Tests; ingest setzt flushAgain während flushInFlight. Seriell 604/604, Parallel 2× TEST EXECUTE SUCCEEDED (~21:06). Bereit zur Prüfung.
-
-**bug.0.4.020 — Indexer: Schreib- und Lesefehler trennen, Halt sofort, Stall-Wächter (REPORT 123, 94, 77, 102).**
-- a) 123: Schreibfehler aus `onChunk` als eigener Typ (`IndexWriteFailed`). `readFolderWithRetry` wirft ihn sofort weiter; der Lauf endet über `failWrite` mit `.error` (nicht „Ordner nicht lesbar“).
-- b) 94: `DirectoryIndexInterrupted`, `CancellationError` und `IndexWriteFailed` werden ohne Wiederholung weitergeworfen. `folderEntries` und die Zählung werden je Versuch zurückgesetzt.
-- c) 77:
-  - Watchdog, der `DirectoryReadStalled` auch ohne eintreffenden Chunk auslöst. Die Stall-Zeit zählt ab dem letzten Lebenszeichen.
-  - `continuation.onTermination` setzt ein Abbruch-Flag, das `BulkDirectoryReader.readStreaming` zwischen den `getattrlistbulk`-Aufrufen prüft (fd schließen), und bricht den inneren Task ab.
-  - Bei `willUnmount` laufende Läufe des Mediums abbrechen.
-- d) 102: `parentsFor` gibt DB-Fehler weiter (kein `try? … ?? []`), der Lauf endet `.error`.
-- **Akzeptanz:**
-  - Store, der beim Chunk-Schreiben wirft → Lauf `.error`, kein „nicht lesbar“, Dauer < 2 s.
-  - Pause im ersten Chunk → genau ein Lesevorgang, ohne Wartezeit (heute ca. 14 s).
-  - Fake-Stream, der nie liefert → `DirectoryReadStalled` nach `directoryStallTimeout`.
-Status:
-IndexerWriteReproTests grün; DirectoryReadStalled ohne Retry. Seriell/Parallel wie 019. Regel 23 App 21:04:30. Bereit zur Prüfung.
-
-**HALT nach Paket 3** — Freigabe durch Claude:
-
----
-
 #### Paket 4 — Medien-I/O und Datenbank nicht auf dem Haupt-Thread
 
 **Hintergrund (verbindlich):** Im Build ist `NonisolatedNonsendingByDefault` aktiv (`SWIFT_APPROACHABLE_CONCURRENCY`). Eine `nonisolated … async`-Funktion ohne `@concurrent` läuft daher **auf dem Actor des Aufrufers**, also auf main, wenn der Aufrufer `@MainActor` ist. „async“ heißt hier **nicht** „Hintergrund“.
+
+**bug.0.4.045 — `WriteGuard` darf nicht ins Datei-Protokoll zurückschreiben (Befund Claude 16.10.).** `WriteGuard.permitsWrite` ruft bei einem blockierten Pfad `DiskIndexLog.shared.record` auf. `DiskIndexLog.write` hält dabei seinen `NSLock` und prüft selbst `permitsWrite` (Z. ~353). Wäre je der Protokollordner selbst blockiert, ruft `record` → `write` → `permitsWrite` → `record` → `lock.lock()` im selben Thread auf: **Deadlock**. Heute nicht erreichbar (Protokollordner ist eine erlaubte Wurzel), aber eine Sicherung darf nicht hängen können.
+- a) `permitsWrite` schreibt nicht über `DiskIndexLog.shared`, sondern über `os_log` (nur Zähler/Text `write blocked`, ohne Pfad) und `blockedWriteCount`. Alternativ Wiedereintritts-Schutz (Thread-lokales Flag). Der Zähler bleibt.
+- b) Test: Protokollinstanz mit gesperrtem Ordner schreibt nichts und hängt nicht (Zeitgrenze 2 s, Regel 20: abstürzen darf nichts). Sabotage (Aufruf zurück auf `shared.record`) → Test läuft in die Zeitgrenze → rot ✓.
+- c) Warnungen 0, seriell, zwei Parallelläufe, Regel 23, keine neuen `Disk Archive*.ips`.
+Status:
 
 **bug.0.4.021 — Medienprüfung und Volume-Abfragen vom Main-Thread nehmen (REPORT 117, 118).**
 - a) `DirectMediumAccess.probe` als `@concurrent` oder per Continuation auf eine eigene Queue (wie `listDirectory`). Zeitgrenze 5 s, danach `.denied(reason: "timeout")`.

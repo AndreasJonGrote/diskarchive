@@ -1,8 +1,7 @@
-Lies TODO.md: Regeln 1–30, dann nur die Nacharbeit zu `todo.0.4.014` (Paket 2a, Abschnitt „Nacharbeit“, Punkte 1–4 und a–d) und aus Paket 3 `bug.0.4.019` und `bug.0.4.020`.
-Reihenfolge: todo.0.4.014 (Nacharbeit), bug.0.4.019, bug.0.4.020. Repro-Tests nach Regel 25 (`Werkzeuge/audit-repro/ReproAuditTests.swift`, `nr66_…`, `nr99_…`): Rot vor dem Fix belegen, Sabotage zurücknehmen vor Regel 23. Keine neuen sichtbaren Texte.
-WICHTIG (Absturz): `WriteGuard` darf kein `assertionFailure`/`fatalError` enthalten, sonst stürzt der Testlauf ab und der Nutzer bekommt Absturzmeldungen (Regeln 19, 20). Siehe Nacharbeit a) in TODO.md; der Test `diskIndexLogSkipsWriteWhenDirectoryBlocked` stürzte so ab. Nach jedem Testlauf: keine neuen Dateien `Disk Archive*.ips` in ~/Library/Logs/DiagnosticReports (Prüfung: ls -lt … | head, Ergebnis im Status). Läuft der Absturzbericht trotzdem auf: Ursache beheben, nicht ignorieren.
-Wichtig: Der Debug-Build hat 0 Warnungen **einschließlich Testziel**; Release ebenfalls. Prüfe vor der Meldung selbst mit: grep "warning:" | grep -v appintents | sort -u | wc -l.
+Lies TODO.md: Regeln 1–30, dann nur `bug.0.4.045` sowie aus Paket 4 `bug.0.4.021`, `bug.0.4.022` und `bug.0.4.023`.
+Reihenfolge: bug.0.4.045, bug.0.4.021, bug.0.4.022 (nimm die Hinweise zu eventInLiveScope, isInsidePackageInterior und urlIsPackage mit hinein), bug.0.4.023. Tests nach Regel 20: nichts darf abstürzen, kein assertionFailure/fatalError in Produktcode, der von Tests absichtlich ausgelöst wird. Keine neuen sichtbaren Texte.
+Nach jedem Testlauf: keine neuen `Disk Archive*.ips` in ~/Library/Logs/DiagnosticReports (Ergebnis im Status).
 Parallellauf immer mit: xcodebuild test-without-building … -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120. Dieses Kommando und die Uhrzeiten stehen im Status.
-Akzeptanz: Build Debug und Release mit 0 Warnungen; seriell grün; zwei Parallelläufe grün; Regel 23.
-Kein Git außer status/log/diff/show. Status je Aufgabe höchstens 5 Zeilen mit Kennung, „Bereit zur Prüfung“. HALT nach Paket 3.
+Akzeptanz: Build Debug und Release mit 0 Warnungen (einschließlich Testziel; selbst zählen mit grep "warning:" | grep -v appintents | sort -u | wc -l); seriell grün; zwei Parallelläufe grün; Regel 23.
+Kein Git außer status/log/diff/show. Status je Aufgabe höchstens 5 Zeilen mit Kennung, „Bereit zur Prüfung“. HALT nach bug.0.4.023.
 Beende deine Antwort nach Regel 30: Prompt für Claude im Codeblock und eine Commit-Nachricht.
