@@ -48,7 +48,7 @@ extension WindowTestGroup {
         let medium = try await harness.insert(name: "Zähler", fsType: "apfs", bytes: 100)
         let app = AppState(store: harness.store)
         await app.loadStoredMedia()
-        AppState.writeMediumBeforePersistHook = { id, store in
+        let hook: @Sendable (UUID, IndexStoreV3) async throws -> Void = { id, store in
             try await store.pool.write { db in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: id) else { return }
                 try IndexStoreV3.commitMediumMeta(
@@ -59,9 +59,10 @@ extension WindowTestGroup {
                 )
             }
         }
-        defer { AppState.writeMediumBeforePersistHook = nil }
-        app.updateMedium(id: medium.uuid, persist: true) { $0.isFavorite = true }
-        await app.flushMediumEdits()
+        try await AppState.$writeMediumBeforePersistHook.withValue(hook) {
+            app.updateMedium(id: medium.uuid, persist: true) { $0.isFavorite = true }
+            await app.flushMediumEdits()
+        }
         let stored = try #require(try await harness.store.medium(uuid: medium.uuid))
         #expect(stored.fileCount == 100)
         #expect(stored.isFavorite)
@@ -74,10 +75,8 @@ extension WindowTestGroup {
         await app.loadStoredMedia()
         app.updateMedium(id: medium.uuid, persist: true) { $0.isFavorite = true }
         app.prepareForTermination()
-        let flushed = await waitUntil(timeout: 3) {
-            (try? await harness.store.medium(uuid: medium.uuid))?.isFavorite == true
-        }
-        #expect(flushed)
+        let stored = try #require(try await harness.store.medium(uuid: medium.uuid))
+        #expect(stored.isFavorite)
     }
 
     @Test func mediumEditsSurviveANewAppState() async throws {

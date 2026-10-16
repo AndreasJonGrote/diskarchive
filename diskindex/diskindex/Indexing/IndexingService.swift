@@ -8,6 +8,10 @@ import Foundation
 /// Hält höchstens einen Lauf je Medium und schickt Fortschritt an `AppState`.
 @MainActor
 final class IndexingService {
+    #if DEBUG
+    @TaskLocal static var skipClearIndexRequestForTesting = false
+    #endif
+
     private let store: IndexStoreV3
     private let access: any MediumAccess
     private let appState: AppState
@@ -184,6 +188,7 @@ final class IndexingService {
         if runs[mediumUUID] == nil {
             tasks[mediumUUID] = nil
         }
+        BulkDirectoryReader.flushReadLogSummary(force: true)
         coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
@@ -303,7 +308,14 @@ final class IndexingService {
                 start(mediumUUID: mediumUUID, volume: volume, fromScratch: false)
             }
         }
+        BulkDirectoryReader.flushReadLogSummary(force: true)
+        #if DEBUG
+        if !Self.skipClearIndexRequestForTesting {
+            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+        }
+        #else
         coordinator?.clearIndexRequest(mediumID: mediumUUID)
+        #endif
     }
 
     private func resumePausedRuns() {

@@ -164,12 +164,15 @@ final class MediumCoordinator {
         fresh.type = volume.mediumType
         fresh.lastSeenAt = Date()
         if recoveredFromError {
-            fresh.indexStatus = .pending
+            fresh.indexStatus = fresh.lastIndexedAt != nil ? .indexed : .pending
         }
         if let free = volume.volumeFreeBytes {
             fresh.capacityUsedBytes = max(0, volume.volumeTotalBytes - free)
         }
         try await store.updateMediumRecognition(uuid: fresh.uuid, fresh)
+        if recoveredFromError {
+            try await store.updateMediumIndexStatus(uuid: fresh.uuid, fresh.indexStatus)
+        }
         mediumByPath[volume.mountPath] = fresh.uuid
         let wasOffline = appState.medium(with: fresh.uuid)?.connectionStatus != .connected
         publish(fresh, connection: .connected)
@@ -202,7 +205,7 @@ final class MediumCoordinator {
         }
         if fresh.indexStatus == .indexing, isIndexingActive?(fresh.uuid) != true {
             fresh.indexStatus = fresh.lastIndexedAt != nil ? .indexed : .pending
-            try await store.updateMediumRecognition(uuid: fresh.uuid, fresh)
+            try await store.updateMediumIndexStatus(uuid: fresh.uuid, fresh.indexStatus)
             publish(fresh, connection: .connected)
         }
         if fresh.decision == .index, fresh.indexStatus == .indexed {

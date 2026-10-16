@@ -337,27 +337,29 @@ struct IssueTrackerTests {
     }
 
     @Test @MainActor func enqueueReturnsQuicklyWhileDatabaseWriteBlocks() async throws {
-        let reporter = try makeReporter()
-        let pool = try #require(reporter.queuePool)
-        ApiQueuePersistence.resetOpenQueuePoolCallCountForTesting()
-        let gate = ExclusiveWriteGate()
-        let writer = Task.detached {
-            try pool.write { _ in
-                gate.markEntered()
-                gate.waitForRelease(timeoutSeconds: 5)
+        let poolTracker = ApiQueuePersistence.OpenQueuePoolCountTracker()
+        try await ApiQueuePersistence.$openQueuePoolCountTracker.withValue(poolTracker) { () async throws -> Void in
+            let reporter = try makeReporter()
+            let pool = try #require(reporter.queuePool)
+            let gate = ExclusiveWriteGate()
+            let writer = Task.detached {
+                try pool.write { _ in
+                    gate.markEntered()
+                    gate.waitForRelease(timeoutSeconds: 5)
+                }
             }
+            let entered = await waitUntil(timeout: 5) { gate.hasEntered }
+            #expect(entered)
+            let started = ContinuousClock.now
+            reporter.enqueue(kind: "crash")
+            let elapsed = started.duration(to: .now)
+            #expect(elapsed < .milliseconds(100))
+            gate.release()
+            try await writer.value
+            reporter.waitForPendingEnqueuesForTesting()
+            try expectQueued(reporter, 1)
+            #expect(poolTracker.count == 0)
         }
-        let entered = await waitUntil(timeout: 5) { gate.hasEntered }
-        #expect(entered)
-        let started = ContinuousClock.now
-        reporter.enqueue(kind: "crash")
-        let elapsed = started.duration(to: .now)
-        #expect(elapsed < .milliseconds(100))
-        gate.release()
-        try await writer.value
-        reporter.waitForPendingEnqueuesForTesting()
-        try expectQueued(reporter, 1)
-        #expect(ApiQueuePersistence.openQueuePoolCallCountForTesting == 0)
     }
 
     @Test @MainActor func versionCheckEnqueueReturnsQuicklyWhileDatabaseWriteBlocks() async throws {

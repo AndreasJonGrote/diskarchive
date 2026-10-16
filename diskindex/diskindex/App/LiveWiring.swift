@@ -131,11 +131,34 @@ enum LiveWiring {
                 )
             }
         }
-        appState.onIndexingCancelForScopeChange = { [weak service] id in
-            Task { await service?.cancel(mediumUUID: id) }
+        appState.onScopeRulesChanged = { [weak service, weak watcher, weak coordinator, weak appState] indexingIDs, scopeGrew in
+            Task {
+                for id in indexingIDs {
+                    await service?.cancel(mediumUUID: id)
+                }
+                guard let appState else { return }
+                var reconcileIDs = Set(indexingIDs)
+                if scopeGrew {
+                    reconcileIDs.formUnion(
+                        appState.media
+                            .filter { $0.connectionStatus == .connected && $0.decision == .index }
+                            .map(\.id)
+                    )
+                }
+                for id in reconcileIDs {
+                    guard let volume = coordinator?.volume(for: id) else { continue }
+                    await stopWatcherAndStartIndex(
+                        watcher: watcher,
+                        service: service,
+                        id: id,
+                        volume: volume,
+                        fromScratch: false
+                    )
+                }
+            }
         }
-        appState.onReindexMedium = { [weak service, weak watcher, weak coordinator] id in
-            guard AppDelegateBridge.appState.featureAccess.canWriteIndex else { return }
+        appState.onReindexMedium = { [weak service, weak watcher, weak coordinator, weak appState] id in
+            guard appState?.featureAccess.canWriteIndex == true else { return }
             guard let volume = coordinator?.volume(for: id) else { return }
             Task {
                 await stopWatcherAndStartIndex(

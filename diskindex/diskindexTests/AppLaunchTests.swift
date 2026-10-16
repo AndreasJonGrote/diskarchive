@@ -58,26 +58,25 @@ struct AppLaunchTests {
         AppWindowPresenter.prepareForTermination()
     }
 
-    @Test @MainActor func schedulerEnqueuesVersionCheckImmediatelyOnStart() throws {
-        VersionCheckCoordinator.lastVersionCheckEnqueue = nil
-        let testStore = try TestStore.make()
-        let countBefore = try testStore.pool.read { db in
-            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
-        }
-        #expect(countBefore == 0)
-        let scheduler = VersionCheckScheduler()
-        let appState = AppState()
-        scheduler.start(appState: appState, store: testStore.store)
-        defer { scheduler.stop() }
-        let deadline = Date().addingTimeInterval(2)
-        var countAfter = countBefore
-        while Date() < deadline {
-            countAfter = try testStore.pool.read { db in
+    @Test @MainActor func schedulerEnqueuesVersionCheckImmediatelyOnStart() async throws {
+        let enqueueTracker = VersionCheckCoordinator.LastEnqueueTracker()
+        try await VersionCheckCoordinator.$lastVersionCheckEnqueueTracker.withValue(enqueueTracker) { () async throws -> Void in
+            let testStore = try TestStore.make()
+            let countBefore = try await testStore.pool.read { db in
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
             }
-            if countAfter == 1 { break }
-            Thread.sleep(forTimeInterval: 0.02)
+            #expect(countBefore == 0)
+            let scheduler = VersionCheckScheduler()
+            let appState = AppState()
+            scheduler.start(appState: appState, store: testStore.store)
+            defer { scheduler.stop() }
+            let enqueued = await waitUntil(timeout: 5) {
+                let count = try? await testStore.pool.read { db in
+                    try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
+                }
+                return count == 1
+            }
+            #expect(enqueued)
         }
-        #expect(countAfter == 1)
     }
 }

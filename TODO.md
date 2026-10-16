@@ -67,7 +67,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 0–3, 2a | 0.4 (vorab) | ~~`bug.0.4.010`–`020`, `043`, `044`, `todo.0.4.010`–`014`~~ | Testbasis, Datenschutz, Inventar, Live, Nur-Lesen | **abgenommen 15./16.10.** |
 | 4 | **0.3.8** | ~~`bug.0.3.8.001`~~, `bug.0.3.8.002` (Nacharbeit), `bug.0.4.045`, `021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | **Nacharbeit:** `002`, `025`; `045`, `021`–`024` warten auf einen grünen Parallellauf (`001` abgenommen 16.10.) |
 | 5a | **0.3.8** | `bug.0.4.026`, `027`, `028`, `029`, `030`, `032`, `033` | Entscheidung, Status, Regeln, Identität, Teil 1 | **Nacharbeit** (Prüfung 16.10. 21:52) |
-| 5b | **0.3.8** | `bug.0.4.031` | Teil 2 | B, wartet auf Entscheidung `todo.0.4.032` |
+| 5b | **0.3.8** | `bug.0.4.031` | Teil 2 | B, nach 5a (`todo.0.4.032` entschieden 16.10.) |
 | 6 | **0.3.9** | `bug.0.4.034`–`040` | Oberfläche | B |
 | 7 | **0.3.9** | `bug.0.4.041`–`042` | Absturzschreiber und Start | B |
 | 8 | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere | B |
@@ -204,7 +204,7 @@ bug.0.4.025: restrict-Spion, `readLogEmitCount` ≤10 (2000 Ordner), `recordOnMa
 
 #### Paket 5a — Entscheidung, Status, Regeln, Identität (Teil 1, freigegeben 16.10.; nach der Nacharbeit)
 
-Reihenfolge: `026`, `027`, `028`, `029`, `030`, `032`, `033`. `bug.0.4.031` bleibt in B, bis `todo.0.4.032` entschieden ist. `bug.0.4.028` ist seit der Entscheidung `todo.0.4.033` (16.10.: Einstellungen vor dem ersten Lauf laden, feste Regel) freigegeben und muss das umsetzen: `hydrateSettingsFromStore()` abgeschlossen, bevor `MediumRecognitionStartup.bootstrap` den ersten Lauf startet; mit Test. Neue sichtbare Texte nur über „Frage:“.
+Reihenfolge: `026`, `027`, `028`, `029`, `030`, `032`, `033`. `bug.0.4.031` bleibt in B bis zur Abnahme von 5a (`todo.0.4.032` ist entschieden). `bug.0.4.028` ist seit der Entscheidung `todo.0.4.033` (16.10.: Einstellungen vor dem ersten Lauf laden, feste Regel) freigegeben und muss das umsetzen: `hydrateSettingsFromStore()` abgeschlossen, bevor `MediumRecognitionStartup.bootstrap` den ersten Lauf startet; mit Test. Neue sichtbare Texte nur über „Frage:“.
 
 **bug.0.4.026 — Reprobe setzt keine Entscheidung zurück (REPORT 61).**
 - `reprobeDeniedVolumes`: Medien mit `decision != .undecided` **nicht** über `storeAndPresent` führen.
@@ -319,19 +319,19 @@ bug.0.4.033: `MediumCodecV3` Setter + Store-Patches; `writeMedium`→`updateMedi
 
 ### Entscheidungen des Nutzers (blockieren nur die genannte Stelle)
 
-Vor dem Start von Paket 5b (0.3.8) zu entscheiden: `todo.0.4.032` (blockiert `031`). Vor dem Teil „Dateinamen ignorieren“ in `bug.0.4.035` (0.3.9): `todo.0.4.031`. Die übrigen blockieren nur ihre Stelle; `todo.0.4.030` (Beta-Sperre/API) vor der Weitergabe (0.4).
+**Alle Entscheidungen getroffen (Nutzer 16.10. abends).** Umsetzung: `todo.0.4.032` in `bug.0.4.031` c), `todo.0.4.031` in `bug.0.4.035`, `todo.0.4.034`–`038` als `todo.0.4.026`–`029` (0.4, Abschnitt B). Die Fragen bleiben zur Nachverfolgung hier stehen.
 
 | Kennung | Frage | betrifft |
 |---|---|---|
-| `todo.0.4.030` | **Beta-Sperre und API-Stand.** Die API meldet heute `1.0.0`. Eine Beta (0.x) mit **frischer Datenbank sperrt dann sofort** (nur ansehen), mit vorhandener Datenbank nach 7 Tagen ab erster Abfrage. Das trifft jeden Neustart nach Zurücksetzen und jeden neuen Rechner. Soll die API bis zur Weitergabe auf die Beta-Nummer (z. B. `0.3`) gestellt werden, oder soll Debug die Sperre überspringen? (PHP-API nur mit Okay des Nutzers.) | Test der App, `todo.0.4.001` |
-| `todo.0.4.031` | **Mehrere Ordner auf einmal ignorieren** (⌘A, 50.000 Ziele): Obergrenze oder Warnung? Braucht einen neuen Text. | `bug.0.4.035` |
-| `todo.0.4.032` | **Medium neu formatiert** (neue UUID, gleicher Name): altes Medium bleibt tot „Offline“. Hinweis anbieten oder automatisch vergessen? | `bug.0.4.031` |
+| `todo.0.4.030` | **erledigt 16.10. (Nutzer):** Die API meldet wieder `0.3.0`; die Beta sperrt nicht mehr sofort. Keine Änderung an der App. | – |
+| `todo.0.4.031` | **entschieden 16.10. (Nutzer): Rückfrage ab Schwelle.** Ab 500 Zielen auf einmal fragt die App vor dem Ignorieren nach; nichts wird verhindert. | `bug.0.4.035` |
+| `todo.0.4.032` | **entschieden 16.10. (Nutzer): Hinweis anbieten.** Neues Medium mit gleichem Namen wie ein Offline-Medium → Rückfrage, ob es das alte ersetzt; nie automatisch vergessen. | `bug.0.4.031` c) |
 | `todo.0.4.033` | **entschieden 16.10. (Nutzer): ja.** Einstellungen müssen vor dem ersten Lauf geladen sein; fest als Regel (README, Abschnitt „Datenbank“/Start). Gilt für `bug.0.4.028`. | – |
-| `todo.0.4.034` | **„Für dieses Medium merken“:** `rememberDecision` wird geschrieben, aber nie gelesen. Gilt README 2.3 (Dialog erscheint ohne Haken wieder) noch, oder entfällt der Haken? | Erkennung |
-| `todo.0.4.035` | **Abgelaufene Pause beim Start** endet still, ohne Mitteilung „Medien werden wieder indiziert.“ Soll die Mitteilung auch hier kommen? | Pause |
-| `todo.0.4.036` | **Versions-Check-Takt:** `Task.sleep` zählt Betriebszeit, nicht Kalenderzeit; auf Laptops mit Ruhezustand seltener als „alle 24 h“. Kalenderzeit gemeint? | `VersionCheckScheduler` |
-| `todo.0.4.037` | **Antwort 201 ohne JSON-`id`** gilt als Fehlschlag und wird erneut gesendet (Doppel auf dem Server). Mit der Server-Seite abstimmen. | Fehlerbericht |
-| `todo.0.4.038` | `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht oder löschen? | `todo.0.4.010` |
+| `todo.0.4.034` | **entschieden 16.10. (Nutzer): README gilt.** Ohne Haken erscheint der Dialog beim nächsten Anschließen wieder, mit Haken nicht. | `todo.0.4.026` |
+| `todo.0.4.035` | **entschieden 16.10. (Nutzer): ja.** Auch eine Pause, die bei beendeter App abgelaufen ist, meldet beim Start „Medien werden wieder indiziert.“ | `todo.0.4.027` |
+| `todo.0.4.036` | **entschieden 16.10. (Nutzer): Kalenderzeit.** Beim Start und beim Aufwachen prüfen, ob seit dem letzten Check 24 h vergangen sind. | `todo.0.4.028` |
+| `todo.0.4.037` | **entschieden 16.10. (Nutzer): jedes 201 gilt als Erfolg**, `id` ist optional. Keine Änderung am Server. | `todo.0.4.029` |
+| `todo.0.4.038` | **entschieden 16.10. (Nutzer):** `ScreenshotRunner.swift` löschen; `PreviewData.swift` nur behalten, wenn Vorschauen oder Tests es nutzen, sonst auch löschen. | `todo.0.4.029` |
 | `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
 
 ### Beobachten (keine Aufgabe)
@@ -345,7 +345,7 @@ Vor dem Start von Paket 5b (0.3.8) zu entscheiden: `todo.0.4.032` (blockiert `03
 
 ## B. Backlog (nicht freigegeben, der Umsetzer arbeitet nicht daran), nach Zielversion
 
-### 0.3.8 — Paket 5b (`031`; wartet auf `todo.0.4.032`)
+### 0.3.8 — Paket 5b (`031`; nach 5a)
 
 
 **bug.0.4.031 — Identität: Klone und Volume-Umbenennung (REPORT 116, 78).**
@@ -354,6 +354,8 @@ Vor dem Start von Paket 5b (0.3.8) zu entscheiden: `todo.0.4.032` (blockiert `03
 - **Akzeptanz:**
   - Zwei `.appeared` mit gleicher `volumeUUID` und verschiedenen Pfaden → zwei IDs, Einträge des ersten unverändert.
   - Rename-Event → `volume(for:)` liefert den neuen Pfad; Unmount mit neuem Pfad setzt offline.
+- c) `todo.0.4.032` (Nutzer 16.10.): Wird ein **neues** Medium erkannt (Erkennungs-Dialog) und gibt es ein **Offline**-Medium mit **gleichem Namen**, folgt nach der Entscheidung im Dialog eine Rückfrage: **Textvorschlag** (de/en über `LayoutCopy`, Nutzer prüft): Titel „Ersetzt dieses Medium „{Name}“?“, Text „Ein Medium mit diesem Namen ist bekannt, aber nicht angeschlossen. Wurde es neu formatiert, kann das alte mit Index und Favoriten vergessen werden.“, Knöpfe „Altes vergessen“ (rot) und „Behalten“ (Standard, Esc). „Altes vergessen“ ruft den bestehenden Vergessen-Weg auf. Nie automatisch vergessen. Mehrere Offline-Treffer mit gleichem Namen: keine Rückfrage.
+  - Akzeptanz: Offline-Medium „USB“ + neues Medium „USB“ → Rückfrage; „Behalten“ → beide bleiben; „Altes vergessen“ → altes weg (Store und Liste); zwei Offline-„USB“ → keine Rückfrage.
 Status:
 
 **HALT nach Paket 5b = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen, danach 0.3.9.
@@ -380,7 +382,7 @@ Status:
 - `ColumnSelection` führt zusätzlich ein `Set<UUID>` für `contains`.
 - In `folderColumn`, `commit`, `multipleSelectionItems` und `contextTargets` einmal ein Dictionary `id → item` bzw. ein Set je Body/Aufruf.
 - `IgnoreBatch`/`ContextMenuPlan` über Sets.
-- Für „Dateinamen ignorieren“ mit sehr vielen Zielen: Entscheidung `todo.0.4.031` abwarten (Obergrenze oder Warnung braucht einen Text); bis dahin nur die Laufzeit-Teile umsetzen.
+- `todo.0.4.031` (Nutzer 16.10.): Ab **500** Zielen auf einmal (Ignorieren über das Kontextmenü) fragt die App vorher nach. **Textvorschlag** (de/en, Nutzer prüft): „{N} Einträge ignorieren?“, Knöpfe „Ignorieren“ und „Abbrechen“ (Standard, Esc). Unter 500 keine Rückfrage. Test: 499 → keine Rückfrage, 500 → Rückfrage, „Abbrechen“ ändert nichts.
 - **Akzeptanz:** 50.000 künstliche Items, `selectAll`, `commit` und `selectedIDs` jeweils < 50 ms (Messung im Status).
 Status:
 
@@ -488,6 +490,10 @@ Status:
 | `todo.0.4.023` | **Fehlerbericht mit echten Protokollzeilen** testen (erst nach `bug.0.4.011` und `bug.0.4.012`). |
 | `todo.0.4.024` | **Update durch Ersetzen der App:** Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe bei neuerer Version, Launch-Agent neu registrieren; Schema-Erweiterungen mit Sicherung davor (nach `bug.0.4.013`). |
 | `todo.0.4.025` | **Fenster „Datenbank wird aktualisiert“** (einmalig, mit Fortschritt) bei der ersten Schema-Erweiterung durch ein Update. |
+| `todo.0.4.026` | **„Für dieses Medium merken“ auswerten** (`todo.0.4.034`): `rememberDecision` beim Anschließen lesen; ohne Haken erscheint der Erkennungs-Dialog beim nächsten Anschließen wieder (Vorbelegung = letzte Entscheidung), mit Haken nicht. Test für beide Fälle. |
+| `todo.0.4.027` | **Pause beim Start abgelaufen** (`todo.0.4.035`): Mitteilung „Medien werden wieder indiziert.“ wie beim Ablauf im Betrieb (gleiche Schalter); danach Abgleich wie nach Pausenende. Test. |
+| `todo.0.4.028` | **Versions-Check nach Kalenderzeit** (`todo.0.4.036`): Zeitpunkt des letzten Checks speichern; beim Start, beim Aufwachen und stündlich prüfen, ob 24 h vergangen sind. Test mit injizierbarer Uhr. |
+| `todo.0.4.029` | **Kleinkram Fehlerbericht und Altcode** (`todo.0.4.037`, `038`): jedes 201 gilt als Erfolg, `id` optional (Test: 201 ohne Körper → Zeile gelöscht, kein erneutes Senden); `DebugTools/ScreenshotRunner.swift` löschen, `PreviewData.swift` nur behalten, wenn genutzt; Regel 10/19 entsprechend bereinigen (nur Claude). |
 
 ### 0.5 bis 1.0 (Entwürfe, jede Funktion vor dem Start einzeln besprechen; Details ROADMAP)
 

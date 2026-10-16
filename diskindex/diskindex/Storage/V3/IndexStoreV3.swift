@@ -278,6 +278,14 @@ actor IndexStoreV3 {
         emit(.medium(uuid))
     }
 
+    func updateMediumIndexStatus(uuid: UUID, _ status: StoredIndexStatus) async throws {
+        try await pool.write { db in
+            guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }
+            try MediumCodecV3.updateIndexStatus(db, storageID: id, status)
+        }
+        emit(.medium(uuid))
+    }
+
     func updateMediumLastSeen(uuid: UUID, at date: Date) async throws {
         try await pool.write { db in
             guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }
@@ -968,20 +976,24 @@ actor IndexStoreV3 {
     ) throws -> Int {
         guard !roots.isEmpty else { return 0 }
         var updated = 0
-        for root in roots {
+        var offset = 0
+        while offset < roots.count {
+            let chunk = Array(roots[offset..<min(offset + 100, roots.count)])
+            let marks = Array(repeating: "?", count: chunk.count).joined(separator: ", ")
             try db.execute(
                 sql: """
                     WITH RECURSIVE sub(id) AS (
-                        SELECT id FROM items WHERE id = ?
+                        SELECT id FROM items WHERE id IN (\(marks))
                         UNION ALL
                         SELECT i.id FROM items i INNER JOIN sub ON i.parentID = sub.id
                     )
                     UPDATE items SET status = ?
                     WHERE id IN (SELECT id FROM sub) AND status = ?
                     """,
-                arguments: [root, newStatus, priorStatus]
+                arguments: StatementArguments(chunk + [newStatus, priorStatus])
             )
             updated += db.changesCount
+            offset += 100
         }
         return updated
     }

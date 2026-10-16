@@ -147,6 +147,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MainActor.assumeIsolated {
             MenuBarController.shared.uninstallFromStatusBar()
             AppWindowPresenter.prepareForTermination()
+            stopLiveServicesBeforeRewire()
+            AppDelegateBridge.appState.prepareForTermination()
+            AppDelegateBridge.appState.indexStore?.checkpoint()
+            DiskIndexLog.shared.record(.app, .info, "app terminate ok")
         }
         return .terminateNow
     }
@@ -154,7 +158,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         MainActor.assumeIsolated {
             prepareForAppTermination()
-            DiskIndexLog.shared.record(.app, .info, "app terminate ok")
         }
     }
 
@@ -241,9 +244,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
+                let pauseBefore = appState.globalAutoIndexPaused
                 appState.heldForSleep = false
                 appState.refreshGlobalPause()
-                appState.onAutoIndexPauseChanged?()
+                if pauseBefore == appState.globalAutoIndexPaused {
+                    appState.onAutoIndexPauseChanged?()
+                }
                 Task { @MainActor in await appState.pruneIfDue() }
                 Task { @MainActor in await self?.restartWatchersAfterWake() }
             }

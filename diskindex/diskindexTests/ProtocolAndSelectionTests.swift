@@ -9,15 +9,17 @@ import Testing
 
 @Suite struct DiskIndexLogTests {
     @Test func manyRecordsCallRestrictAtMostOncePerLogFile() throws {
-        FilePrivacy.resetRestrictCallCountForTesting()
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let log = DiskIndexLog(directory: directory)
-        log.start(installHandlers: false)
-        for index in 0..<500 {
-            log.record(.app, .info, "zeile-\(index)")
+        let tracker = FilePrivacy.RestrictCountTracker()
+        try FilePrivacy.$restrictCountTracker.withValue(tracker) {
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+            let log = DiskIndexLog(directory: directory)
+            log.start(installHandlers: false)
+            for index in 0..<500 {
+                log.record(.app, .info, "zeile-\(index)")
+            }
+            log.flushPendingWritesForTesting()
+            #expect(tracker.count <= 1)
         }
-        log.flushPendingWritesForTesting()
-        #expect(FilePrivacy.restrictCallCountForTesting <= 1)
     }
 
     @Test func recordOnMainStaysFast() throws {

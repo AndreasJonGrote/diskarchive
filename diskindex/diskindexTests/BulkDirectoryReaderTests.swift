@@ -9,17 +9,19 @@ import Testing
 
 @Suite struct BulkDirectoryReaderTests {
     @Test func deepTreeEmitsAtMostTenReadLogLines() throws {
-        BulkDirectoryReader.resetReadLogEmitCountForTesting()
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent("bulk-log-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-        for index in 0..<2_000 {
-            let folder = root.appendingPathComponent("d-\(index)", isDirectory: true)
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try Data("x".utf8).write(to: folder.appendingPathComponent("f.txt"))
+        let tracker = BulkDirectoryReader.ReadLogEmitTracker()
+        try BulkDirectoryReader.$readLogEmitTracker.withValue(tracker) {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent("bulk-log-\(UUID().uuidString)")
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: root) }
+            for index in 0..<2_000 {
+                let folder = root.appendingPathComponent("d-\(index)", isDirectory: true)
+                try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+                try Data("x".utf8).write(to: folder.appendingPathComponent("f.txt"))
+            }
+            _ = try BulkDirectoryReader.readResult(at: root)
+            #expect(tracker.count <= 10)
         }
-        _ = try BulkDirectoryReader.readResult(at: root)
-        #expect(BulkDirectoryReader.readLogEmitCountForTesting <= 10)
     }
 
     @Test func bulkReadMatchesFileCountAndSkipsAppleDouble() throws {

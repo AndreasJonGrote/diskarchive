@@ -10,8 +10,8 @@ import SwiftUI
 extension AppState {
     #if DEBUG
     /// Tests (bug.0.4.033): z. B. `commitMediumMeta` zwischen Lesen und Schreiben.
-    static var writeMediumBeforePersistHook: (@Sendable (UUID, IndexStoreV3) async throws -> Void)?
-    static var writeMediumDelayForTesting: Duration?
+    @TaskLocal static var writeMediumBeforePersistHook: (@Sendable (UUID, IndexStoreV3) async throws -> Void)?
+    @TaskLocal static var writeMediumDelayForTesting: Duration?
     #endif
 
     func beginMediumLiveSync(_ id: UUID) {
@@ -62,11 +62,23 @@ extension AppState {
         }
     }
 
+    /// Schreibt ausstehende Nutzer-Medium- und Einstellungs-Updates (bug.0.4.033).
+    @MainActor
+    func flushPendingWritesForTermination() async {
+        let pendingIDs = Array(pendingMediumWrites.keys)
+        for task in pendingMediumWrites.values { task.cancel() }
+        pendingMediumWrites.removeAll()
+        for id in pendingIDs { await writeMedium(id) }
+        settingsSaveTask?.cancel()
+        settingsSaveTask = nil
+        if persistsSettings, storeReady, indexStore != nil {
+            await persistAppSettingsNow()
+        }
+    }
+
     /// Vor Prozessende: Hintergrund-Tasks stoppen, Einstellungen sichern, Spalten-Laden abbrechen.
     func prepareForTermination() {
         cancelChangeLoop()
-        settingsSaveTask?.cancel()
-        settingsSaveTask = nil
         pauseExpiryTask?.cancel()
         pauseExpiryTask = nil
         searchCountTask?.cancel()
@@ -74,15 +86,15 @@ extension AppState {
         trailingLiveSearch?.cancel()
         trailingLiveSearch = nil
         let pendingIDs = Array(pendingMediumWrites.keys)
-        for task in pendingMediumWrites.values { task.cancel() }
-        pendingMediumWrites.removeAll()
-        if !pendingIDs.isEmpty {
+        let shouldFlush = !pendingIDs.isEmpty || (persistsSettings && storeReady && indexStore != nil)
+        if shouldFlush {
+            let group = DispatchGroup()
+            group.enter()
             Task { @MainActor in
-                for id in pendingIDs { await self.writeMedium(id) }
+                await self.flushPendingWritesForTermination()
+                group.leave()
             }
-        }
-        if persistsSettings, storeReady, indexStore != nil {
-            Task { @MainActor in await self.persistAppSettingsNow() }
+            _ = group.wait(timeout: .now() + 1)
         }
         for task in favoriteChecksumTasks { task.cancel() }
         favoriteChecksumTasks.removeAll()
@@ -96,6 +108,7 @@ extension AppState {
         accumulatedItemRefreshPathKeys.removeAll()
         flushSettings()
         cancelRuleReconcileForTermination()
+        cancelPruneScheduleForTermination()
         cancelDatabaseMaintenanceForTermination()
         indexRepository.prepareForTermination()
         mediumLiveSyncIDs.removeAll()

@@ -208,7 +208,7 @@ nonisolated enum MediumCodecV3 {
             sql: """
                 UPDATE storages SET
                     volumeUUID = ?, fingerprint = ?, name = ?, slug = ?, fsType = ?, totalBytes = ?, usedBytes = ?,
-                    lastSeenAt = ?, indexStatus = ?
+                    lastSeenAt = ?
                 WHERE id = ?
                 """,
             arguments: [
@@ -220,7 +220,6 @@ nonisolated enum MediumCodecV3 {
                 medium.volumeTotalBytes,
                 medium.capacityUsedBytes,
                 medium.lastSeenAt.map(SchemaTime.seconds),
-                code(medium.indexStatus),
                 storageID,
             ]
         )
@@ -228,6 +227,13 @@ nonisolated enum MediumCodecV3 {
         try setMeta(db, storageID, .diskSizeBytes, value: medium.diskSizeBytes.map(String.init))
         let known = fileSystemCode(medium.fsType) != 0
         try setMeta(db, storageID, .fsTypeName, value: known ? nil : medium.fsType)
+    }
+
+    static func updateIndexStatus(_ db: Database, storageID: Int64, _ status: StoredIndexStatus) throws {
+        try db.execute(
+            sql: "UPDATE storages SET indexStatus = ? WHERE id = ?",
+            arguments: [code(status), storageID]
+        )
     }
 
     static func updateLastSeen(_ db: Database, storageID: Int64, at date: Date) throws {

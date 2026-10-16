@@ -36,11 +36,11 @@ nonisolated enum BulkDirectoryReader {
     private static let readLogBatchSize = 200
 
     #if DEBUG
-    static var readLogEmitCountForTesting = 0
-
-    static func resetReadLogEmitCountForTesting() {
-        readLogEmitCountForTesting = 0
+    final class ReadLogEmitTracker: @unchecked Sendable {
+        var count = 0
     }
+
+    @TaskLocal static var readLogEmitTracker: ReadLogEmitTracker?
     #endif
 
     static func flushReadLogSummary(force: Bool = false) {
@@ -59,7 +59,9 @@ nonisolated enum BulkDirectoryReader {
         readLogLock.unlock()
         guard total > 0 else { return }
         #if DEBUG
-        readLogEmitCountForTesting += 1
+        readLogLock.lock()
+        readLogEmitTracker?.count += 1
+        readLogLock.unlock()
         #endif
         DiskIndexLog.shared.record(.index, .info, "lesen bulk=\(bulk) fallback=\(fallback)\(reason.map { " grund=\($0)" } ?? "")")
     }
@@ -96,7 +98,6 @@ nonisolated enum BulkDirectoryReader {
         try readStreaming(at: directoryURL, mode: mode, chunkSize: chunkSize, stats: &stats) { chunk in
             collected.append(contentsOf: chunk)
         }
-        flushReadLogSummary(force: true)
         return BulkDirectoryReadResult(entries: collected, stats: stats)
     }
 

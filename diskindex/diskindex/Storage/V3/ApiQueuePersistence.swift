@@ -24,24 +24,24 @@ nonisolated enum ApiQueuePersistence {
 
     static func openQueuePool() throws -> DatabasePool {
         #if DEBUG
-        openQueuePoolCallCountForTesting += 1
+        openQueuePoolCountTracker?.count += 1
         #endif
         return try SchemaV3.openPool(at: IndexStoreV3.storeFileURL())
     }
 
     static func openQueuePool(at fileURL: URL) throws -> DatabasePool {
         #if DEBUG
-        openQueuePoolCallCountForTesting += 1
+        openQueuePoolCountTracker?.count += 1
         #endif
         return try SchemaV3.openPool(at: fileURL)
     }
 
     #if DEBUG
-    nonisolated(unsafe) static var openQueuePoolCallCountForTesting = 0
-
-    static func resetOpenQueuePoolCallCountForTesting() {
-        openQueuePoolCallCountForTesting = 0
+    final class OpenQueuePoolCountTracker: @unchecked Sendable {
+        var count = 0
     }
+
+    @TaskLocal static var openQueuePoolCountTracker: OpenQueuePoolCountTracker?
     #endif
 
     static func enqueue(_ pool: DatabasePool, kind: ApiQueueKind, payload: Data, createdAt: Int) throws {

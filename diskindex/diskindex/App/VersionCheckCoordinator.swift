@@ -11,8 +11,27 @@ import GRDB
 @MainActor
 enum VersionCheckCoordinator {
     static var freshInstallForVersionCheck = false
-    static var lastVersionCheckEnqueue: Date?
+    private static var globalLastVersionCheckEnqueue: Date?
+
+    /// Per-test override; mutating `value` avoids assigning to `@TaskLocal` directly.
+    final class LastEnqueueTracker: @unchecked Sendable {
+        var value: Date?
+    }
+
+    @TaskLocal static var lastVersionCheckEnqueueTracker: LastEnqueueTracker?
     private static let enqueueCooldown: TimeInterval = 30
+
+    private static func effectiveLastEnqueue() -> Date? {
+        lastVersionCheckEnqueueTracker?.value ?? globalLastVersionCheckEnqueue
+    }
+
+    private static func noteEnqueue(at now: Date) {
+        if let tracker = lastVersionCheckEnqueueTracker {
+            tracker.value = now
+        } else {
+            globalLastVersionCheckEnqueue = now
+        }
+    }
 
     static func reevaluateLocal(appState: AppState, store: IndexStoreV3, now: Date = Date()) {
         guard let appVersion = AppVersion.currentApp() else { return }
@@ -82,8 +101,8 @@ enum VersionCheckCoordinator {
     }
 
     static func enqueueCheckIfNeeded(store: IndexStoreV3, now: Date = Date(), force: Bool = false) {
-        if !force, let last = lastVersionCheckEnqueue, now.timeIntervalSince(last) < enqueueCooldown { return }
-        lastVersionCheckEnqueue = now
+        if !force, let last = effectiveLastEnqueue(), now.timeIntervalSince(last) < enqueueCooldown { return }
+        noteEnqueue(at: now)
         let created = Int(now.timeIntervalSince1970)
         let payload = Data("{}".utf8)
         let pool = store.pool

@@ -291,31 +291,6 @@ extension AppState {
         }
     }
 
-    /// Nach Absturz/Beenden kann `indexStatus = indexing` in der DB stehen, obwohl kein Lauf läuft.
-    func normalizeInterruptedIndexingStatuses() async {
-        guard let indexStore else { return }
-        mediumLiveSyncIDs.removeAll()
-        var cleared = 0
-        for index in media.indices {
-            guard media[index].indexStatus == .indexing else { continue }
-            let id = media[index].id
-            let resolved: IndexStatus = media[index].lastIndexedAt != nil ? .indexed : .pending
-            media[index].indexStatus = resolved
-            cleared += 1
-            do {
-                guard var stored = try await indexStore.medium(uuid: id) else { continue }
-                stored.indexStatus = StoredIndexStatus(rawValue: resolved.rawValue) ?? .pending
-                try await indexStore.updateMedium(uuid: id, stored)
-            } catch {
-                guard DiskIndexLog.isOperationalFailure(error) else { continue }
-                DiskIndexLog.shared.record(.store, .error, "normalizeInterrupted \(error)")
-            }
-        }
-        if cleared > 0 {
-            DiskIndexLog.shared.record(.app, .info, "index status stale indexing cleared count=\(cleared)")
-        }
-    }
-
 }
 
 /// Hält die Fortschrittsanzeige mindestens `minimumDuration` und danach `holdAtFull` bei 100 %.

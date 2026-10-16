@@ -9,17 +9,17 @@ import Foundation
 
 nonisolated enum FilePrivacy {
     #if DEBUG
-    nonisolated(unsafe) static var restrictCallCountForTesting = 0
-
-    static func resetRestrictCallCountForTesting() {
-        restrictCallCountForTesting = 0
+    final class RestrictCountTracker: @unchecked Sendable {
+        var count = 0
     }
+
+    @TaskLocal static var restrictCountTracker: RestrictCountTracker?
     #endif
 
     /// Ordner `0700`, Dateien darin `0600`. Wirkt auch auf schon vorhandene Dateien.
     static func restrict(_ directory: URL) {
         #if DEBUG
-        restrictCallCountForTesting += 1
+        restrictCountTracker?.count += 1
         #endif
         guard WriteGuard.permitsWrite(to: directory) else { return }
         let manager = FileManager.default

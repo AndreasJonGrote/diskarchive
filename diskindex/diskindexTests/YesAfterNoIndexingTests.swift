@@ -32,6 +32,7 @@ struct YesAfterNoIndexingTests {
             ),
         ]
         let app = AppState()
+        app.attach(store: store)
         let service = IndexingService(store: store, access: access, appState: app)
         let coordinator = MediumCoordinator(store: store, access: access, appState: app)
         let watcher = ChangeWatcher(store: store, access: access, appState: app)

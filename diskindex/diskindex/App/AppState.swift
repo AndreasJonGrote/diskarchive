@@ -43,12 +43,9 @@ final class AppState {
             }
             let scopeChanged = IndexScope.from(oldValue) != newScope
             if scopeChanged {
-                for medium in media where medium.connectionStatus == .connected && medium.indexStatus == .indexing {
-                    onIndexingCancelForScopeChange?(medium.id)
-                }
-                for medium in media where medium.connectionStatus == .connected && medium.decision == .index {
-                    onReindexMedium?(medium.id)
-                }
+                let indexingIDs = media.filter { $0.connectionStatus == .connected && $0.indexStatus == .indexing }.map(\.id)
+                let scopeGrew = IndexSchedule.grows(from: oldValue, to: appSettings)
+                onScopeRulesChanged?(indexingIDs, scopeGrew)
                 if mainWindowDestination == .search {
                     pendingSearchAfterRuleReconcile = true
                 }
@@ -98,6 +95,8 @@ final class AppState {
     var settingsSaveTask: Task<Void, Never>?
     var settingsReady = false
     private var pruneDeadlineGeneration = 0
+    private var pruneScheduleTask: Task<Void, Never>?
+    @ObservationIgnored var pruneClock: @Sendable () -> Date = { Date() }
     private(set) var pruneAt: Date? {
         didSet { indexRepository.scope = indexScope }
     }
@@ -176,8 +175,8 @@ final class AppState {
     @ObservationIgnored var onMediumDecisionChanged: ((UUID, StoredIndexDecision, Bool) -> Void)?
     /// „Neu indizieren“. Gesetzt vom `IndexingService`.
     var onReindexMedium: ((UUID) -> Void)?
-    /// Regel-Scope geändert: laufenden Index abbrechen (bug.0.4.030).
-    @ObservationIgnored var onIndexingCancelForScopeChange: ((UUID) -> Void)?
+    /// Regel-Scope geändert: abbrechen und Abgleich neu (bug.0.4.030).
+    @ObservationIgnored var onScopeRulesChanged: ((_ indexingIDs: [UUID], _ scopeGrew: Bool) -> Void)?
     /// Klick ist angekommen, der Lauf hat noch nicht begonnen.
     var reindexRequested: Set<UUID> = []
     /// Wechselt, wenn die 59-s-Sperre abläuft, damit die Knöpfe ohne weiteren Klick neu zeichnen.
@@ -379,11 +378,32 @@ final class AppState {
         pruneAt = due
         guard persistsSettings else { return }
         settingsDefaults.set(due.timeIntervalSince1970, forKey: Self.pruneAtKey)
+        schedulePruneTask(from: now)
     }
 
     func loadPruneDeadline() {
         let value = settingsDefaults.double(forKey: Self.pruneAtKey)
         pruneAt = value > 0 ? Date(timeIntervalSince1970: value) : nil
+        schedulePruneTask(from: pruneClock())
+    }
+
+    private func schedulePruneTask(from now: Date) {
+        pruneScheduleTask?.cancel()
+        pruneScheduleTask = nil
+        guard let due = pruneAt else { return }
+        let delay = due.timeIntervalSince(now)
+        pruneScheduleTask = Task { @MainActor [weak self] in
+            if delay > 0 {
+                try? await Task.sleep(for: .seconds(delay))
+            }
+            guard !Task.isCancelled, let self else { return }
+            await self.pruneIfDue(now: self.pruneClock())
+        }
+    }
+
+    func cancelPruneScheduleForTermination() {
+        pruneScheduleTask?.cancel()
+        pruneScheduleTask = nil
     }
 
     func clearPruneDeadline() {
