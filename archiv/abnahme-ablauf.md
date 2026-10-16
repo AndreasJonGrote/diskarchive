@@ -24,7 +24,7 @@ Seriell (Gesamtlauf):
 xcodebuild test-without-building -project diskindex.xcodeproj -scheme diskindex -destination 'platform=macOS,arch=arm64' -derivedDataPath $S/dd -only-testing:diskindexTests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120
 ```
 
-Parallel (dreimal hintereinander, derselbe Befehl, nur `-parallel-testing-enabled YES`). Rote Tests im Parallellauf sind ein Fehler (siehe bug.0.4.044), auch wenn der Umsetzer "grün" meldet.
+Parallel (dreimal hintereinander, derselbe Befehl, nur `-parallel-testing-enabled YES`). macOS hat kein `timeout`; Hänger an den Uhrzeiten erkennen. Fehlermeldungen stehen nur im `.xcresult` (`xcrun xcresulttool get test-results tests --path <xcresult> --compact`). Rote Tests im Parallellauf sind ein Fehler (siehe bug.0.4.044), auch wenn der Umsetzer "grün" meldet.
 
 Release-Warnungen:
 ```
@@ -42,7 +42,7 @@ Danach `$S/dd` und `$S/dd-rel` löschen.
 ## 3. Regel 23 (App des Nutzers)
 ```
 xcodebuild build -project diskindex.xcodeproj -scheme diskindex -destination 'platform=macOS,arch=arm64' -configuration Debug   # ohne -derivedDataPath
-B=~/Library/Developer/Xcode/DerivedData/diskindex-arbizwwvkjqgvickwkengqhdtrav/Build/Products/Debug/"Disk Archive.app"
+B=$(ls -d ~/Library/Developer/Xcode/DerivedData/diskindex-*/Build/Products/Debug/"Disk Archive.app" | head -1)   # Hash wechselt mit dem Projektpfad (16.10.: diskindex-dqhs…)
 stat -f '%Sm' "$B/Contents/MacOS/Disk Archive"
 find diskindex -name '*.swift' -newer "$B/Contents/MacOS/Disk Archive"   # muss leer sein
 codesign --verify --deep --strict "$B"
