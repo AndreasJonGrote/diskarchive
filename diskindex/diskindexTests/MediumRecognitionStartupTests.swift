@@ -32,6 +32,27 @@ struct MediumRecognitionStartupTests {
         #expect(MediumRecognitionStartup.didStartCoordinatorBeforeLoad)
         coordinator.stop()
     }
+
+    @Test func firstIndexUsesScanDepthFromDatabase() async throws {
+        let harness = try StoreHarness.make()
+        var persisted = PersistedAppSettings()
+        persisted.scanDepth = 2
+        try await harness.store.savePersistedAppSettings(persisted)
+        let app = AppState(store: harness.store)
+        await app.hydrateSettingsFromStore()
+        #expect(app.appSettings.scanDepth == 2)
+
+        let scan = try await ScanHarness.make()
+        let inner = MemoryVolume(mountPath: "/Volumes/T")
+        inner.file("a/b/deep.txt")
+        let outcome = try await scan.run(
+            access: inner,
+            maxDepth: app.appSettings.scanDepth,
+            fromScratch: true
+        )
+        #expect(outcome.status == .indexed)
+        #expect(!inner.listed.contains { $0.hasSuffix("/a/b") })
+    }
 }
 
 private final class ScriptedAccess: MediumAccess, @unchecked Sendable {

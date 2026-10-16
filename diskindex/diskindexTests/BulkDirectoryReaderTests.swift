@@ -7,7 +7,31 @@ import Foundation
 import Testing
 @testable import diskindex
 
-@Suite struct BulkDirectoryReaderTests {
+@Suite(.serialized) struct BulkDirectoryReaderTests {
+    private func bulkTestMedium(from stored: StoredMedium) -> Medium {
+        Medium(
+            id: stored.uuid,
+            name: stored.name,
+            type: .usb,
+            connectionStatus: .connected,
+            indexStatus: .pending,
+            allowIndexing: true,
+            autoIndexPaused: false,
+            decision: stored.decision,
+            capacityTotalBytes: stored.volumeTotalBytes,
+            capacityUsedBytes: 0,
+            fileCount: stored.fileCount,
+            folderCount: stored.folderCount,
+            scanTotal: stored.scanTotal,
+            lastSeenAt: Date(),
+            firstIndexedAt: stored.firstIndexedAt,
+            lastIndexedAt: stored.lastIndexedAt,
+            completedDepth: stored.completedDepth,
+            isForgotten: false,
+            indexingProgress: 0
+        )
+    }
+
     @Test func deepTreeEmitsAtMostTenReadLogLines() throws {
         let tracker = BulkDirectoryReader.ReadLogEmitTracker()
         try BulkDirectoryReader.$readLogEmitTracker.withValue(tracker) {
@@ -22,6 +46,38 @@ import Testing
             _ = try BulkDirectoryReader.readResult(at: root)
             #expect(tracker.count <= 10)
         }
+    }
+
+    @Test @MainActor func indexRunOverTwoThousandFoldersEmitsAtMostTenReadLogLines() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("bulk-index-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        for index in 0..<2_000 {
+            let folder = root.appendingPathComponent("d-\(index)", isDirectory: true)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: folder.appendingPathComponent("f.txt"))
+        }
+        let harness = try await ScanHarness.make()
+        var stored = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        stored.decision = .index
+        stored.indexStatus = .pending
+        try await harness.store.upsertMedium(stored)
+        let app = AppState()
+        app.media = [bulkTestMedium(from: stored)]
+        let access = DirectMediumAccess()
+        let service = IndexingService(store: harness.store, access: access, appState: app)
+        let volume = harness.volume(at: root.path)
+        DiskIndexLog.shared.record(.index, .info, "MARK bulk2000")
+        service.start(mediumUUID: harness.mediumID, volume: volume, fromScratch: true)
+        await service.waitUntilIdle(harness.mediumID)
+        DiskIndexLog.shared.flushPendingWritesForTesting()
+        let done = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        #expect(done.indexStatus == .indexed)
+        #expect(done.fileCount >= 2_000)
+        let crumbs = DiskIndexLog.shared.recentBreadcrumbs()
+        let markIndex = crumbs.lastIndex { $0.contains("MARK bulk2000") } ?? 0
+        let lesenLines = crumbs.dropFirst(markIndex).filter { $0.contains("lesen bulk=") }
+        #expect(lesenLines.count <= 10)
     }
 
     @Test func bulkReadMatchesFileCountAndSkipsAppleDouble() throws {

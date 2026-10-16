@@ -284,6 +284,9 @@ extension AppState {
         media = stored.compactMap { row in
             guard seen.insert(row.uuid).inserted else { return nil }
             var medium = row.asMedium(connection: connections[row.uuid] ?? .offline)
+            if menuBarIndexingSpinnerIDs.contains(medium.id) {
+                medium.indexStatus = .indexing
+            }
             if medium.indexStatus == .indexing, let kept = progress[medium.id] {
                 medium.indexingProgress = kept
             }

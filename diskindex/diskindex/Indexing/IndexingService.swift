@@ -9,7 +9,7 @@ import Foundation
 @MainActor
 final class IndexingService {
     #if DEBUG
-    @TaskLocal static var skipClearIndexRequestForTesting = false
+    var skipClearIndexRequestForTesting = false
     #endif
 
     private let store: IndexStoreV3
@@ -40,6 +40,13 @@ final class IndexingService {
 
     func attach(_ coordinator: MediumCoordinator) {
         self.coordinator = coordinator
+    }
+
+    private func clearIndexRequestUnlessTesting(_ mediumUUID: UUID) {
+        #if DEBUG
+        if skipClearIndexRequestForTesting { return }
+        #endif
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
     func isRunActive(_ mediumUUID: UUID) -> Bool {
@@ -189,7 +196,7 @@ final class IndexingService {
             tasks[mediumUUID] = nil
         }
         BulkDirectoryReader.flushReadLogSummary(force: true)
-        coordinator?.clearIndexRequest(mediumID: mediumUUID)
+        clearIndexRequestUnlessTesting(mediumUUID)
     }
 
     /// Popover-Schalter „Automatisches Indizieren“.
@@ -309,13 +316,7 @@ final class IndexingService {
             }
         }
         BulkDirectoryReader.flushReadLogSummary(force: true)
-        #if DEBUG
-        if !Self.skipClearIndexRequestForTesting {
-            coordinator?.clearIndexRequest(mediumID: mediumUUID)
-        }
-        #else
-        coordinator?.clearIndexRequest(mediumID: mediumUUID)
-        #endif
+        clearIndexRequestUnlessTesting(mediumUUID)
     }
 
     private func resumePausedRuns() {

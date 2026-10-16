@@ -68,13 +68,30 @@ extension WindowTestGroup {
         #expect(stored.isFavorite)
     }
 
+    @Test func prepareForTerminationPersistsSettingsImmediately() async throws {
+        let harness = try StoreHarness.make()
+        let suite = "diskindex-term-settings-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        let app = AppState(store: harness.store, defaults: defaults)
+        app.attach(store: harness.store)
+        await app.hydrateSettingsFromStore()
+        app.appSettings.scanDepth = 4
+        await app.prepareForTerminationAsync()
+        let restored = AppState(store: harness.store, defaults: defaults)
+        restored.attach(store: harness.store)
+        await restored.hydrateSettingsFromStore()
+        #expect(restored.appSettings.scanDepth == 4)
+        defaults.removePersistentDomain(forName: suite)
+    }
+
     @Test func prepareForTerminationFlushesPendingMediumWrite() async throws {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Flush", fsType: "apfs", bytes: 100)
         let app = AppState(store: harness.store)
+        await app.hydrateSettingsFromStore()
         await app.loadStoredMedia()
         app.updateMedium(id: medium.uuid, persist: true) { $0.isFavorite = true }
-        app.prepareForTermination()
+        await app.prepareForTerminationAsync()
         let stored = try #require(try await harness.store.medium(uuid: medium.uuid))
         #expect(stored.isFavorite)
     }

@@ -148,17 +148,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MenuBarController.shared.uninstallFromStatusBar()
             AppWindowPresenter.prepareForTermination()
             stopLiveServicesBeforeRewire()
-            AppDelegateBridge.appState.prepareForTermination()
+        }
+        Task { @MainActor in
+            await AppDelegateBridge.appState.prepareForTerminationAsync()
             AppDelegateBridge.appState.indexStore?.checkpoint()
             DiskIndexLog.shared.record(.app, .info, "app terminate ok")
+            NSApp.reply(toApplicationShouldTerminate: true)
         }
-        return .terminateNow
+        return .terminateLater
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        MainActor.assumeIsolated {
-            prepareForAppTermination()
-        }
+        // Schreibvorgänge laufen in `applicationShouldTerminate` (bug.0.4.033).
     }
 
     /// Indizierung, FSEvents und UI-Overlays vor dem Prozessende stoppen (vermeidet Callbacks nach dem Abbau).

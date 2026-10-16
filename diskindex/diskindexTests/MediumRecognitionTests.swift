@@ -70,6 +70,7 @@ struct VolumeCandidateRuleTests {
 }
 
 @MainActor
+@Suite(.serialized)
 struct MediumCoordinatorTests {
     @Test func twoUnknownMediaEachStayUndecidedUntilChoice() async throws {
         let rig = try await RecognitionRig.make()
@@ -343,6 +344,46 @@ struct MediumCoordinatorTests {
         #expect(rig.appState.newMediumDialogMediumID == stored.uuid)
     }
 
+    @Test func reprobeAfterErrorWithPriorIndexRequestsReconcile() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_103_000)
+        let uuid = "EEEEEEEE-EEEE-EEEE-EEEE-EEEEEEEEEEEE"
+        var existing = StoredMedium(
+            volumeUUID: uuid,
+            volumeCreatedAt: created,
+            fsType: "apfs",
+            volumeTotalBytes: 1_000,
+            name: "RECON",
+            type: .usb,
+            decision: .index,
+            indexStatus: .indexed,
+            lastIndexedAt: Date()
+        )
+        try await rig.store.upsertMedium(existing)
+        let volume = rig.volume(name: "RECON", path: "/Volumes/RECON", uuid: uuid, created: created)
+        rig.access.result = .granted
+        await rig.coordinator.handle(.appeared(volume))
+        existing.indexStatus = .error
+        try await rig.store.updateMedium(uuid: existing.uuid, existing)
+        rig.appState.updateMedium(id: existing.uuid) { $0.indexStatus = .error }
+        let reconcilesBefore = rig.reconcileRequests.count
+        await rig.coordinator.applicationDidBecomeActive()
+        #expect(rig.reconcileRequests.count == reconcilesBefore + 1)
+        #expect(rig.indexRequests.isEmpty)
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.indexStatus == .indexed)
+    }
+
+    @Test func choiceAfterDisappearIsOffline() async throws {
+        let rig = try await RecognitionRig.make()
+        await rig.coordinator.handle(.appeared(rig.volume()))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        await rig.coordinator.handle(.disappeared(path: rig.volume().mountPath))
+        rig.appState.onNewMediumChoice?(id, true, true)
+        await rig.coordinator.waitForChoice()
+        #expect(rig.appState.medium(with: id)?.connectionStatus == .offline)
+    }
+
     @Test func indexChoiceIsStoredAndRequestsIndexingOnce() async throws {
         let rig = try await RecognitionRig.make()
         await rig.coordinator.handle(.appeared(rig.volume()))
@@ -367,7 +408,9 @@ private final class RecognitionRig {
     let appState: AppState
     let coordinator: MediumCoordinator
     private let requests: IndexRequestLog
+    private let reconciles: IndexRequestLog
     var indexRequests: [UUID] { requests.ids }
+    var reconcileRequests: [UUID] { reconciles.ids }
 
     static func make() async throws -> RecognitionRig {
         let directory = FileManager.default.temporaryDirectory
@@ -377,13 +420,23 @@ private final class RecognitionRig {
         let access = ScriptedAccess()
         let appState = AppState()
         let requests = IndexRequestLog()
+        let reconciles = IndexRequestLog()
         let coordinator = MediumCoordinator(
             store: store,
             access: access,
             appState: appState,
             onIndexRequested: { id, _ in requests.ids.append(id) }
         )
-        return RecognitionRig(store: store, access: access, appState: appState, coordinator: coordinator, requests: requests)
+        coordinator.onReconcileRequested = { id, _ in reconciles.ids.append(id) }
+        coordinator.start(events: AsyncStream { _ in })
+        return RecognitionRig(
+            store: store,
+            access: access,
+            appState: appState,
+            coordinator: coordinator,
+            requests: requests,
+            reconciles: reconciles
+        )
     }
 
     private init(
@@ -391,13 +444,15 @@ private final class RecognitionRig {
         access: ScriptedAccess,
         appState: AppState,
         coordinator: MediumCoordinator,
-        requests: IndexRequestLog
+        requests: IndexRequestLog,
+        reconciles: IndexRequestLog
     ) {
         self.store = store
         self.access = access
         self.appState = appState
         self.coordinator = coordinator
         self.requests = requests
+        self.reconciles = reconciles
     }
 
     func volume(

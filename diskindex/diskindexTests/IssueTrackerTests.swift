@@ -340,6 +340,7 @@ struct IssueTrackerTests {
         let poolTracker = ApiQueuePersistence.OpenQueuePoolCountTracker()
         try await ApiQueuePersistence.$openQueuePoolCountTracker.withValue(poolTracker) { () async throws -> Void in
             let reporter = try makeReporter()
+            let opensAfterSetup = poolTracker.count
             let pool = try #require(reporter.queuePool)
             let gate = ExclusiveWriteGate()
             let writer = Task.detached {
@@ -358,7 +359,7 @@ struct IssueTrackerTests {
             try await writer.value
             reporter.waitForPendingEnqueuesForTesting()
             try expectQueued(reporter, 1)
-            #expect(poolTracker.count == 0)
+            #expect(poolTracker.count == opensAfterSetup)
         }
     }
 

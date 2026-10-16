@@ -76,8 +76,29 @@ extension AppState {
         }
     }
 
-    /// Vor Prozessende: Hintergrund-Tasks stoppen, Einstellungen sichern, Spalten-Laden abbrechen.
+    /// Vor Prozessende: ausstehende Nutzer-Schreibvorgänge sichern (bug.0.4.033).
+    @MainActor
+    func prepareForTerminationAsync() async {
+        prepareForTerminationTeardown()
+        let pendingIDs = Array(pendingMediumWrites.keys)
+        let shouldFlush = !pendingIDs.isEmpty || (persistsSettings && storeReady && indexStore != nil)
+        if shouldFlush {
+            await flushPendingWritesForTermination()
+        }
+        indexRepository.prepareForTermination()
+        mediumLiveSyncIDs.removeAll()
+        menuBarIndexingSpinnerIDs.removeAll()
+    }
+
+    /// Synchroner Abbau ohne Flush (Flush: `prepareForTerminationAsync` bzw. AppDelegate `.terminateLater`).
     func prepareForTermination() {
+        prepareForTerminationTeardown()
+        indexRepository.prepareForTermination()
+        mediumLiveSyncIDs.removeAll()
+        menuBarIndexingSpinnerIDs.removeAll()
+    }
+
+    private func prepareForTerminationTeardown() {
         cancelChangeLoop()
         pauseExpiryTask?.cancel()
         pauseExpiryTask = nil
@@ -85,17 +106,6 @@ extension AppState {
         searchCountTask = nil
         trailingLiveSearch?.cancel()
         trailingLiveSearch = nil
-        let pendingIDs = Array(pendingMediumWrites.keys)
-        let shouldFlush = !pendingIDs.isEmpty || (persistsSettings && storeReady && indexStore != nil)
-        if shouldFlush {
-            let group = DispatchGroup()
-            group.enter()
-            Task { @MainActor in
-                await self.flushPendingWritesForTermination()
-                group.leave()
-            }
-            _ = group.wait(timeout: .now() + 1)
-        }
         for task in favoriteChecksumTasks { task.cancel() }
         favoriteChecksumTasks.removeAll()
         for task in trailingIndexReload.values { task.cancel() }
@@ -106,13 +116,9 @@ extension AppState {
         pendingColumnFolderPathKeys.removeAll()
         pendingColumnInvalidateWholeMedium.removeAll()
         accumulatedItemRefreshPathKeys.removeAll()
-        flushSettings()
         cancelRuleReconcileForTermination()
         cancelPruneScheduleForTermination()
         cancelDatabaseMaintenanceForTermination()
-        indexRepository.prepareForTermination()
-        mediumLiveSyncIDs.removeAll()
-        menuBarIndexingSpinnerIDs.removeAll()
     }
 
     #if DEBUG

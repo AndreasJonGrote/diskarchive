@@ -7,7 +7,7 @@ import Foundation
 import Testing
 @testable import diskindex
 
-@MainActor
+@Suite(.serialized) @MainActor
 struct IndexPruneTests {
     @Test func depthHidesAtOnceAndRowsStayUntilTheDeadline() async throws {
         let harness = try StoreHarness.make()
@@ -81,6 +81,48 @@ struct IndexPruneTests {
         #expect(stamp == nil)
         let hits = try await harness.store.search(query: "deep", filters: SearchFilters())
         #expect(hits.isEmpty)
+    }
+
+    @Test func scheduledTaskPrunesWithoutDidWake() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
+        _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
+        let suite = "diskindex-prune-task-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        var persisted = PersistedAppSettings()
+        persisted.scanDepth = 2
+        try await harness.store.savePersistedAppSettings(persisted)
+        let due = Date().addingTimeInterval(0.3)
+        defaults.set(due.timeIntervalSince1970, forKey: AppState.pruneAtKey)
+        let app = AppState(store: harness.store, defaults: defaults)
+        app.pruneClock = { Date() }
+        await app.hydrateSettingsFromStore()
+        app.loadPruneDeadline()
+        let pruned = await waitUntil(timeout: 5) {
+            (try? await harness.store.storedNames().contains("deep.txt")) == false
+        }
+        #expect(pruned)
+        defaults.removePersistentDomain(forName: suite)
+    }
+
+    @Test func overduePruneOnBootstrapWithoutManualCall() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
+        _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let suite = "diskindex-prune-bootstrap-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.set(start.addingTimeInterval(-60).timeIntervalSince1970, forKey: AppState.pruneAtKey)
+        var persisted = PersistedAppSettings()
+        persisted.scanDepth = 2
+        try await harness.store.savePersistedAppSettings(persisted)
+        let app = AppState(store: harness.store, defaults: defaults)
+        await app.hydrateSettingsFromStore()
+        app.loadPruneDeadline()
+        await app.loadStoredMedia()
+        await app.pruneIfDue(now: start)
+        #expect(!(try await harness.store.storedNames().contains("deep.txt")))
+        defaults.removePersistentDomain(forName: suite)
     }
 
     @Test func aSecondShrinkRestartsTheHourAndGrowingDoesNotCancelIt() async throws {
