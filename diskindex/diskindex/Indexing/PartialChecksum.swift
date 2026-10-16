@@ -11,7 +11,38 @@ import Foundation
 nonisolated enum PartialChecksum {
     static let chunkSize = 65_536
 
+    #if DEBUG
+    nonisolated(unsafe) static var computeDelayForTesting: TimeInterval?
+    #endif
+
+    static func computeOffActor(at fileURL: URL, timeout: Duration = .seconds(5)) async throws -> (partial: Data, info: String)? {
+        try await withThrowingTaskGroup(of: (partial: Data, info: String)?.self) { group in
+            group.addTask {
+                try await Task.detached(priority: .utility) {
+                    try compute(at: fileURL)
+                }.value
+            }
+            group.addTask {
+                try await Task.sleep(for: timeout)
+                return nil
+            }
+            for try await result in group {
+                if let result {
+                    group.cancelAll()
+                    return result
+                }
+            }
+            return nil
+        }
+    }
+
     static func compute(at fileURL: URL) throws -> (partial: Data, info: String)? {
+        #if DEBUG
+        dispatchPrecondition(condition: .notOnQueue(.main))
+        if let delay = computeDelayForTesting {
+            Thread.sleep(forTimeInterval: delay)
+        }
+        #endif
         let handle = try FileHandle(forReadingFrom: fileURL)
         defer { try? handle.close() }
         let size = try handle.seekToEnd()

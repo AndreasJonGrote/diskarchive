@@ -109,6 +109,7 @@ final class AppState {
     var databaseMaintenanceTask: Task<Void, Never>?
     var pendingSearchAfterRuleReconcile = false
     var pendingMediumWrites: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored var favoriteChecksumTasks: [Task<Void, Never>] = []
     var changeLoop: Task<Void, Never>?
     var lastChangeGeneration = 0
     var lastIndexReload: [UUID: ContinuousClock.Instant] = [:]

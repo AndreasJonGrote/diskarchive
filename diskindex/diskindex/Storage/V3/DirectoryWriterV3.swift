@@ -17,6 +17,7 @@ nonisolated final class DirectoryWriterV3 {
     private let trustsFileID: Bool
     private let partialMatchingEnabled: Bool
     private var extensionIDs: [String: Int64] = [:]
+    private var activePrecomputedPartials: [String: Data]?
     /// Lauf-Tracking für bug.0.4.015 (Verbindungs-Nachlauf).
     var onInsertedItemID: ((Int64) -> Void)?
 
@@ -64,8 +65,12 @@ nonisolated final class DirectoryWriterV3 {
         entries: [ScannedEntry],
         seenAt: Date,
         finalize: Bool,
-        mountPath: String? = nil
+        mountPath: String? = nil,
+        precomputedPartials: [String: Data]? = nil
     ) throws -> (delta: MediumCountDelta, parentPath: String) {
+        let priorPartials = activePrecomputedPartials
+        activePrecomputedPartials = precomputedPartials
+        defer { activePrecomputedPartials = priorPartials }
         let parent = try context(parentID: parentID, knownPath: knownPath, knownDepth: knownDepth)
         let stamp = Self.listingStamp(entries)
         // Vollständig gelesen: nicht mehr „nicht lesbar“ (auch wenn der Inhalt gleich geblieben ist).
@@ -293,7 +298,10 @@ nonisolated final class DirectoryWriterV3 {
         mountPath: String,
         fromAbsolute: String,
         toAbsolute: String,
-        seenAt: Date
+        seenAt: Date,
+        toSizeBytes: Int64? = nil,
+        toModifiedAt: Date? = nil,
+        toPartialDigest: Data? = nil
     ) throws -> (applied: Bool, delta: MediumCountDelta) {
         guard let fromParts = Self.relativeComponents(absolute: fromAbsolute, mountPath: mountPath),
               let toParts = Self.relativeComponents(absolute: toAbsolute, mountPath: mountPath),
@@ -310,15 +318,16 @@ nonisolated final class DirectoryWriterV3 {
         let fromParentID = folderParentID(fromLookup)
         let toParentID = folderParentID(toLookup)
         guard let row = try fetchChildUnique(parentID: fromParentID, name: fromName, allowGone: true) else { return (false, .zero) }
-        let toURL = URL(fileURLWithPath: toAbsolute)
-        var sizeBytes: Int64?
-        var modifiedAt: Date?
-        if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) {
-            sizeBytes = values.fileSize.map(Int64.init)
-            modifiedAt = values.contentModificationDate
-        }
+        let sizeBytes = toSizeBytes
+        let modifiedAt = toModifiedAt
         guard try liveRenameTargetMatches(
-            row: row, mountPath: mountPath, toAbsolute: toAbsolute, toParentID: toParentID, toName: toName, sizeBytes: sizeBytes
+            row: row,
+            mountPath: mountPath,
+            toAbsolute: toAbsolute,
+            toParentID: toParentID,
+            toName: toName,
+            sizeBytes: sizeBytes,
+            toPartialDigest: toPartialDigest
         ) else {
             return (false, .zero)
         }
@@ -425,7 +434,8 @@ nonisolated final class DirectoryWriterV3 {
         toAbsolute: String,
         toParentID: Int64?,
         toName: String,
-        sizeBytes: Int64?
+        sizeBytes: Int64?,
+        toPartialDigest: Data?
     ) throws -> Bool {
         if trustsFileID {
             if let expectedID = row.fileID {
@@ -437,9 +447,7 @@ nonisolated final class DirectoryWriterV3 {
         }
         guard sizeBytes == row.sizeBytes else { return false }
         guard partialMatchingEnabled, let stored = try fetchPartial(itemID: row.id) else { return true }
-        guard let incoming = try incomingPartialDigest(
-            mountPath: mountPath, parentID: toParentID, name: toName
-        ) else { return false }
+        guard let incoming = toPartialDigest else { return false }
         return stored == incoming
     }
 
@@ -744,15 +752,18 @@ nonisolated final class DirectoryWriterV3 {
     }
 
     private func incomingPartialDigest(mountPath: String, parentID: Int64?, name: String) throws -> Data? {
+        _ = mountPath
+        _ = parentID
+        return activePrecomputedPartials?[name]
+    }
+
+    static func fileURL(mountPath: String, parentSegments: [String], name: String) -> URL {
         var url = URL(fileURLWithPath: mountPath, isDirectory: true)
-        if let parentID {
-            for segment in try Self.segments(db, itemID: parentID) {
-                url.appendPathComponent(segment)
-            }
+        for segment in parentSegments {
+            url.appendPathComponent(segment)
         }
         url.appendPathComponent(name)
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return try PartialChecksum.compute(at: url)?.partial
+        return url
     }
 
     private func context(parentID: Int64?, knownPath: String?, knownDepth: Int?) throws -> (path: String, childDepth: Int) {

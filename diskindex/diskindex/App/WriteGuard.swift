@@ -6,8 +6,10 @@
 //
 
 import Foundation
+import OSLog
 
 nonisolated enum WriteGuard {
+    private static let logger = Logger(subsystem: "app.diskarchive", category: "WriteGuard")
     private static let lock = NSLock()
     private static var extraAllowedRoots: [String] = []
     private static var blockedWriteCountStorage = 0
@@ -50,7 +52,7 @@ nonisolated enum WriteGuard {
             lock.lock()
             blockedWriteCountStorage += 1
             lock.unlock()
-            DiskIndexLog.shared.record(.store, .info, "write blocked")
+            logger.info("write blocked")
             return false
         }
         return true

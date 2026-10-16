@@ -185,7 +185,7 @@ struct VersionLockReadOnlyTests {
         #expect(try await rig.store.item(mediumUUID: mediumID, path: [], name: "live.txt") == nil)
         try await Task.sleep(for: .milliseconds(200))
         #expect(try await rig.store.item(mediumUUID: mediumID, path: [], name: "live.txt") == nil)
-        #expect(rig.access.listCount["/Volumes/DISK"] == nil)
+        #expect(rig.access.listCount(for: "/Volumes/DISK") == 0)
     }
 }
 

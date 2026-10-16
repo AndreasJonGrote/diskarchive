@@ -69,6 +69,8 @@ extension AppState {
         trailingLiveSearch = nil
         for task in pendingMediumWrites.values { task.cancel() }
         pendingMediumWrites.removeAll()
+        for task in favoriteChecksumTasks { task.cancel() }
+        favoriteChecksumTasks.removeAll()
         for task in trailingIndexReload.values { task.cancel() }
         trailingIndexReload.removeAll()
         trailingMediumRefreshOperations.removeAll()

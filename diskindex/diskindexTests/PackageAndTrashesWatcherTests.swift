@@ -20,7 +20,7 @@ struct PackageAndTrashesWatcherTests {
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/.Trashes/501/f.txt", eventID: 3, itemRemoved: true))
         try await Task.sleep(for: .milliseconds(200))
         #expect(!reconciled)
-        #expect(rig.access.listCount.isEmpty)
+        #expect(rig.access.listCountIsEmpty())
     }
 
     @Test func packageInteriorEventRereadsVolumeRoot() async throws {
@@ -73,7 +73,7 @@ struct PackageAndTrashesWatcherTests {
         let inner = app.appendingPathComponent("Contents/Info.plist").path
         source.emit(VolumeChange(path: inner, eventID: 9, itemCreated: true))
         let listed = try await waitForPackage(timeoutMs: 5_000) {
-            access.listCount[mount.path] == 1 ? true : nil
+            access.listCount(for: mount.path) == 1 ? true : nil
         }
         #expect(listed == true)
         #expect(!reconciled)

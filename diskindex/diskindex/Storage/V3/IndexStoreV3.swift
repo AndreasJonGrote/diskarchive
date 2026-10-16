@@ -318,12 +318,15 @@ actor IndexStoreV3 {
         mountPath: String? = nil
     ) async throws {
         let partialMatching = partialMatchingEnabled
+        let partials = try await precomputedPartials(
+            mountPath: mountPath, parentID: parentID, entries: entries, enabled: partialMatching
+        )
         let folderPath: [String] = try await pool.write { db -> [String] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
             let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
             let step = try writer.apply(
                 parentID: parentID, path: nil, depth: nil, entries: entries, seenAt: seenAt, finalize: true,
-                mountPath: mountPath
+                mountPath: mountPath, precomputedPartials: partials
             )
             try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: seenAt, delta: step.delta)
             guard let parentID else { return [] }
@@ -344,6 +347,15 @@ actor IndexStoreV3 {
             let forceMeta = batches.contains { $0.finalize }
             let partialMatching = partialMatchingEnabled
             let trackInserts = indexingToken[mediumUUID] != nil
+            var partialMaps: [[String: Data]?] = []
+            partialMaps.reserveCapacity(batches.count)
+            for batch in batches {
+                let map = try await precomputedPartials(
+                    mountPath: mountPath, parentID: batch.parentID, entries: batch.entries, enabled: partialMatching
+                )
+                partialMaps.append(map)
+            }
+            let batchPartials = partialMaps
             let result = try await pool.write { db -> (delta: MediumCountDelta, parentPaths: [String], inserted: [Int64]) in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
@@ -353,11 +365,11 @@ actor IndexStoreV3 {
                 if trackInserts {
                     writer.onInsertedItemID = { inserted.append($0) }
                 }
-                for batch in batches {
+                for (batch, partials) in zip(batches, batchPartials) {
                     let step = try writer.apply(
                         parentID: batch.parentID, path: batch.path, depth: batch.depth,
                         entries: batch.entries, seenAt: seenAt, finalize: batch.finalize,
-                        mountPath: mountPath
+                        mountPath: mountPath, precomputedPartials: partials
                     )
                     delta = delta + step.delta
                     parentPaths.append(step.parentPath)
@@ -646,6 +658,20 @@ actor IndexStoreV3 {
     /// Live-Rename aus FSEvents-Paar (235b).
     func applyLiveRename(mediumUUID: UUID, mountPath: String, fromPath: String, toPath: String) async throws -> Bool {
         let partialMatching = partialMatchingEnabled
+        let toURL = URL(fileURLWithPath: toPath)
+        var toSizeBytes: Int64?
+        var toModifiedAt: Date?
+        if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) {
+            toSizeBytes = values.fileSize.map(Int64.init)
+            toModifiedAt = values.contentModificationDate
+        }
+        var toPartialDigest: Data?
+        if partialMatching, FileManager.default.fileExists(atPath: toPath) {
+            toPartialDigest = try await PartialChecksum.computeOffActor(at: toURL)?.partial
+        }
+        let renameSizeBytes = toSizeBytes
+        let renameModifiedAt = toModifiedAt
+        let renamePartialDigest = toPartialDigest
         let folderPaths: [[String]] = try await pool.write { db -> [[String]] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
             let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
@@ -653,7 +679,10 @@ actor IndexStoreV3 {
                 mountPath: mountPath,
                 fromAbsolute: fromPath,
                 toAbsolute: toPath,
-                seenAt: Date()
+                seenAt: Date(),
+                toSizeBytes: renameSizeBytes,
+                toModifiedAt: renameModifiedAt,
+                toPartialDigest: renamePartialDigest
             )
             guard step.applied else { return [] }
             try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: Date(), delta: step.delta)
@@ -713,7 +742,7 @@ actor IndexStoreV3 {
             return url
         }
         guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        guard let computed = try PartialChecksum.compute(at: fileURL) else { return }
+        guard let computed = try await PartialChecksum.computeOffActor(at: fileURL) else { return }
         let modified = try await pool.read { db in
             try Int64.fetchOne(db, sql: "SELECT modifiedAt FROM items WHERE id = ?", arguments: [itemID])
         }
@@ -931,6 +960,28 @@ actor IndexStoreV3 {
             pendingMetaDelta[mediumUUID, default: .zero] = pendingMetaDelta[mediumUUID, default: .zero] + toCommit
             throw error
         }
+    }
+
+    private func precomputedPartials(
+        mountPath: String?,
+        parentID: Int64?,
+        entries: [ScannedEntry],
+        enabled: Bool
+    ) async throws -> [String: Data]? {
+        guard enabled, let mountPath else { return nil }
+        let segments: [String] = try await pool.read { db in
+            guard let parentID else { return [] }
+            return try DirectoryWriterV3.segments(db, itemID: parentID)
+        }
+        var map: [String: Data] = [:]
+        for entry in entries where !entry.isFolder {
+            let url = DirectoryWriterV3.fileURL(mountPath: mountPath, parentSegments: segments, name: entry.name)
+            guard FileManager.default.fileExists(atPath: url.path) else { continue }
+            if let computed = try await PartialChecksum.computeOffActor(at: url) {
+                map[entry.name] = computed.partial
+            }
+        }
+        return map.isEmpty ? nil : map
     }
 
     /// Zähler über die Änderungs-Differenzen (nicht durch Zählen der ganzen Tabelle); `forceRecount` zählt neu.

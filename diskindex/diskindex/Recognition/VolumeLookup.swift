@@ -7,7 +7,21 @@ import Darwin
 import Foundation
 
 nonisolated enum VolumeLookup {
-    static func info(at url: URL) -> VolumeInfo? {
+    private static let queue = DispatchQueue(label: "app.diskarchive.volume-lookup")
+
+    static func info(at url: URL) async -> VolumeInfo? {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                continuation.resume(returning: infoSync(at: url))
+            }
+        }
+    }
+
+    private static func infoSync(at url: URL) -> VolumeInfo? {
+        #if DEBUG
+        dispatchPrecondition(condition: .notOnQueue(.main))
+        VolumeLookupTestHooks.infoCallCount += 1
+        #endif
         let path = url.path
         let keys: Set<URLResourceKey> = [
             .volumeNameKey, .volumeCreationDateKey, .volumeIsRemovableKey, .volumeIsEjectableKey,
@@ -46,3 +60,9 @@ nonisolated enum VolumeLookup {
         }
     }
 }
+
+#if DEBUG
+nonisolated enum VolumeLookupTestHooks {
+    static var infoCallCount = 0
+}
+#endif

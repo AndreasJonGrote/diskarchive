@@ -56,16 +56,45 @@ enum MediumAccessResult: Sendable, Equatable {
 }
 
 nonisolated struct DirectMediumAccess: MediumAccess {
+    #if DEBUG
+    nonisolated(unsafe) static var probeDelayForTesting: TimeInterval?
+    #endif
+
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult {
-        let url = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
-        do {
-            _ = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
-            return .granted
-        } catch {
-            let nsError = error as NSError
-            let posix = (nsError.userInfo[NSUnderlyingErrorKey] as? NSError)?.code
-            let posixText = posix.map { ", POSIX \($0)" } ?? ""
-            return .denied(reason: "\(nsError.domain) \(nsError.code)\(posixText)")
+        await withTaskGroup(of: MediumAccessResult?.self) { group in
+            group.addTask {
+                await withCheckedContinuation { continuation in
+                    DispatchQueue.global(qos: .utility).async {
+                        #if DEBUG
+                        dispatchPrecondition(condition: .notOnQueue(.main))
+                        if let delay = Self.probeDelayForTesting {
+                            Thread.sleep(forTimeInterval: delay)
+                        }
+                        #endif
+                        let url = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
+                        do {
+                            _ = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
+                            continuation.resume(returning: .granted)
+                        } catch {
+                            let nsError = error as NSError
+                            let posix = (nsError.userInfo[NSUnderlyingErrorKey] as? NSError)?.code
+                            let posixText = posix.map { ", POSIX \($0)" } ?? ""
+                            continuation.resume(returning: .denied(reason: "\(nsError.domain) \(nsError.code)\(posixText)"))
+                        }
+                    }
+                }
+            }
+            group.addTask {
+                try? await Task.sleep(for: .seconds(5))
+                return nil
+            }
+            for await result in group {
+                if let result {
+                    group.cancelAll()
+                    return result
+                }
+            }
+            return .denied(reason: "timeout")
         }
     }
 

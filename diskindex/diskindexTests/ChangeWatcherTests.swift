@@ -38,7 +38,7 @@ extension WindowTestGroup {
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/a.txt", eventID: 1))
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/b.txt", eventID: 2))
         let count = try await waitFor(timeoutMs: 800) {
-            rig.access.listCount["/Volumes/DISK/A"] == 1 ? 1 : nil
+            rig.access.listCount(for: "/Volumes/DISK/A") == 1 ? 1 : nil
         }
         #expect(count == 1)
     }
@@ -326,7 +326,7 @@ extension WindowTestGroup {
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/._Resource", eventID: 1))
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/node_modules/index.js", eventID: 2))
         try await Task.sleep(for: .milliseconds(150))
-        #expect(rig.access.listCount.isEmpty)
+        #expect(rig.access.listCountIsEmpty())
     }
 
     @Test func eventPastScanDepthRereadsOnlyTheLastLevel() async throws {
@@ -337,8 +337,8 @@ extension WindowTestGroup {
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/B/deep/file.txt", eventID: 9))
         try await Task.sleep(for: .milliseconds(160))
-        #expect(rig.access.listCount["/Volumes/DISK/A"] == 1)
-        #expect(rig.access.listCount["/Volumes/DISK/A/B"] == nil)
+        #expect(rig.access.listCount(for: "/Volumes/DISK/A") == 1)
+        #expect(rig.access.listCount(for: "/Volumes/DISK/A/B") == 0)
         let root = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: nil)
         #expect(!root.contains { $0.name == "file.txt" })
     }
@@ -365,7 +365,7 @@ extension WindowTestGroup {
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/B", eventID: 2, mustScanSubDirs: true))
         try await Task.sleep(for: .milliseconds(80))
         #expect(log.ids == [rig.medium.uuid])
-        #expect(rig.access.listCount.isEmpty)
+        #expect(rig.access.listCountIsEmpty())
     }
 
     @Test func mustScanSubDirsOutsideMountIsIgnored() async throws {
@@ -376,7 +376,7 @@ extension WindowTestGroup {
         rig.source.emit(VolumeChange(path: "/anderswo/X", eventID: 3, mustScanSubDirs: true))
         try await Task.sleep(for: .milliseconds(80))
         #expect(log.ids.isEmpty)
-        #expect(rig.access.listCount.isEmpty)
+        #expect(rig.access.listCountIsEmpty())
     }
 
     @Test func indexedMediumReconcilesUnknownDoesNot() async throws {
@@ -603,9 +603,9 @@ extension WindowTestGroup {
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/neu.txt", eventID: 1))
         try await Task.sleep(for: .milliseconds(160))
-        #expect(rig.access.listCount["/Volumes/DISK"] == 1)
-        #expect(rig.access.listCount["/Volumes/DISK/A"] == nil)
-        #expect(rig.access.listCount["/Volumes/DISK/B"] == nil)
+        #expect(rig.access.listCount(for: "/Volumes/DISK") == 1)
+        #expect(rig.access.listCount(for: "/Volumes/DISK/A") == 0)
+        #expect(rig.access.listCount(for: "/Volumes/DISK/B") == 0)
     }
 
     @Test func reappearedFolderIsReadWithItsSubtree() async throws {
@@ -655,7 +655,7 @@ extension WindowTestGroup {
         let restored = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))
         let childNames = Set(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: restored).map(\.name))
         #expect(childNames == ["Inner", "keep.txt"])
-        #expect(rig.access.listCount["/Volumes/DISK/A/Inner"] == 1)
+        #expect(rig.access.listCount(for: "/Volumes/DISK/A/Inner") == 1)
         let noteParent = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A", "Inner"]))
         let notes = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: noteParent).map(\.name)
         #expect(notes == ["note.txt"])
@@ -692,6 +692,43 @@ extension WindowTestGroup {
         }
         Issue.record("waitFor timeout \(effectiveMs)ms")
         return try #require(try await body())
+    }
+
+    @Test func prepareFlushInvokesFileExistsOffMainThread() async throws {
+        let harness = try StoreHarness.make()
+        let engine = ChangeWatcherEngine(store: harness.store, access: GrantedAccess())
+        final class Flag: @unchecked Sendable {
+            private let lock = NSLock()
+            var offMain = false
+            func noteOffMain() {
+                lock.lock()
+                offMain = true
+                lock.unlock()
+            }
+            var sawOffMain: Bool {
+                lock.lock()
+                defer { lock.unlock() }
+                return offMain
+            }
+        }
+        let flag = Flag()
+        _ = await engine.prepareFlush(
+            rawPaths: [],
+            itemEvents: [
+                ItemPathEvent(path: "/Volumes/DISK/A/old.txt", itemCreated: false, itemRemoved: true, itemRenamed: true),
+                ItemPathEvent(path: "/Volumes/DISK/A/new.txt", itemCreated: true, itemRemoved: false, itemRenamed: true),
+            ],
+            mount: "/Volumes/DISK",
+            matcher: IgnoreMatcher(ignoreHiddenFiles: false, excludedPatterns: [], artifactsIgnored: false),
+            maxDepth: nil,
+            fileExists: { path in
+                #if DEBUG
+                if !Thread.isMainThread { flag.noteOffMain() }
+                #endif
+                return path.hasSuffix("new.txt")
+            }
+        )
+        #expect(flag.sawOffMain)
     }
 
     @Test func saveCursorWritesOnlyWhenEventIDChanges() async throws {

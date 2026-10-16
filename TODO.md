@@ -77,6 +77,7 @@ Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und g
 - b) Test: Protokollinstanz mit gesperrtem Ordner schreibt nichts und hängt nicht (Zeitgrenze 2 s, Regel 20: abstürzen darf nichts). Sabotage (Aufruf zurück auf `shared.record`) → Test läuft in die Zeitgrenze → rot ✓.
 - c) Warnungen 0, seriell, zwei Parallelläufe, Regel 23, keine neuen `Disk Archive*.ips`.
 Status:
+bug.0.4.045: `WriteGuard` nur `os_log` + `blockedWriteCount`; `WriteGuardDeadlockTests` (2 s, kein Hang). Debug/Release 0 Warn.; seriell 610/610, 2× Parallel OK; Regel 23 App 09:19:55. Bereit zur Prüfung.
 
 **bug.0.4.021 — Medienprüfung und Volume-Abfragen vom Main-Thread nehmen (REPORT 117, 118).**
 - a) `DirectMediumAccess.probe` als `@concurrent` oder per Continuation auf eine eigene Queue (wie `listDirectory`). Zeitgrenze 5 s, danach `.denied(reason: "timeout")`.
@@ -88,6 +89,7 @@ Status:
   - Fake-`MediumAccess`, dessen `probe` 2 s schläft und `!Thread.isMainThread` prüft; `applicationDidBecomeActive()` → MainActor-Ticker läuft weiter.
   - Netz-/nicht lokale Einträge erreichen `info()` nie.
 Status:
+bug.0.4.021: `probe` off-main + 5 s Timeout; `LocalVolumeMounts`/`MediumMonitor`; `VolumeLookup` async-Queue; DEBUG-Preconditions; `MainThreadMediumIOTests`. Bereit zur Prüfung.
 
 **bug.0.4.022 — Live-Watcher: `stat()` und Matcher nicht je Ereignis auf main (REPORT 119).** *Hinweis Claude 15.10.: `bug.0.4.017/018` haben `eventInLiveScope`, `isInsidePackageInterior` und `urlIsPackage` (Dateisystem-Abfrage je Pfadteil und Ereignis) im ChangeWatcher ergänzt; diese gehören mit in diese Aufgabe (Ergebnis zwischenspeichern, nicht auf main).*
 - `LiveRenamePairs.pair`: `guard byPath.count == 2 else { return [] }` **vor** jedem `fileExists`.
@@ -97,6 +99,7 @@ Status:
   - `pair` mit 10.000 Ereignissen und zählendem `fileExists` → 0 Aufrufe.
   - Test-Closure für `fileExists` mit `dispatchPrecondition(.notOnQueue(.main))`.
 Status:
+bug.0.4.022: `LiveWatchScope` + `ChangeWatcherEngine.prepareFlush`; `LiveRenamePairs`-Guard; Tests `LiveRenamePairsTests`, `ChangeWatcherTests.prepareFlush…`. IPS 16.10. Test-Race serialFlush: archiv/test-crash-serialflush-2026-10-16.md. Bereit zur Prüfung.
 
 **bug.0.4.023 — Teil-Prüfsumme außerhalb von Store-Actor und Schreibsperre (REPORT 121).**
 - `storePartialChecksum`: Datei außerhalb des Actors lesen (`@concurrent`-Helfer, Zeitgrenze), dem Actor nur das fertige Ergebnis zum Schreiben geben.
@@ -104,6 +107,7 @@ Status:
 - Favoriten-Tasks (`AppState+Favorites`) halten und in `prepareForTermination` abbrechen.
 - **Akzeptanz:** Prüfsummen-Provider blockiert 5 s; parallel `childrenPage` und `search` jeweils < 100 ms.
 Status:
+bug.0.4.023: `computeOffActor`; Partials vor `pool.write`; Favoriten-Tasks + `prepareForTermination`; `PartialChecksumStoreTests`. Bereit zur Prüfung. **HALT** (024 nicht begonnen).
 
 **bug.0.4.024 — Fehlerbericht-Warteschlange: ein Pool, nichts Synchrones auf main, Offline richtig (REPORT 120, 75, 127, Korrektur B-75).**
 - a) In `wireStore` `IssueReporter.shared.queuePool = store.pool`. Vor dem Öffnen der DB (Auto-Senden in `applicationWillFinishLaunching`) **nur in die Outbox** schreiben; die Übernahme läuft nach `wire`. Die Outbox-Datei erst nach erfolgreichem `enqueue` löschen (REPORT 90).

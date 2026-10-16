@@ -16,6 +16,37 @@ actor ChangeWatcherEngine {
         self.access = access
     }
 
+    struct FlushPrep: Sendable {
+        var directories: Set<String>
+        var scopedItemEvents: [ItemPathEvent]
+        var renamePairs: [LiveRenamePair]
+    }
+
+    func prepareFlush(
+        rawPaths: Set<String>,
+        itemEvents: [ItemPathEvent],
+        mount: String,
+        matcher: IgnoreMatcher,
+        maxDepth: Int?,
+        fileExists: @Sendable (String) -> Bool
+    ) -> FlushPrep {
+        var ctx = LiveWatchScopeContext(mount: mount, matcher: matcher, maxDepth: maxDepth)
+        var directories = Set<String>()
+        for path in rawPaths {
+            if let dir = LiveWatchScope.directoryToReread(path, ctx: &ctx) {
+                directories.insert(dir)
+            }
+        }
+        let scoped = itemEvents.filter { LiveWatchScope.eventInScope($0.path, ctx: &ctx) }
+        let pairs = LiveRenamePairs.pair(events: scoped, fileExists: fileExists)
+        for item in scoped {
+            if let dir = LiveWatchScope.directoryToReread(item.path, ctx: &ctx) {
+                directories.insert(dir)
+            }
+        }
+        return FlushPrep(directories: directories, scopedItemEvents: scoped, renamePairs: pairs)
+    }
+
     enum Outcome: Sendable {
         case ok
         case needsFullReconcile

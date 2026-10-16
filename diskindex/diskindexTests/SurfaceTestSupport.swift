@@ -227,9 +227,21 @@ func watchRig() async throws -> WatchRig {
 
 final class MapAccess: MediumAccess, @unchecked Sendable {
     var listings: [String: [ListedDirectoryEntry]] = [:]
-    var listCount: [String: Int] = [:]
+    private var listCountStorage: [String: Int] = [:]
     var failing: Set<String> = []
     private let lock = NSLock()
+
+    func listCount(for path: String) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return listCountStorage[path] ?? 0
+    }
+
+    func listCountIsEmpty() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return listCountStorage.isEmpty
+    }
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
 
@@ -245,7 +257,7 @@ final class MapAccess: MediumAccess, @unchecked Sendable {
     func record(_ path: String) -> [ListedDirectoryEntry] {
         lock.lock()
         defer { lock.unlock() }
-        listCount[path, default: 0] += 1
+        listCountStorage[path, default: 0] += 1
         return listings[path] ?? []
     }
 }
@@ -313,5 +325,5 @@ func waitUntil(timeout: TimeInterval = 10, _ condition: () async throws -> Bool)
         if try await condition() { return true }
         try? await Task.sleep(for: .milliseconds(20))
     }
-    return try await condition()
+    return false
 }

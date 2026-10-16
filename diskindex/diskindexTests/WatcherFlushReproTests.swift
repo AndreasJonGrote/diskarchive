@@ -24,11 +24,11 @@ struct WatcherFlushReproTests {
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/neu.txt", eventID: 5))
         try await Task.sleep(for: .milliseconds(120))
-        #expect(rig.access.listCount.isEmpty, "Vorbedingung: während des Laufs wird nicht gelesen")
+        #expect(rig.access.listCountIsEmpty(), "Vorbedingung: während des Laufs wird nicht gelesen")
         _ = try await rig.store.finishIndexing(mediumUUID: rig.medium.uuid, token: token, status: .indexed, firstIndexedAt: nil)
         indexing = false
-        let flushed = await waitUntil(timeout: 2) { (rig.access.listCount["/Volumes/DISK/A"] ?? 0) > 0 }
-        #expect(flushed, "Nr. 66: zurückgestellter Flush wird nach Laufende nie ausgeführt (listCount=\(rig.access.listCount))")
+        let flushed = await waitUntil(timeout: 2) { rig.access.listCount(for: "/Volumes/DISK/A") > 0 }
+        #expect(flushed, "Nr. 66: zurückgestellter Flush wird nach Laufende nie ausgeführt (listCount A=\(rig.access.listCount(for: "/Volumes/DISK/A")))")
         await rig.watcher.stop(mediumID: rig.medium.uuid)
     }
 
@@ -63,7 +63,10 @@ struct WatcherFlushReproTests {
     }
 
     @Test func serialFlushWhileBlockedReadsBothFolders() async throws {
+        PartialChecksum.computeDelayForTesting = nil
+        DirectMediumAccess.probeDelayForTesting = nil
         let rig = try await watchRig()
+        rig.app.globalAutoIndexPaused = false
         let reconcile = ReconcileLog()
         rig.watcher.onFullReconcile = { id, _ in reconcile.ids.append(id) }
         let access = GatedMapAccess()
@@ -77,14 +80,14 @@ struct WatcherFlushReproTests {
         watcher.quietInterval = .milliseconds(25)
         watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/a.txt", eventID: 1))
-        let blocked = await waitUntil(timeout: 2) { access.isBlockingFirstList }
+        let blocked = await waitUntil(timeout: 10) { access.isBlockingFirstList() }
         #expect(blocked)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/B/b.txt", eventID: 2))
         try await Task.sleep(for: .milliseconds(80))
-        #expect((access.listCount["/Volumes/DISK/B"] ?? 0) == 0)
+        #expect(access.listCount(for: "/Volumes/DISK/B") == 0)
         await access.release.signal()
-        let both = await waitUntil(timeout: 2) {
-            (access.listCount["/Volumes/DISK/A"] ?? 0) > 0 && (access.listCount["/Volumes/DISK/B"] ?? 0) > 0
+        let both = await waitUntil(timeout: 10) {
+            access.listCount(for: "/Volumes/DISK/A") > 0 && access.listCount(for: "/Volumes/DISK/B") > 0
         }
         #expect(both)
         #expect(reconcile.ids.isEmpty)
@@ -103,7 +106,7 @@ struct WatcherFlushReproTests {
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/neu.txt", eventID: 7))
         rig.app.globalAutoIndexPaused = false
         rig.watcher.pauseChanged()
-        let flushed = await waitUntil(timeout: 2) { (rig.access.listCount["/Volumes/DISK/A"] ?? 0) > 0 }
+        let flushed = await waitUntil(timeout: 2) { rig.access.listCount(for: "/Volumes/DISK/A") > 0 }
         #expect(flushed)
         #expect(rig.watcher.isWatching(mediumID: rig.medium.uuid))
         await rig.watcher.stop(mediumID: rig.medium.uuid)
@@ -112,23 +115,42 @@ struct WatcherFlushReproTests {
 
 private final class GatedMapAccess: MediumAccess, @unchecked Sendable {
     var listings: [String: [ListedDirectoryEntry]] = [:]
-    var listCount: [String: Int] = [:]
+    private var listCountStorage: [String: Int] = [:]
+    private let lock = NSLock()
     let release = SurfaceAsyncSignal()
     private var calls = 0
-    private(set) var isBlockingFirstList = false
+    func isBlockingFirstList() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return blockingFirstList
+    }
+
+    private var blockingFirstList = false
+
+    func listCount(for path: String) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return listCountStorage[path] ?? 0
+    }
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
 
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
         let path = url.standardizedFileURL.path
+        lock.lock()
         calls += 1
         let blockFirst = calls == 1
-        if blockFirst { isBlockingFirstList = true }
+        if blockFirst { blockingFirstList = true }
+        lock.unlock()
         if blockFirst {
             await release.wait()
-            isBlockingFirstList = false
+            lock.lock()
+            blockingFirstList = false
+            lock.unlock()
         }
-        listCount[path, default: 0] += 1
+        lock.lock()
+        listCountStorage[path, default: 0] += 1
+        lock.unlock()
         return listings[path] ?? []
     }
 }

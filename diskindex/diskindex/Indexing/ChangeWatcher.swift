@@ -271,8 +271,7 @@ final class ChangeWatcher {
             }
             return
         }
-        if change.itemCreated || change.itemRemoved || change.itemRenamed,
-           let mount = mounts[mediumID], eventInLiveScope(change.path, mount: mount) {
+        if change.itemCreated || change.itemRemoved || change.itemRenamed {
             pendingItemEvents[mediumID, default: []].append(
                 ItemPathEvent(
                     path: change.path,
@@ -282,9 +281,12 @@ final class ChangeWatcher {
                 )
             )
         }
-        guard let mount = mounts[mediumID],
-              let directory = directoryToReread(change.path, mount: mount, mediumID: mediumID) else { return }
-        pending[mediumID, default: []].insert(directory)
+        guard let mount = mounts[mediumID] else { return }
+        let mountPath = MediaMountPath.normalizedMount(mount)
+        let eventPath = URL(fileURLWithPath: change.path).standardizedFileURL.path
+        let mountPrefix = mountPath.hasSuffix("/") ? mountPath : mountPath + "/"
+        guard eventPath == mountPath || eventPath.hasPrefix(mountPrefix) else { return }
+        pending[mediumID, default: []].insert(change.path)
         if flushInFlight.contains(mediumID) {
             flushAgain.insert(mediumID)
             return
@@ -329,23 +331,35 @@ final class ChangeWatcher {
             scheduleDeferredFlush(mediumID)
             return
         }
-        var events = pending[mediumID] ?? []
+        let rawPaths = pending[mediumID] ?? []
         pending[mediumID] = []
-        let itemEvents = (pendingItemEvents[mediumID] ?? []).filter { eventInLiveScope($0.path, mount: mount) }
+        let rawItemEvents = pendingItemEvents[mediumID] ?? []
         pendingItemEvents[mediumID] = []
         pendingSince[mediumID] = nil
+        let matcher = appState.appSettings.matcher
+        let maxDepth = appState.appSettings.indexedMaxDepth
+        let exists = pathExistsForLiveRename
+        let prep = await engine.prepareFlush(
+            rawPaths: rawPaths,
+            itemEvents: rawItemEvents,
+            mount: mount,
+            matcher: matcher,
+            maxDepth: maxDepth,
+            fileExists: exists
+        )
+        var events = prep.directories
+        _ = prep.scopedItemEvents
         // Erneut prüfen: Sperre kann zwischen Guard und Schreiben greifen (VersionLock-Tests).
         guard appState.featureAccess.canWriteIndex else {
-            pending[mediumID, default: []].formUnion(events)
-            pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
+            pending[mediumID, default: []].formUnion(rawPaths)
+            pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
             return
         }
-        let exists = pathExistsForLiveRename
-        let pairs = LiveRenamePairs.pair(events: itemEvents, fileExists: exists)
-        for pair in pairs {
+        var scopeCtx = LiveWatchScopeContext(mount: mount, matcher: matcher, maxDepth: maxDepth)
+        for pair in prep.renamePairs {
             guard appState.featureAccess.canWriteIndex else {
-                pending[mediumID, default: []].formUnion(events)
-                pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
+                pending[mediumID, default: []].formUnion(rawPaths)
+                pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
                 return
             }
             if (try? await store.applyLiveRename(
@@ -354,21 +368,19 @@ final class ChangeWatcher {
                 fromPath: pair.fromPath,
                 toPath: pair.toPath
             )) == true {
-                if let fromParent = scopedParentDirectory(pair.fromPath, mount: mount) {
+                if let fromParent = LiveWatchScope.scopedParentDirectory(pair.fromPath, ctx: &scopeCtx) {
                     events.insert(fromParent)
                 }
-                if let toParent = scopedParentDirectory(pair.toPath, mount: mount) {
+                if let toParent = LiveWatchScope.scopedParentDirectory(pair.toPath, ctx: &scopeCtx) {
                     events.insert(toParent)
                 }
             }
         }
         guard appState.featureAccess.canWriteIndex else {
-            pending[mediumID, default: []].formUnion(events)
-            pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
+            pending[mediumID, default: []].formUnion(rawPaths)
+            pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
             return
         }
-        let matcher = appState.appSettings.matcher
-        let maxDepth = appState.appSettings.indexedMaxDepth
         appState.beginMediumLiveSync(mediumID)
         defer { appState.endMediumLiveSync(mediumID) }
         let outcome = await engine.processPending(
@@ -389,25 +401,13 @@ final class ChangeWatcher {
                 onFullReconcile?(mediumID, volume)
             }
         case .deferred:
-            pending[mediumID, default: []].formUnion(events)
-            pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
+            pending[mediumID, default: []].formUnion(rawPaths)
+            pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
             // Bei Sperre nicht erneut planen — nächster Flush nach Entsperren.
             if appState.featureAccess.canWriteIndex {
                 scheduleDeferredFlush(mediumID)
             }
         }
-    }
-
-    private func scopedParentDirectory(_ path: String, mount: String) -> String? {
-        guard eventInLiveScope(path, mount: mount) else { return nil }
-        return parentDirectory(path, mount: mount)
-    }
-
-    private func parentDirectory(_ path: String, mount: String) -> String {
-        let mountPath = MediaMountPath.normalizedMount(mount)
-        var parent = MediaMountPath.parentDirectory(eventPath: path, mountPath: mount) ?? mountPath
-        if parent.count < mountPath.count { parent = mountPath }
-        return parent
     }
 
     private func scheduleDeferredFlush(_ mediumID: UUID) {
@@ -419,81 +419,6 @@ final class ChangeWatcher {
             self.quietTasks[mediumID] = nil
             await self.flush(mediumID)
         }
-    }
-
-    private func directoryToReread(_ path: String, mount: String, mediumID: UUID) -> String? {
-        if let packageDir = packageRereadDirectory(path, mount: mount) {
-            return packageDir
-        }
-        guard eventInLiveScope(path, mount: mount) else { return nil }
-        let mountPath = MediaMountPath.normalizedMount(mount)
-        guard MediaMountPath.relativeComponents(eventPath: path, mountPath: mount) != nil else { return nil }
-        let matcher = appState.appSettings.matcher
-        let fileName = (path as NSString).lastPathComponent
-        if matcher.shouldSkip(name: fileName, isHidden: fileName.hasPrefix(".")) { return nil }
-        var parent = MediaMountPath.parentDirectory(eventPath: path, mountPath: mount) ?? mountPath
-        if parent.count < mountPath.count { parent = mountPath }
-        var relative = relativeComponents(parent, mount: mountPath)
-        if relative.contains(where: { matcher.shouldSkip(name: $0, isHidden: $0.hasPrefix(".")) }) { return nil }
-        if let maxDepth = appState.appSettings.indexedMaxDepth {
-            let limit = max(0, maxDepth - 1)
-            if relative.count > limit {
-                relative = Array(relative.prefix(limit))
-                var url = URL(fileURLWithPath: mountPath, isDirectory: true)
-                for part in relative { url.appendPathComponent(part) }
-                return url.path
-            }
-        }
-        return parent
-    }
-
-    private func eventInLiveScope(_ path: String, mount: String) -> Bool {
-        guard let rel = MediaMountPath.relativeComponents(eventPath: path, mountPath: mount) else { return false }
-        let matcher = appState.appSettings.matcher
-        for part in rel where matcher.shouldSkip(name: part, isHidden: part.hasPrefix(".")) {
-            return false
-        }
-        if rel.contains(".Trashes") { return false }
-        if isInsidePackageInterior(path, mount: mount) { return false }
-        return true
-    }
-
-    private func isInsidePackageInterior(_ path: String, mount: String) -> Bool {
-        guard let rel = MediaMountPath.relativeComponents(eventPath: path, mountPath: mount), rel.count > 1 else { return false }
-        var url = URL(fileURLWithPath: mount, isDirectory: true)
-        for (index, part) in rel.enumerated() {
-            url.appendPathComponent(part)
-            if urlIsPackage(url), index < rel.count - 1 { return true }
-        }
-        return false
-    }
-
-    private func packageRereadDirectory(_ path: String, mount: String) -> String? {
-        guard let rel = MediaMountPath.relativeComponents(eventPath: path, mountPath: mount) else { return nil }
-        var url = URL(fileURLWithPath: mount, isDirectory: true)
-        for (index, part) in rel.enumerated() {
-            url.appendPathComponent(part)
-            if urlIsPackage(url), index + 1 < rel.count {
-                if index == 0 { return MediaMountPath.normalizedMount(mount) }
-                var parentURL = URL(fileURLWithPath: mount, isDirectory: true)
-                for j in 0..<index { parentURL.appendPathComponent(rel[j]) }
-                return parentURL.path
-            }
-        }
-        return nil
-    }
-
-    private func urlIsPackage(_ url: URL) -> Bool {
-        (try? url.resourceValues(forKeys: [.isPackageKey]).isPackage) == true
-    }
-
-    private func relativeComponents(_ path: String, mount: String) -> [String] {
-        let mountPath = URL(fileURLWithPath: mount).standardizedFileURL.path
-        let standardized = URL(fileURLWithPath: path).standardizedFileURL.path
-        guard standardized != mountPath else { return [] }
-        let prefix = mountPath.hasSuffix("/") ? mountPath : mountPath + "/"
-        guard standardized.hasPrefix(prefix) else { return [] }
-        return standardized.dropFirst(prefix.count).split(separator: "/").map(String.init)
     }
 
     private func startCursorTimer() {

@@ -31,7 +31,7 @@ extension AppState {
             }
             let next = !target.isFavorite
             indexRepository.setFavoriteLocally(mediumID: target.mediumID, id: target.id, isFavorite: next)
-            Task {
+            let checksumTask = Task {
                 do {
                     try await store.setFavorite(itemID: rowID, next)
                     if next, let mount = mountPath?(target.mediumID) {
@@ -42,6 +42,7 @@ extension AppState {
                     DiskIndexLog.shared.record(.store, .error, "setFavorite \(error)")
                 }
             }
+            favoriteChecksumTasks.append(checksumTask)
         }
     }
 
@@ -57,7 +58,7 @@ extension AppState {
         indexRepository.setFavoritesLocally(ids: objects.map(\.id), isFavorite: next)
         let rowIDs = objects.compactMap(\.rowID)
         guard let store = indexStore, !rowIDs.isEmpty else { return }
-        Task {
+        let checksumTask = Task {
             do {
                 try await store.setFavorites(itemIDs: rowIDs, next)
                 if next {
@@ -71,6 +72,7 @@ extension AppState {
                 DiskIndexLog.shared.record(.store, .error, "setFavorites \(error)")
             }
         }
+        favoriteChecksumTasks.append(checksumTask)
     }
 
 }

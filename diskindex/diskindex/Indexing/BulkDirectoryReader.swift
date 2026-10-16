@@ -102,6 +102,9 @@ nonisolated enum BulkDirectoryReader {
         isCancelled: @escaping () -> Bool = { false },
         onChunk: ([ListedDirectoryEntry]) -> Void
     ) throws {
+        #if DEBUG
+        dispatchPrecondition(condition: .notOnQueue(.main))
+        #endif
         defer {
             DiskIndexLog.shared.record(.index, .info, stats.usedBulk ? "lesen bulk=ja" : "lesen bulk=nein")
             if let reason = stats.fallbackReason {

@@ -32,7 +32,7 @@ nonisolated enum LiveRenamePairs {
       let std = URL(fileURLWithPath: event.path).standardizedFileURL.path
       byPath[std] = event
     }
-    guard !byPath.isEmpty else { return [] }
+    guard byPath.count == 2 else { return [] }
 
     var gone: [String] = []
     var present: [String] = []

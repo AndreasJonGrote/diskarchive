@@ -34,7 +34,7 @@ final class MediumMonitor {
                     }
                 },
             ]
-            emitMounted(continuation: continuation)
+            self.emitMounted(continuation: continuation)
             continuation.onTermination = { @Sendable _ in
                 Task { @MainActor in
                     for token in tokens {
@@ -46,20 +46,32 @@ final class MediumMonitor {
     }
 
     private func emitMounted(continuation: AsyncStream<MediumEvent>.Continuation) {
-        let urls = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: nil, options: []) ?? []
-        for url in urls {
-            guard let info = VolumeLookup.info(at: url), VolumeCandidateRule.isCandidate(info.candidateInput) else { continue }
-            guard debouncer.shouldEmit(path: info.mountPath, kind: "appeared") else { continue }
-            continuation.yield(.appeared(info))
+        let paths = LocalVolumeMounts.candidateMountPaths()
+        Task {
+            for path in paths {
+                let url = URL(fileURLWithPath: path, isDirectory: true)
+                guard let info = await VolumeLookup.info(at: url),
+                      VolumeCandidateRule.isCandidate(info.candidateInput) else { continue }
+                await MainActor.run {
+                    guard self.debouncer.shouldEmit(path: info.mountPath, kind: "appeared") else { return }
+                    continuation.yield(.appeared(info))
+                }
+            }
         }
     }
 
     private func emitMount(_ note: Notification, continuation: AsyncStream<MediumEvent>.Continuation) {
-        guard let url = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL,
-              let info = VolumeLookup.info(at: url),
-              VolumeCandidateRule.isCandidate(info.candidateInput),
-              debouncer.shouldEmit(path: info.mountPath, kind: "appeared") else { return }
-        continuation.yield(.appeared(info))
+        guard let url = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL else { return }
+        let path = url.standardizedFileURL.path
+        guard path.hasPrefix("/Volumes/") else { return }
+        Task {
+            guard let info = await VolumeLookup.info(at: url),
+                  VolumeCandidateRule.isCandidate(info.candidateInput) else { return }
+            await MainActor.run {
+                guard self.debouncer.shouldEmit(path: info.mountPath, kind: "appeared") else { return }
+                continuation.yield(.appeared(info))
+            }
+        }
     }
 
     private func emitPath(

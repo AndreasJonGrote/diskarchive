@@ -10,3 +10,6 @@ xcuserdata/
 DerivedData/
 build/
 *.xcresult
+
+DerivedData-test/
+DerivedData-release/

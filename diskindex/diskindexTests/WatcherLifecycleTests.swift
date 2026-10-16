@@ -50,7 +50,7 @@ struct WatcherLifecycleTests {
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/neu.txt", eventID: 5))
         try await Task.sleep(for: .milliseconds(120))
-        #expect(rig.access.listCount.isEmpty)
+        #expect(rig.access.listCountIsEmpty())
         _ = try await rig.store.finishIndexing(mediumUUID: rig.medium.uuid, token: token, status: .indexed, firstIndexedAt: nil)
     }
 

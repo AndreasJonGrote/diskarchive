@@ -127,7 +127,7 @@ struct ReadOnlyMediaGuardTests {
         #expect(WriteGuard.blockedWriteCount >= 1)
     }
 
-    @Test func partialChecksumReadsWriteProtectedFile() throws {
+    @Test func partialChecksumReadsWriteProtectedFile() async throws {
         let dir = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-ro-partial-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -135,7 +135,7 @@ struct ReadOnlyMediaGuardTests {
         let file = dir.appendingPathComponent("ro.bin")
         try Data(repeating: 0xCD, count: 128).write(to: file)
         try FileManager.default.setAttributes([.posixPermissions: 0o444], ofItemAtPath: file.path)
-        let digest = try PartialChecksum.compute(at: file)
+        let digest = try await PartialChecksum.computeOffActor(at: file)
         #expect(digest != nil)
     }
 }
