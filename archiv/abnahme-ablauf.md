@@ -7,6 +7,10 @@ Gilt, wenn der Nutzer "check" oder "next" schreibt und ein Bericht des Umsetzers
 - Selbstauskunft nicht glauben: alles unten selbst prüfen.
 
 ## 2. Bauen und testen
+
+**Billiger (Nutzer 16.10.):** Je Aufgabe nur gezielte Tests (`-only-testing:diskindexTests/<Suite>`), Code lesen, Build ohne Warnung. Gesamtlauf seriell, **drei** Parallelläufe, Release-Warnungen und Absturzbericht-Prüfung nur am **Paketende** bzw. am Ende eines Sprungs (0.3.8, 0.3.9). Die Nutzer-App (Abschnitt 3) einmal je Paket. Ist `xcodebuild` nicht aktiv (Command Line Tools): `export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, nichts am System ändern.
+
+Alle Befehle unten gelten für die Paketabnahme.
 Alle Befehle im Ordner `diskindex/`. Scratch-Ordner: `/private/tmp/claude-501/-Users-jon-Projekte-Disk-Index/a7f638a5-cee3-42a2-9efa-f4ff942dfbfa/scratchpad` (heißt `$S`; in einem neuen Chat den Scratchpad-Pfad aus der Umgebung nehmen).
 
 Bauen (sauber), Debug inklusive Testziel:
@@ -20,7 +24,7 @@ Seriell (Gesamtlauf):
 xcodebuild test-without-building -project diskindex.xcodeproj -scheme diskindex -destination 'platform=macOS,arch=arm64' -derivedDataPath $S/dd -only-testing:diskindexTests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120
 ```
 
-Parallel (ein- bis zweimal, derselbe Befehl, nur `-parallel-testing-enabled YES`). Rote Tests im Parallellauf sind ein Fehler (siehe bug.0.4.044), auch wenn der Umsetzer "grün" meldet.
+Parallel (dreimal hintereinander, derselbe Befehl, nur `-parallel-testing-enabled YES`). Rote Tests im Parallellauf sind ein Fehler (siehe bug.0.4.044), auch wenn der Umsetzer "grün" meldet.
 
 Release-Warnungen:
 ```

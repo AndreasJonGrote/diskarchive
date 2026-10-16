@@ -6,7 +6,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 - **`todo.<Version>.<Nr>`** = Aufgabe (Funktion, Politur, Doku, Entscheidung).
 - **`bug.<Version>.<Nr>`** = Fehler.
-- `<Version>` ist die **Zielversion** aus der Roadmap (`0.4`, `0.3.2` …), `<Nr>` dreistellig und je Art und Version fortlaufend (Beispiel: `bug.0.4.014`). Die Kennung steht im Status, im Commit und in DONE.md. Fehler-Nummern aus dem Audit 13.10. (`REPORT 54` …) stehen im Archiv `archiv/report-audit-2026-10-13.md`; jede Aufgabe nennt ihre Nummern.
+- `<Version>` ist die **Zielversion** aus der Roadmap (`0.4`, `0.3.2` …), `<Nr>` dreistellig und je Art und Version fortlaufend (Beispiel: `bug.0.4.014`). Die Kennung steht im Status, im Commit und in DONE.md. **Ausnahme (Host 16.10.):** Die schon vergebenen `bug.0.4.xxx` behalten ihre Nummern (sie stehen in Commits und DONE.md), auch wenn ihre Zielversion 0.3.8 oder 0.3.9 ist; maßgeblich ist die Spalte „Zielversion“ in der Paketliste. Neue Kennungen tragen die echte Zielversion (`bug.0.3.8.xxx`). Fehler-Nummern aus dem Audit 13.10. (`REPORT 54` …) stehen im Archiv `archiv/report-audit-2026-10-13.md`; jede Aufgabe nennt ihre Nummern.
 - **Host ist Claude.** Umsetzer (Cursor oder ein anderer Agent, auch auf einem anderen Gerät) arbeiten, Claude prüft und nimmt ab (Regel 28). `REPORT.md` bleibt leer; Fehler werden direkt hier als `bug.*` eingetragen.
 
 ## Regeln für den Umsetzer (verbindlich)
@@ -18,7 +18,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 5. **Diese Datei:** Der Umsetzer ändert nur das Feld „Status“ der jeweiligen Aufgabe (höchstens 5 Zeilen: was, welche Dateien, Abweichung). Keine Reviewblöcke, keine neuen Aufgaben, nichts umsortieren, nichts löschen. Claude räumt auf.
 6. **Keine Selbstfreigabe.** Umsetzer schreibt „Bereit zur Prüfung“, nie „fertig“. Nur Claude verschiebt nach DONE.md.
 7. **Belege statt Behauptungen:** „Tests grün“ nur mit Zahl, Uhrzeit, Kommando. Bildschirmfotos nur melden, wenn sie in diesem Lauf neu erzeugt wurden (Zeitstempel prüfen). Build Debug und Release ohne Warnung.
-8. **Tests:** nur `-only-testing:diskindexTests`; nach **jeder Aufgabe seriell**, am **Ende des Pakets** zusätzlich einmal parallel. UI-Tests nicht starten (Passwortabfrage). Leistungszahlen nur im Release-Build.
+8. **Tests:** nur `-only-testing:diskindexTests`; nach **jeder Aufgabe die betroffenen Suites** (`-only-testing:diskindexTests/<Suite>`), am **Ende des Pakets** den Gesamtlauf seriell und einmal parallel. UI-Tests nicht starten (Passwortabfrage). Leistungszahlen nur im Release-Build.
 9. **Kein Aufräumen, Verschieben oder Löschen** von Dateien, die nicht in der Aufgabe stehen. Kein Refactoring „nebenbei“.
 10. **Echte Fenster testen, nicht nur Bilder.** Das Offscreen-Bildschirmfoto (`ScreenshotRunner`) beweist nicht, dass eine Ansicht im echten Fenster funktioniert (Beispiel: `NSTableView`-Zeilen waren im Foto da, im echten Fenster leer). Bei jeder Aufgabe, die Ansichten, Klickflächen oder `NSViewRepresentable` berührt: Test mit echtem `NSWindow` (`makeKeyAndOrderFront`, Layout abwarten, Zeilen/Knöpfe zählen, Klick per `hitTest` auf Randpunkte).
 11. **Regression-Rauchtest** (`RegressionSmokeTests`, wird bei jeder Aufgabe erweitert): jede Ansicht, die schon einmal kaputt war, bekommt eine Zeile. Vor „Bereit zur Prüfung“ muss er grün sein. Eine Aufgabe, die etwas Abgenommenes wieder kaputt macht, gilt als nicht erledigt.
@@ -44,33 +44,61 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ---
 
+---
+
 ## A. Jetzt
 
-**Stand 14.10.2026.** Die Xcode-Version steht noch auf **0.2.0**; gebaut sind **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von **0.4** der Versions-Check mit Update-Modal und Beta-Sperre (alles in DONE.md). Gesamtlauf am 16.10. (`7172680`): 604 Tests seriell grün, Parallellauf grün, 0 Warnungen. **Vier Agenten parallel, ein Gerät, ein Arbeitsordner, jede Datei genau einem Agenten (Nutzer 16.10.):** [SUBTASK1.md](SUBTASK1.md) = Nacharbeit `bug.0.4.045/021/022/023` + Paket 6 Spaltenansicht (`034`–`036`, `037` Teil 103); [SUBTASK2.md](SUBTASK2.md) = `024`, `025`, Paket 7 (`041`, `042`); [SUBTASK3.md](SUBTASK3.md) = Paket 5 (`026`–`033`); [SUBTASK4.md](SUBTASK4.md) = Suche/Favoriten/Popover (`037` ohne 103, `038`–`040`). Gesperrte Dateien werden nacheinander freigegeben (Tabelle in jedem Plan). Die Aufgabentexte unten bleiben das Register; **der Status steht bis zur Zusammenführung in den SUBTASK-Dateien**, Claude trägt ihn nach der Prüfung hier ein und nimmt ab. Mit 0.4 sind **alle Probleme erledigt** (README Grundsatz): Die Pakete 0 bis 7 sind das Tor zur Beta für Tester.
+**Stand 16.10.2026 (Bestandsaufnahme des Hosts, [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md)).** Die Xcode-Version steht noch auf **0.2.0**. Abgenommen und im Code: **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von 0.4 der Versions-Check mit Update-Modal, Beta-Sperre und Nur-Lesen-Sperre (alles in DONE.md). Gesamtlauf des Hosts am 16.10.: seriell 610 Tests grün, Release 0 Warnungen, aber Testziel Debug 6 Warnungen und der Parallellauf nicht stabil (ein Lauf rot, ein Lauf hängt in `ColumnChangeLoopTests`, ein Lauf grün); das ist `bug.0.3.8.002`. Es gibt **eine** Aufgabenliste und **einen** Umsetzer; Pakete laufen nacheinander.
+
+**Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
+
+**Abnahmekriterien je Sprung (alle müssen erfüllt sein):** (1) alle Kennungen des Sprungs von Claude abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün (Zahl der Tests genannt); (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) Regel 23: Claude baut die App des Nutzers als letzten Schritt; (7) Nutzertest am echten Stick bestanden (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung); (8) keine offene „Frage:“ in dieser Datei. Bei Abnahme eines Sprungs setzt der Umsetzer `MARKETING_VERSION` (`todo.0.3.8.001`, `todo.0.3.9.001`).
+
+**Abnahme (Host, billiger):** je Aufgabe gezielte Tests, Code lesen, Build ohne Warnung; Gesamtlauf und Parallelläufe nur am Paketende; die Nutzer-App wird einmal je Paket gebaut. Ablauf: [archiv/abnahme-ablauf.md](archiv/abnahme-ablauf.md).
 
 **Arbeitsregeln je Aufgabe (zusätzlich zu 1–30):** **R1** Nur die genannten Stellen ändern. **R2** Beweis = Pixel aus einem echten Fenster (`PixelProbe`); Sabotage → rot ✓. **R3** Status höchstens 5 Zeilen.
 
 **Test- und Build-Kommandos:** Build `xcodebuild clean build-for-testing -project diskindex.xcodeproj -scheme diskindex -destination 'platform=macOS,arch=arm64' -derivedDataPath <Ordner>`; Warnungen zählen mit `| grep "warning:" | grep -v appintents | sort -u | wc -l` (Ziel 0). Tests `test-without-building … -only-testing:diskindexTests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120`. Danach den Ordner löschen.
 
-### Reihenfolge der Pakete (Audit 13.10., Zweitprüfung Abschnitt D)
+### Reihenfolge der Pakete
 
-| Paket | Kennungen | Thema | Warum in dieser Reihenfolge |
-|---|---|---|---|
-| 0 | ~~`bug.0.4.010`, `bug.0.4.043`, `bug.0.4.044`, `todo.0.4.010`–`013`~~ | Testbasis, Purge, Start | **abgenommen 15.10.** |
-| 1 | ~~`bug.0.4.011`–`012`~~ | Datenschutz im Fehlerbericht | **abgenommen 15.10.** |
-| 2 | ~~`bug.0.4.013`–`016`~~ | Inventar und Favoriten (Datenverlust) | **abgenommen 15.10.** |
-| 2a | ~~`todo.0.4.014`~~ | Nur Lesezugriff auf Medien | **abgenommen 16.10.** (Rest `bug.0.4.045`) |
-| 3 | ~~`bug.0.4.017`–`020`~~ | Live-Überwachung | **abgenommen 15./16.10.** |
-| 4 | `bug.0.4.021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | beseitigt das Einfrieren („Spinning Ball“) |
-| 5 | `bug.0.4.026`–`033` | Entscheidung, Status, Regeln, Identität | `014`, `028` teilen eine Wurzel (Status eines Laufs) |
-| 6 | `bug.0.4.034`–`040` | Oberfläche | |
-| 7 | `bug.0.4.041`–`042` | Absturzschreiber und Start | |
+| Paket | Zielversion | Kennungen | Thema | Stand |
+|---|---|---|---|---|
+| 0–3, 2a | 0.4 (vorab) | ~~`bug.0.4.010`–`020`, `043`, `044`, `todo.0.4.010`–`014`~~ | Testbasis, Datenschutz, Inventar, Live, Nur-Lesen | **abgenommen 15./16.10.** |
+| 4 | **0.3.8** | `todo.0.3.2.002`, `bug.0.3.8.001`–`002` (Nacharbeit), `bug.0.4.045`, `021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | **läuft:** `045`, `021`–`023` „Bereit zur Prüfung“, Nacharbeit zuerst |
+| 5 | **0.3.8** | `bug.0.4.026`–`033` | Entscheidung, Status, Regeln, Identität | B, nach Paket 4 |
+| 6 | **0.3.9** | `bug.0.4.034`–`040` | Oberfläche | B |
+| 7 | **0.3.9** | `bug.0.4.041`–`042` | Absturzschreiber und Start | B |
+| 8 | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere | B |
+| – | **0.4** | `todo.0.4.020`–`025` | Weitergabe an Beta-Tester | B |
 
-Die Pakete unten stammen aus dem Audit „claude seitenweise“ vom 13.10. und gelten **mit den Korrekturen der Zweitprüfung** (hier eingearbeitet). Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
+Reihenfolge in 0.3.8 (verbindlich): (1) Nacharbeit Teil A (`bug.0.3.8.001`), (2) Testisolation (`bug.0.3.8.002`), (3) Rest Paket 4 (`024`, `025`), (4) Paket 5. Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
 
 #### Paket 4 — Medien-I/O und Datenbank nicht auf dem Haupt-Thread
 
 **Hintergrund (verbindlich):** Im Build ist `NonisolatedNonsendingByDefault` aktiv (`SWIFT_APPROACHABLE_CONCURRENCY`). Eine `nonisolated … async`-Funktion ohne `@concurrent` läuft daher **auf dem Actor des Aufrufers**, also auf main, wenn der Aufrufer `@MainActor` ist. „async“ heißt hier **nicht** „Hintergrund“.
+
+**Nacharbeit zuerst (Prüfung Claude 16.10.):** Beim Gesamtlauf des Hosts waren seriell 610/610 Tests grün und Release ohne Warnung, aber das Testziel hatte 6 Warnungen und ein Parallellauf war rot. `bug.0.4.045`, `021`, `022`, `023` bleiben „Bereit zur Prüfung“, bis diese beiden Aufgaben abgenommen sind.
+
+**todo.0.3.2.002 — `MARKETING_VERSION` auf den tatsächlichen Stand.** Im Projekt (`project.pbxproj`, 3 Stellen) von `0.2.0` auf `0.3.2` setzen (dreistellig `n.n.n`, Build-Nummer bleibt der Zeitstempel). Akzeptanz: Test `BundleVersionTests`/`AppVersionTests` angepasst bzw. grün; „Über Disk Archive“ zeigt 0.3.2. Keine Textänderung.
+Status:
+
+**bug.0.3.8.001 — Nacharbeit Paket 4 Teil A (zu `bug.0.4.021`/`022`/`023`).**
+- a) Debug-Build mit Testziel hat 6 Warnungen: `diskindexTests/WatcherFlushReproTests.swift` Z. ~140–153 (`lock()`/`unlock()` aus async-Kontext in `GatedMapAccess.listDirectory`). Auf synchrone Hilfsfunktionen oder `withLock` umbauen; kein `lock()` über ein `await`.
+- b) `IndexStoreV3.precomputedPartials` und `applyLiveRename` rufen `FileManager.fileExists` und `resourceValues` **auf dem Store-Actor** auf. Existenzprüfung und Metadaten in den `@concurrent`-Helfer (`PartialChecksum.computeOffActor` liefert `nil` bei fehlender Datei) bzw. vor den Actor-Aufruf verlegen.
+- c) `ChangeWatcher.flush`: `LiveWatchScope.scopedParentDirectory(...)` (mit `resourceValues`/`isPackage`) läuft nach `applyLiveRename` auf main. In die Engine verlegen (`FlushPrep` liefert die Elternordner je Paar vorab); `_ = prep.scopedItemEvents` entfernen, wenn ungenutzt.
+- d) `LiveWatchScope.urlIsPackage` behandelt app/bundle/framework/plugin/kext ohne Prüfung als Paket (weicht von `isPackageKey` ab). Entfernen (nur `isPackageKey`, Cache beibehalten) oder die Abweichung begründen und mit einem Test belegen.
+- **Akzeptanz:** Debug (mit Testziel) und Release 0 Warnungen; betroffene Suites seriell grün; Status mit Uhrzeiten.
+Status:
+
+**bug.0.3.8.002 — Testisolation: Parallellauf stabil grün (zu `bug.0.4.044`, `bug.0.4.070`/`071`).**
+- a) Keine prozessweiten statischen Variablen für Test-Verzögerungen oder Schalter: `PartialChecksum.computeDelayForTesting`, `DirectMediumAccess.probeDelayForTesting` und den Zustand von `MapAccess`/`GatedMapAccess` als Parameter bzw. injizierten Provider durchreichen (der Parallellauf teilt Prozesse; eine Verzögerung trifft sonst fremde Suiten).
+- b) `PartialChecksumStoreTests/slowPartialChecksumDoesNotBlockStoreReads`: Zeitgrenze von `computeOffActor` injizierbar, Verzögerung deutlich über der Zeitgrenze (nicht genau 5,0 s bei 5-s-Grenze); die 100-ms-Messung mit Reserve (z. B. 250 ms) und kurzer Begründung im Test.
+- c) Rot im Parallellauf am 16.10.: `ChangeWatcherTests/reappearedFolderIsReadWithItsSubtree` und `saveCursorWritesOnlyWhenEventIDChanges` (beide 0 s). Ursache finden und beheben, nicht durch Wiederholung oder Lockerung überdecken; zeigt sie auf Produktcode: beheben und nennen.
+- c2) Parallellauf des Hosts am 16.10. 14:35–15:02 (Kommando wie unten): Lauf 1 rot in `StartupSequenceTests/slowOpenKeepsTheMainThreadFreeAndStillRecognisesMedia()` (4 s), Lauf 2 grün, Lauf 3 **hing über 15 Minuten in `WindowTestGroup/ColumnChangeLoopTests`** ohne Ausgabe, obwohl `-maximum-test-execution-time-allowance 120` gesetzt ist. Ursache finden (wartender Test ohne Zeitgrenze? Fenster/Hauptthread blockiert?) und beheben; ein hängender Test ist ein Fehler.
+- d) Beobachten-Punkte `bug.0.4.070`/`071` (kurze `Task.sleep`, seltenes Rot): nur anfassen, wenn sie im Lauf rot werden.
+- **Akzeptanz:** Seriell grün; Parallellauf **dreimal hintereinander** grün (Kommando und Uhrzeiten im Status); keine neuen `Disk Archive*.ips`; Regel 20.
+Status:
 
 **bug.0.4.045 — `WriteGuard` darf nicht ins Datei-Protokoll zurückschreiben (Befund Claude 16.10.).** `WriteGuard.permitsWrite` ruft bei einem blockierten Pfad `DiskIndexLog.shared.record` auf. `DiskIndexLog.write` hält dabei seinen `NSLock` und prüft selbst `permitsWrite` (Z. ~353). Wäre je der Protokollordner selbst blockiert, ruft `record` → `write` → `permitsWrite` → `record` → `lock.lock()` im selben Thread auf: **Deadlock**. Heute nicht erreichbar (Protokollordner ist eine erlaubte Wurzel), aber eine Sicherung darf nicht hängen können.
 - a) `permitsWrite` schreibt nicht über `DiskIndexLog.shared`, sondern über `os_log` (nur Zähler/Text `write blocked`, ohne Pfad) und `blockedWriteCount`. Alternativ Wiedereintritts-Schutz (Thread-lokales Flag). Der Zähler bleibt.
@@ -142,11 +170,47 @@ Status:
   - `record` auf main bei parallelem Indexlauf < 1 ms im Mittel (Messung im Status).
 Status:
 
-**HALT nach Paket 4** — Freigabe durch Claude:
+**HALT nach Paket 4** — Freigabe durch Claude: Paket 5 (0.3.8, Abschnitt B).
 
 ---
 
-#### Paket 5 — Entscheidung, Status, Regeln, Identität
+### Nutzer und Claude (ohne Umsetzer)
+
+| Kennung | Was | Wer |
+|---|---|---|
+| `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
+| `todo.0.3.2.002` | `MARKETING_VERSION` im Xcode-Projekt von 0.2.0 auf **0.3.2** anheben (dreistellig `n.n.n`, Build-Nummer bleibt der Zeitstempel). Nach Paket 0 freigeben. | Umsetzer |
+
+### Entscheidungen des Nutzers (blockieren nur die genannte Stelle)
+
+Vor dem Start von Paket 5 (0.3.8) zu entscheiden: `todo.0.4.032`, `todo.0.4.033`. Vor dem Teil „Dateinamen ignorieren“ in `bug.0.4.035` (0.3.9): `todo.0.4.031`. Die übrigen blockieren nur ihre Stelle; `todo.0.4.030` (Beta-Sperre/API) vor der Weitergabe (0.4).
+
+| Kennung | Frage | betrifft |
+|---|---|---|
+| `todo.0.4.030` | **Beta-Sperre und API-Stand.** Die API meldet heute `1.0.0`. Eine Beta (0.x) mit **frischer Datenbank sperrt dann sofort** (nur ansehen), mit vorhandener Datenbank nach 7 Tagen ab erster Abfrage. Das trifft jeden Neustart nach Zurücksetzen und jeden neuen Rechner. Soll die API bis zur Weitergabe auf die Beta-Nummer (z. B. `0.3`) gestellt werden, oder soll Debug die Sperre überspringen? (PHP-API nur mit Okay des Nutzers.) | Test der App, `todo.0.4.001` |
+| `todo.0.4.031` | **Mehrere Ordner auf einmal ignorieren** (⌘A, 50.000 Ziele): Obergrenze oder Warnung? Braucht einen neuen Text. | `bug.0.4.035` |
+| `todo.0.4.032` | **Medium neu formatiert** (neue UUID, gleicher Name): altes Medium bleibt tot „Offline“. Hinweis anbieten oder automatisch vergessen? | `bug.0.4.031` |
+| `todo.0.4.033` | **Startreihenfolge:** Einstellungen müssen vor dem ersten Lauf geladen sein (Verdacht: sonst läuft der erste Lauf mit Voreinstellungen, z. B. „Unsichtbare Dateien ignorieren“ an, und löscht Favoriten). Soll das fest als Regel gelten (Empfehlung: ja)? | `bug.0.4.028` |
+| `todo.0.4.034` | **„Für dieses Medium merken“:** `rememberDecision` wird geschrieben, aber nie gelesen. Gilt README 2.3 (Dialog erscheint ohne Haken wieder) noch, oder entfällt der Haken? | Erkennung |
+| `todo.0.4.035` | **Abgelaufene Pause beim Start** endet still, ohne Mitteilung „Medien werden wieder indiziert.“ Soll die Mitteilung auch hier kommen? | Pause |
+| `todo.0.4.036` | **Versions-Check-Takt:** `Task.sleep` zählt Betriebszeit, nicht Kalenderzeit; auf Laptops mit Ruhezustand seltener als „alle 24 h“. Kalenderzeit gemeint? | `VersionCheckScheduler` |
+| `todo.0.4.037` | **Antwort 201 ohne JSON-`id`** gilt als Fehlschlag und wird erneut gesendet (Doppel auf dem Server). Mit der Server-Seite abstimmen. | Fehlerbericht |
+| `todo.0.4.038` | `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht oder löschen? | `todo.0.4.010` |
+| `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
+
+### Beobachten (keine Aufgabe)
+
+| Kennung | Stand |
+|---|---|
+| `bug.0.4.070` | `serviceRunPassesTheReasonToTheDialog` (früher F11), parallel selten rot |
+| `bug.0.4.071` | kurze `Task.sleep` in mehreren Suiten (früher F23); Wackelgefahr |
+
+---
+
+## B. Backlog (nicht freigegeben, der Umsetzer arbeitet nicht daran), nach Zielversion
+
+### 0.3.8 — Paket 5 (nach Paket 4)
+
 
 **bug.0.4.026 — Reprobe setzt keine Entscheidung zurück (REPORT 61).**
 - `reprobeDeniedVolumes`: Medien mit `decision != .undecided` **nicht** über `storeAndPresent` führen.
@@ -217,9 +281,14 @@ Status:
   - Einstellung bzw. Entscheidung ändern → sofort `prepareForTermination()` → neuer Store hat den Wert.
 Status:
 
-**HALT nach Paket 5** — Freigabe durch Claude:
+**HALT nach Paket 5 = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen, danach 0.3.9.
+
+
+**Version bei Abnahme von 0.3.8:** `todo.0.3.8.001` — `MARKETING_VERSION` auf `0.3.8` (nur nach Abnahmekriterien 1–8).
 
 ---
+
+### 0.3.9 — Pakete 6, 7, 8 (nach 0.3.8), danach Stabilitätsprüfung
 
 #### Paket 6 — Oberfläche
 
@@ -282,9 +351,7 @@ Status:
 - **Akzeptanz:** 10.000 Favoriten → erste Darstellung < 300 ms; Fortschritts-Tick baut nicht alle Zeilen neu (Zähler im Test).
 Status:
 
-**HALT nach Paket 6** — Freigabe durch Claude:
-
----
+**HALT nach Paket 6.**
 
 #### Paket 7 — Absturzschreiber und Start
 
@@ -312,57 +379,9 @@ Status:
   - Kein Start der echten App (Regel 19).
 Status:
 
-**HALT nach Paket 7** — Freigabe durch Claude:
+**HALT nach Paket 7.**
 
----
-
----
-
-### Nutzer und Claude (ohne Umsetzer)
-
-| Kennung | Was | Wer |
-|---|---|---|
-| `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
-| `todo.0.3.2.002` | `MARKETING_VERSION` im Xcode-Projekt von 0.2.0 auf **0.3.2** anheben (dreistellig `n.n.n`, Build-Nummer bleibt der Zeitstempel). Nach Paket 0 freigeben. | Umsetzer |
-
-### Entscheidungen des Nutzers (blockieren nur die genannte Stelle)
-
-| Kennung | Frage | betrifft |
-|---|---|---|
-| `todo.0.4.030` | **Beta-Sperre und API-Stand.** Die API meldet heute `1.0.0`. Eine Beta (0.x) mit **frischer Datenbank sperrt dann sofort** (nur ansehen), mit vorhandener Datenbank nach 7 Tagen ab erster Abfrage. Das trifft jeden Neustart nach Zurücksetzen und jeden neuen Rechner. Soll die API bis zur Weitergabe auf die Beta-Nummer (z. B. `0.3`) gestellt werden, oder soll Debug die Sperre überspringen? (PHP-API nur mit Okay des Nutzers.) | Test der App, `todo.0.4.001` |
-| `todo.0.4.031` | **Mehrere Ordner auf einmal ignorieren** (⌘A, 50.000 Ziele): Obergrenze oder Warnung? Braucht einen neuen Text. | `bug.0.4.035` |
-| `todo.0.4.032` | **Medium neu formatiert** (neue UUID, gleicher Name): altes Medium bleibt tot „Offline“. Hinweis anbieten oder automatisch vergessen? | `bug.0.4.031` |
-| `todo.0.4.033` | **Startreihenfolge:** Einstellungen müssen vor dem ersten Lauf geladen sein (Verdacht: sonst läuft der erste Lauf mit Voreinstellungen, z. B. „Unsichtbare Dateien ignorieren“ an, und löscht Favoriten). Soll das fest als Regel gelten (Empfehlung: ja)? | `bug.0.4.028` |
-| `todo.0.4.034` | **„Für dieses Medium merken“:** `rememberDecision` wird geschrieben, aber nie gelesen. Gilt README 2.3 (Dialog erscheint ohne Haken wieder) noch, oder entfällt der Haken? | Erkennung |
-| `todo.0.4.035` | **Abgelaufene Pause beim Start** endet still, ohne Mitteilung „Medien werden wieder indiziert.“ Soll die Mitteilung auch hier kommen? | Pause |
-| `todo.0.4.036` | **Versions-Check-Takt:** `Task.sleep` zählt Betriebszeit, nicht Kalenderzeit; auf Laptops mit Ruhezustand seltener als „alle 24 h“. Kalenderzeit gemeint? | `VersionCheckScheduler` |
-| `todo.0.4.037` | **Antwort 201 ohne JSON-`id`** gilt als Fehlschlag und wird erneut gesendet (Doppel auf dem Server). Mit der Server-Seite abstimmen. | Fehlerbericht |
-| `todo.0.4.038` | `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht oder löschen? | `todo.0.4.010` |
-| `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
-
-### Beobachten (keine Aufgabe)
-
-| Kennung | Stand |
-|---|---|
-| `bug.0.4.070` | `serviceRunPassesTheReasonToTheDialog` (früher F11), parallel selten rot |
-| `bug.0.4.071` | kurze `Task.sleep` in mehreren Suiten (früher F23); Wackelgefahr |
-
----
-
-## B. Backlog (nicht freigegeben, der Umsetzer arbeitet nicht daran)
-
-### 0.4 — Beta für Beta-Tester (Voraussetzungen der Weitergabe, ROADMAP)
-
-| Kennung | Inhalt |
-|---|---|
-| `todo.0.4.020` | **Signatur und Notarisierung:** Developer ID Application, `notarytool`, Stapeln (heute „Apple Development“). Merkhilfe eigene Kopie ohne Notarisierung: Xcode Archive → Distribute → Copy App; ggf. `xattr -dr com.apple.quarantine "…"`. |
-| `todo.0.4.021` | **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (Nutzer). |
-| `todo.0.4.022` | **Laufzeittest auf macOS 14** (z. B. VM); `pointerStyle` und `CGSize: Hashable` brauchen einen Ausweichweg. |
-| `todo.0.4.023` | **Fehlerbericht mit echten Protokollzeilen** testen (erst nach `bug.0.4.011` und `bug.0.4.012`). |
-| `todo.0.4.024` | **Update durch Ersetzen der App:** Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe bei neuerer Version, Launch-Agent neu registrieren; Schema-Erweiterungen mit Sicherung davor (nach `bug.0.4.013`). |
-| `todo.0.4.025` | **Fenster „Datenbank wird aktualisiert“** (einmalig, mit Fortschritt) bei der ersten Schema-Erweiterung durch ein Update. |
-
-### 0.4 — Fehler mit niedriger Schwere (nach den Paketen; Lösung im Archiv-Report, Nummer nennen)
+#### Paket 8 — Fehler niedriger Schwere (Lösung im Archiv-Report, Nummer nennen)
 
 | Kennung | REPORT | Kurz |
 |---|---|---|
@@ -379,6 +398,21 @@ Status:
 | `bug.0.4.060` | 106 | Popover-Höhe „Keine Treffer“ |
 | `bug.0.4.061` | 107 | Mindestanzeige (400 ms) des Ladehinweises wirkt nie |
 | `bug.0.4.062` | 132 | Sammelzeile Nebenläufigkeit (Verdacht) |
+
+**HALT nach Paket 8 = Ende von 0.3.9** — Abnahmekriterien 1–8, `todo.0.3.9.001` (`MARKETING_VERSION` auf `0.3.9`), Stabilitätsprüfung; erst dann 0.4.
+
+---
+
+### 0.4 — Beta für Beta-Tester (nach 0.3.9) (Voraussetzungen der Weitergabe, ROADMAP)
+
+| Kennung | Inhalt |
+|---|---|
+| `todo.0.4.020` | **Signatur und Notarisierung:** Developer ID Application, `notarytool`, Stapeln (heute „Apple Development“). Merkhilfe eigene Kopie ohne Notarisierung: Xcode Archive → Distribute → Copy App; ggf. `xattr -dr com.apple.quarantine "…"`. |
+| `todo.0.4.021` | **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (Nutzer). |
+| `todo.0.4.022` | **Laufzeittest auf macOS 14** (z. B. VM); `pointerStyle` und `CGSize: Hashable` brauchen einen Ausweichweg. |
+| `todo.0.4.023` | **Fehlerbericht mit echten Protokollzeilen** testen (erst nach `bug.0.4.011` und `bug.0.4.012`). |
+| `todo.0.4.024` | **Update durch Ersetzen der App:** Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe bei neuerer Version, Launch-Agent neu registrieren; Schema-Erweiterungen mit Sicherung davor (nach `bug.0.4.013`). |
+| `todo.0.4.025` | **Fenster „Datenbank wird aktualisiert“** (einmalig, mit Fortschritt) bei der ersten Schema-Erweiterung durch ein Update. |
 
 ### 0.5 bis 1.0 (Entwürfe, jede Funktion vor dem Start einzeln besprechen; Details ROADMAP)
 

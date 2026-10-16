@@ -1,6 +1,6 @@
 # ROADMAP.md — Disk Archive
 
-Stand 14.10.2026. Der Weg von **0.1 Beta** bis **1.0**; **gebaut ist der Stand 0.3.2 (Code) mit Teilen von 0.4**. Die Versionsnummern und ihre Reihenfolge stammen vom Nutzer. Mit **[Vorschlag]** markierte Zeilen sind Ergänzungen von Claude und noch nicht bestätigt.
+Stand 16.10.2026. Der Weg von **0.1 Beta** bis **1.0**; **gebaut ist der Stand 0.3.2 (Code) mit Teilen von 0.4; bis zur Beta kommen die Sprünge 0.3.8 und 0.3.9**. Die Versionsnummern und ihre Reihenfolge stammen vom Nutzer. Mit **[Vorschlag]** markierte Zeilen sind Ergänzungen von Claude und noch nicht bestätigt.
 
 **Maßgeblich ist der Abschnitt „Roadmap“ in [README.md](README.md).** Diese Datei ist die ausführliche Fassung mit Abnahmekriterien. Bei Widerspruch gilt die README.
 
@@ -11,11 +11,13 @@ Gilt zusammen mit [README.md](README.md) (Konzept, Abschnitt „Datenbank“), [
 | Version | Inhalt | Bemerkung |
 |---|---|---|
 | **0.1 Beta** | ✓ | Kern läuft auf echten Daten |
-| **0.2** | ✓ eingefroren 11.10. | alle damals bekannten Fehler behoben (Projekt-Version steht noch auf 0.2.0, `todo.0.3.2.002`) |
+| **0.2** | ✓ eingefroren 11.10. | alle damals bekannten Fehler behoben (die Fehler des Audits 13.10. laufen als `bug.0.4.*`; Projekt-Version steht noch auf 0.2.0, `todo.0.3.2.002` setzt sie auf 0.3.2) |
 | **0.3** | ✓ neue Datenbankstruktur | abgenommen 12.10., Messung bestanden, Schema eingefroren |
 | **0.3.1** | ✓ API-Warteschlange | ein Weg ins Netz (abgenommen 12.10.) |
 | **0.3.2** | Erkennung und Dashboard | Code ✓ (12.10.); offen: Layout 02 + 04 nachziehen (`todo.0.3.2.001`), Version anheben (`todo.0.3.2.002`) |
-| **0.4** | letzte Fixes, **Beta für Beta-Tester** | erste Weitergabe nach außen; Versions-Check, Update-Modal, Beta-Sperre und Nur-Lesen-Sperre bereits gebaut ✓ (`todo.0.4.001`, `bug.0.4.001`); offen: Audit-Fehler `bug.0.4.010`–`042`, Signatur, Download-Seite |
+| **0.3.8** | Stabilität, Teil 1 | Paket 4 (Medien-I/O, Nacharbeit, Testisolation) und Paket 5 (Entscheidung, Status, Regeln, Identität): `bug.0.3.8.001`–`002`, `bug.0.4.045`, `021`–`033` |
+| **0.3.9** | Stabilität, Teil 2 | Paket 6 (Oberfläche `034`–`040`), Paket 7 (`041`–`042`), Paket 8 (`050`–`062`), Stabilitätsprüfung |
+| **0.4** | **Beta für Beta-Tester** | erste Weitergabe nach außen; nur noch Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Beta-Verfallsdatum, macOS 14, Update durch Ersetzen); Versions-Check, Update-Modal, Beta-Sperre und Nur-Lesen-Sperre bereits gebaut ✓ (`todo.0.4.001`, `bug.0.4.001`) |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
 | **0.7** | Export von CSV-Listen | |
@@ -88,9 +90,23 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 ---
 
-## 0.4 — Letzte Fixes, Beta für Beta-Tester
+## 0.3.8 — Stabilität, Teil 1 (Nutzer 16.10.)
 
-**Ziel:** Die erste Version, die andere Menschen bekommen. **Alle Probleme sind erledigt.**
+**Ziel:** Kein Einfrieren („Spinning Ball“) mehr durch Medien-I/O oder Datenbank auf dem Haupt-Thread; Entscheidung, Status, Regeln und Identität eines Mediums sind verlässlich.
+
+**Inhalt (Reihenfolge verbindlich):** (1) Nacharbeit Paket 4 Teil A (`bug.0.3.8.001`: Warnungen im Testziel, Datei-I/O vom Store-Actor und von main), (2) Testisolation (`bug.0.3.8.002`: keine prozessweiten Test-Variablen, Parallellauf stabil), (3) Rest Paket 4 (`bug.0.4.024`, `025`; `045`, `021`–`023` zur Abnahme), (4) Paket 5 (`bug.0.4.026`–`033`).
+
+## 0.3.9 — Stabilität, Teil 2 (Nutzer 16.10.)
+
+**Inhalt:** Paket 6 Oberfläche (`bug.0.4.034`–`040`), Paket 7 Absturzschreiber und Start (`041`–`042`), Paket 8 Fehler niedriger Schwere (`050`–`062`), danach Stabilitätsprüfung.
+
+**Fertig je Sprung (0.3.8 und 0.3.9), alle Kriterien:** (1) alle Kennungen von Claude abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf dreimal hintereinander grün; (5) keine neuen `Disk Archive*.ips`; (6) Claude baut die App des Nutzers (Regel 23) als letzten Schritt; (7) Nutzertest am echten Stick (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung); (8) keine offene „Frage:“ in TODO.md. **Eingefroren:** neue Funde kommen nur in einen Sprung, wenn sie ein Kriterium verletzen, sonst ins Backlog 0.4 oder später.
+
+---
+
+## 0.4 — Beta für Beta-Tester
+
+**Ziel:** Die erste Version, die andere Menschen bekommen. **Alle Probleme sind erledigt** (Sprünge 0.3.8 und 0.3.9). 0.4 enthält nur noch die Voraussetzungen der Weitergabe.
 
 **Voraussetzungen für die Weitergabe [Vorschlag]** (ohne diese kann kein Tester die App starten oder erreicht später keine neue Version):
 - ○ **Signatur und Notarisierung:** Developer ID Application, `notarytool`, Stapeln. Heute signiert Release mit "Apple Development".
@@ -104,7 +120,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 - **Ab jetzt nur noch erweitern (Nutzer 10.10.):** Auf anderen Rechnern wird nie etwas gelöscht. Spätere Versionen fügen nur Tabellen oder Spalten hinzu (einmalig beim Start), mit Sicherungskopie davor und Schutz vor Rückschritt (GRDB `hasBeenSuperseded`, ○ `bug.0.4.013`, muss vor der ersten Schema-Erweiterung stehen). Auf dem Mac des Nutzers darf bis 1.0 alles gelöscht werden.
 
 **Fertig, wenn [Vorschlag]:**
-- Keine bekannten Fehler offen (Audit 13.10.: `bug.0.4.010`–`042`).
+- Keine bekannten Fehler offen (0.3.8 und 0.3.9 abgenommen; Audit 13.10.: `bug.0.4.010`–`062`).
 - Eine Testperson außer dem Nutzer hat die App aus dem Download installiert und eine Woche benutzt, ohne Eingriff.
 
 ---
