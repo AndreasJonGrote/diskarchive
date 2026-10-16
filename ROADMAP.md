@@ -11,7 +11,7 @@ Gilt zusammen mit [README.md](README.md) (Konzept, Abschnitt „Datenbank“), [
 | Version | Inhalt | Bemerkung |
 |---|---|---|
 | **0.1 Beta** | ✓ | Kern läuft auf echten Daten |
-| **0.2** | ✓ eingefroren 11.10. | alle damals bekannten Fehler behoben (die Fehler des Audits 13.10. laufen als `bug.0.4.*`; Projekt-Version steht noch auf 0.2.0, `todo.0.3.2.002` setzt sie auf 0.3.2) |
+| **0.2** | ✓ eingefroren 11.10. | alle damals bekannten Fehler behoben (die Fehler des Audits 13.10. laufen als `bug.0.4.*`; Projekt-Version steht seit 16.10. auf 0.3.2, `todo.0.3.2.002`) |
 | **0.3** | ✓ neue Datenbankstruktur | abgenommen 12.10., Messung bestanden, Schema eingefroren |
 | **0.3.1** | ✓ API-Warteschlange | ein Weg ins Netz (abgenommen 12.10.) |
 | **0.3.2** | Erkennung und Dashboard | Code ✓ (12.10.); offen: Layout 02 + 04 nachziehen (`todo.0.3.2.001`), Version anheben (`todo.0.3.2.002`) |

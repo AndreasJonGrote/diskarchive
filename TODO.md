@@ -13,34 +13,34 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 1. **Nur freigegebene Aufgaben aus „A. Jetzt“**, in der dort stehenden Reihenfolge. „B. Backlog“ und alles andere nicht anfassen, auch nicht „vorbereiten“.
 2. **Nach jedem Paket anhalten** (Zeile „HALT“). Erst weiterarbeiten, wenn Claude in A. freigegeben hat.
-3. **Nichts erfinden.** Kein Feature, Text, Schalter, Screen ohne Vorgabe in README oder Layout. Fehlt etwas: Frage unter die Aufgabe schreiben („Frage:“), nicht bauen. Nötige Texte ohne Layout-Vorlage (ab 11.10., Nutzer): normal über `L10n`/`LayoutCopy` mit de und en anlegen und im Status als „Neue Texte:“ auflisten; der Nutzer prüft sie. Keine roten Vorschläge mehr.
+3. **Nichts erfinden.** Kein Feature, Text, Schalter, Screen ohne Vorgabe in README oder Layout. Fehlt etwas: Frage unter die Aufgabe schreiben („Frage:“), nicht bauen. Nötige Texte ohne Layout-Vorlage (ab 11.10., Nutzer): normal über `L10n`/`LayoutCopy` mit de und en anlegen und im Status als „Neue Texte:“ auflisten; der Nutzer prüft sie.
 4. **Layout, README, ROADMAP, DONE.md und REPORT.md sind schreibgeschützt** für den Umsetzer (auch `AGENTS.md`, `archiv/`). Abweichung gefunden → als „Frage:“ melden, nicht selbst „angleichen“.
-5. **Diese Datei:** Der Umsetzer ändert nur das Feld „Status“ der jeweiligen Aufgabe (höchstens 5 Zeilen: was, welche Dateien, Abweichung). Keine Reviewblöcke, keine neuen Aufgaben, nichts umsortieren, nichts löschen. Claude räumt auf.
+5. **Diese Datei:** Der Umsetzer ändert nur das Feld „Status“ (bei Nacharbeit „Nacharbeit-Status“) der jeweiligen Aufgabe (höchstens 5 Zeilen: was, welche Dateien, Abweichung) und am Ende PROMPT.md (Regel 30). Keine Reviewblöcke, keine neuen Aufgaben, nichts umsortieren, nichts löschen. Claude räumt auf.
 6. **Keine Selbstfreigabe.** Umsetzer schreibt „Bereit zur Prüfung“, nie „fertig“. Nur Claude verschiebt nach DONE.md.
-7. **Belege statt Behauptungen:** „Tests grün“ nur mit Zahl, Uhrzeit, Kommando. Bildschirmfotos nur melden, wenn sie in diesem Lauf neu erzeugt wurden (Zeitstempel prüfen). Build Debug und Release ohne Warnung.
-8. **Tests:** nur `-only-testing:diskindexTests`; nach **jeder Aufgabe die betroffenen Suites** (`-only-testing:diskindexTests/<Suite>`), am **Ende des Pakets** den Gesamtlauf seriell und einmal parallel. UI-Tests nicht starten (Passwortabfrage). Leistungszahlen nur im Release-Build.
+7. **Belege statt Behauptungen:** „Tests grün“ nur mit Zahl, Uhrzeit, Kommando. Bildschirmfotos nur melden, wenn sie in diesem Lauf neu erzeugt wurden (Zeitstempel prüfen). Build Debug (einschließlich Testziel) und Release ohne Warnung, selbst gezählt.
+8. **Tests:** nur `-only-testing:diskindexTests`; nach **jeder Aufgabe die betroffenen Suites** (`-only-testing:diskindexTests/<Suite>`), am **Ende des Pakets** den Gesamtlauf seriell und den Parallellauf **dreimal hintereinander** (Kommando und Uhrzeiten im Status). UI-Tests nicht starten (Passwortabfrage). Leistungszahlen nur im Release-Build.
 9. **Kein Aufräumen, Verschieben oder Löschen** von Dateien, die nicht in der Aufgabe stehen. Kein Refactoring „nebenbei“.
 10. **Echte Fenster testen, nicht nur Bilder.** Das Offscreen-Bildschirmfoto (`ScreenshotRunner`) beweist nicht, dass eine Ansicht im echten Fenster funktioniert (Beispiel: `NSTableView`-Zeilen waren im Foto da, im echten Fenster leer). Bei jeder Aufgabe, die Ansichten, Klickflächen oder `NSViewRepresentable` berührt: Test mit echtem `NSWindow` (`makeKeyAndOrderFront`, Layout abwarten, Zeilen/Knöpfe zählen, Klick per `hitTest` auf Randpunkte).
 11. **Regression-Rauchtest** (`RegressionSmokeTests`, wird bei jeder Aufgabe erweitert): jede Ansicht, die schon einmal kaputt war, bekommt eine Zeile. Vor „Bereit zur Prüfung“ muss er grün sein. Eine Aufgabe, die etwas Abgenommenes wieder kaputt macht, gilt als nicht erledigt.
 12. **Gemeinsame Bausteine nur zentral ändern** (Knopf, Chip, Zeile, Spaltenkopf, Leerzustand): eine Quelle, Änderung wirkt überall, Test an der Quelle. Keine zweite Kopie in einer Ansicht.
 13. **Maße nur aus dem Komponentenkatalog** (`docs/Komponenten-Masse.md`, Quelle `layout/Komponenten.dc.html`). Keine eigenen Zahlen für Höhe, Innenabstand, Schrift, Rahmen, Radius. Jede Komponente hat einen Messtest gegen diese Zahlen (±0,5 pt), Hell und Dunkel.
-14. **Nach Fehlern zurückrollen statt überbauen:** schlägt ein Test fehl, Ursache beheben, nicht Test abschwächen.
+14. **Nach Fehlern zurückrollen statt überbauen:** schlägt ein Test fehl oder hängt er, Ursache beheben; weder den Test abschwächen noch Zeitgrenzen verlängern noch wiederholen, bis er grün ist.
 15. **Zeichenpfad sauber halten:** in `body`, `init`, `Binding(get:)`, `@State … = …` und `onAppear` **keine** Systemaufrufe (`SMAppService`, `UNUserNotificationCenter`, Dateisystem, Datenbank) und **keine** Zustandsänderungen. Solche Werte liegen in `AppState` und werden im Hintergrund aktualisiert.
 16. **Zeilenangaben sind Richtwerte** („Z. ~“). Gilt eine Zeile nicht mehr, über den genannten **Symbolnamen** suchen; nichts an anderer Stelle „ähnlich“ ändern.
-17. **Fotos selbst prüfen.** Jedes Foto im Status vorher öffnen; zeigt es nicht das Verlangte (Sperrbildschirm, falsches Fenster, leerer Inhalt), neu aufnehmen. Ein falsches Foto = Aufgabe nicht gemacht.
+17. *(entfällt: keine Bildschirmfotos, siehe Regel 19; die Nummer bleibt, weil andere Stellen auf spätere Regeln verweisen.)*
 18. **Keine Nachhilfe in End-to-End-Tests.** Ein Test, der eine Kette beweisen soll (Platte → FSEvents → Store → Meldung → Spalte), darf keinen Schritt dieser Kette selbst aufrufen (`flushIndexChange`, `scheduleIndexChange`, `invalidate`, `requestLoad`, `loadChildren` als Ersatz für die Anzeige). Er wartet nur und liest das Ergebnis. Geht es ohne Nachhilfe nicht, ist das ein Befund → „Frage:“.
-19. **Bildschirm des Nutzers frei lassen (Nutzer 09.10.: „keine Screenshots, nur Script-Prüfung“, gilt bis auf Widerruf).** Keine echte App starten, keinen `ScreenshotRunner`, keine Bildschirmfotos, nichts aktivieren oder in den Vordergrund holen. Nachweis nur über `xcodebuild test` (mit Zeitgrenze), Protokolldateien und Skripte (`sqlite3`, `grep`). `PixelProbe`-Fenster werden **außerhalb des sichtbaren Bereichs** geöffnet (Ursprung `x: -20000, y: -20000`, `orderFrontRegardless` statt `makeKeyAndOrderFront`, nie `NSApp.activate`); `cacheDisplay` funktioniert dort genauso. Echte-App-Teilaufgaben (z. B. 183 e) entfallen und werden durch einen Skript-Nachweis ersetzt (siehe dort).
-20. **Tests stürzen nie ab.** Kein Zugriff `array[i]` ohne vorheriges `try #require(array.count > i)` (bzw. `#require(array.first)`), kein `!` auf Optionals, keine Bereiche `a..<b` ohne Prüfung `a <= b`. Ein fehlgeschlagener Test meldet „rot“, er beendet nie den Prozess (sonst Absturzbericht auf dem Bildschirm des Nutzers, Regel 19). Vor „Bereit zur Prüfung“: `grep -n '\[0\]\|\[1\]\|\[2\]' diskindexTests/<neue Dateien>` und jede Stelle absichern.
-21. **Keine System-Ereignisse aus Tests.** Verboten: `CGEvent(…).post(…)`, `CGWarpMouseUmsetzerPosition`, `AXUIElement…`, alles, was die **echte** Maus/Tastatur des Nutzers bewegt oder Bedienungshilfen-Rechte braucht (Nutzer 09.10. 23:00: macOS fragte „Disk Archive möchte diesen Computer mit Funktionen der Bedienungshilfe steuern“). Klicks nur per `NSEvent.mouseEvent(…)` + `window.sendEvent` an das **eigene** Testfenster (wie `PixelProbe.click`). Kein `makeKeyAndOrderFront`, kein `NSApp.activate` (Regel 19).
+19. **Bildschirm des Nutzers frei lassen (Nutzer 09.10.: „keine Screenshots, nur Script-Prüfung“, gilt bis auf Widerruf).** Keine echte App starten, keinen `ScreenshotRunner`, keine Bildschirmfotos, nichts aktivieren oder in den Vordergrund holen. Nachweis nur über `xcodebuild test` (mit Zeitgrenze), Protokolldateien und Skripte (`sqlite3`, `grep`). `PixelProbe`-Fenster werden **außerhalb des sichtbaren Bereichs** geöffnet (Ursprung `x: -20000, y: -20000`, `orderFrontRegardless` statt `makeKeyAndOrderFront`, nie `NSApp.activate`); `cacheDisplay` funktioniert dort genauso. Echte-App-Teilaufgaben entfallen und werden durch einen Skript-Nachweis ersetzt.
+20. **Tests stürzen nie ab und flaken nicht.** *Testaufbau:* keine prozessweiten statischen Variablen für Verzögerungen oder Schalter (der Parallellauf teilt Prozesse; stattdessen Parameter, Provider oder `@TaskLocal`), kein `lock()` über ein `await`, Zeitgrenzen mit Reserve (nie genau an der eigenen Grenze), keine exakten Zählvergleiche auf asynchrone Ereignisse (`>=` oder auf die Bedingung warten). Kein Zugriff `array[i]` ohne vorheriges `try #require(array.count > i)` (bzw. `#require(array.first)`), kein `!` auf Optionals, keine Bereiche `a..<b` ohne Prüfung `a <= b`. Ein fehlgeschlagener Test meldet „rot“, er beendet nie den Prozess (sonst Absturzbericht auf dem Bildschirm des Nutzers, Regel 19). Vor „Bereit zur Prüfung“: `grep -n '\[0\]\|\[1\]\|\[2\]' diskindexTests/<neue Dateien>` und jede Stelle absichern.
+21. **Keine System-Ereignisse aus Tests.** Verboten: `CGEvent(…).post(…)`, `CGWarpMouseCursorPosition`, `AXUIElement…`, alles, was die **echte** Maus/Tastatur des Nutzers bewegt oder Bedienungshilfen-Rechte braucht (Nutzer 09.10. 23:00: macOS fragte „Disk Archive möchte diesen Computer mit Funktionen der Bedienungshilfe steuern“). Klicks nur per `NSEvent.mouseEvent(…)` + `window.sendEvent` an das **eigene** Testfenster (wie `PixelProbe.click`). Kein `makeKeyAndOrderFront`, kein `NSApp.activate` (Regel 19).
 22. **Kein Git, kein GitHub (AGENTS.md).** Keine verändernden Git-Befehle (`commit`, `add`, `push`, `pull`, `checkout`, `stash`, `worktree`, `reset` …), keine Best-of-N-Läufe mit Git-Arbeitskopien, nichts auf GitHub. Nur `git status`/`log`/`diff`/`show` zum Nachsehen.
-23. **Zum Schluss die App bauen, die der Nutzer startet (Nutzer 10.10.).** Letzter Schritt jeder Aufgabe, **nach** Sabotage-Rücknahme und Testläufen: `xcodebuild build -project diskindex.xcodeproj -scheme diskindex -configuration Debug -destination 'platform=macOS'` **ohne** `-derivedDataPath` (Ziel: `~/Library/Developer/Xcode/DerivedData/diskindex-…/Build/Products/Debug/Disk Archive.app`, dort startet der Nutzer). Dann belegen: `stat -f '%Sm' -t '%H:%M:%S'` der Datei `Contents/MacOS/Disk Archive` ist **jünger** als die zuletzt geänderte `.swift`-Datei (`find diskindex -name '*.swift' -newer <App-Binary>` muss **leer** sein). Beide Uhrzeiten in den Status. Ohne diesen Beleg gilt die Aufgabe als nicht gemacht. Grund: Am 10.10. testete der Nutzer einen Sabotage-Build, weil nach der Rücknahme nicht mehr gebaut wurde.
+23. **Zum Schluss die App bauen, die der Nutzer startet (Nutzer 10.10.).** Letzter Schritt **je Paket** (nicht je Aufgabe, Host 16.10.), **nach** Sabotage-Rücknahme und Testläufen: `xcodebuild build -project diskindex.xcodeproj -scheme diskindex -configuration Debug -destination 'platform=macOS'` **ohne** `-derivedDataPath` (Ziel: `~/Library/Developer/Xcode/DerivedData/diskindex-…/Build/Products/Debug/Disk Archive.app`, dort startet der Nutzer). Dann belegen: `stat -f '%Sm' -t '%H:%M:%S'` der Datei `Contents/MacOS/Disk Archive` ist **jünger** als die zuletzt geänderte `.swift`-Datei (`find diskindex -name '*.swift' -newer <App-Binary>` muss **leer** sein). Beide Uhrzeiten in den Status. Ohne diesen Beleg gilt das Paket als nicht fertig. Grund: Am 10.10. testete der Nutzer einen Sabotage-Build, weil nach der Rücknahme nicht mehr gebaut wurde.
 24. **Kennung nennen.** Im Status und in Commit-Vorschlägen steht immer die Kennung (`bug.0.4.014`, `todo.0.4.010` …), bei Fehlern zusätzlich die REPORT-Nummer (Archiv `archiv/report-audit-2026-10-13.md`).
 25. **Repro-Tests.** Nennt eine Aufgabe einen Repro-Test aus `Werkzeuge/audit-repro/ReproAuditTests.swift` (Ordner schreibgeschützt), wird der Test in eine passende Suite unter `diskindex/diskindexTests/` übernommen (`@Suite(.serialized) @MainActor`). **Vor dem Fix ausführen und das Rot im Status belegen**, danach grün. Testname und Meldung dürfen angepasst werden, die Erwartung nicht.
 26. **Parallelbetrieb.** Vor jeder Aufgabe `git status`. Sind `.swift`-Dateien geändert, die nicht von dir stammen (anderes Gerät oder anderer Agent arbeitet), **anhalten** und „Frage:“ schreiben. Keine fremden Änderungen überschreiben.
 27. **Schema nach 0.3 nur erweitern** (README, Abschnitt „Datenbank“): neue Migrationen, neue Indizes, neue Schlüssel; keine bestehende Tabelle umbauen.
-28. **Abnahme nur durch Claude (Host).** Der Umsetzer kann auf einem anderen Gerät arbeiten; Claude prüft Code, Build (0 Warnungen), seriellen Gesamtlauf und Regel 23 und trägt die Aufgabe erst dann in DONE.md ein. Eine Selbstabnahme (wie in der früheren „Cursor-Spur“) gilt nicht.
+28. **Abnahme nur durch Claude (Host).** Claude prüft Code, Build (0 Warnungen, Testziel eingeschlossen), seriellen Gesamtlauf, Parallelläufe und Regel 23 und trägt die Aufgabe erst dann in DONE.md ein; ein Sprung (0.3.8, 0.3.9) zählt erst bei allen Abnahmekriterien (Abschnitt A). Eine Selbstabnahme (wie in der früheren „Cursor-Spur“) gilt nicht.
 29. **Signatur.** Ohne gültiges Zertifikat baut man für Tests mit `CODE_SIGN_IDENTITY="-"`; Regel 23 verlangt dann das Zertifikat für den Nutzer-Build, den baut Claude.
-30. **Antwort mit Prompt und Commit.** Jeder Bericht des Umsetzers endet mit zwei Teilen: (1) einem **Prompt für Claude** in einem Codeblock, höchstens 12 Zeilen: Kennungen und „Bereit zur Prüfung“ oder „Blockiert: …“; geänderte Dateien je Aufgabe; Belege (Warnungen, Testläufe mit Art, Zahl und Uhrzeit, Sabotage rot ✓, Regel 23 mit beiden Uhrzeiten); offene „Frage:“; letzte Zeile „Prüfe die genannten Aufgaben nach Regel 28 und gib mir den nächsten Prompt.“ (2) einer **Commit-Nachricht** in einem eigenen Codeblock (eine Zeile, beginnt mit den Kennungen). Der Nutzer committet selbst (Regel 22). Der aktuelle Auftrag steht allein in [PROMPT.md](PROMPT.md); der Umsetzer ändert diese Datei nicht.
+30. **Antwort mit Prompt und Commit.** Jeder Bericht des Umsetzers endet mit zwei Teilen: (1) einem **Prompt für Claude** in einem Codeblock, höchstens 12 Zeilen: Kennungen und „Bereit zur Prüfung“ oder „Blockiert: …“; geänderte Dateien je Aufgabe; Belege (Warnungen, Testläufe mit Art, Zahl und Uhrzeit, Sabotage rot ✓, Regel 23 mit beiden Uhrzeiten); offene „Frage:“; letzte Zeile „Prüfe die genannten Aufgaben nach Regel 28 und gib mir den nächsten Prompt.“ (2) einer **Commit-Nachricht** in einem eigenen Codeblock (eine Zeile, beginnt mit den Kennungen). Der Nutzer committet selbst (Regel 22). Der aktuelle Auftrag steht allein in [PROMPT.md](PROMPT.md). **Zum Schluss (Nutzer 16.10.) ersetzt der Umsetzer den ganzen Inhalt von PROMPT.md durch eine Kurzmeldung von höchstens drei Zeilen:** `Erledigt (Bereit zur Prüfung): <Kennungen>. Offen/blockiert: <Kennungen oder –>. HALT.` Sonst ändert er diese Datei nicht.
 
 ---
 
@@ -65,26 +65,21 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | Paket | Zielversion | Kennungen | Thema | Stand |
 |---|---|---|---|---|
 | 0–3, 2a | 0.4 (vorab) | ~~`bug.0.4.010`–`020`, `043`, `044`, `todo.0.4.010`–`014`~~ | Testbasis, Datenschutz, Inventar, Live, Nur-Lesen | **abgenommen 15./16.10.** |
-| 4 | **0.3.8** | `todo.0.3.2.002`, `bug.0.3.8.001`–`002` (Nacharbeit), `bug.0.4.045`, `021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | **läuft:** `045`, `021`–`023` „Bereit zur Prüfung“, Nacharbeit zuerst |
-| 5 | **0.3.8** | `bug.0.4.026`–`033` | Entscheidung, Status, Regeln, Identität | B, nach Paket 4 |
+| 4 | **0.3.8** | `bug.0.3.8.001`–`002` (Nacharbeit), `bug.0.4.045`, `021`–`025` | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | **läuft:** `045`, `021`–`023` „Bereit zur Prüfung“, Nacharbeit zuerst |
+| 5a | **0.3.8** | `bug.0.4.026`, `027`, `028`, `029`, `030`, `032`, `033` | Entscheidung, Status, Regeln, Identität, Teil 1 | **freigegeben**, nach der Nacharbeit |
+| 5b | **0.3.8** | `bug.0.4.031` | Teil 2 | B, wartet auf Entscheidung `todo.0.4.032` |
 | 6 | **0.3.9** | `bug.0.4.034`–`040` | Oberfläche | B |
 | 7 | **0.3.9** | `bug.0.4.041`–`042` | Absturzschreiber und Start | B |
 | 8 | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere | B |
 | – | **0.4** | `todo.0.4.020`–`025` | Weitergabe an Beta-Tester | B |
 
-Reihenfolge in 0.3.8 (verbindlich): (1) Nacharbeit Teil A (`bug.0.3.8.001`), (2) Testisolation (`bug.0.3.8.002`), (3) Rest Paket 4 (`024`, `025`), (4) Paket 5. Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
+Reihenfolge in 0.3.8 (verbindlich): (1) Nacharbeit Teil A (`bug.0.3.8.001`), (2) Testisolation (`bug.0.3.8.002`), (3) Rest Paket 4 (`024`, `025`), (4) Paket 5a, (5) Paket 5b. Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
 
 #### Paket 4 — Medien-I/O und Datenbank nicht auf dem Haupt-Thread
 
 **Hintergrund (verbindlich):** Im Build ist `NonisolatedNonsendingByDefault` aktiv (`SWIFT_APPROACHABLE_CONCURRENCY`). Eine `nonisolated … async`-Funktion ohne `@concurrent` läuft daher **auf dem Actor des Aufrufers**, also auf main, wenn der Aufrufer `@MainActor` ist. „async“ heißt hier **nicht** „Hintergrund“.
 
-**Nacharbeit zuerst (Prüfung Claude 16.10.):** Beim Gesamtlauf des Hosts waren seriell 610/610 Tests grün und Release ohne Warnung, aber das Testziel hatte 6 Warnungen und ein Parallellauf war rot. `bug.0.4.045`, `021`, `022`, `023` bleiben „Bereit zur Prüfung“, bis diese beiden Aufgaben abgenommen sind.
-
-**todo.0.3.2.002 — `MARKETING_VERSION` auf den tatsächlichen Stand.** Im Projekt (`project.pbxproj`, 3 Stellen) von `0.2.0` auf `0.3.2` setzen (dreistellig `n.n.n`, Build-Nummer bleibt der Zeitstempel). Akzeptanz: Test `BundleVersionTests`/`AppVersionTests` angepasst bzw. grün; „Über Disk Archive“ zeigt 0.3.2. Keine Textänderung.
-Status:
-todo.0.3.2.002: `project.pbxproj` (6×), `BundleVersionTests`, `AboutAndSettingsMenuTests` → 0.3.2.
-Tests 16.10.: `BundleVersionTests`, `AboutAndSettingsMenuTests` grün; Debug build-for-testing 0 Warn.
-Bereit zur Prüfung.
+**Nacharbeit zuerst (Prüfung Claude 16.10., zweite Prüfung abends nach dem Umsetzerlauf):** `todo.0.3.2.002` ist abgenommen (Version 0.3.2). Debug (Testziel) und Release haben 0 Warnungen, keine neuen `.ips`; aber seriell 610/611 (`StoreStartupLifecycleTests/changeLoopRestartsOnSecondStore`) und Parallel 2 von 3 grün. Offen sind die Nacharbeiten unter `bug.0.3.8.001`, `002`, `024`, `025`. Ältere Meldung: Beim Gesamtlauf des Hosts waren seriell 610/610 Tests grün und Release ohne Warnung, aber das Testziel hatte 6 Warnungen und ein Parallellauf war rot. `bug.0.4.045`, `021`, `022`, `023` bleiben „Bereit zur Prüfung“, bis diese beiden Aufgaben abgenommen sind.
 
 **bug.0.3.8.001 — Nacharbeit Paket 4 Teil A (zu `bug.0.4.021`/`022`/`023`).**
 - a) Debug-Build mit Testziel hat 6 Warnungen: `diskindexTests/WatcherFlushReproTests.swift` Z. ~140–153 (`lock()`/`unlock()` aus async-Kontext in `GatedMapAccess.listDirectory`). Auf synchrone Hilfsfunktionen oder `withLock` umbauen; kein `lock()` über ein `await`.
@@ -97,6 +92,11 @@ bug.0.3.8.001: `WatcherFlushReproTests` lock/withLock; `IndexStoreV3` off-actor 
 Suites seriell grün 16.10. ~17:08; Debug/Release 0 Warn.
 Bereit zur Prüfung.
 
+**Nacharbeit (Claude 16.10. abends):**
+- b2) `PartialChecksum.computeOffActor` ruft `FileManager.fileExists` am Anfang **auf dem Aufrufer** auf: Im Build läuft eine `nonisolated async`-Funktion ohne `@concurrent` auf dem Actor des Aufrufers (siehe „Hintergrund“ oben), also auf dem Store-Actor. Es gibt im Projekt kein einziges `@concurrent`. Die Prüfung in den losgelösten Task verlegen (oder die Funktion `@concurrent` machen). Gleiches für alle weiteren Stellen, die diese Regel verletzen könnten (`computeOffActor`-Aufrufer prüfen).
+- **Akzeptanz:** Test mit einer künstlich hängenden Dateiprüfung (Hook als Parameter, 2 s): parallel `childrenPage` und `search` jeweils < 250 ms.
+Nacharbeit-Status:
+
 **bug.0.3.8.002 — Testisolation: Parallellauf stabil grün (zu `bug.0.4.044`, `bug.0.4.070`/`071`).**
 - a) Keine prozessweiten statischen Variablen für Test-Verzögerungen oder Schalter: `PartialChecksum.computeDelayForTesting`, `DirectMediumAccess.probeDelayForTesting` und den Zustand von `MapAccess`/`GatedMapAccess` als Parameter bzw. injizierten Provider durchreichen (der Parallellauf teilt Prozesse; eine Verzögerung trifft sonst fremde Suiten).
 - b) `PartialChecksumStoreTests/slowPartialChecksumDoesNotBlockStoreReads`: Zeitgrenze von `computeOffActor` injizierbar, Verzögerung deutlich über der Zeitgrenze (nicht genau 5,0 s bei 5-s-Grenze); die 100-ms-Messung mit Reserve (z. B. 250 ms) und kurzer Begründung im Test.
@@ -108,6 +108,10 @@ Status:
 bug.0.3.8.002: Test-Delays `@TaskLocal`/Store; PartialChecksum/fileExists; Flake-Fixes Log/AutoSend/saveCursor/Partial 750 ms.
 Seriell 611/611, 16.10. ~18:41–18:46; Parallel 3× grün ~18:46–18:51 (`-parallel-testing-enabled YES`).
 Debug/Release clean 0 Warn.; 0 neue `Disk Archive*.ips`; Regel 23 App 18:59:21. Bereit zur Prüfung.
+
+**Nacharbeit (Claude 16.10. abends):** Der Lauf des Hosts (19:39–19:56) zeigt weiter Instabilität: Parallel Lauf 2 rot (`MainThreadMediumIOTests/directProbeKeepsMainActorResponsive` 4 s und `ChangeWatcherTests/saveCursorWritesOnlyWhenEventIDChanges` 10 s, also die Zeitgrenze), seriell rot `StoreStartupLifecycleTests/changeLoopRestartsOnSecondStore` (wartet 10 s auf `lastChangeGeneration == 2`; exakter Vergleich nach zwei `emit` ist ein Rennen). Ursachen finden und beheben, nicht Zeitgrenzen verlängern. Der Hänger in `ColumnChangeLoopTests` trat diesmal nicht auf; beobachten.
+- **Akzeptanz unverändert:** seriell grün, Parallellauf **dreimal hintereinander** grün. Der Host prüft das erneut.
+Nacharbeit-Status:
 
 **bug.0.4.045 — `WriteGuard` darf nicht ins Datei-Protokoll zurückschreiben (Befund Claude 16.10.).** `WriteGuard.permitsWrite` ruft bei einem blockierten Pfad `DiskIndexLog.shared.record` auf. `DiskIndexLog.write` hält dabei seinen `NSLock` und prüft selbst `permitsWrite` (Z. ~353). Wäre je der Protokollordner selbst blockiert, ruft `record` → `write` → `permitsWrite` → `record` → `lock.lock()` im selben Thread auf: **Deadlock**. Heute nicht erreichbar (Protokollordner ist eine erlaubte Wurzel), aber eine Sicherung darf nicht hängen können.
 - a) `permitsWrite` schreibt nicht über `DiskIndexLog.shared`, sondern über `os_log` (nur Zähler/Text `write blocked`, ohne Pfad) und `blockedWriteCount`. Alternativ Wiedereintritts-Schutz (Thread-lokales Flag). Der Zähler bleibt.
@@ -171,6 +175,12 @@ Status:
 bug.0.4.024: `wireStore` setzt `queuePool`; serielle `dbQueue`; offline `isDue`; Verwerfen ohne `discardPendingCrash`; Inventar-Summe; Version-Check off-main.
 `IssueTrackerTests`/`ApiQueuePersistenceTests`/`AppLaunchTests` angepasst; Paket-QA siehe `bug.0.3.8.002`. Bereit zur Prüfung.
 
+**Nacharbeit (Claude 16.10. abends):** Code sieht richtig aus (`queuePool` in `wireStore`, serielle `dbQueue`, Offline ohne Wartezeit, „Verwerfen“ ohne `discardPendingCrash`). Es fehlen die Tests der Akzeptanz:
+- Hintergrund-Write hält 2 s; `enqueue` und `enqueueCheckIfNeeded` kehren auf main in < 100 ms zurück; Zähler geöffneter Pools = 1 (der Reporter öffnet nie selbst einen).
+- „Verwerfen“ lässt eine ältere, zugestimmte Zeile stehen.
+- `queuePool` wird von `wireStore` (main) gesetzt und von `dbQueue` gelesen: hinter ein Lock oder einmal setzen und danach nur lesen; im Status sagen, wie.
+Nacharbeit-Status:
+
 **bug.0.4.025 — Protokoll ohne `chmod`/`fsync` je Zeile (REPORT 122).**
 - `FilePrivacy.restrict` nur beim Öffnen der Datei und bei der Rotation.
 - `fsync` nur für Zeilen mit Fehler-, Absturz- und Ende-Status; sonst schreibt eine serielle Hintergrund-Queue.
@@ -183,47 +193,16 @@ Status:
 bug.0.4.025: `DiskIndexLog` Hintergrund-Queue, `restrict`/fsync nur Open/Rotation/durable; `BulkDirectoryReader` batched „lesen“.
 Log-/Bulk-Tests + `flushPendingWritesForTesting` in Protokoll-Tests; Paket-QA siehe `bug.0.3.8.002`. Bereit zur Prüfung.
 
-**HALT nach Paket 4** — Freigabe durch Claude: Paket 5 (0.3.8, Abschnitt B).
+**Nacharbeit (Claude 16.10. abends):** Code sieht richtig aus (Hintergrund-Queue, `restrict` nur beim Öffnen/Rotation, fsync nur bei Fehler/Absturz/Ende). Es fehlen die Akzeptanzbelege:
+- Spion auf `FilePrivacy.restrict`: höchstens einmal je geöffneter Datei (Test).
+- Lauf über 2.000 Ordner erzeugt höchstens 10 „lesen“-Zeilen (Test); der Rest unter 200 am Laufende wird heute nicht ausgegeben: am Ende des Laufs `flushReadLogSummary(force: true)` aufrufen, damit die Summenzeile „je Lauf“ stimmt.
+- Messung `record` auf main bei parallelem Indexlauf < 1 ms im Mittel, Zahl im Status.
+- Hinweis für `bug.0.4.041`: `write(durable: true)` ruft `diskWriteQueue.sync` auch aus dem Absturzpfad (`writeCrashSnapshot`); stürzt der Schreiber auf dieser Queue selbst ab, trifft der Handler auf ein `sync` auf der eigenen Queue (Trap). Dort berücksichtigen, hier nichts ändern.
+Nacharbeit-Status:
 
----
+#### Paket 5a — Entscheidung, Status, Regeln, Identität (Teil 1, freigegeben 16.10.; nach der Nacharbeit)
 
-### Nutzer und Claude (ohne Umsetzer)
-
-| Kennung | Was | Wer |
-|---|---|---|
-| `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
-| `todo.0.3.2.002` | `MARKETING_VERSION` im Xcode-Projekt von 0.2.0 auf **0.3.2** anheben (dreistellig `n.n.n`, Build-Nummer bleibt der Zeitstempel). Nach Paket 0 freigeben. | Umsetzer |
-
-### Entscheidungen des Nutzers (blockieren nur die genannte Stelle)
-
-Vor dem Start von Paket 5 (0.3.8) zu entscheiden: `todo.0.4.032`, `todo.0.4.033`. Vor dem Teil „Dateinamen ignorieren“ in `bug.0.4.035` (0.3.9): `todo.0.4.031`. Die übrigen blockieren nur ihre Stelle; `todo.0.4.030` (Beta-Sperre/API) vor der Weitergabe (0.4).
-
-| Kennung | Frage | betrifft |
-|---|---|---|
-| `todo.0.4.030` | **Beta-Sperre und API-Stand.** Die API meldet heute `1.0.0`. Eine Beta (0.x) mit **frischer Datenbank sperrt dann sofort** (nur ansehen), mit vorhandener Datenbank nach 7 Tagen ab erster Abfrage. Das trifft jeden Neustart nach Zurücksetzen und jeden neuen Rechner. Soll die API bis zur Weitergabe auf die Beta-Nummer (z. B. `0.3`) gestellt werden, oder soll Debug die Sperre überspringen? (PHP-API nur mit Okay des Nutzers.) | Test der App, `todo.0.4.001` |
-| `todo.0.4.031` | **Mehrere Ordner auf einmal ignorieren** (⌘A, 50.000 Ziele): Obergrenze oder Warnung? Braucht einen neuen Text. | `bug.0.4.035` |
-| `todo.0.4.032` | **Medium neu formatiert** (neue UUID, gleicher Name): altes Medium bleibt tot „Offline“. Hinweis anbieten oder automatisch vergessen? | `bug.0.4.031` |
-| `todo.0.4.033` | **Startreihenfolge:** Einstellungen müssen vor dem ersten Lauf geladen sein (Verdacht: sonst läuft der erste Lauf mit Voreinstellungen, z. B. „Unsichtbare Dateien ignorieren“ an, und löscht Favoriten). Soll das fest als Regel gelten (Empfehlung: ja)? | `bug.0.4.028` |
-| `todo.0.4.034` | **„Für dieses Medium merken“:** `rememberDecision` wird geschrieben, aber nie gelesen. Gilt README 2.3 (Dialog erscheint ohne Haken wieder) noch, oder entfällt der Haken? | Erkennung |
-| `todo.0.4.035` | **Abgelaufene Pause beim Start** endet still, ohne Mitteilung „Medien werden wieder indiziert.“ Soll die Mitteilung auch hier kommen? | Pause |
-| `todo.0.4.036` | **Versions-Check-Takt:** `Task.sleep` zählt Betriebszeit, nicht Kalenderzeit; auf Laptops mit Ruhezustand seltener als „alle 24 h“. Kalenderzeit gemeint? | `VersionCheckScheduler` |
-| `todo.0.4.037` | **Antwort 201 ohne JSON-`id`** gilt als Fehlschlag und wird erneut gesendet (Doppel auf dem Server). Mit der Server-Seite abstimmen. | Fehlerbericht |
-| `todo.0.4.038` | `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht oder löschen? | `todo.0.4.010` |
-| `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
-
-### Beobachten (keine Aufgabe)
-
-| Kennung | Stand |
-|---|---|
-| `bug.0.4.070` | `serviceRunPassesTheReasonToTheDialog` (früher F11), parallel selten rot |
-| `bug.0.4.071` | kurze `Task.sleep` in mehreren Suiten (früher F23); Wackelgefahr |
-
----
-
-## B. Backlog (nicht freigegeben, der Umsetzer arbeitet nicht daran), nach Zielversion
-
-### 0.3.8 — Paket 5 (nach Paket 4)
-
+Reihenfolge: `026`, `027`, `028`, `029`, `030`, `032`, `033`. `bug.0.4.031` bleibt in B, bis `todo.0.4.032` entschieden ist. `bug.0.4.028` ist seit der Entscheidung `todo.0.4.033` (16.10.: Einstellungen vor dem ersten Lauf laden, feste Regel) freigegeben und muss das umsetzen: `hydrateSettingsFromStore()` abgeschlossen, bevor `MediumRecognitionStartup.bootstrap` den ersten Lauf startet; mit Test. Neue sichtbare Texte nur über „Frage:“.
 
 **bug.0.4.026 — Reprobe setzt keine Entscheidung zurück (REPORT 61).**
 - `reprobeDeniedVolumes`: Medien mit `decision != .undecided` **nicht** über `storeAndPresent` führen.
@@ -272,14 +251,6 @@ Status:
   - Tiefe 2 → 5+ bei fertigem, angeschlossenem Medium → Abgleich startet.
 Status:
 
-**bug.0.4.031 — Identität: Klone und Volume-Umbenennung (REPORT 116, 78).**
-- a) 116: `volumeAppeared` verwirft einen Treffer, dessen Medium-ID schon unter einem **anderen, noch eingehängten** Pfad steht, und behandelt ihn wie mehrdeutig (neues Medium mit Dialog). Nie zwei Pfade für ein Medium.
-- b) 78: `NSWorkspace.didRenameVolumeNotification` (`NSWorkspaceVolumeOldURLKey`/`NSWorkspaceVolumeURLKey`) als eigenes `MediumEvent`. Den Pfadschlüssel im Coordinator umbiegen, den Watcher mit neuem `VolumeInfo` stoppen und neu starten. Zusätzlich `kFSEventStreamCreateFlagWatchRoot` setzen.
-- **Akzeptanz:**
-  - Zwei `.appeared` mit gleicher `volumeUUID` und verschiedenen Pfaden → zwei IDs, Einträge des ersten unverändert.
-  - Rename-Event → `volume(for:)` liefert den neuen Pfad; Unmount mit neuem Pfad setzt offline.
-Status:
-
 **bug.0.4.032 — Dialog-Entscheidung nach dem Abziehen (REPORT 73).**
 - `applyChoice` veröffentlicht als Verbindung `volume(for:) != nil ? .connected : .offline`.
 - `volumeDisappeared` ruft nach `publish(.offline)` `AppWindowPresenter.syncNewMediumPanels(appState:)` auf (nicht in Unit-Tests).
@@ -294,7 +265,56 @@ Status:
   - Einstellung bzw. Entscheidung ändern → sofort `prepareForTermination()` → neuer Store hat den Wert.
 Status:
 
-**HALT nach Paket 5 = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen, danach 0.3.9.
+**HALT nach Paket 5a** (Paket 4 und 5a bilden einen Lauf) — Freigabe durch Claude: Paket 5b (`031`, Abschnitt B).
+
+---
+
+### Nutzer und Claude (ohne Umsetzer)
+
+| Kennung | Was | Wer |
+|---|---|---|
+| `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
+
+### Entscheidungen des Nutzers (blockieren nur die genannte Stelle)
+
+Vor dem Start von Paket 5b (0.3.8) zu entscheiden: `todo.0.4.032` (blockiert `031`). Vor dem Teil „Dateinamen ignorieren“ in `bug.0.4.035` (0.3.9): `todo.0.4.031`. Die übrigen blockieren nur ihre Stelle; `todo.0.4.030` (Beta-Sperre/API) vor der Weitergabe (0.4).
+
+| Kennung | Frage | betrifft |
+|---|---|---|
+| `todo.0.4.030` | **Beta-Sperre und API-Stand.** Die API meldet heute `1.0.0`. Eine Beta (0.x) mit **frischer Datenbank sperrt dann sofort** (nur ansehen), mit vorhandener Datenbank nach 7 Tagen ab erster Abfrage. Das trifft jeden Neustart nach Zurücksetzen und jeden neuen Rechner. Soll die API bis zur Weitergabe auf die Beta-Nummer (z. B. `0.3`) gestellt werden, oder soll Debug die Sperre überspringen? (PHP-API nur mit Okay des Nutzers.) | Test der App, `todo.0.4.001` |
+| `todo.0.4.031` | **Mehrere Ordner auf einmal ignorieren** (⌘A, 50.000 Ziele): Obergrenze oder Warnung? Braucht einen neuen Text. | `bug.0.4.035` |
+| `todo.0.4.032` | **Medium neu formatiert** (neue UUID, gleicher Name): altes Medium bleibt tot „Offline“. Hinweis anbieten oder automatisch vergessen? | `bug.0.4.031` |
+| `todo.0.4.033` | **entschieden 16.10. (Nutzer): ja.** Einstellungen müssen vor dem ersten Lauf geladen sein; fest als Regel (README, Abschnitt „Datenbank“/Start). Gilt für `bug.0.4.028`. | – |
+| `todo.0.4.034` | **„Für dieses Medium merken“:** `rememberDecision` wird geschrieben, aber nie gelesen. Gilt README 2.3 (Dialog erscheint ohne Haken wieder) noch, oder entfällt der Haken? | Erkennung |
+| `todo.0.4.035` | **Abgelaufene Pause beim Start** endet still, ohne Mitteilung „Medien werden wieder indiziert.“ Soll die Mitteilung auch hier kommen? | Pause |
+| `todo.0.4.036` | **Versions-Check-Takt:** `Task.sleep` zählt Betriebszeit, nicht Kalenderzeit; auf Laptops mit Ruhezustand seltener als „alle 24 h“. Kalenderzeit gemeint? | `VersionCheckScheduler` |
+| `todo.0.4.037` | **Antwort 201 ohne JSON-`id`** gilt als Fehlschlag und wird erneut gesendet (Doppel auf dem Server). Mit der Server-Seite abstimmen. | Fehlerbericht |
+| `todo.0.4.038` | `DebugTools/ScreenshotRunner.swift` (708 Zeilen, Regel 19 verbietet den Lauf) und `PreviewData.swift`: noch gebraucht oder löschen? | `todo.0.4.010` |
+| `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
+
+### Beobachten (keine Aufgabe)
+
+| Kennung | Stand |
+|---|---|
+| `bug.0.4.070` | `serviceRunPassesTheReasonToTheDialog` (früher F11), parallel selten rot |
+| `bug.0.4.071` | kurze `Task.sleep` in mehreren Suiten (früher F23); Wackelgefahr |
+
+---
+
+## B. Backlog (nicht freigegeben, der Umsetzer arbeitet nicht daran), nach Zielversion
+
+### 0.3.8 — Paket 5b (`031`; wartet auf `todo.0.4.032`)
+
+
+**bug.0.4.031 — Identität: Klone und Volume-Umbenennung (REPORT 116, 78).**
+- a) 116: `volumeAppeared` verwirft einen Treffer, dessen Medium-ID schon unter einem **anderen, noch eingehängten** Pfad steht, und behandelt ihn wie mehrdeutig (neues Medium mit Dialog). Nie zwei Pfade für ein Medium.
+- b) 78: `NSWorkspace.didRenameVolumeNotification` (`NSWorkspaceVolumeOldURLKey`/`NSWorkspaceVolumeURLKey`) als eigenes `MediumEvent`. Den Pfadschlüssel im Coordinator umbiegen, den Watcher mit neuem `VolumeInfo` stoppen und neu starten. Zusätzlich `kFSEventStreamCreateFlagWatchRoot` setzen.
+- **Akzeptanz:**
+  - Zwei `.appeared` mit gleicher `volumeUUID` und verschiedenen Pfaden → zwei IDs, Einträge des ersten unverändert.
+  - Rename-Event → `volume(for:)` liefert den neuen Pfad; Unmount mit neuem Pfad setzt offline.
+Status:
+
+**HALT nach Paket 5b = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen, danach 0.3.9.
 
 
 **Version bei Abnahme von 0.3.8:** `todo.0.3.8.001` — `MARKETING_VERSION` auf `0.3.8` (nur nach Abnahmekriterien 1–8).

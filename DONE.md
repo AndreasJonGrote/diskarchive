@@ -138,6 +138,7 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | todo.0.4.014 | – | Nur-Lesen-Nachweis: `WriteGuard.permits` mit Erlaubnisliste (Datenordner, Protokoll, Voreinstellungen, Temp, Caches), Aufrufer überspringen das Schreiben, `blockedWriteCount`; Wächter-Test über den Quelltext mit Sabotage; Teil-Prüfsumme auf schreibgeschützter Datei; kein `assertionFailure` (Absturz im Testlauf 15.10., Fehler im Auftrag, korrigiert) | 16.10. Claude | A C |
 | bug.0.4.019 | – | Flush je Medium serialisiert (`flushInFlight`/`flushAgain`), Abbruch ohne Voll-Abgleich, Meta-Delta bei Fehler zurückgelegt, Pause an/aus mit Generationszähler; Repro `nr66/nr99` | 16.10. Claude | A C |
 | bug.0.4.020 | – | Indexer: Schreibfehler (`IndexWriteFailed`) getrennt von Lesefehlern, `DirectoryReadStalled` ohne Wiederholung, Halt sofort; `IndexerWriteReproTests` | 16.10. Claude | A C |
+| todo.0.3.2.002 | – | `MARKETING_VERSION` 0.3.2 (6 Stellen in `project.pbxproj`), `BundleVersionTests`/`AboutAndSettingsMenuTests` angepasst | 16.10. Claude | B C |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 
