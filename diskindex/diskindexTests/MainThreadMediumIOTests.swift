@@ -39,18 +39,18 @@ struct MainThreadMediumIOTests {
             model: nil,
             isTimeMachineSnapshot: false
         )
-        var ticks = 0
-        let ticker = Task { @MainActor in
+        let ticker = MainActorTickCounter()
+        let tickerTask = Task { @MainActor in
             while !Task.isCancelled {
-                ticks += 1
-                try? await Task.sleep(for: .milliseconds(100))
+                ticker.bump()
+                try? await Task.sleep(for: .milliseconds(50))
             }
         }
         let access = DirectMediumAccess()
         let result = await access.probe(volume)
-        ticker.cancel()
+        tickerTask.cancel()
         #expect(result == .granted)
-        #expect(ticks >= 5)
+        #expect(ticker.count >= 8)
     }
 
     @Test func networkStyleMountPathSkipsVolumeLookup() async {
@@ -63,4 +63,10 @@ struct MainThreadMediumIOTests {
         let paths = LocalVolumeMounts.candidateMountPaths()
         #expect(!paths.contains { $0.hasPrefix("/Network/") })
     }
+}
+
+@MainActor
+private final class MainActorTickCounter {
+    private(set) var count = 0
+    func bump() { count += 1 }
 }

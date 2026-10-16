@@ -749,6 +749,7 @@ extension WindowTestGroup {
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         #expect(await rig.store.recordEventCursorCallCountForTesting == 1)
+        try await Task.sleep(for: .milliseconds(150))
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/b.txt", eventID: 11, fileSystemUUID: "UUID-1"))
         _ = try await waitFor(timeoutMs: 10_000) {
             rig.access.listCount(for: "/Volumes/DISK/A") >= 2 ? 2 : nil

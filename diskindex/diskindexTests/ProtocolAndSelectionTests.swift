@@ -8,6 +8,34 @@ import Testing
 @testable import diskindex
 
 @Suite struct DiskIndexLogTests {
+    @Test func manyRecordsCallRestrictAtMostOncePerLogFile() throws {
+        FilePrivacy.resetRestrictCallCountForTesting()
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let log = DiskIndexLog(directory: directory)
+        log.start(installHandlers: false)
+        for index in 0..<500 {
+            log.record(.app, .info, "zeile-\(index)")
+        }
+        log.flushPendingWritesForTesting()
+        #expect(FilePrivacy.restrictCallCountForTesting <= 1)
+    }
+
+    @Test func recordOnMainStaysFast() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let log = DiskIndexLog(directory: directory)
+        log.start(installHandlers: false)
+        let samples = 200
+        var totalSeconds = 0.0
+        for index in 0..<samples {
+            let started = CFAbsoluteTimeGetCurrent()
+            log.record(.app, .info, "latenz-\(index)")
+            totalSeconds += CFAbsoluteTimeGetCurrent() - started
+        }
+        log.flushPendingWritesForTesting()
+        let averageMs = (totalSeconds / Double(samples)) * 1_000
+        #expect(averageMs < 1.0)
+    }
+
     @Test func lineIsOnDiskImmediately() throws {
         let log = try makeLog()
         log.record(.app, .info, "sofort")

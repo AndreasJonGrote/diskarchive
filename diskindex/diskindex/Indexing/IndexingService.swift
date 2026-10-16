@@ -184,6 +184,7 @@ final class IndexingService {
         if runs[mediumUUID] == nil {
             tasks[mediumUUID] = nil
         }
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
     /// Popover-Schalter „Automatisches Indizieren“.
@@ -302,6 +303,7 @@ final class IndexingService {
                 start(mediumUUID: mediumUUID, volume: volume, fromScratch: false)
             }
         }
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
     private func resumePausedRuns() {

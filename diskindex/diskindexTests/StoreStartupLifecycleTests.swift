@@ -32,11 +32,12 @@ struct StoreStartupLifecycleTests {
         try await storeB.upsertMedium(mediumB)
         mediumB = try #require(try await storeB.medium(uuid: mediumB.uuid))
 
+        let generationBeforeB = app.lastChangeGeneration
         app.attach(store: storeB)
         app.startChangeLoop()
         await storeB.emit(.counts(mediumB.uuid))
         await storeB.emit(.counts(mediumB.uuid))
-        let sawB = await waitUntil { app.lastChangeGeneration == 2 }
+        let sawB = await waitUntil { app.lastChangeGeneration > generationBeforeB }
         #expect(sawB)
     }
 

@@ -137,6 +137,63 @@ struct MediumCoordinatorTests {
         #expect(stored.lastSeenAt != nil)
     }
 
+    @Test func reprobeKeepsIndexDecisionWithoutDialog() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_900)
+        let uuid = "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"
+        var existing = StoredMedium(
+            volumeUUID: uuid,
+            volumeCreatedAt: created,
+            fsType: "apfs",
+            volumeTotalBytes: 1_000,
+            name: "STICK",
+            type: .usb,
+            decision: .index,
+            indexStatus: .indexed,
+            lastIndexedAt: Date()
+        )
+        try await rig.store.upsertMedium(existing)
+        existing = try #require(try await rig.store.medium(uuid: existing.uuid))
+        let volume = rig.volume(name: "STICK", path: "/Volumes/STICK", uuid: uuid, created: created)
+        rig.access.result = .granted
+        await rig.coordinator.handle(.appeared(volume))
+        existing.indexStatus = .error
+        try await rig.store.updateMedium(uuid: existing.uuid, existing)
+        rig.appState.updateMedium(id: existing.uuid) { $0.indexStatus = .error }
+        await rig.coordinator.applicationDidBecomeActive()
+        #expect(rig.appState.newMediumDialogMediumID == nil)
+        #expect(rig.appState.medium(with: existing.uuid)?.decision == .index)
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.decision == .index)
+    }
+
+    @Test func reprobeKeepsDontIndexDecision() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_901)
+        let uuid = "DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD"
+        var existing = StoredMedium(
+            volumeUUID: uuid,
+            volumeCreatedAt: created,
+            fsType: "apfs",
+            volumeTotalBytes: 1_000,
+            name: "NOIDX",
+            type: .usb,
+            decision: .dontIndex,
+            indexStatus: .indexed
+        )
+        try await rig.store.upsertMedium(existing)
+        existing = try #require(try await rig.store.medium(uuid: existing.uuid))
+        let volume = rig.volume(name: "NOIDX", path: "/Volumes/NOIDX", uuid: uuid, created: created)
+        rig.access.result = .granted
+        await rig.coordinator.handle(.appeared(volume))
+        existing.indexStatus = .error
+        try await rig.store.updateMedium(uuid: existing.uuid, existing)
+        await rig.coordinator.applicationDidBecomeActive()
+        #expect(rig.appState.newMediumDialogMediumID == nil)
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.decision == .dontIndex)
+    }
+
     @Test func deniedAccessRetriesWhenAppBecomesActive() async throws {
         let rig = try await RecognitionRig.make()
         rig.access.result = .denied(reason: "NSCocoaErrorDomain 257")

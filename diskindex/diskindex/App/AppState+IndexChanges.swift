@@ -8,6 +8,12 @@
 import SwiftUI
 
 extension AppState {
+    #if DEBUG
+    /// Tests (bug.0.4.033): z. B. `commitMediumMeta` zwischen Lesen und Schreiben.
+    static var writeMediumBeforePersistHook: (@Sendable (UUID, IndexStoreV3) async throws -> Void)?
+    static var writeMediumDelayForTesting: Duration?
+    #endif
+
     func beginMediumLiveSync(_ id: UUID) {
         mediumLiveSyncIDs.insert(id)
     }
@@ -67,8 +73,17 @@ extension AppState {
         searchCountTask = nil
         trailingLiveSearch?.cancel()
         trailingLiveSearch = nil
+        let pendingIDs = Array(pendingMediumWrites.keys)
         for task in pendingMediumWrites.values { task.cancel() }
         pendingMediumWrites.removeAll()
+        if !pendingIDs.isEmpty {
+            Task { @MainActor in
+                for id in pendingIDs { await self.writeMedium(id) }
+            }
+        }
+        if persistsSettings, storeReady, indexStore != nil {
+            Task { @MainActor in await self.persistAppSettingsNow() }
+        }
         for task in favoriteChecksumTasks { task.cancel() }
         favoriteChecksumTasks.removeAll()
         for task in trailingIndexReload.values { task.cancel() }
@@ -480,7 +495,15 @@ extension AppState {
             stored.decision = current.decision
             if let type = StoredMediumType(rawValue: current.type.rawValue) { stored.type = type }
             stored.isForgotten = current.isForgotten
-            try await indexStore.updateMedium(uuid: id, stored)
+            #if DEBUG
+            if let hook = Self.writeMediumBeforePersistHook {
+                try await hook(id, indexStore)
+            }
+            if let delay = Self.writeMediumDelayForTesting {
+                try await Task.sleep(for: delay)
+            }
+            #endif
+            try await indexStore.updateMediumUserFields(uuid: id, stored)
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
             DiskIndexLog.shared.record(.store, .error, "writeMedium \(error)")

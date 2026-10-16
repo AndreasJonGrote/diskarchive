@@ -89,8 +89,28 @@ nonisolated enum SchemaV3 {
             throw IndexStoreError.schemaSuperseded
         }
         try migrator.migrate(pool)
+        try normalizeInterruptedIndexingStatuses(in: pool)
         FilePrivacy.restrict(folder)
         return pool
+    }
+
+    /// Nach Absturz/Beenden: `indexing` ohne laufenden Prozess → `indexed` oder `pending` (bug.0.4.028).
+    private static func normalizeInterruptedIndexingStatuses(in pool: DatabasePool) throws {
+        let indexing = MediumCodecV3.code(.indexing)
+        let indexed = MediumCodecV3.code(.indexed)
+        let pending = MediumCodecV3.code(.pending)
+        try pool.write { db in
+            try db.execute(
+                sql: """
+                    UPDATE storages SET indexStatus = CASE
+                        WHEN lastIndexedAt IS NOT NULL THEN ?
+                        ELSE ?
+                    END
+                    WHERE indexStatus = ?
+                    """,
+                arguments: [indexed, pending, indexing]
+            )
+        }
     }
 
     /// Legt alle Tabellen und Suchhilfen in einer **leeren** Datenbank an.

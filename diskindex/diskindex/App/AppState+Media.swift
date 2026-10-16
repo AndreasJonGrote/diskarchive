@@ -289,7 +289,6 @@ extension AppState {
             }
             return medium
         }
-        await normalizeInterruptedIndexingStatuses()
     }
 
     /// Nach Absturz/Beenden kann `indexStatus = indexing` in der DB stehen, obwohl kein Lauf läuft.

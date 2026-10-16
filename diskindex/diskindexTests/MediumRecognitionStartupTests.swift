@@ -25,6 +25,10 @@ struct MediumRecognitionStartupTests {
             coordinator: coordinator,
             startChangeLoop: { appState.startChangeLoop() }
         )
+        for _ in 0..<50 where !MediumRecognitionStartup.didHydrateSettingsBeforeRecognition {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(MediumRecognitionStartup.didHydrateSettingsBeforeRecognition)
         #expect(MediumRecognitionStartup.didStartCoordinatorBeforeLoad)
         coordinator.stop()
     }

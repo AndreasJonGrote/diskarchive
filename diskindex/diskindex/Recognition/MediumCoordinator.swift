@@ -17,6 +17,8 @@ final class MediumCoordinator {
     var onReconcileRequested: ((UUID, VolumeInfo) -> Void)?
     var onWillUnmount: ((UUID) async -> Void)?
     var onMediumDisappeared: ((UUID) async -> Void)?
+    /// Laufender Index für `connectKnown` (bug.0.4.028).
+    var isIndexingActive: ((UUID) -> Bool)?
     private var requestedIndex: Set<UUID> = []
     private var mounted: [String: VolumeInfo] = [:]
     private var mediumByPath: [String: UUID] = [:]
@@ -141,7 +143,7 @@ final class MediumCoordinator {
                 DiskIndexLog.shared.record(.medium, .error, "kein Zugriff", privateDetail: volume.mountPath)
                 var denied = stored
                 denied.lastSeenAt = Date()
-                try await store.updateMedium(uuid: denied.uuid, denied)
+                try await store.updateMediumRecognition(uuid: denied.uuid, denied)
                 mediumByPath[volume.mountPath] = denied.uuid
                 publish(denied, connection: .connected)
                 DiskIndexLog.shared.record(.medium, .info, "abbruch kein Zugriff id=\(stored.uuid)")
@@ -167,7 +169,7 @@ final class MediumCoordinator {
         if let free = volume.volumeFreeBytes {
             fresh.capacityUsedBytes = max(0, volume.volumeTotalBytes - free)
         }
-        try await store.updateMedium(uuid: fresh.uuid, fresh)
+        try await store.updateMediumRecognition(uuid: fresh.uuid, fresh)
         mediumByPath[volume.mountPath] = fresh.uuid
         let wasOffline = appState.medium(with: fresh.uuid)?.connectionStatus != .connected
         publish(fresh, connection: .connected)
@@ -198,10 +200,9 @@ final class MediumCoordinator {
             DiskIndexLog.shared.record(.medium, .info, "dialog id=\(fresh.uuid)")
             return
         }
-        if fresh.indexStatus == .indexing {
-            // Absturz/Beenden mitten im Lauf: Index mit lastIndexedAt gilt als nutzbar, sonst fortsetzen.
+        if fresh.indexStatus == .indexing, isIndexingActive?(fresh.uuid) != true {
             fresh.indexStatus = fresh.lastIndexedAt != nil ? .indexed : .pending
-            try await store.updateMedium(uuid: fresh.uuid, fresh)
+            try await store.updateMediumRecognition(uuid: fresh.uuid, fresh)
             publish(fresh, connection: .connected)
         }
         if fresh.decision == .index, fresh.indexStatus == .indexed {
@@ -241,7 +242,7 @@ final class MediumCoordinator {
             existing.name = volume.name
             if status == .pending { existing.decision = .undecided }
             do {
-                try await store.updateMedium(uuid: existing.uuid, existing)
+                try await store.updateMediumRecognition(uuid: existing.uuid, existing)
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
                 DiskIndexLog.shared.record(.medium, .error, "updateMedium \(error)")
@@ -277,9 +278,34 @@ final class MediumCoordinator {
 
     private func reprobeDeniedVolumes() async {
         for (path, volume) in mounted {
-            guard let id = mediumByPath[path], let stored = try? await store.medium(uuid: id), stored.indexStatus == .error else { continue }
-            if case .granted = await access.probe(volume) {
+            guard let id = mediumByPath[path],
+                  let stored = try? await store.medium(uuid: id),
+                  stored.indexStatus == .error else { continue }
+            guard case .granted = await access.probe(volume) else { continue }
+            guard mounted[path] != nil else { continue }
+            switch stored.decision {
+            case .undecided:
                 await storeAndPresent(volume, status: .pending, openDialog: true)
+            case .dontIndex, .ignore:
+                var updated = stored
+                updated.indexStatus = .pending
+                updated.lastSeenAt = Date()
+                updated.name = volume.name
+                do {
+                    try await store.updateMediumRecognition(uuid: updated.uuid, updated)
+                    mediumByPath[path] = updated.uuid
+                    publish(updated, connection: .connected)
+                } catch {
+                    guard DiskIndexLog.isOperationalFailure(error) else { continue }
+                    DiskIndexLog.shared.record(.medium, .error, "reprobe dontIndex \(error)")
+                }
+            case .index:
+                do {
+                    try await connectKnown(stored, volume: volume)
+                } catch {
+                    guard DiskIndexLog.isOperationalFailure(error) else { continue }
+                    DiskIndexLog.shared.record(.medium, .error, "reprobe index \(error)")
+                }
             }
         }
     }
@@ -294,8 +320,11 @@ final class MediumCoordinator {
         do {
             if var stored = try await store.medium(uuid: id) {
                 stored.lastSeenAt = Date()
-                try await store.updateMedium(uuid: id, stored)
+                try await store.updateMediumLastSeen(uuid: id, at: stored.lastSeenAt ?? Date())
                 publish(stored, connection: .offline)
+                if !Self.isRunningUnitTests {
+                    AppWindowPresenter.syncNewMediumPanels(appState: appState)
+                }
             } else {
                 appState.updateMedium(id: id) {
                     $0.connectionStatus = .offline
@@ -337,14 +366,15 @@ final class MediumCoordinator {
                     let hasIndex = row.completedDepth >= 1 || row.fileCount + row.folderCount > 0
                     row.indexStatus = hasIndex ? .indexed : .pending
                 }
-                try await store.updateMedium(uuid: mediumID, row)
+                try await store.updateMediumDecision(uuid: mediumID, row)
                 stored = row
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
                 DiskIndexLog.shared.record(.medium, .error, "entscheidung \(error)")
                 return
             }
-            publish(stored, connection: .connected)
+            let connection: ConnectionStatus = volume(for: mediumID) != nil ? .connected : .offline
+            publish(stored, connection: connection)
             guard allowIndexing, let volume = volume(for: mediumID) else { return }
             requestIndex(mediumID: mediumID, volume: volume)
         }
@@ -382,6 +412,12 @@ final class MediumCoordinator {
             guard let volume = mounted[path] else { return nil }
             return (id: id, volume: volume)
         }
+    }
+
+    func isKnownConnected(volume: VolumeInfo) -> Bool {
+        guard let id = mediumByPath[volume.mountPath], mounted[volume.mountPath] != nil else { return false }
+        guard appState.medium(with: id)?.connectionStatus == .connected else { return false }
+        return true
     }
 
     private func notifyFavoritesOnlineIfNeeded(mediumID: UUID, name: String, isFavoriteMedium: Bool) async {
@@ -462,6 +498,7 @@ final class MediumCoordinator {
     }
 
     private static var isRunningUnitTests: Bool { RuntimeEnvironment.isRunningTests }
+
 }
 
 extension StoredMedium {

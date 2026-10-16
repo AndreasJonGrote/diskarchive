@@ -13,23 +13,33 @@ nonisolated enum PartialChecksum {
 
     #if DEBUG
     @TaskLocal static var computeDelayForTesting: TimeInterval?
+    @TaskLocal static var fileExistsDelayForTesting: TimeInterval?
     #endif
 
     static func computeOffActor(
         at fileURL: URL,
         timeout: Duration = .seconds(5),
-        testComputeDelay: TimeInterval? = nil
+        testComputeDelay: TimeInterval? = nil,
+        testFileExistsDelay: TimeInterval? = nil
     ) async throws -> (partial: Data, info: String)? {
-        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+        let path = fileURL.path
         #if DEBUG
         let testDelay = testComputeDelay ?? computeDelayForTesting
+        let existsDelay = testFileExistsDelay ?? fileExistsDelayForTesting
         #else
         let testDelay: TimeInterval? = nil
+        let existsDelay: TimeInterval? = nil
         #endif
         return try await withThrowingTaskGroup(of: (partial: Data, info: String)?.self) { group in
             group.addTask {
-                try await Task.detached(priority: .utility) { () -> (partial: Data, info: String)? in
-                    try compute(at: fileURL, testComputeDelay: testDelay)
+                try await Task.detached(priority: .utility) { () async throws -> (partial: Data, info: String)? in
+                    #if DEBUG
+                    if let existsDelay {
+                        try await Task.sleep(for: .seconds(existsDelay))
+                    }
+                    #endif
+                    guard FileManager.default.fileExists(atPath: path) else { return nil }
+                    return try compute(at: fileURL, testComputeDelay: testDelay)
                 }.value
             }
             group.addTask {

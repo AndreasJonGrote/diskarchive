@@ -1,5 +1,3 @@
-Lies TODO.md: Regeln 1–30 und Abschnitt A. Du arbeitest allein im Projekt.
-Auftrag in dieser Reihenfolge: (1) Nacharbeit zu Paket 4: die Absätze „Nacharbeit (Claude 16.10. abends)“ unter bug.0.3.8.001 (b2), bug.0.3.8.002, bug.0.4.024, bug.0.4.025; Status in „Nacharbeit-Status:“. (2) Paket 5a: bug.0.4.026, 027, 028, 029, 030, 032, 033 (Wortlaut in TODO.md A, 033 zuletzt); Status im Feld „Status:“ der Aufgabe. bug.0.4.028 setzt die Entscheidung des Nutzers um: Einstellungen werden vor dem ersten Lauf geladen (feste Regel, README „Startreihenfolge“). bug.0.4.031 NICHT anfassen (wartet auf eine Entscheidung). Keine neuen sichtbaren Texte; brauchst du einen, schreibe „Frage:“ und mach mit der nächsten Aufgabe weiter.
-Je Aufgabe nur die betroffenen Suites (Regel 8). Erst am Ende von (1) UND (2): Debug (mit Testziel) und Release 0 Warnungen (selbst zählen), Gesamtlauf seriell grün, Parallellauf dreimal hintereinander grün mit: xcodebuild test-without-building … -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120. Roter oder hängender Test = Ursache beheben (Regel 14, 20). Keine neuen Disk Archive*.ips. Regel 23 einmal am Ende.
-Vor jeder Aufgabe git status (Regel 26). Kein Git außer status/log/diff/show. HALT nach bug.0.4.033.
-ZUM SCHLUSS: ersetze den ganzen Inhalt dieser Datei (PROMPT.md) durch höchstens drei Zeilen: „Erledigt (Bereit zur Prüfung): <Kennungen>. Offen/blockiert: <Kennungen oder –>. HALT.“ Deine Antwort im Chat endet nach Regel 30 mit Prompt für Claude und Commit-Nachricht.
+Erledigt (Bereit zur Prüfung): bug.0.3.8.001 b2, bug.0.3.8.002, bug.0.4.024, bug.0.4.025, bug.0.4.026, 027, 028, 029, 030, 032, 033 (Paket 4 Nacharbeit + Paket 5a).
+Offen/blockiert: –
+HALT.

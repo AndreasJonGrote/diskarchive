@@ -73,6 +73,9 @@ enum LiveWiring {
         startWatching: @escaping (UUID, VolumeInfo) async -> Void
     ) {
         service.attach(coordinator)
+        coordinator.isIndexingActive = { [weak service] id in
+            service?.isRunActive(id) ?? false
+        }
         watcher.connectedVolumes = { [weak coordinator] in
             coordinator?.connectedVolumes() ?? []
         }
@@ -127,6 +130,9 @@ enum LiveWiring {
                     fromScratch: false
                 )
             }
+        }
+        appState.onIndexingCancelForScopeChange = { [weak service] id in
+            Task { await service?.cancel(mediumUUID: id) }
         }
         appState.onReindexMedium = { [weak service, weak watcher, weak coordinator] id in
             guard AppDelegateBridge.appState.featureAccess.canWriteIndex else { return }

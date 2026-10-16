@@ -8,6 +8,8 @@ import AppKit
 @MainActor
 final class MediumMonitor {
     private var debouncer = MountEventDebouncer()
+    /// bug.0.4.028: beim Aufwachen kein `.appeared`, wenn Pfad schon verbunden ist.
+    var skipWakeAppearedIfKnown: ((VolumeInfo) -> Bool)?
 
     func events() -> AsyncStream<MediumEvent> {
         AsyncStream { continuation in
@@ -30,11 +32,11 @@ final class MediumMonitor {
                 },
                 center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
                     MainActor.assumeIsolated {
-                        self.emitMounted(continuation: continuation)
+                        self.emitMounted(continuation: continuation, wakeRescan: true)
                     }
                 },
             ]
-            self.emitMounted(continuation: continuation)
+            self.emitMounted(continuation: continuation, wakeRescan: false)
             continuation.onTermination = { @Sendable _ in
                 Task { @MainActor in
                     for token in tokens {
@@ -45,7 +47,7 @@ final class MediumMonitor {
         }
     }
 
-    private func emitMounted(continuation: AsyncStream<MediumEvent>.Continuation) {
+    private func emitMounted(continuation: AsyncStream<MediumEvent>.Continuation, wakeRescan: Bool) {
         let paths = LocalVolumeMounts.candidateMountPaths()
         Task {
             for path in paths {
@@ -53,6 +55,7 @@ final class MediumMonitor {
                 guard let info = await VolumeLookup.info(at: url),
                       VolumeCandidateRule.isCandidate(info.candidateInput) else { continue }
                 await MainActor.run {
+                    if wakeRescan, self.skipWakeAppearedIfKnown?(info) == true { return }
                     guard self.debouncer.shouldEmit(path: info.mountPath, kind: "appeared") else { return }
                     continuation.yield(.appeared(info))
                 }

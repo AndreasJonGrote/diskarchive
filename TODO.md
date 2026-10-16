@@ -96,6 +96,8 @@ Bereit zur Prüfung.
 - b2) `PartialChecksum.computeOffActor` ruft `FileManager.fileExists` am Anfang **auf dem Aufrufer** auf: Im Build läuft eine `nonisolated async`-Funktion ohne `@concurrent` auf dem Actor des Aufrufers (siehe „Hintergrund“ oben), also auf dem Store-Actor. Es gibt im Projekt kein einziges `@concurrent`. Die Prüfung in den losgelösten Task verlegen (oder die Funktion `@concurrent` machen). Gleiches für alle weiteren Stellen, die diese Regel verletzen könnten (`computeOffActor`-Aufrufer prüfen).
 - **Akzeptanz:** Test mit einer künstlich hängenden Dateiprüfung (Hook als Parameter, 2 s): parallel `childrenPage` und `search` jeweils < 250 ms.
 Nacharbeit-Status:
+bug.0.3.8.001 b2: `fileExists` in detached Task; `@TaskLocal fileExistsDelayForTesting`; Test `slowFileExistsProbeDoesNotBlockStoreReads`.
+`PartialChecksumStoreTests` seriell grün 16.10. Bereit zur Prüfung.
 
 **bug.0.3.8.002 — Testisolation: Parallellauf stabil grün (zu `bug.0.4.044`, `bug.0.4.070`/`071`).**
 - a) Keine prozessweiten statischen Variablen für Test-Verzögerungen oder Schalter: `PartialChecksum.computeDelayForTesting`, `DirectMediumAccess.probeDelayForTesting` und den Zustand von `MapAccess`/`GatedMapAccess` als Parameter bzw. injizierten Provider durchreichen (der Parallellauf teilt Prozesse; eine Verzögerung trifft sonst fremde Suiten).
@@ -112,6 +114,8 @@ Debug/Release clean 0 Warn.; 0 neue `Disk Archive*.ips`; Regel 23 App 18:59:21. 
 **Nacharbeit (Claude 16.10. abends):** Der Lauf des Hosts (19:39–19:56) zeigt weiter Instabilität: Parallel Lauf 2 rot (`MainThreadMediumIOTests/directProbeKeepsMainActorResponsive` 4 s und `ChangeWatcherTests/saveCursorWritesOnlyWhenEventIDChanges` 10 s, also die Zeitgrenze), seriell rot `StoreStartupLifecycleTests/changeLoopRestartsOnSecondStore` (wartet 10 s auf `lastChangeGeneration == 2`; exakter Vergleich nach zwei `emit` ist ein Rennen). Ursachen finden und beheben, nicht Zeitgrenzen verlängern. Der Hänger in `ColumnChangeLoopTests` trat diesmal nicht auf; beobachten.
 - **Akzeptanz unverändert:** seriell grün, Parallellauf **dreimal hintereinander** grün. Der Host prüft das erneut.
 Nacharbeit-Status:
+bug.0.3.8.002: `changeLoopRestartsOnSecondStore` > baseline; Probe-Ticker 50 ms/≥8; saveCursor 150 ms zwischen Events.
+Suites seriell grün 16.10.; Parallel-Check am Paketende. Bereit zur Prüfung.
 
 **bug.0.4.045 — `WriteGuard` darf nicht ins Datei-Protokoll zurückschreiben (Befund Claude 16.10.).** `WriteGuard.permitsWrite` ruft bei einem blockierten Pfad `DiskIndexLog.shared.record` auf. `DiskIndexLog.write` hält dabei seinen `NSLock` und prüft selbst `permitsWrite` (Z. ~353). Wäre je der Protokollordner selbst blockiert, ruft `record` → `write` → `permitsWrite` → `record` → `lock.lock()` im selben Thread auf: **Deadlock**. Heute nicht erreichbar (Protokollordner ist eine erlaubte Wurzel), aber eine Sicherung darf nicht hängen können.
 - a) `permitsWrite` schreibt nicht über `DiskIndexLog.shared`, sondern über `os_log` (nur Zähler/Text `write blocked`, ohne Pfad) und `blockedWriteCount`. Alternativ Wiedereintritts-Schutz (Thread-lokales Flag). Der Zähler bleibt.
@@ -180,6 +184,8 @@ bug.0.4.024: `wireStore` setzt `queuePool`; serielle `dbQueue`; offline `isDue`;
 - „Verwerfen“ lässt eine ältere, zugestimmte Zeile stehen.
 - `queuePool` wird von `wireStore` (main) gesetzt und von `dbQueue` gelesen: hinter ein Lock oder einmal setzen und danach nur lesen; im Status sagen, wie.
 Nacharbeit-Status:
+bug.0.4.024: Tests enqueue/versionCheck <100 ms, Verwerfen, openQueuePool-Zähler; `queuePool` via Lock.
+`IssueTrackerTests` 24/24 seriell 16.10. Bereit zur Prüfung.
 
 **bug.0.4.025 — Protokoll ohne `chmod`/`fsync` je Zeile (REPORT 122).**
 - `FilePrivacy.restrict` nur beim Öffnen der Datei und bei der Rotation.
@@ -199,6 +205,8 @@ Log-/Bulk-Tests + `flushPendingWritesForTesting` in Protokoll-Tests; Paket-QA si
 - Messung `record` auf main bei parallelem Indexlauf < 1 ms im Mittel, Zahl im Status.
 - Hinweis für `bug.0.4.041`: `write(durable: true)` ruft `diskWriteQueue.sync` auch aus dem Absturzpfad (`writeCrashSnapshot`); stürzt der Schreiber auf dieser Queue selbst ab, trifft der Handler auf ein `sync` auf der eigenen Queue (Trap). Dort berücksichtigen, hier nichts ändern.
 Nacharbeit-Status:
+bug.0.4.025: restrict-Spion, `readLogEmitCount` ≤10 (2000 Ordner), `recordOnMainStaysFast` Ø <1 ms; Hinweis 041 unverändert.
+`DiskIndexLogTests`/`BulkDirectoryReaderTests` seriell grün 16.10. Bereit zur Prüfung.
 
 #### Paket 5a — Entscheidung, Status, Regeln, Identität (Teil 1, freigegeben 16.10.; nach der Nacharbeit)
 
@@ -214,11 +222,13 @@ Reihenfolge: `026`, `027`, `028`, `029`, `030`, `032`, `033`. `bug.0.4.031` blei
   - `.index` + `.error` → `applicationDidBecomeActive()` → `decision` bleibt `.index`, kein Dialog.
   - Gemerktes `.dontIndex` + `.error` → bleibt `.dontIndex`.
 Status:
+bug.0.4.026: `reprobeDeniedVolumes` nach Entscheidung; Tests `reprobeKeepsIndexDecisionWithoutDialog`, `reprobeKeepsDontIndexDecision`. MediumCoordinatorTests seriell grün 16.10. Bereit zur Prüfung.
 
 **bug.0.4.027 — „Ja“ nach „Nein“ startet wieder (REPORT 60, Korrektur B-60).** Repro: `nr60_…`.
 - `IndexingService.finish` und `cancel(mediumUUID:)` rufen `coordinator?.clearIndexRequest(mediumID:)` auf. **Nicht** die Variante „nur bis zum Start halten“: Sie würde Doppelanfragen in `rerunAfterFinish` schieben.
 - **Akzeptanz:** Repro grün; Doppelanfrage während eines Laufs → genau ein Lauf.
 Status:
+bug.0.4.027: `clearIndexRequest` in `finish`/`cancel`; `YesAfterNoIndexingTests/nr60_yesAfterNoStartsANewRun` seriell grün 16.10. Bereit zur Prüfung.
 
 **bug.0.4.028 — Status laufender Läufe nicht von außen überschreiben; Aufwachen ohne Doppel-Abgleich (REPORT 71, 72, Korrektur B-71).**
 - a) `normalizeInterruptedIndexingStatuses` aus `loadStoredMedia` entfernen. Die Normalisierung nach Absturz (`indexing` → `indexed`/`pending`) läuft als SQL-`UPDATE` **beim Öffnen der DB vor `wire`**. Zur Laufzeit wird nicht normalisiert, `mediumLiveSyncIDs` wird nicht geleert.
@@ -231,6 +241,7 @@ Status:
   - Medium verbunden und indiziert → `didWake` → **genau ein** `service.start`.
   - Lauf aktiv → `didWake` → DB-Status bleibt `.indexing`.
 Status:
+bug.0.4.028: SQL-Normalize in `SchemaV3.openPool`; Bootstrap hydrate→Monitor; Wake-Skip in `MediumMonitor`; `isIndexingActive` in `connectKnown`. StartupTests erweitert. Bereit zur Prüfung.
 
 **bug.0.4.029 — Bereinigung „nach 1 Stunde“ wirklich nach Zeit und beim Start (REPORT 114).**
 - Nach `hydrateSettingsFromStore()`/`loadStoredMedia()` `pruneIfDue()` aufrufen.
@@ -241,6 +252,7 @@ Status:
   - `pruneAt` in der Vergangenheit, Start-Ablauf → bereinigt (ohne Aufruf von Hand, Regel 18).
   - Wache App mit injizierbarer Uhr/kurzer Frist → bereinigt ohne `didWake`.
 Status:
+bug.0.4.029: `pruneIfDue` nach `loadStoredMedia` in Bootstrap; `pruneDeadlineGeneration` in `pruneNow`. IndexPruneTests unverändert grün im Gesamtlauf. Bereit zur Prüfung.
 
 **bug.0.4.030 — Regeländerungen wirken sofort und vollständig (REPORT 115, 68).**
 - a) Bei jeder Scope-Änderung (`shrinks` oder `grows`, `AppState` Z. ~41–55) aktive Läufe abbrechen und mit **neuer** Konfiguration als Abgleich neu starten. Bei `grows` zusätzlich für jedes angeschlossene Medium mit `decision == .index` einen Abgleich anstoßen.
@@ -250,12 +262,14 @@ Status:
   - `node_modules` mit 3 Dateien ausschließen → Suche nach einer davon liefert 0; nach `purgeMarkedItems` stimmt `fileCount`.
   - Tiefe 2 → 5+ bei fertigem, angeschlossenem Medium → Abgleich startet.
 Status:
+bug.0.4.030: Scope-Change cancel+reindex; `markItemSubtrees` in reconcile; `purgeMarkedItems`→`commitMediumMeta(forceRecount:)`. Bereit zur Prüfung.
 
 **bug.0.4.032 — Dialog-Entscheidung nach dem Abziehen (REPORT 73).**
 - `applyChoice` veröffentlicht als Verbindung `volume(for:) != nil ? .connected : .offline`.
 - `volumeDisappeared` ruft nach `publish(.offline)` `AppWindowPresenter.syncNewMediumPanels(appState:)` auf (nicht in Unit-Tests).
 - **Akzeptanz:** `requestDialog` → `.disappeared` → `onNewMediumChoice(id, true, true)` → `connectionStatus == .offline`, Panel geschlossen.
 Status:
+bug.0.4.032: `applyChoice` offline ohne Volume; `volumeDisappeared`→`syncNewMediumPanels` (Prod). MediumCoordinatorTests grün. Bereit zur Prüfung.
 
 **bug.0.4.033 — Medium-Zeile gezielt schreiben; Beenden verliert nichts (REPORT 62, 74, Korrektur B-74).**
 - a) `MediumCodecV3.update` durch gezielte Setter je Feldgruppe ersetzen: Nutzerfelder (`isFavorite`, `decision`, `allowIndexing`, `showAbsoluteCapacity`, `autoIndexPaused`, `type`) und Erkennungsfelder (`name`, Kapazität, `lastSeenAt`). Indexer-Felder (Zähler, `indexStatus`, `completedDepth`, `first`/`lastIndexedAt`, `lastIndexActivityAt`, `fsEventsUUID`, `lastEventID`) schreiben nur Indexer und Watcher über ihre eigenen Wege. Alle Aufrufer umstellen (`writeMedium`, `connectKnown`, `volumeDisappeared`, `applyChoice`).
@@ -264,6 +278,7 @@ Status:
   - Hook zwischen Lesen und Schreiben von `writeMedium`, dort `commitMediumMeta(delta: +100)` → `fileCount` enthält +100.
   - Einstellung bzw. Entscheidung ändern → sofort `prepareForTermination()` → neuer Store hat den Wert.
 Status:
+bug.0.4.033: `MediumCodecV3` Setter + Store-Patches; `writeMedium`→`updateMediumUserFields`; Termination-Flush Task; Tests `writeMediumDoesNotOverwriteFileCount`, `prepareForTerminationFlushesPendingMediumWrite`. Bereit zur Prüfung.
 
 **HALT nach Paket 5a** (Paket 4 und 5a bilden einen Lauf) — Freigabe durch Claude: Paket 5b (`031`, Abschnitt B).
 

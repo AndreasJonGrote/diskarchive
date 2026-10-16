@@ -336,6 +336,68 @@ struct IssueTrackerTests {
         try expectQueued(reporter, 0)
     }
 
+    @Test @MainActor func enqueueReturnsQuicklyWhileDatabaseWriteBlocks() async throws {
+        let reporter = try makeReporter()
+        let pool = try #require(reporter.queuePool)
+        ApiQueuePersistence.resetOpenQueuePoolCallCountForTesting()
+        let gate = ExclusiveWriteGate()
+        let writer = Task.detached {
+            try pool.write { _ in
+                gate.markEntered()
+                gate.waitForRelease(timeoutSeconds: 5)
+            }
+        }
+        let entered = await waitUntil(timeout: 5) { gate.hasEntered }
+        #expect(entered)
+        let started = ContinuousClock.now
+        reporter.enqueue(kind: "crash")
+        let elapsed = started.duration(to: .now)
+        #expect(elapsed < .milliseconds(100))
+        gate.release()
+        try await writer.value
+        reporter.waitForPendingEnqueuesForTesting()
+        try expectQueued(reporter, 1)
+        #expect(ApiQueuePersistence.openQueuePoolCallCountForTesting == 0)
+    }
+
+    @Test @MainActor func versionCheckEnqueueReturnsQuicklyWhileDatabaseWriteBlocks() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
+        defer { try? database.close() }
+        let gate = ExclusiveWriteGate()
+        let writer = Task.detached {
+            try store.pool.write { _ in
+                gate.markEntered()
+                gate.waitForRelease(timeoutSeconds: 5)
+            }
+        }
+        let entered = await waitUntil(timeout: 5) { gate.hasEntered }
+        #expect(entered)
+        let started = ContinuousClock.now
+        VersionCheckCoordinator.enqueueCheckIfNeeded(store: store, force: true)
+        let elapsed = started.duration(to: .now)
+        #expect(elapsed < .milliseconds(100))
+        gate.release()
+        try await writer.value
+    }
+
+    @Test func discardCrashDialogDoesNotRemoveQueuedReport() async throws {
+        let reporter = try makeReporter()
+        reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
+        try expectQueued(reporter, 1)
+        let logDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: logDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: logDir) }
+        let log = DiskIndexLog(directory: logDir)
+        log.start(installHandlers: false)
+        log.acknowledgeCrashDialog()
+        try expectQueued(reporter, 1)
+    }
+
     @Test func migratesLegacyOutboxFiles() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

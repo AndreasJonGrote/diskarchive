@@ -23,12 +23,26 @@ nonisolated enum ApiQueuePersistence {
     static let maxPayloadBytes = 5 * 1_024 * 1_024
 
     static func openQueuePool() throws -> DatabasePool {
-        try SchemaV3.openPool(at: IndexStoreV3.storeFileURL())
+        #if DEBUG
+        openQueuePoolCallCountForTesting += 1
+        #endif
+        return try SchemaV3.openPool(at: IndexStoreV3.storeFileURL())
     }
 
     static func openQueuePool(at fileURL: URL) throws -> DatabasePool {
-        try SchemaV3.openPool(at: fileURL)
+        #if DEBUG
+        openQueuePoolCallCountForTesting += 1
+        #endif
+        return try SchemaV3.openPool(at: fileURL)
     }
+
+    #if DEBUG
+    nonisolated(unsafe) static var openQueuePoolCallCountForTesting = 0
+
+    static func resetOpenQueuePoolCallCountForTesting() {
+        openQueuePoolCallCountForTesting = 0
+    }
+    #endif
 
     static func enqueue(_ pool: DatabasePool, kind: ApiQueueKind, payload: Data, createdAt: Int) throws {
         guard let text = String(data: payload, encoding: .utf8) else { return }

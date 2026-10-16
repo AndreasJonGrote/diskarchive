@@ -41,13 +41,14 @@ final class AppState {
             if IndexSchedule.shrinks(from: oldValue, to: appSettings) {
                 armPrune(now: Date())
             }
-            if IndexSchedule.grows(from: oldValue, to: appSettings) {
-                for medium in media where medium.connectionStatus == .connected && medium.indexStatus == .indexing {
-                    onReindexMedium?(medium.id)
-                }
-            }
             let scopeChanged = IndexScope.from(oldValue) != newScope
             if scopeChanged {
+                for medium in media where medium.connectionStatus == .connected && medium.indexStatus == .indexing {
+                    onIndexingCancelForScopeChange?(medium.id)
+                }
+                for medium in media where medium.connectionStatus == .connected && medium.decision == .index {
+                    onReindexMedium?(medium.id)
+                }
                 if mainWindowDestination == .search {
                     pendingSearchAfterRuleReconcile = true
                 }
@@ -96,6 +97,7 @@ final class AppState {
     let persistsSettings: Bool
     var settingsSaveTask: Task<Void, Never>?
     var settingsReady = false
+    private var pruneDeadlineGeneration = 0
     private(set) var pruneAt: Date? {
         didSet { indexRepository.scope = indexScope }
     }
@@ -174,6 +176,8 @@ final class AppState {
     @ObservationIgnored var onMediumDecisionChanged: ((UUID, StoredIndexDecision, Bool) -> Void)?
     /// „Neu indizieren“. Gesetzt vom `IndexingService`.
     var onReindexMedium: ((UUID) -> Void)?
+    /// Regel-Scope geändert: laufenden Index abbrechen (bug.0.4.030).
+    @ObservationIgnored var onIndexingCancelForScopeChange: ((UUID) -> Void)?
     /// Klick ist angekommen, der Lauf hat noch nicht begonnen.
     var reindexRequested: Set<UUID> = []
     /// Wechselt, wenn die 59-s-Sperre abläuft, damit die Knöpfe ohne weiteren Klick neu zeichnen.
@@ -370,6 +374,7 @@ final class AppState {
     }
 
     func armPrune(now: Date) {
+        pruneDeadlineGeneration += 1
         let due = IndexSchedule.deadline(from: now)
         pruneAt = due
         guard persistsSettings else { return }
@@ -395,9 +400,12 @@ final class AppState {
     func pruneNow() async {
         guard featureAccess.canWriteIndex else { return }
         guard let indexStore else { return }
+        let generation = pruneDeadlineGeneration
         do {
             _ = try await indexStore.pruneToMatch(IndexScope.from(appSettings))
-            clearPruneDeadline()
+            if generation == pruneDeadlineGeneration {
+                clearPruneDeadline()
+            }
             await loadStoredMedia()
             indexRepository.invalidateAll()
             await reloadFavorites()

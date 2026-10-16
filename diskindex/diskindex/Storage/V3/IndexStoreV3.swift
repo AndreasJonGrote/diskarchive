@@ -262,6 +262,38 @@ actor IndexStoreV3 {
         }
     }
 
+    func updateMediumUserFields(uuid: UUID, _ medium: StoredMedium) async throws {
+        try await pool.write { db in
+            guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }
+            try MediumCodecV3.updateUserFields(db, storageID: id, medium)
+        }
+        emit(.medium(uuid))
+    }
+
+    func updateMediumRecognition(uuid: UUID, _ medium: StoredMedium) async throws {
+        try await pool.write { db in
+            guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }
+            try MediumCodecV3.updateRecognitionFields(db, storageID: id, medium)
+        }
+        emit(.medium(uuid))
+    }
+
+    func updateMediumLastSeen(uuid: UUID, at date: Date) async throws {
+        try await pool.write { db in
+            guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }
+            try MediumCodecV3.updateLastSeen(db, storageID: id, at: date)
+        }
+        emit(.medium(uuid))
+    }
+
+    func updateMediumDecision(uuid: UUID, _ medium: StoredMedium) async throws {
+        try await pool.write { db in
+            guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }
+            try MediumCodecV3.updateDecisionFields(db, storageID: id, medium)
+        }
+        emit(.medium(uuid))
+    }
+
     /// Vereinigung aller Treffer, stärkste Übereinstimmung zuerst (gleiche Regeln wie `IndexStoreV3`).
     func candidates(for identity: VolumeIdentity) async throws -> [MediumCandidate] {
         try await pool.read { db in
@@ -820,8 +852,8 @@ actor IndexStoreV3 {
                         storages.insert(storageID)
                     }
                 }
-                let hidden = try Self.setItemStatus(db, ids: hideIDs, status: toDelete)
-                let shown = try Self.setItemStatus(db, ids: showIDs, status: visible)
+                let hidden = try Self.markItemSubtrees(db, roots: hideIDs, newStatus: toDelete, priorStatus: visible)
+                let shown = try Self.markItemSubtrees(db, roots: showIDs, newStatus: visible, priorStatus: toDelete)
                 let updated = hidden + shown
                 return (updated, last, storages)
             }
@@ -847,25 +879,32 @@ actor IndexStoreV3 {
         var removed = 0
         var batches = 0
         var cursor: Int64 = 0
+        var touchedStorages = Set<Int64>()
         let toDelete = ItemStatus.toDelete.rawValue
 
         while true {
             if let maxBatches, batches >= maxBatches { break }
             let afterID = cursor
-            let step: (deleted: Int, last: Int64?) = try await pool.write { db in
-                let ids = try Int64.fetchAll(
+            let step: (deleted: Int, last: Int64?, storages: Set<Int64>) = try await pool.write { db in
+                let rows = try Row.fetchAll(
                     db,
-                    sql: "SELECT id FROM items WHERE status = ? AND id > ? ORDER BY id LIMIT ?",
+                    sql: "SELECT id, storageID FROM items WHERE status = ? AND id > ? ORDER BY id LIMIT ?",
                     arguments: [toDelete, afterID, batchSize]
                 )
-                guard let last = ids.last else { return (0, nil) }
+                guard let last: Int64 = rows.last?["id"] else { return (0, nil, []) }
+                let ids = rows.map { $0["id"] as Int64 }
+                let storages = Set(rows.map { $0["storageID"] as Int64 })
                 let deleted = try Self.deleteItems(db, ids: ids)
-                return (deleted, last)
+                return (deleted, last, storages)
             }
             batches += 1
             removed += step.deleted
+            touchedStorages.formUnion(step.storages)
             guard let last = step.last else { break }
             cursor = last
+        }
+        if !touchedStorages.isEmpty {
+            try await applyReconcileMeta(touchedStorages: touchedStorages, maxDepth: nil)
         }
         if removed > 0 {
             let debtRows = removed
@@ -919,6 +958,32 @@ actor IndexStoreV3 {
             return uuids
         }
         for uuid in uuids { emit(.counts(uuid)) }
+    }
+
+    private nonisolated static func markItemSubtrees(
+        _ db: Database,
+        roots: [Int64],
+        newStatus: Int,
+        priorStatus: Int
+    ) throws -> Int {
+        guard !roots.isEmpty else { return 0 }
+        var updated = 0
+        for root in roots {
+            try db.execute(
+                sql: """
+                    WITH RECURSIVE sub(id) AS (
+                        SELECT id FROM items WHERE id = ?
+                        UNION ALL
+                        SELECT i.id FROM items i INNER JOIN sub ON i.parentID = sub.id
+                    )
+                    UPDATE items SET status = ?
+                    WHERE id IN (SELECT id FROM sub) AND status = ?
+                    """,
+                arguments: [root, newStatus, priorStatus]
+            )
+            updated += db.changesCount
+        }
+        return updated
     }
 
     private nonisolated static func setItemStatus(_ db: Database, ids: [Int64], status: Int) throws -> Int {

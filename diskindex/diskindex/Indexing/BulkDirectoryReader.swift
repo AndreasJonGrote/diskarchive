@@ -35,6 +35,14 @@ nonisolated enum BulkDirectoryReader {
     private static var readLogLastFallbackReason: String?
     private static let readLogBatchSize = 200
 
+    #if DEBUG
+    static var readLogEmitCountForTesting = 0
+
+    static func resetReadLogEmitCountForTesting() {
+        readLogEmitCountForTesting = 0
+    }
+    #endif
+
     static func flushReadLogSummary(force: Bool = false) {
         readLogLock.lock()
         let bulk = readLogBulk
@@ -50,6 +58,9 @@ nonisolated enum BulkDirectoryReader {
         readLogLastFallbackReason = nil
         readLogLock.unlock()
         guard total > 0 else { return }
+        #if DEBUG
+        readLogEmitCountForTesting += 1
+        #endif
         DiskIndexLog.shared.record(.index, .info, "lesen bulk=\(bulk) fallback=\(fallback)\(reason.map { " grund=\($0)" } ?? "")")
     }
 

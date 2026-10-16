@@ -178,6 +178,76 @@ nonisolated enum MediumCodecV3 {
         return id
     }
 
+    /// Nur Nutzerfelder (bug.0.4.033); Indexer-Zähler und Ereignis-Cursor bleiben unberührt.
+    static func updateUserFields(_ db: Database, storageID: Int64, _ medium: StoredMedium) throws {
+        try db.execute(
+            sql: """
+                UPDATE storages SET
+                    decision = ?, rememberDecision = ?, paused = ?, isFavorite = ?, type = ?
+                WHERE id = ?
+                """,
+            arguments: [
+                code(medium.decision),
+                medium.rememberDecision,
+                medium.autoIndexPaused,
+                medium.isFavorite,
+                code(medium.type),
+                storageID,
+            ]
+        )
+        try setMeta(db, storageID, .allowIndexing, value: medium.allowIndexing ? nil : "0")
+        try setMeta(db, storageID, .showAbsoluteCapacity, value: medium.showAbsoluteCapacity ? "1" : nil)
+        try setMeta(db, storageID, .isForgotten, value: medium.isForgotten ? "1" : nil)
+    }
+
+    /// Erkennungs- und Anzeigefelder ohne Indexer-Metadaten.
+    static func updateRecognitionFields(_ db: Database, storageID: Int64, _ medium: StoredMedium) throws {
+        let volume = VolumeIdentity.canonicalVolumeUUID(medium.volumeUUID)
+        let created = VolumeIdentity.canonicalCreatedAt(medium.volumeCreatedAt)
+        try db.execute(
+            sql: """
+                UPDATE storages SET
+                    volumeUUID = ?, fingerprint = ?, name = ?, slug = ?, fsType = ?, totalBytes = ?, usedBytes = ?,
+                    lastSeenAt = ?, indexStatus = ?
+                WHERE id = ?
+                """,
+            arguments: [
+                volumeData(volume),
+                fingerprint(fsType: medium.fsType, createdAt: created, totalBytes: medium.volumeTotalBytes),
+                medium.name,
+                Slug.make(medium.name),
+                fileSystemCode(medium.fsType),
+                medium.volumeTotalBytes,
+                medium.capacityUsedBytes,
+                medium.lastSeenAt.map(SchemaTime.seconds),
+                code(medium.indexStatus),
+                storageID,
+            ]
+        )
+        try setMeta(db, storageID, .volumeCreatedAt, date: created.map(SchemaTime.seconds))
+        try setMeta(db, storageID, .diskSizeBytes, value: medium.diskSizeBytes.map(String.init))
+        let known = fileSystemCode(medium.fsType) != 0
+        try setMeta(db, storageID, .fsTypeName, value: known ? nil : medium.fsType)
+    }
+
+    static func updateLastSeen(_ db: Database, storageID: Int64, at date: Date) throws {
+        try db.execute(
+            sql: "UPDATE storages SET lastSeenAt = ? WHERE id = ?",
+            arguments: [SchemaTime.seconds(date), storageID]
+        )
+    }
+
+    static func updateDecisionFields(_ db: Database, storageID: Int64, _ medium: StoredMedium) throws {
+        try db.execute(
+            sql: """
+                UPDATE storages SET decision = ?, rememberDecision = ?, indexStatus = ?
+                WHERE id = ?
+                """,
+            arguments: [code(medium.decision), medium.rememberDecision, code(medium.indexStatus), storageID]
+        )
+        try setMeta(db, storageID, .allowIndexing, value: medium.allowIndexing ? nil : "0")
+    }
+
     /// Ersetzt alle Felder (außer `firstSeenAt`, das bleibt).
     static func update(_ db: Database, storageID: Int64, _ medium: StoredMedium) throws {
         try db.execute(

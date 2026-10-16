@@ -5,6 +5,7 @@
 
 import AppKit
 import Foundation
+import GRDB
 import SwiftUI
 import Testing
 @testable import diskindex
@@ -40,6 +41,43 @@ extension WindowTestGroup {
         await rig.coordinator.handle(.appeared(rig.volume(name: "Eins", uuid: first.volumeUUID)))
         #expect(rig.app.medium(with: first.uuid)?.connectionStatus == .connected)
         #expect(rig.app.medium(with: second.uuid)?.connectionStatus == .offline)
+    }
+
+    @Test func writeMediumDoesNotOverwriteFileCount() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Zähler", fsType: "apfs", bytes: 100)
+        let app = AppState(store: harness.store)
+        await app.loadStoredMedia()
+        AppState.writeMediumBeforePersistHook = { id, store in
+            try await store.pool.write { db in
+                guard let storageID = try MediumCodecV3.storageRowID(db, uuid: id) else { return }
+                try IndexStoreV3.commitMediumMeta(
+                    db: db,
+                    storageID: storageID,
+                    activityAt: Date(),
+                    delta: MediumCountDelta(files: 100, folders: 0)
+                )
+            }
+        }
+        defer { AppState.writeMediumBeforePersistHook = nil }
+        app.updateMedium(id: medium.uuid, persist: true) { $0.isFavorite = true }
+        await app.flushMediumEdits()
+        let stored = try #require(try await harness.store.medium(uuid: medium.uuid))
+        #expect(stored.fileCount == 100)
+        #expect(stored.isFavorite)
+    }
+
+    @Test func prepareForTerminationFlushesPendingMediumWrite() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Flush", fsType: "apfs", bytes: 100)
+        let app = AppState(store: harness.store)
+        await app.loadStoredMedia()
+        app.updateMedium(id: medium.uuid, persist: true) { $0.isFavorite = true }
+        app.prepareForTermination()
+        let flushed = await waitUntil(timeout: 3) {
+            (try? await harness.store.medium(uuid: medium.uuid))?.isFavorite == true
+        }
+        #expect(flushed)
     }
 
     @Test func mediumEditsSurviveANewAppState() async throws {

@@ -159,7 +159,20 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     var endpoint: URL
     /// Legacy-Outbox nur für Migration und Tests.
     var directory: URL
-    var queuePool: DatabasePool?
+    private let queuePoolLock = NSLock()
+    private var _queuePool: DatabasePool?
+    var queuePool: DatabasePool? {
+        get {
+            queuePoolLock.lock()
+            defer { queuePoolLock.unlock() }
+            return _queuePool
+        }
+        set {
+            queuePoolLock.lock()
+            _queuePool = newValue
+            queuePoolLock.unlock()
+        }
+    }
     var defaults: UserDefaults
     var session: URLSession
     var releaseBuild: Bool
@@ -190,7 +203,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         makeDraft: ((String) -> IssueDraft)? = nil
     ) {
         self.endpoint = endpoint
-        self.queuePool = queuePool
+        self._queuePool = queuePool
         self.defaults = defaults
         self.releaseBuild = releaseBuild
         self.now = now
