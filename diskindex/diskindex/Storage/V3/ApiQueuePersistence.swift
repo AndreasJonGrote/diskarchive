@@ -76,6 +76,7 @@ nonisolated enum ApiQueuePersistence {
 
     static func isDue(_ row: ApiQueueRow, now: Date) -> Bool {
         if isBlocked(row) { return false }
+        if row.info == "offline" { return true }
         guard let last = row.lastTryAt else { return true }
         let delay = IssueRetry.delay(afterAttempt: row.attempts)
         return now.timeIntervalSince1970 >= Double(last) + delay

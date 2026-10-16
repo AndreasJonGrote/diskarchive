@@ -47,6 +47,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     private var handlersInstalled = false
     private let formatter: DateFormatter
     private let loggers: [DiskLogCategory: Logger]
+    private let diskWriteQueue = DispatchQueue(label: "app.diskarchive.log-disk", qos: .utility)
 
     init(directory: URL? = nil, byteLimit: Int = DiskIndexLog.defaultByteLimit) {
         self.writesToDisk = directory != nil || !RuntimeEnvironment.isRunningTests
@@ -149,7 +150,10 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             storeCrumb(stamped)
             lock.unlock()
         }
-        write(stamped)
+        let durable = level == .error
+            || fileBody.contains("app terminate ok")
+            || fileBody.hasPrefix("CRASH ")
+        write(stamped, durable: durable)
         let logger = loggers[category]
         let privateText = privateDetail ?? ""
         // os_log: Nachricht .private; feste Präfixe bleiben technisch lesbar über getrennte Felder.
@@ -208,11 +212,8 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         lines.append(contentsOf: trail)
         lines.append(contentsOf: symbols)
         for line in lines {
-            write(line)
+            write(line, durable: true)
         }
-        lock.lock()
-        handle?.synchronizeFile()
-        lock.unlock()
     }
 
     func handleSignal(_ signal: Int32) {
@@ -251,6 +252,10 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     #if DEBUG
     func holdLockForTest() { lock.lock() }
     func releaseLockForTest() { lock.unlock() }
+
+    func flushPendingWritesForTesting() {
+        diskWriteQueue.sync { }
+    }
     #endif
 
     func acknowledgeCrashDialog() {
@@ -345,14 +350,23 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         NSWorkspace.shared.activateFileViewerSelecting([fileURL])
     }
 
-    private func write(_ line: String) {
+    private func write(_ line: String, durable: Bool) {
+        if durable {
+            diskWriteQueue.sync { writeLineToFile(line, fsync: true) }
+        } else {
+            diskWriteQueue.async { [self] in
+                self.writeLineToFile(line, fsync: false)
+            }
+        }
+    }
+
+    private func writeLineToFile(_ line: String, fsync: Bool) {
         let data = Data((line + "\n").utf8)
         lock.lock()
         defer { lock.unlock() }
         do {
             guard WriteGuard.permitsWrite(to: directory), WriteGuard.permitsWrite(to: fileURL) else { return }
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            FilePrivacy.restrict(directory)
             if handle == nil {
                 rotateIfNeededUnlocked()
                 if !FileManager.default.fileExists(atPath: fileURL.path) {
@@ -367,12 +381,16 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
                 try handle?.close()
                 handle = nil
                 rotateClosedFileUnlocked()
+                FilePrivacy.restrict(directory)
                 FileManager.default.createFile(atPath: fileURL.path, contents: nil)
                 handle = try FileHandle(forWritingTo: fileURL)
                 reopenLogFD()
             }
             try handle?.write(contentsOf: data)
-            handle?.synchronizeFile()
+            if fsync {
+                handle?.synchronizeFile()
+                if logFD >= 0 { Darwin.fsync(self.logFD) }
+            }
         } catch {
             handle = nil
         }

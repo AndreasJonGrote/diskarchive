@@ -29,7 +29,40 @@ nonisolated struct BulkDirectoryReadResult: Sendable, Equatable {
 nonisolated enum BulkDirectoryReader {
     private static let bufferSize = 256 * 1024
     private static let returnedSetByteCount = 20
+    private static let readLogLock = NSLock()
+    private static var readLogBulk = 0
+    private static var readLogFallback = 0
+    private static var readLogLastFallbackReason: String?
+    private static let readLogBatchSize = 200
 
+    static func flushReadLogSummary(force: Bool = false) {
+        readLogLock.lock()
+        let bulk = readLogBulk
+        let fallback = readLogFallback
+        let reason = readLogLastFallbackReason
+        let total = bulk + fallback
+        guard force || total >= readLogBatchSize else {
+            readLogLock.unlock()
+            return
+        }
+        readLogBulk = 0
+        readLogFallback = 0
+        readLogLastFallbackReason = nil
+        readLogLock.unlock()
+        guard total > 0 else { return }
+        DiskIndexLog.shared.record(.index, .info, "lesen bulk=\(bulk) fallback=\(fallback)\(reason.map { " grund=\($0)" } ?? "")")
+    }
+
+    private static func noteReadStats(_ stats: BulkDirectoryReadStats) {
+        readLogLock.lock()
+        if stats.usedBulk { readLogBulk += 1 }
+        if stats.usedFallback {
+            readLogFallback += 1
+            readLogLastFallbackReason = stats.fallbackReason
+        }
+        readLogLock.unlock()
+        flushReadLogSummary()
+    }
     static func shouldIgnoreName(_ name: String) -> Bool {
         name.hasPrefix("._")
     }
@@ -52,6 +85,7 @@ nonisolated enum BulkDirectoryReader {
         try readStreaming(at: directoryURL, mode: mode, chunkSize: chunkSize, stats: &stats) { chunk in
             collected.append(contentsOf: chunk)
         }
+        flushReadLogSummary(force: true)
         return BulkDirectoryReadResult(entries: collected, stats: stats)
     }
 
@@ -106,10 +140,7 @@ nonisolated enum BulkDirectoryReader {
         dispatchPrecondition(condition: .notOnQueue(.main))
         #endif
         defer {
-            DiskIndexLog.shared.record(.index, .info, stats.usedBulk ? "lesen bulk=ja" : "lesen bulk=nein")
-            if let reason = stats.fallbackReason {
-                DiskIndexLog.shared.record(.index, .info, "lesen fallback grund=\(reason)")
-            }
+            noteReadStats(stats)
         }
 
         let path = directoryURL.path

@@ -651,11 +651,13 @@ extension WindowTestGroup {
         rig.watcher.quietInterval = .milliseconds(30)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A", eventID: 8))
-        try await Task.sleep(for: .milliseconds(220))
-        let restored = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"]))
+        let restored = try await waitFor(timeoutMs: 10_000) {
+            try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"])
+        }
         let childNames = Set(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: restored).map(\.name))
         #expect(childNames == ["Inner", "keep.txt"])
-        #expect(rig.access.listCount(for: "/Volumes/DISK/A/Inner") == 1)
+        let innerListed = await waitUntil(timeout: 10) { rig.access.listCount(for: "/Volumes/DISK/A/Inner") == 1 }
+        #expect(innerListed)
         let noteParent = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A", "Inner"]))
         let notes = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: noteParent).map(\.name)
         #expect(notes == ["note.txt"])
@@ -732,19 +734,29 @@ extension WindowTestGroup {
     }
 
     @Test func saveCursorWritesOnlyWhenEventIDChanges() async throws {
-        IndexStoreV3.recordEventCursorCallCount = 0
         let rig = try await watchRig()
+        rig.watcher.quietInterval = .milliseconds(80)
+        rig.access.listings["/Volumes/DISK/A"] = [
+            ListedDirectoryEntry(name: "a.txt", isDirectory: false, isPackage: false, isSymbolicLink: false, isHidden: false, fileSize: 1, modifiedAt: nil),
+        ]
+        await rig.store.resetEventCursorCallCountForTesting()
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/a.txt", eventID: 10, fileSystemUUID: "UUID-1"))
-        try await Task.sleep(for: .milliseconds(40))
+        _ = try await waitFor(timeoutMs: 10_000) {
+            rig.access.listCount(for: "/Volumes/DISK/A") > 0 ? 1 : nil
+        }
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
-        #expect(IndexStoreV3.recordEventCursorCallCount == 1)
+        #expect(await rig.store.recordEventCursorCallCountForTesting == 1)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/b.txt", eventID: 11, fileSystemUUID: "UUID-1"))
-        try await Task.sleep(for: .milliseconds(40))
+        _ = try await waitFor(timeoutMs: 10_000) {
+            rig.access.listCount(for: "/Volumes/DISK/A") >= 2 ? 2 : nil
+        }
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
-        #expect(IndexStoreV3.recordEventCursorCallCount == 2)
+        _ = try await waitFor(timeoutMs: 10_000) {
+            await rig.store.recordEventCursorCallCountForTesting == 2 ? 2 : nil
+        }
     }
 }
 }

@@ -86,13 +86,20 @@ enum VersionCheckCoordinator {
         lastVersionCheckEnqueue = now
         let created = Int(now.timeIntervalSince1970)
         let payload = Data("{}".utf8)
-        try? ApiQueuePersistence.enqueue(store.pool, kind: .versionCheck, payload: payload, createdAt: created)
-        IssueReporter.shared.flushInBackground()
+        let pool = store.pool
+        DispatchQueue.global(qos: .utility).async {
+            try? ApiQueuePersistence.enqueue(pool, kind: .versionCheck, payload: payload, createdAt: created)
+            IssueReporter.shared.flushInBackground()
+        }
     }
 
     static func recordSkippedUpdate(target: AppVersion, store: IndexStoreV3) {
-        try? store.pool.write { db in
-            try SystemSettingsPersistence.writeSkippedUpdateVersion(db, version: target.displayString)
+        let pool = store.pool
+        let version = target.displayString
+        Task.detached(priority: .utility) {
+            try? pool.write { db in
+                try SystemSettingsPersistence.writeSkippedUpdateVersion(db, version: version)
+            }
         }
     }
 }

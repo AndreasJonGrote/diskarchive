@@ -12,8 +12,12 @@ import Testing
 @Suite(.serialized) @MainActor
 struct MainThreadMediumIOTests {
     @Test func directProbeKeepsMainActorResponsive() async throws {
-        DirectMediumAccess.probeDelayForTesting = 2.0
-        defer { DirectMediumAccess.probeDelayForTesting = nil }
+        try await DirectMediumAccess.$probeDelayForTesting.withValue(2.0) {
+            try await directProbeKeepsMainActorResponsiveBody()
+        }
+    }
+
+    private func directProbeKeepsMainActorResponsiveBody() async throws {
         let mount = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-probe-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)

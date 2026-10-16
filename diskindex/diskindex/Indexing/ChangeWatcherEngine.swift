@@ -16,10 +16,15 @@ actor ChangeWatcherEngine {
         self.access = access
     }
 
+    struct RenameFollowUp: Sendable {
+        var fromParent: String?
+        var toParent: String?
+    }
+
     struct FlushPrep: Sendable {
         var directories: Set<String>
-        var scopedItemEvents: [ItemPathEvent]
         var renamePairs: [LiveRenamePair]
+        var renameFollowUps: [RenameFollowUp]
     }
 
     func prepareFlush(
@@ -44,7 +49,15 @@ actor ChangeWatcherEngine {
                 directories.insert(dir)
             }
         }
-        return FlushPrep(directories: directories, scopedItemEvents: scoped, renamePairs: pairs)
+        var renameFollowUps: [RenameFollowUp] = []
+        renameFollowUps.reserveCapacity(pairs.count)
+        for pair in pairs {
+            renameFollowUps.append(RenameFollowUp(
+                fromParent: LiveWatchScope.scopedParentDirectory(pair.fromPath, ctx: &ctx),
+                toParent: LiveWatchScope.scopedParentDirectory(pair.toPath, ctx: &ctx)
+            ))
+        }
+        return FlushPrep(directories: directories, renamePairs: pairs, renameFollowUps: renameFollowUps)
     }
 
     enum Outcome: Sendable {

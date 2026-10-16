@@ -9,8 +9,8 @@ import Foundation
 import Testing
 
 struct BundleVersionTests {
-    @Test func marketingVersionIsZeroTwoZero() {
-        #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String == "0.2.0")
+    @Test func marketingVersionIsZeroThreeTwo() {
+        #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String == "0.3.2")
     }
 
     @Test func buildNumberIsSetByTheBuild() throws {

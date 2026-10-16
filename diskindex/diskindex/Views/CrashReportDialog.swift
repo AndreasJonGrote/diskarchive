@@ -37,7 +37,6 @@ struct CrashReportDialog: View {
 
             HStack(spacing: 8) {
                 Button(LayoutCopy.crashDiscard) {
-                    IssueReporter.shared.discardPendingCrash()
                     onClose()
                 }
                 .buttonStyle(SecondaryButtonStyle(size: .dialog))

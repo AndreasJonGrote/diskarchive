@@ -63,8 +63,6 @@ struct WatcherFlushReproTests {
     }
 
     @Test func serialFlushWhileBlockedReadsBothFolders() async throws {
-        PartialChecksum.computeDelayForTesting = nil
-        DirectMediumAccess.probeDelayForTesting = nil
         let rig = try await watchRig()
         rig.app.globalAutoIndexPaused = false
         let reconcile = ReconcileLog()
@@ -137,20 +135,17 @@ private final class GatedMapAccess: MediumAccess, @unchecked Sendable {
 
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
         let path = url.standardizedFileURL.path
-        lock.lock()
-        calls += 1
-        let blockFirst = calls == 1
-        if blockFirst { blockingFirstList = true }
-        lock.unlock()
+        let blockFirst = lock.withLock { () -> Bool in
+            calls += 1
+            let block = calls == 1
+            if block { blockingFirstList = true }
+            return block
+        }
         if blockFirst {
             await release.wait()
-            lock.lock()
-            blockingFirstList = false
-            lock.unlock()
+            lock.withLock { blockingFirstList = false }
         }
-        lock.lock()
-        listCountStorage[path, default: 0] += 1
-        lock.unlock()
-        return listings[path] ?? []
+        lock.withLock { listCountStorage[path, default: 0] += 1 }
+        return lock.withLock { listings[path] ?? [] }
     }
 }

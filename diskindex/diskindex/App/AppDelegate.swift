@@ -316,6 +316,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func wireStore(_ store: IndexStoreV3, appState: AppState) {
+        IssueReporter.shared.queuePool = store.pool
+        IssueReporter.shared.migrateLegacyOutboxFiles()
         stopLiveServicesBeforeRewire()
         appState.cancelChangeLoop()
         appState.clearIndexStoreOpenFailure()

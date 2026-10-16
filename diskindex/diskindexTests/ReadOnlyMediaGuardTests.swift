@@ -123,6 +123,7 @@ struct ReadOnlyMediaGuardTests {
         let blocked = URL(fileURLWithPath: "/Volumes/BLOCKEDLOG/diskindex.log")
         let log = DiskIndexLog(directory: blocked.deletingLastPathComponent())
         log.record(.app, .info, "blocked test line")
+        log.flushPendingWritesForTesting()
         #expect(!FileManager.default.fileExists(atPath: blocked.path))
         #expect(WriteGuard.blockedWriteCount >= 1)
     }

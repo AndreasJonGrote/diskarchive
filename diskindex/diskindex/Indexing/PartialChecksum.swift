@@ -12,14 +12,24 @@ nonisolated enum PartialChecksum {
     static let chunkSize = 65_536
 
     #if DEBUG
-    nonisolated(unsafe) static var computeDelayForTesting: TimeInterval?
+    @TaskLocal static var computeDelayForTesting: TimeInterval?
     #endif
 
-    static func computeOffActor(at fileURL: URL, timeout: Duration = .seconds(5)) async throws -> (partial: Data, info: String)? {
-        try await withThrowingTaskGroup(of: (partial: Data, info: String)?.self) { group in
+    static func computeOffActor(
+        at fileURL: URL,
+        timeout: Duration = .seconds(5),
+        testComputeDelay: TimeInterval? = nil
+    ) async throws -> (partial: Data, info: String)? {
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
+        #if DEBUG
+        let testDelay = testComputeDelay ?? computeDelayForTesting
+        #else
+        let testDelay: TimeInterval? = nil
+        #endif
+        return try await withThrowingTaskGroup(of: (partial: Data, info: String)?.self) { group in
             group.addTask {
-                try await Task.detached(priority: .utility) {
-                    try compute(at: fileURL)
+                try await Task.detached(priority: .utility) { () -> (partial: Data, info: String)? in
+                    try compute(at: fileURL, testComputeDelay: testDelay)
                 }.value
             }
             group.addTask {
@@ -27,22 +37,21 @@ nonisolated enum PartialChecksum {
                 return nil
             }
             for try await result in group {
-                if let result {
-                    group.cancelAll()
-                    return result
-                }
+                group.cancelAll()
+                return result
             }
             return nil
         }
     }
 
-    static func compute(at fileURL: URL) throws -> (partial: Data, info: String)? {
+    static func compute(at fileURL: URL, testComputeDelay: TimeInterval? = nil) throws -> (partial: Data, info: String)? {
         #if DEBUG
         dispatchPrecondition(condition: .notOnQueue(.main))
-        if let delay = computeDelayForTesting {
+        if let delay = testComputeDelay {
             Thread.sleep(forTimeInterval: delay)
         }
         #endif
+        guard FileManager.default.fileExists(atPath: fileURL.path) else { return nil }
         let handle = try FileHandle(forReadingFrom: fileURL)
         defer { try? handle.close() }
         let size = try handle.seekToEnd()

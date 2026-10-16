@@ -59,6 +59,7 @@ struct IssueTrackerTests {
         IssueStubURL.status = 500
         IssueStubURL.body = Data("no".utf8)
         reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
         let id = try #require(try reporter.firstQueuedIssueID())
         await reporter.flush()
         try expectQueued(reporter, 1)
@@ -118,6 +119,7 @@ struct IssueTrackerTests {
     @Test func sentBodyHasRequiredAPIFields() async throws {
         let reporter = try makeReporter()
         reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
         let fileData = try #require(try reporter.firstQueuedPayload())
         await reporter.flush()
         #expect(IssueStubURL.hits == 1)
@@ -155,6 +157,7 @@ struct IssueTrackerTests {
         IssueStubURL.status = 201
         IssueStubURL.body = Data("<html>tracker</html>".utf8)
         reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
         let id = try #require(try reporter.firstQueuedIssueID())
         await reporter.flush()
         try expectQueued(reporter, 1)
@@ -227,6 +230,7 @@ struct IssueTrackerTests {
     @Test func payloadHasTheContractFields() throws {
         let reporter = try makeReporter()
         reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
         let data = try #require(try reporter.firstQueuedPayload())
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         let keys = Set(object.keys)
@@ -319,6 +323,19 @@ struct IssueTrackerTests {
         #expect(reporter.reportFiles().isEmpty)
     }
 
+    @Test func offlineFailureRetriesWithoutDelay() async throws {
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        let reporter = try makeReporter(now: { clock.value })
+        IssueStubURL.fail = true
+        reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
+        await reporter.flush()
+        try expectQueued(reporter, 1)
+        IssueStubURL.fail = false
+        await reporter.flush()
+        try expectQueued(reporter, 0)
+    }
+
     @Test func migratesLegacyOutboxFiles() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -342,6 +359,7 @@ private final class LockedDate: @unchecked Sendable {
 }
 
 private func expectQueued(_ reporter: IssueReporter, _ expected: Int) throws {
+    reporter.waitForPendingEnqueuesForTesting()
     let count = try reporter.queuedReportCount()
     #expect(count == expected)
 }

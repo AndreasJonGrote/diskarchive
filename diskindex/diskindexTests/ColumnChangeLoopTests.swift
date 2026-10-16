@@ -11,7 +11,7 @@ import Testing
 @testable import diskindex
 
 extension WindowTestGroup {
-@Suite @MainActor
+@Suite(.serialized) @MainActor
 struct ColumnChangeLoopTests {
     @Test func rootColumnUpdatesAfterStoreApplyDirectoriesLikeWatcher() async throws {
         let directory = FileManager.default.temporaryDirectory
@@ -40,6 +40,7 @@ struct ColumnChangeLoopTests {
 
         let app = AppState(store: store)
         app.startChangeLoop()
+        defer { app.cancelChangeLoop() }
         await app.loadStoredMedia()
         app.mainWindowDestination = .columnBrowser
         app.columnBrowserState.selectedMediumID = medium.uuid

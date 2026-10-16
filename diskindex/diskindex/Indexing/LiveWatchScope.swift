@@ -86,11 +86,6 @@ nonisolated enum LiveWatchScope {
     private static func urlIsPackage(_ url: URL, ctx: inout LiveWatchScopeContext) -> Bool {
         let key = url.standardizedFileURL.path
         if let cached = ctx.packageCache[key] { return cached }
-        let ext = url.pathExtension.lowercased()
-        if ["app", "bundle", "framework", "plugin", "kext"].contains(ext) {
-            ctx.packageCache[key] = true
-            return true
-        }
         let value = (try? url.resourceValues(forKeys: [.isPackageKey]).isPackage) == true
         ctx.packageCache[key] = value
         return value

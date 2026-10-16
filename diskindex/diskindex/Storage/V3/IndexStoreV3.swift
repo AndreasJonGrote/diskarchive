@@ -66,8 +66,17 @@ actor IndexStoreV3 {
     }
 
     /// Zahl der Medien und der sichtbaren Einträge für Protokoll und Fehlerbericht. „nicht lesbar“ bei fehlender Datei.
-    static func inventoryLabels() -> (media: String, objects: String) {
+    static func inventoryLabels(using pool: DatabasePool? = nil) -> (media: String, objects: String) {
         do {
+            if let pool {
+                return try pool.read { db in
+                    let counts = (
+                        try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0,
+                        try Int.fetchOne(db, sql: "SELECT COALESCE(SUM(fileCount + folderCount), 0) FROM storages") ?? 0
+                    )
+                    return (String(counts.0), String(counts.1))
+                }
+            }
             let url = try storeFileURL()
             guard FileManager.default.fileExists(atPath: url.path) else { return ("nicht lesbar", "nicht lesbar") }
             var configuration = Configuration()
@@ -76,7 +85,7 @@ actor IndexStoreV3 {
             let counts = try queue.read { db -> (Int, Int) in
                 (
                     try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0,
-                    try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM items WHERE status = 0") ?? 0
+                    try Int.fetchOne(db, sql: "SELECT COALESCE(SUM(fileCount + folderCount), 0) FROM storages") ?? 0
                 )
             }
             return (String(counts.0), String(counts.1))
@@ -145,7 +154,16 @@ actor IndexStoreV3 {
         reconcileShouldFail = fail
     }
 
-    nonisolated(unsafe) static var recordEventCursorCallCount = 0
+    var recordEventCursorCallCountForTesting = 0
+    var partialChecksumComputeDelayForTesting: TimeInterval?
+
+    func resetEventCursorCallCountForTesting() {
+        recordEventCursorCallCountForTesting = 0
+    }
+
+    func setPartialChecksumComputeDelayForTesting(_ delay: TimeInterval?) {
+        partialChecksumComputeDelayForTesting = delay
+    }
     #endif
 
     nonisolated func checkpoint() {
@@ -602,7 +620,7 @@ actor IndexStoreV3 {
 
     func recordEventCursor(mediumUUID: UUID, fsEventsUUID: String?, lastEventID: Int64) async throws {
         #if DEBUG
-        Self.recordEventCursorCallCount += 1
+        recordEventCursorCallCountForTesting += 1
         #endif
         try await pool.write { db in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
@@ -658,20 +676,10 @@ actor IndexStoreV3 {
     /// Live-Rename aus FSEvents-Paar (235b).
     func applyLiveRename(mediumUUID: UUID, mountPath: String, fromPath: String, toPath: String) async throws -> Bool {
         let partialMatching = partialMatchingEnabled
-        let toURL = URL(fileURLWithPath: toPath)
-        var toSizeBytes: Int64?
-        var toModifiedAt: Date?
-        if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) {
-            toSizeBytes = values.fileSize.map(Int64.init)
-            toModifiedAt = values.contentModificationDate
-        }
-        var toPartialDigest: Data?
-        if partialMatching, FileManager.default.fileExists(atPath: toPath) {
-            toPartialDigest = try await PartialChecksum.computeOffActor(at: toURL)?.partial
-        }
-        let renameSizeBytes = toSizeBytes
-        let renameModifiedAt = toModifiedAt
-        let renamePartialDigest = toPartialDigest
+        let (renameSizeBytes, renameModifiedAt, renamePartialDigest) = try await Self.liveRenameTargetFields(
+            toPath: toPath,
+            partialMatching: partialMatching
+        )
         let folderPaths: [[String]] = try await pool.write { db -> [[String]] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
             let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
@@ -741,8 +749,13 @@ actor IndexStoreV3 {
             }
             return url
         }
-        guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        guard let computed = try await PartialChecksum.computeOffActor(at: fileURL) else { return }
+        guard let fileURL else { return }
+        #if DEBUG
+        let testDelay = partialChecksumComputeDelayForTesting
+        #else
+        let testDelay: TimeInterval? = nil
+        #endif
+        guard let computed = try await PartialChecksum.computeOffActor(at: fileURL, testComputeDelay: testDelay) else { return }
         let modified = try await pool.read { db in
             try Int64.fetchOne(db, sql: "SELECT modifiedAt FROM items WHERE id = ?", arguments: [itemID])
         }
@@ -976,12 +989,34 @@ actor IndexStoreV3 {
         var map: [String: Data] = [:]
         for entry in entries where !entry.isFolder {
             let url = DirectoryWriterV3.fileURL(mountPath: mountPath, parentSegments: segments, name: entry.name)
-            guard FileManager.default.fileExists(atPath: url.path) else { continue }
             if let computed = try await PartialChecksum.computeOffActor(at: url) {
                 map[entry.name] = computed.partial
             }
         }
         return map.isEmpty ? nil : map
+    }
+
+    private static func liveRenameTargetFields(
+        toPath: String,
+        partialMatching: Bool
+    ) async throws -> (Int64?, Date?, Data?) {
+        try await Task.detached(priority: .utility) {
+            let toURL = URL(fileURLWithPath: toPath)
+            guard FileManager.default.fileExists(atPath: toPath) else {
+                return (nil, nil, nil)
+            }
+            var toSizeBytes: Int64?
+            var toModifiedAt: Date?
+            if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) {
+                toSizeBytes = values.fileSize.map(Int64.init)
+                toModifiedAt = values.contentModificationDate
+            }
+            var partial: Data?
+            if partialMatching {
+                partial = try PartialChecksum.compute(at: toURL)?.partial
+            }
+            return (toSizeBytes, toModifiedAt, partial)
+        }.value
     }
 
     /// Zähler über die Änderungs-Differenzen (nicht durch Zählen der ganzen Tabelle); `forceRecount` zählt neu.

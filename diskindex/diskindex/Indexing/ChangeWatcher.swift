@@ -348,15 +348,13 @@ final class ChangeWatcher {
             fileExists: exists
         )
         var events = prep.directories
-        _ = prep.scopedItemEvents
         // Erneut prüfen: Sperre kann zwischen Guard und Schreiben greifen (VersionLock-Tests).
         guard appState.featureAccess.canWriteIndex else {
             pending[mediumID, default: []].formUnion(rawPaths)
             pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
             return
         }
-        var scopeCtx = LiveWatchScopeContext(mount: mount, matcher: matcher, maxDepth: maxDepth)
-        for pair in prep.renamePairs {
+        for (index, pair) in prep.renamePairs.enumerated() {
             guard appState.featureAccess.canWriteIndex else {
                 pending[mediumID, default: []].formUnion(rawPaths)
                 pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
@@ -367,11 +365,12 @@ final class ChangeWatcher {
                 mountPath: mount,
                 fromPath: pair.fromPath,
                 toPath: pair.toPath
-            )) == true {
-                if let fromParent = LiveWatchScope.scopedParentDirectory(pair.fromPath, ctx: &scopeCtx) {
+            )) == true, index < prep.renameFollowUps.count {
+                let followUp = prep.renameFollowUps[index]
+                if let fromParent = followUp.fromParent {
                     events.insert(fromParent)
                 }
-                if let toParent = LiveWatchScope.scopedParentDirectory(pair.toPath, ctx: &scopeCtx) {
+                if let toParent = followUp.toParent {
                     events.insert(toParent)
                 }
             }

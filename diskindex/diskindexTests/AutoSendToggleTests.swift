@@ -18,8 +18,9 @@ struct AutoSendToggleTests {
         await app.hydrateSettingsFromStore()
 
         app.setAutoSendCrashReports(true)
+        await app.persistAppSettingsNow()
         #expect(IssueConsent.autoSendEnabled() == true)
-        let persisted = await waitUntil(timeout: 3) {
+        let persisted = await waitUntil(timeout: 8) {
             let loaded = await harness.store.loadPersistedAppSettings()
             return loaded?.autoSendCrashReports == true
         }

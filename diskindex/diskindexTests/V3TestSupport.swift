@@ -15,6 +15,7 @@ import Testing
 final class TestStore: @unchecked Sendable {
     let directory: URL
     let store: IndexStoreV3
+    let pool: DatabasePool
     var writer: IndexStoreV3 { store }
     var reader: IndexStoreV3 { store }
     private let closeDatabase: @Sendable () -> Void
@@ -24,12 +25,13 @@ final class TestStore: @unchecked Sendable {
             .appendingPathComponent("diskindex-store-\(UUID().uuidString)", isDirectory: true)
         let store = try IndexStoreV3.open(at: directory.appendingPathComponent("archive.sqlite"))
         let pool = store.pool
-        return TestStore(directory: directory, store: store) { try? pool.close() }
+        return TestStore(directory: directory, store: store, pool: pool) { try? pool.close() }
     }
 
-    private init(directory: URL, store: IndexStoreV3, closeDatabase: @escaping @Sendable () -> Void) {
+    private init(directory: URL, store: IndexStoreV3, pool: DatabasePool, closeDatabase: @escaping @Sendable () -> Void) {
         self.directory = directory
         self.store = store
+        self.pool = pool
         self.closeDatabase = closeDatabase
     }
 

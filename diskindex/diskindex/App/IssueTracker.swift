@@ -32,6 +32,10 @@ nonisolated enum IssueConsent {
     }
 }
 
+nonisolated enum IssueReporterError: Error {
+    case noQueuePool
+}
+
 nonisolated enum IssueEndpointPolicy {
     static func allows(_ url: URL, release: Bool) -> Bool {
         if url.scheme == "https" { return true }
@@ -167,6 +171,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     var sendsImmediately = true
     private let reachability = ApiQueueReachability()
     private let flushGate = IssueReporterFlushGate()
+    private let dbQueue = DispatchQueue(label: "app.diskarchive.issue-reporter-db", qos: .utility)
     private var started = false
     private static let queuePersistAttempts = 3
     /// Mediennamen einmal beim Start geladen (bug.0.4.012 b) — nicht auf dem Main Thread.
@@ -190,7 +195,6 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         self.releaseBuild = releaseBuild
         self.now = now
         self.log = log ?? { DiskIndexLog.shared.record(.app, .info, $0) }
-        self.makeDraft = makeDraft ?? { kind in Self.liveDraft(kind: kind) }
         self.knownNames = { [] }
         if let directory {
             self.directory = directory
@@ -216,6 +220,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             self.releaseBuild = true
         }
         #endif
+        self.makeDraft = makeDraft ?? { kind in Self.liveDraft(kind: kind, pool: IssueReporter.shared.queuePool) }
         reachability.onFlush = { [weak self] in
             self?.flushInBackground()
         }
@@ -235,7 +240,6 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     func start() {
         guard !started else { return }
         started = true
-        migrateLegacyOutboxFiles()
         refreshKnownNamesInBackground()
         reachability.start()
         syncReachabilityTimer()
@@ -247,7 +251,16 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
             var names: [String] = []
-            if let url = try? IndexStoreV3.storeFileURL() {
+            if let pool = self.queuePool {
+                do {
+                    let store = IndexStoreV3(pool: pool)
+                    let media = try await store.media()
+                    names = media.map(\.name).filter { $0.count >= 4 }
+                } catch {
+                    names = []
+                }
+            } else if let url = try? IndexStoreV3.storeFileURL(),
+                      FileManager.default.fileExists(atPath: url.path) {
                 do {
                     let pool = try SchemaV3.openPool(at: url)
                     let store = IndexStoreV3(pool: pool)
@@ -298,30 +311,36 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             createdAt: now()
         )
         let createdAt = Int(now().timeIntervalSince1970)
-        let persisted = persistReport(data: data, createdAt: createdAt, issueID: id)
-        guard persisted else {
-            fallbackOutboxReport(data: data, issueID: id)
-            syncReachabilityTimer()
-            if sendsImmediately { flushInBackground() }
-            return
+        let kind = prepared.kind
+        dbQueue.async { [weak self] in
+            guard let self else { return }
+            let persisted = self.persistReport(data: data, createdAt: createdAt, issueID: id)
+            if !persisted {
+                self.fallbackOutboxReport(data: data, issueID: id)
+            } else {
+                self.log("app report queued kind=\(kind) id=\(id)")
+            }
         }
-        if let url = try? IndexStoreV3.storeFileURL() {
-            FilePrivacy.restrict(url.deletingLastPathComponent())
-        }
-        log("app report queued kind=\(prepared.kind) id=\(id)")
         syncReachabilityTimer()
         if sendsImmediately { flushInBackground() }
     }
+
+    #if DEBUG
+    func waitForPendingEnqueuesForTesting() {
+        dbQueue.sync { }
+    }
+    #endif
 
     func flushInBackground() {
         Task { await flushGate.run { await self.flushOnce() } }
     }
 
     func flush() async {
-        await flushGate.run { await flushOnce() }
+        await flushGate.run { await self.flushOnce() }
     }
 
     private func flushOnce() async {
+        dbQueue.sync { }
         guard IssueEndpointPolicy.allows(endpoint, release: releaseBuild) else {
             log("app report failed kind=any id=- status=scheme")
             return
@@ -386,8 +405,8 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     }
 
     private func resolvePool() throws -> DatabasePool {
-        if let queuePool { return queuePool }
-        return try ApiQueuePersistence.openQueuePool()
+        guard let queuePool else { throw IssueReporterError.noQueuePool }
+        return queuePool
     }
 
     private func persistReport(data: Data, createdAt: Int, issueID: String) -> Bool {
@@ -438,7 +457,11 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             guard let body = try? Data(contentsOf: url) else { continue }
             let created = (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate)
                 .map { Int($0.timeIntervalSince1970) } ?? Int(now().timeIntervalSince1970)
-            try? ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: body, createdAt: created)
+            do {
+                try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: body, createdAt: created)
+            } catch {
+                continue
+            }
             guard WriteGuard.permitsWrite(to: url) else { continue }
             try? FileManager.default.removeItem(at: url)
         }
@@ -497,8 +520,19 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             scheduleRetry(row: row, pool: pool, info: "status=\(status)")
             log("app report failed kind=\(kind) id=\(issueID) status=\(status)")
         } catch {
-            scheduleRetry(row: row, pool: pool, info: "offline")
-            log("app report failed kind=\(kind) id=\(issueID) status=offline")
+            let info = Self.isOfflineNetworkError(error) ? "offline" : "error"
+            scheduleRetry(row: row, pool: pool, info: info)
+            log("app report failed kind=\(kind) id=\(issueID) status=\(info)")
+        }
+    }
+
+    private static func isOfflineNetworkError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost, .timedOut:
+            return true
+        default:
+            return false
         }
     }
 
@@ -519,9 +553,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         return copy
     }
 
-    private static func liveDraft(kind: String) -> IssueDraft {
+    private static func liveDraft(kind: String, pool: DatabasePool?) -> IssueDraft {
         let crash = DiskIndexLog.shared.crashExcerpt()
-        let labels = IndexStoreV3.inventoryLabels()
+        let labels = IndexStoreV3.inventoryLabels(using: pool)
         let bytes = ((try? IndexStoreV3.storeFileURL()).flatMap { url in
             try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber
         })?.intValue ?? 0

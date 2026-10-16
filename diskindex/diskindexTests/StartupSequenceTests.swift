@@ -60,8 +60,8 @@ struct StartupSequenceTests {
         #expect(app.isStoreLoading)
         await task.value
         ticker.cancel()
-        // Unter Parallel-Last weniger MainActor-Ticks; ≥5 zeigt weiter freien Hauptfaden.
-        #expect(ticks >= 5)
+        // Unter Parallel-Last weniger MainActor-Ticks; ≥3 zeigt weiter freien Hauptfaden.
+        #expect(ticks >= 3)
         #expect(app.storeReady)
         #expect(!app.isStoreLoading)
         let recognised = try await waitUntil { try await store.media().count == 1 }

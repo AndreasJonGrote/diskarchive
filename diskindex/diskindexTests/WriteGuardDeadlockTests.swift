@@ -14,9 +14,9 @@ import Testing
         WriteGuard.clearTestingOverrides()
         let blockedDir = URL(fileURLWithPath: "/Volumes/BLOCKEDWRITEGUARD/deep", isDirectory: true)
         let log = DiskIndexLog(directory: blockedDir)
+        log.record(.app, .info, "probe line")
         let finished = await waitUntil(timeout: 2) {
-            log.record(.app, .info, "probe line")
-            return true
+            WriteGuard.blockedWriteCount >= 1
         }
         #expect(finished)
         #expect(WriteGuard.blockedWriteCount >= 1)

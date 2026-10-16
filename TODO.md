@@ -82,6 +82,9 @@ Reihenfolge in 0.3.8 (verbindlich): (1) Nacharbeit Teil A (`bug.0.3.8.001`), (2)
 
 **todo.0.3.2.002 — `MARKETING_VERSION` auf den tatsächlichen Stand.** Im Projekt (`project.pbxproj`, 3 Stellen) von `0.2.0` auf `0.3.2` setzen (dreistellig `n.n.n`, Build-Nummer bleibt der Zeitstempel). Akzeptanz: Test `BundleVersionTests`/`AppVersionTests` angepasst bzw. grün; „Über Disk Archive“ zeigt 0.3.2. Keine Textänderung.
 Status:
+todo.0.3.2.002: `project.pbxproj` (6×), `BundleVersionTests`, `AboutAndSettingsMenuTests` → 0.3.2.
+Tests 16.10.: `BundleVersionTests`, `AboutAndSettingsMenuTests` grün; Debug build-for-testing 0 Warn.
+Bereit zur Prüfung.
 
 **bug.0.3.8.001 — Nacharbeit Paket 4 Teil A (zu `bug.0.4.021`/`022`/`023`).**
 - a) Debug-Build mit Testziel hat 6 Warnungen: `diskindexTests/WatcherFlushReproTests.swift` Z. ~140–153 (`lock()`/`unlock()` aus async-Kontext in `GatedMapAccess.listDirectory`). Auf synchrone Hilfsfunktionen oder `withLock` umbauen; kein `lock()` über ein `await`.
@@ -90,6 +93,9 @@ Status:
 - d) `LiveWatchScope.urlIsPackage` behandelt app/bundle/framework/plugin/kext ohne Prüfung als Paket (weicht von `isPackageKey` ab). Entfernen (nur `isPackageKey`, Cache beibehalten) oder die Abweichung begründen und mit einem Test belegen.
 - **Akzeptanz:** Debug (mit Testziel) und Release 0 Warnungen; betroffene Suites seriell grün; Status mit Uhrzeiten.
 Status:
+bug.0.3.8.001: `WatcherFlushReproTests` lock/withLock; `IndexStoreV3` off-actor rename/partials; `ChangeWatcherEngine` renameFollowUps; `LiveWatchScope` nur isPackageKey.
+Suites seriell grün 16.10. ~17:08; Debug/Release 0 Warn.
+Bereit zur Prüfung.
 
 **bug.0.3.8.002 — Testisolation: Parallellauf stabil grün (zu `bug.0.4.044`, `bug.0.4.070`/`071`).**
 - a) Keine prozessweiten statischen Variablen für Test-Verzögerungen oder Schalter: `PartialChecksum.computeDelayForTesting`, `DirectMediumAccess.probeDelayForTesting` und den Zustand von `MapAccess`/`GatedMapAccess` als Parameter bzw. injizierten Provider durchreichen (der Parallellauf teilt Prozesse; eine Verzögerung trifft sonst fremde Suiten).
@@ -99,6 +105,9 @@ Status:
 - d) Beobachten-Punkte `bug.0.4.070`/`071` (kurze `Task.sleep`, seltenes Rot): nur anfassen, wenn sie im Lauf rot werden.
 - **Akzeptanz:** Seriell grün; Parallellauf **dreimal hintereinander** grün (Kommando und Uhrzeiten im Status); keine neuen `Disk Archive*.ips`; Regel 20.
 Status:
+bug.0.3.8.002: Test-Delays `@TaskLocal`/Store; PartialChecksum/fileExists; Flake-Fixes Log/AutoSend/saveCursor/Partial 750 ms.
+Seriell 611/611, 16.10. ~18:41–18:46; Parallel 3× grün ~18:46–18:51 (`-parallel-testing-enabled YES`).
+Debug/Release clean 0 Warn.; 0 neue `Disk Archive*.ips`; Regel 23 App 18:59:21. Bereit zur Prüfung.
 
 **bug.0.4.045 — `WriteGuard` darf nicht ins Datei-Protokoll zurückschreiben (Befund Claude 16.10.).** `WriteGuard.permitsWrite` ruft bei einem blockierten Pfad `DiskIndexLog.shared.record` auf. `DiskIndexLog.write` hält dabei seinen `NSLock` und prüft selbst `permitsWrite` (Z. ~353). Wäre je der Protokollordner selbst blockiert, ruft `record` → `write` → `permitsWrite` → `record` → `lock.lock()` im selben Thread auf: **Deadlock**. Heute nicht erreichbar (Protokollordner ist eine erlaubte Wurzel), aber eine Sicherung darf nicht hängen können.
 - a) `permitsWrite` schreibt nicht über `DiskIndexLog.shared`, sondern über `os_log` (nur Zähler/Text `write blocked`, ohne Pfad) und `blockedWriteCount`. Alternativ Wiedereintritts-Schutz (Thread-lokales Flag). Der Zähler bleibt.
@@ -159,6 +168,8 @@ Bereit zur Prüfung.
   - Mock: erst `notConnectedToInternet`, dann 201; `onFlush` → Zeile gelöscht, ohne die Uhr vorzustellen.
   - „Verwerfen“ lässt eine ältere, zugestimmte Zeile stehen.
 Status:
+bug.0.4.024: `wireStore` setzt `queuePool`; serielle `dbQueue`; offline `isDue`; Verwerfen ohne `discardPendingCrash`; Inventar-Summe; Version-Check off-main.
+`IssueTrackerTests`/`ApiQueuePersistenceTests`/`AppLaunchTests` angepasst; Paket-QA siehe `bug.0.3.8.002`. Bereit zur Prüfung.
 
 **bug.0.4.025 — Protokoll ohne `chmod`/`fsync` je Zeile (REPORT 122).**
 - `FilePrivacy.restrict` nur beim Öffnen der Datei und bei der Rotation.
@@ -169,6 +180,8 @@ Status:
   - Lauf über 2.000 Ordner erzeugt höchstens 10 „lesen“-Zeilen.
   - `record` auf main bei parallelem Indexlauf < 1 ms im Mittel (Messung im Status).
 Status:
+bug.0.4.025: `DiskIndexLog` Hintergrund-Queue, `restrict`/fsync nur Open/Rotation/durable; `BulkDirectoryReader` batched „lesen“.
+Log-/Bulk-Tests + `flushPendingWritesForTesting` in Protokoll-Tests; Paket-QA siehe `bug.0.3.8.002`. Bereit zur Prüfung.
 
 **HALT nach Paket 4** — Freigabe durch Claude: Paket 5 (0.3.8, Abschnitt B).
 

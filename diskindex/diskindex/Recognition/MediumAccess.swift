@@ -57,17 +57,22 @@ enum MediumAccessResult: Sendable, Equatable {
 
 nonisolated struct DirectMediumAccess: MediumAccess {
     #if DEBUG
-    nonisolated(unsafe) static var probeDelayForTesting: TimeInterval?
+    @TaskLocal static var probeDelayForTesting: TimeInterval?
     #endif
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult {
-        await withTaskGroup(of: MediumAccessResult?.self) { group in
+        #if DEBUG
+        let testDelay = Self.probeDelayForTesting
+        #else
+        let testDelay: TimeInterval? = nil
+        #endif
+        return await withTaskGroup(of: MediumAccessResult?.self) { group in
             group.addTask {
                 await withCheckedContinuation { continuation in
                     DispatchQueue.global(qos: .utility).async {
                         #if DEBUG
                         dispatchPrecondition(condition: .notOnQueue(.main))
-                        if let delay = Self.probeDelayForTesting {
+                        if let delay = testDelay {
                             Thread.sleep(forTimeInterval: delay)
                         }
                         #endif

@@ -11,6 +11,7 @@ import Testing
     @Test func lineIsOnDiskImmediately() throws {
         let log = try makeLog()
         log.record(.app, .info, "sofort")
+        log.flushPendingWritesForTesting()
         let text = try String(contentsOf: log.fileURL, encoding: .utf8)
         #expect(text.contains("app info sofort"))
     }
@@ -20,6 +21,7 @@ import Testing
         let log = DiskIndexLog(directory: directory, byteLimit: 80)
         log.record(.app, .info, String(repeating: "a", count: 60))
         log.record(.app, .info, String(repeating: "b", count: 60))
+        log.flushPendingWritesForTesting()
         #expect(FileManager.default.fileExists(atPath: directory.appendingPathComponent("diskindex.1.log").path))
         let current = try String(contentsOf: log.fileURL, encoding: .utf8)
         #expect(current.contains("bbbb"))
@@ -60,6 +62,7 @@ import Testing
         try Data("app info start\n".utf8).write(to: previous)
         let log = DiskIndexLog(directory: directory)
         log.start(installHandlers: false)
+        log.flushPendingWritesForTesting()
         let text = try String(contentsOf: log.fileURL, encoding: .utf8)
         #expect(text.contains("previous run ended without clean exit"))
         #expect(!log.shouldShowCrashDialog)
@@ -116,6 +119,7 @@ import Testing
         let log = DiskIndexLog(directory: directory)
         log.start(installHandlers: false)
         #expect(!log.shouldShowCrashDialog)
+        log.flushPendingWritesForTesting()
         let text = try String(contentsOf: directory.appendingPathComponent("diskindex.log"), encoding: .utf8)
         #expect(text.contains("previous run ended without clean exit"))
     }

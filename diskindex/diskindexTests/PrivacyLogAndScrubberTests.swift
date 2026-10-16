@@ -55,6 +55,7 @@ import Testing
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let log = DiskIndexLog(directory: directory)
         log.ui("search query=geheimnis")
+        log.flushPendingWritesForTesting()
         let text = try String(contentsOf: log.fileURL, encoding: .utf8)
         #expect(!text.contains("geheimnis"))
         #expect(text.contains("search query chars="))

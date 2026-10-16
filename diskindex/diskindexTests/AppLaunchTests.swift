@@ -5,6 +5,7 @@
 //  todo.0.4.013 — Jeder Start öffnet Hauptfenster; Versions-Check sofort.
 //
 
+import Foundation
 import GRDB
 import Testing
 @testable import diskindex
@@ -57,10 +58,10 @@ struct AppLaunchTests {
         AppWindowPresenter.prepareForTermination()
     }
 
-    @Test func schedulerEnqueuesVersionCheckImmediatelyOnStart() throws {
+    @Test @MainActor func schedulerEnqueuesVersionCheckImmediatelyOnStart() throws {
         VersionCheckCoordinator.lastVersionCheckEnqueue = nil
         let testStore = try TestStore.make()
-        let countBefore = try testStore.store.pool.read { db in
+        let countBefore = try testStore.pool.read { db in
             try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
         }
         #expect(countBefore == 0)
@@ -68,8 +69,14 @@ struct AppLaunchTests {
         let appState = AppState()
         scheduler.start(appState: appState, store: testStore.store)
         defer { scheduler.stop() }
-        let countAfter = try testStore.store.pool.read { db in
-            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
+        let deadline = Date().addingTimeInterval(2)
+        var countAfter = countBefore
+        while Date() < deadline {
+            countAfter = try testStore.pool.read { db in
+                try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
+            }
+            if countAfter == 1 { break }
+            Thread.sleep(forTimeInterval: 0.02)
         }
         #expect(countAfter == 1)
     }

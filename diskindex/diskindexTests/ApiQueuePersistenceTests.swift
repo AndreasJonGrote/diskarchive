@@ -35,11 +35,14 @@ struct ApiQueuePersistenceTests {
         try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: payload, createdAt: 1)
         let row = try #require(try ApiQueuePersistence.fetchAllOrdered(pool).first)
         let moment = Date(timeIntervalSince1970: 1_700_000_000)
-        try ApiQueuePersistence.recordFailure(pool, rowID: row.id, attempts: 1, lastTryAt: Int(moment.timeIntervalSince1970), info: "offline")
+        try ApiQueuePersistence.recordFailure(pool, rowID: row.id, attempts: 1, lastTryAt: Int(moment.timeIntervalSince1970), info: "status=500")
         let tooSoon = try ApiQueuePersistence.fetchDue(pool, now: moment.addingTimeInterval(100))
         #expect(tooSoon.isEmpty)
         let later = try ApiQueuePersistence.fetchDue(pool, now: moment.addingTimeInterval(3_601))
         #expect(later.count == 1)
+        try ApiQueuePersistence.recordFailure(pool, rowID: row.id, attempts: 2, lastTryAt: Int(moment.timeIntervalSince1970), info: "offline")
+        let offlineDue = try ApiQueuePersistence.fetchDue(pool, now: moment.addingTimeInterval(1))
+        #expect(offlineDue.count == 1)
     }
 
     @Test func trimCapsRowCount() throws {
