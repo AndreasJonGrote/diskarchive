@@ -452,7 +452,7 @@ Kurzfassung der früheren `datenbank-konzeption.md` (Volltext: [archiv/datenbank
 - **Gesperrt = 100 % nur ansehen:** kein Indizieren, keine Überwachung, keine neuen Medien, keine Schreibzugriffe (`FeatureAccess`). Uhr des Macs genügt.
 - Zählen aktiver Installationen: erst mit der Lizenz (0.9).
 
-**Messung (196 vorher / 238 nachher, 1 Mio. und 8,6 Mio. Einträge) ✓:** Datenbank 54–63 % kleiner; häufige Suche 91–98 % schneller; Filter nach Dateityp von 6,5 s auf 0,13 s; Spaltenansicht mit 50.000 Kindern innerhalb ±10 % (S1 +3,4 %, S2 −9 %). Schwellen bestanden. Berichte: `Werkzeuge/messung/`.
+**Messung (196 vorher / 238 nachher, 1 Mio. und 8,6 Mio. Einträge) ✓:** Datenbank 54–63 % kleiner; häufige Suche 91–98 % schneller; Filter nach Dateityp von 6,5 s auf 0,13 s; Spaltenansicht mit 50.000 Kindern innerhalb ±10 % (S1 +3,4 %, S2 −9 %). Schwellen bestanden. Berichte: `archiv/messung/`.
 
 **Noch offen im Konzept:** Metadaten-Durchgang mit Markierung „schon analysiert“ (Zeile `_analyzed`, 0.5); Vorschaubilder löschen mit dem Eintrag (0.6); Duplikate über volle Prüfsumme nach Größe gruppiert (0.8); Export mit vorab geladenen Ordnerpfaden (0.7); Duplikat-Screen und Export dürfen auch im gesperrten Zustand laufen (nur lesen).
 

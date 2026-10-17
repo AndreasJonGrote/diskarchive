@@ -57,7 +57,7 @@ Bereiche (Nutzer): Live-Überwachung, Indizieren, nicht angezeigte Dinge, Glitch
 
 **Warum hier:** Danach gibt es Beta-Tester (0.4). Ab dann braucht jede Schemaänderung eine echte Migration. **0.3 ist die letzte Version, in der die Datenbank frei verworfen und neu gebaut werden darf.**
 
-**Stand: ✓ abgenommen.** Schema `0.3.0-schema` (eine Datei, 11 Tabellen), Status-Flag mit Warteschlange, Umbenennen/Verschieben erkennen, Wartung und WAL, Einstellungen in der Datenbank, Messung nachher (Größe −54…−63 %, häufige Suche −91…−98 %, Spalten innerhalb ±10 %). Der Stichtag steht in der README. Berichte: `Werkzeuge/messung/`.
+**Stand: ✓ abgenommen.** Schema `0.3.0-schema` (eine Datei, 11 Tabellen), Status-Flag mit Warteschlange, Umbenennen/Verschieben erkennen, Wartung und WAL, Einstellungen in der Datenbank, Messung nachher (Größe −54…−63 %, häufige Suche −91…−98 %, Spalten innerhalb ±10 %). Der Stichtag steht in der README. Berichte: `archiv/messung/`.
 
 ---
 

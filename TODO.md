@@ -50,11 +50,11 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 16.10.2026 (Bestandsaufnahme des Hosts, [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md)).** Die Xcode-Version steht noch auf **0.2.0**. Abgenommen und im Code: **0.3** (Datenbank), **0.3.1** (API-Warteschlange), der **Code von 0.3.2** (Erkennung/Dashboard) und von 0.4 der Versions-Check mit Update-Modal, Beta-Sperre und Nur-Lesen-Sperre (alles in DONE.md). Gesamtlauf des Hosts am 16.10.: seriell 610 Tests grün, Release 0 Warnungen, aber Testziel Debug 6 Warnungen und der Parallellauf nicht stabil (ein Lauf rot, ein Lauf hängt in `ColumnChangeLoopTests`, ein Lauf grün); das ist `bug.0.3.8.002`. Es gibt **eine** Aufgabenliste und **einen** Umsetzer; Pakete laufen nacheinander.
+**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.2**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5b** (freigegeben), danach Stick-Test des Nutzers und `todo.0.3.8.001` (Version). Letzte Prüfung 17.10. 08:30–08:45: 0 Warnungen, seriell 639/639, parallel 2/3 (Testaufbau, `bug.0.3.8.004`). Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
-**Abnahmekriterien je Sprung (alle müssen erfüllt sein):** (1) alle Kennungen des Sprungs von Claude abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün (Zahl der Tests genannt); (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) Regel 23: Claude baut die App des Nutzers als letzten Schritt; (7) Nutzertest am echten Stick bestanden (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung); (8) keine offene „Frage:“ in dieser Datei. Bei Abnahme eines Sprungs setzt der Umsetzer `MARKETING_VERSION` (`todo.0.3.8.001`, `todo.0.3.9.001`).
+**Abnahmekriterien je Sprung (alle müssen erfüllt sein):** (1) alle Kennungen des Sprungs vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün (Zahl der Tests genannt); (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) Regel 23: Claude baut die App des Nutzers als letzten Schritt; (7) Nutzertest am echten Stick bestanden (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung); (8) keine offene „Frage:“ in dieser Datei. Bei Abnahme eines Sprungs setzt der Umsetzer `MARKETING_VERSION` (`todo.0.3.8.001`, `todo.0.3.9.001`).
 
 **Abnahme (Host, billiger):** je Aufgabe gezielte Tests, Code lesen, Build ohne Warnung; Gesamtlauf und Parallelläufe nur am Paketende; die Nutzer-App wird einmal je Paket gebaut. Ablauf: [archiv/abnahme-ablauf.md](archiv/abnahme-ablauf.md).
 
@@ -68,154 +68,60 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 |---|---|---|---|---|
 | 0–3, 2a | 0.4 (vorab) | ~~`bug.0.4.010`–`020`, `043`, `044`, `todo.0.4.010`–`014`~~ | Testbasis, Datenschutz, Inventar, Live, Nur-Lesen | **abgenommen 15./16.10.** |
 | 4 | **0.3.8** | ~~`bug.0.3.8.001`–`002`, `bug.0.4.045`, `021`–`025`~~ | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | **abgenommen 16./17.10.** |
-| 5a | **0.3.8** | ~~`026`, `032`, `033`~~, `bug.0.4.027`, `028`, `029`, `030`, `bug.0.3.8.003` | Entscheidung, Status, Regeln, Identität, Teil 1 | **Nacharbeit 3** (Tests, Aufräumen) |
-| 5b | **0.3.8** | `bug.0.4.031` | Teil 2 | B, nach 5a (`todo.0.4.032` entschieden 16.10.) |
+| 5a | **0.3.8** | ~~`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`~~ | Entscheidung, Status, Regeln, Identität, Teil 1 | **abgenommen 17.10.** |
+| 5b | **0.3.8** | `bug.0.3.8.004`, `005`, `bug.0.4.031` | Testaufbau, tote Dateien, Identität | **freigegeben 17.10.** |
 | 6 | **0.3.9** | `bug.0.4.034`–`040` | Oberfläche | B |
 | 7 | **0.3.9** | `bug.0.4.041`–`042` | Absturzschreiber und Start | B |
 | 8 | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere | B |
 | – | **0.4** | `todo.0.4.020`–`025` | Weitergabe an Beta-Tester | B |
 
-Reihenfolge in 0.3.8 (verbindlich): (1) ~~Nacharbeit Teil A (`bug.0.3.8.001`)~~ abgenommen, (2) Testisolation (`bug.0.3.8.002`), (3) Rest Paket 4 (`024`, `025`), (4) Paket 5a, (5) Paket 5b. Neue sichtbare Texte sind nur über „Frage:“ erlaubt (siehe Entscheidungen unten); Regel 3 bleibt für sonstige Texte bestehen.
+Reihenfolge in 0.3.8 (verbindlich): Pakete 4 und 5a abgenommen; jetzt Paket 5b, dann Stick-Test des Nutzers (Abnahmekriterium 7), dann `todo.0.3.8.001`. Neue sichtbare Texte nur über „Frage:“ oder als freigegebener Textvorschlag in der Aufgabe (Regel 3 bleibt).
 
-#### Paket 4 — Medien-I/O und Datenbank nicht auf dem Haupt-Thread
+#### Paket 4 und 5a — abgenommen (Hintergrund gilt weiter)
 
 **Hintergrund (verbindlich):** Im Build ist `NonisolatedNonsendingByDefault` aktiv (`SWIFT_APPROACHABLE_CONCURRENCY`). Eine `nonisolated … async`-Funktion ohne `@concurrent` läuft daher **auf dem Actor des Aufrufers**, also auf main, wenn der Aufrufer `@MainActor` ist. „async“ heißt hier **nicht** „Hintergrund“.
 
 **Prüfung Host 17.10. 00:00–00:15 (Commits `08a8a95` + `aa124c0`):** Debug mit Testziel **4 Warnungen** (nur Tests, siehe `bug.0.3.8.003`), Release 0, seriell **637/637** grün (23:59–00:05), **Parallel 3 von 3 grün** (00:05–00:12), keine neuen `.ips`, Regel 23 (App 00:14:16, Signatur gültig). **Paket 4 abgenommen** (`bug.0.3.8.002`, `bug.0.4.045`, `021`–`025`), siehe DONE.md; Volltexte im Archiv `archiv/todo-stand-2026-10-17-vor-abnahme-paket4.md`.
 
-#### Paket 5a — Entscheidung, Status, Regeln, Identität (Teil 1; `026`, `032`, `033` abgenommen 17.10.; offen `027`, `028`, `029`, `030`, `bug.0.3.8.003`)
+**Prüfung Host 17.10. 08:30–08:45 (Commit `58ec44e`):** Debug mit Testziel und Release 0 Warnungen, seriell **639/639** grün, Parallel **2 von 3** grün (Lauf 2 rot: `MainThreadMediumIOTests/directProbeKeepsMainActorResponsive`, Ticker 2 statt ≥ 8, Messaufbau, siehe `bug.0.3.8.004`), keine neuen `.ips`, Regel 23 erfüllt. **Paket 5a abgenommen** (`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`); die neuen Tests gehen über die echten Wege (Regel 18). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5a.md`.
 
-Reihenfolge: `026`, `027`, `028`, `029`, `030`, `032`, `033`. `bug.0.4.031` bleibt in B bis zur Abnahme von 5a (`todo.0.4.032` ist entschieden). `bug.0.4.028` ist seit der Entscheidung `todo.0.4.033` (16.10.: Einstellungen vor dem ersten Lauf laden, feste Regel) freigegeben und muss das umsetzen: `hydrateSettingsFromStore()` abgeschlossen, bevor `MediumRecognitionStartup.bootstrap` den ersten Lauf startet; mit Test. Neue sichtbare Texte nur über „Frage:“.
+#### Paket 5b — Abschluss 0.3.8 (freigegeben 17.10.)
 
-**bug.0.4.027 — „Ja“ nach „Nein“ startet wieder (REPORT 60, Korrektur B-60).** Repro: `nr60_…`.
-- `IndexingService.finish` und `cancel(mediumUUID:)` rufen `coordinator?.clearIndexRequest(mediumID:)` auf. **Nicht** die Variante „nur bis zum Start halten“: Sie würde Doppelanfragen in `rerunAfterFinish` schieben.
-- **Akzeptanz:** Repro grün; Doppelanfrage während eines Laufs → genau ein Lauf.
-Status:
-bug.0.4.027: `clearIndexRequest` in `finish`/`cancel`; `YesAfterNoIndexingTests/nr60_yesAfterNoStartsANewRun` seriell grün 16.10. Bereit zur Prüfung.
+Reihenfolge: `bug.0.3.8.004`, `bug.0.3.8.005`, `bug.0.4.031`. Für `031` c) gelten die Textvorschläge in der Aufgabe als freigegeben; im Status unter „Neue Texte:“ auflisten, der Nutzer prüft sie beim Stick-Test.
 
-**Nacharbeit (Claude 16.10. 21:52):**
-- Akzeptanzpunkt fehlt: Doppelanfrage während eines Laufs → genau ein Lauf (Test).
-- Regel 25: das Rot von `nr60` vor dem Fix im Status belegen (Sabotage: `clearIndexRequest` in `finish` entfernen → rot ✓).
-- `nr60` ist im Parallellauf rot, siehe `bug.0.3.8.002` g).
+**bug.0.3.8.004 — `directProbeKeepsMainActorResponsive` wackelt im Parallellauf (Host 17.10.).**
+- Der Test zählt Ticks auf dem MainActor während einer 2-s-Prüfung und erwartet ≥ 8. Im Parallellauf teilen sich mehrere Suiten im selben Prozess den MainActor; unter Last kamen nur 2 Ticks an (Lauf 08:38, auch bei Cursor 16.10. 23:53). Das misst die Last, nicht den Fehler.
+- Umbauen, sodass der Test genau das prüft, was `bug.0.4.021` verlangt: Die Prüfung läuft **nicht** auf main (Prüf-Closure mit `Thread.isMainThread == false` bzw. `dispatchPrecondition`, Ergebnis zurückmelden) und blockiert main nicht (ein einzelner MainActor-Sprung während der laufenden Prüfung kommt an, Zeitgrenze mit Reserve, z. B. < 1 s). Keine Tick-Zählung, keine Lockerung der Erwartung an den Produktcode.
+- Sabotage: `probe` synchron auf main ausführen → Test rot ✓ (im Status).
+- Gleiche Bauart in anderen Tests suchen (`grep -rn "ticker\|ticks" diskindexTests`) und nur dort umbauen, wo sie im Parallellauf rot werden können; im Status nennen.
 
-Nacharbeit-Status:
-bug.0.4.027: `doubleIndexRequestDuringRunKeepsOneActiveRun`, `sabotageWithoutClearIndexRequestBlocksNr60Rerun`, `LiveWiring`/`attach(store:)`. Seriell grün. Bereit zur Prüfung.
+**bug.0.3.8.005 — Tote Dateien entfernen (Host 17.10., Nutzer: „damit auch diese mal weg kommen“).**
+- a) `diskindex/DebugTools/ScreenshotRunner.swift` und `ScreenshotPlan.swift` löschen (Regel 19 verbietet den Lauf; Entscheidung `todo.0.4.038`). Dazu den Aufruf in `AppDelegate` (Z. ~74–75, `ScreenshotPlan.folder`/`ScreenshotRunner.run`) und den Hinweis in `SystemNotice` (Z. ~323) entfernen bzw. anpassen. `DebugTools/PreviewData.swift` **bleibt** (genutzt von `DashboardView`, `MediumDashboardCard` und neun Test-Suiten).
+- b) UI-Testziel `diskindexUITests` entfernen: nur die Xcode-Vorlage (`testExample`, `testLaunchPerformance`) und startet die echte App, was Regel 8/19 verbieten. Ordner, Ziel in `project.pbxproj` und Eintrag im Schema entfernen; danach `xcodebuild -list` und Build mit Testziel prüfen.
+- b2) Werkzeug-Reste mit Code-Bezug (Nutzer 17.10.: „verschlanken“; die übrigen Werkzeuge hat der Host schon gelöscht, die Messberichte liegen jetzt in `archiv/messung`):
+  - Icon: `Werkzeuge/icon-kandidat/`, `Werkzeuge/icon-pruefen` und `icon-pruefen.swift`, `diskindexTests/IconCandidateTests.swift`, `diskindex/Scripts/GenerateAppIcons.swift` löschen. Das fertige Icon liegt im Asset-Katalog und bleibt unberührt.
+  - Bildschirmfotos aus Tests (Regel 19): `ToolbarFillTests.comparisonSheets` (schreibt PNGs nach `Werkzeuge/screenshots`) entfernen; in `ColumnLiveRenameTests` den Aufruf `saveScreenshot` und die Funktion entfernen, die Prüfung selbst bleibt. Danach darf kein Test mehr in den Projektordner schreiben (`grep -rn "Projekte/Disk Index" diskindexTests` leer).
+  - Messwerkzeug: `diskindexTests/IndexBenchTests.swift`, `Werkzeuge/db-messung.sh`, `Werkzeuge/db-messung-nachher.sh` löschen; Kommentar in `SchemaV3.swift` (Z. ~6) auf `archiv/messung/*-nachher-bericht.md` ändern.
+  - Bleiben: `Werkzeuge/audit-repro` (Regel 25, bis 0.3.9 abgenommen ist), `Werkzeuge/generate_localizable.py` (Lokalisierung), `Werkzeuge/stress_fill_stick.sh` (Stick-Test des Nutzers).
+- c) Vorher für jede Datei `grep -rn` über `diskindex/`, `diskindexTests/` und `project.pbxproj`; taucht ein weiterer Bezug auf, stehen lassen und „Frage:“ schreiben.
+- **Akzeptanz:** 0 Warnungen (Debug mit Testziel, Release), seriell grün, `xcodebuild -list` ohne `diskindexUITests`, Status listet jede entfernte Datei.
 
-**Nacharbeit 3 (Host 17.10. 00:15):**
-- `doubleIndexRequestDuringRunKeepsOneActiveRun` ruft `service.start` zweimal direkt auf. Gemeint ist die Doppelanfrage über den normalen Weg: Lauf aktiv → zweimal `coordinator.requestIndex` (bzw. „Ja“ im Dialog / `onNewMediumChoice`) → nach `waitUntilIdle` **genau ein** Lauf insgesamt (kein nachgeholter zweiter über `rerunAfterFinish`; Zähler am Service oder an „auftrag“-Zeilen, nach kurzem Abwarten erneut prüfen).
-- `sabotageWithoutClearIndexRequestBlocksNr60Rerun` bleibt nicht als Dauertest mit Schalter im Produktcode: Sabotage einmal lokal ausführen, Rot im Status belegen, dann Test und `skipClearIndexRequestForTesting` entfernen (Regel 25: Erwartung des Repro bleibt, der Sabotage-Schalter gehört nicht ins Produkt).
-
-Nacharbeit-Status:
-bug.0.4.027: `doubleIndexRequestDuringRunKeepsOneRun` ersetzt den Direktaufruf: neues Medium → Dialog „Ja“ → Lauf am Tor → nochmals „Ja“ (`onNewMediumChoice`) + `onMediumDecisionChanged(.index)` → nach Ende genau ein Start (zweimal geprüft). Sabotage-Test, `skipClearIndexRequestForTesting` und `DoubleRequestGateAccess` entfernt (`IndexingService.swift`, `YesAfterNoIndexingTests.swift`).
-Sabotage lokal, danach zurückgenommen: `clearIndexRequest` in `finish` weg → `nr60` rot ✓ (08:04:44); Anfrage schon beim Start freigeben → Doppeltest rot `[false, false]` ✓ (08:04:17). Suite seriell grün 08:03. Bereit zur Prüfung.
-
-**bug.0.4.028 — Status laufender Läufe nicht von außen überschreiben; Aufwachen ohne Doppel-Abgleich (REPORT 71, 72, Korrektur B-71).**
-- a) `normalizeInterruptedIndexingStatuses` aus `loadStoredMedia` entfernen. Die Normalisierung nach Absturz (`indexing` → `indexed`/`pending`) läuft als SQL-`UPDATE` **beim Öffnen der DB vor `wire`**. Zur Laufzeit wird nicht normalisiert, `mediumLiveSyncIDs` wird nicht geleert.
-- b) Aufwachen:
-  - `MediumMonitor` sendet beim Aufwachen `.appeared` nur für Pfade, die nicht schon mit gleicher Identität in `mounted` stehen.
-  - `connectKnown` ändert den Status eines bereits verbundenen Mediums nur, wenn `!service.isRunActive(id)`.
-  - Der explizite Aufruf in `AppDelegate` (Z. ~248) entfällt, wenn sich der Pausenzustand dabei schon über `didSet` geändert hat.
+**bug.0.4.031 — Identität: Klone und Volume-Umbenennung (REPORT 116, 78).**
+- a) 116: `volumeAppeared` verwirft einen Treffer, dessen Medium-ID schon unter einem **anderen, noch eingehängten** Pfad steht, und behandelt ihn wie mehrdeutig (neues Medium mit Dialog). Nie zwei Pfade für ein Medium.
+- b) 78: `NSWorkspace.didRenameVolumeNotification` (`NSWorkspaceVolumeOldURLKey`/`NSWorkspaceVolumeURLKey`) als eigenes `MediumEvent`. Den Pfadschlüssel im Coordinator umbiegen, den Watcher mit neuem `VolumeInfo` stoppen und neu starten. Zusätzlich `kFSEventStreamCreateFlagWatchRoot` setzen.
 - **Akzeptanz:**
-  - Lauf aktiv → `resumeAfterRuleReconcile()` → Status bleibt `.indexing`, DB unverändert.
-  - Medium verbunden und indiziert → `didWake` → **genau ein** `service.start`.
-  - Lauf aktiv → `didWake` → DB-Status bleibt `.indexing`.
+  - Zwei `.appeared` mit gleicher `volumeUUID` und verschiedenen Pfaden → zwei IDs, Einträge des ersten unverändert.
+  - Rename-Event → `volume(for:)` liefert den neuen Pfad; Unmount mit neuem Pfad setzt offline.
+- c) `todo.0.4.032` (Nutzer 16.10.): Wird ein **neues** Medium erkannt (Erkennungs-Dialog) und gibt es ein **Offline**-Medium mit **gleichem Namen**, folgt nach der Entscheidung im Dialog eine Rückfrage: **Textvorschlag** (de/en über `LayoutCopy`, Nutzer prüft): Titel „Ersetzt dieses Medium „{Name}“?“, Text „Ein Medium mit diesem Namen ist bekannt, aber nicht angeschlossen. Wurde es neu formatiert, kann das alte mit Index und Favoriten vergessen werden.“, Knöpfe „Altes vergessen“ (rot) und „Behalten“ (Standard, Esc). „Altes vergessen“ ruft den bestehenden Vergessen-Weg auf. Nie automatisch vergessen. Mehrere Offline-Treffer mit gleichem Namen: keine Rückfrage.
+  - Akzeptanz: Offline-Medium „USB“ + neues Medium „USB“ → Rückfrage; „Behalten“ → beide bleiben; „Altes vergessen“ → altes weg (Store und Liste); zwei Offline-„USB“ → keine Rückfrage.
+  - Die Rückfrage ist eine neue Ansicht: Maße und Knöpfe aus dem Komponentenkatalog (Regel 13), Test mit echtem Fenster außerhalb des Bildschirms (Regel 10/19), Klick auf beide Knöpfe per `window.sendEvent` (Regel 21).
 Status:
-bug.0.4.028: SQL-Normalize in `SchemaV3.openPool`; Bootstrap hydrate→Monitor; Wake-Skip in `MediumMonitor`; `isIndexingActive` in `connectKnown`. StartupTests erweitert. Bereit zur Prüfung.
 
-**Nacharbeit (Claude 16.10. 21:52):**
-- b) dritter Punkt nicht umgesetzt: `AppDelegate`, `didWakeNotification` ruft nach `refreshGlobalPause()` zusätzlich `onAutoIndexPauseChanged?()` auf. Läuft die Pause dabei ab, feuert `globalAutoIndexPaused.didSet` schon einmal, der zweite Aufruf ist doppelt. Nur aufrufen, wenn sich der Pausenzustand nicht geändert hat.
-- Keiner der drei Akzeptanztests ist da: (1) Lauf aktiv → `resumeAfterRuleReconcile()` → Status bleibt `.indexing`, DB unverändert; (2) Medium verbunden und indiziert → `didWake` → genau ein `service.start`; (3) Lauf aktiv → `didWake` → DB-Status bleibt `.indexing`.
-- Test für die Regel aus `todo.0.4.033`: Einstellung (z. B. Scan-Tiefe) liegt nur in der DB → Start → der **erste** Lauf nutzt diesen Wert. Der jetzige Test prüft nur ein Flag.
-- Tote Funktion `AppState.normalizeInterruptedIndexingStatuses()` (schreibt noch mit dem vollen `updateMedium`) entfernen.
-
-Nacharbeit-Status:
-bug.0.4.028: AppDelegate didWake-Dedup; `IndexWakeAndResumeTests`; `firstIndexUsesScanDepthFromDatabase`; normalize entfernt; `loadStoredMedia` Spinner. Seriell grün. Bereit zur Prüfung.
-
-**Nacharbeit 3 (Host 17.10. 00:15):**
-- Code richtig (SQL-Normalisierung, Wake-Skip, `isIndexingActive`, Doppelaufruf beim Aufwachen). Die Tests beweisen es nicht:
-  - `wakeAfterSleepStartsExactlyOneReconcileForIndexedMedium` löst kein Aufwachen aus und prüft `ordersAfter >= ordersBefore` (immer wahr). Neu: echter Weg `MediumMonitor`-Aufwachen (`emitMounted(wakeRescan: true)` über einen injizierbaren Auslöser, nicht `NSWorkspace`) → Coordinator → Service; zählender `MediumAccess` bzw. Zähler an `service.start`; **genau ein** Start (nach Abwarten ein zweites Mal prüfen).
-  - `activeRunKeepsIndexingStatusThroughWakeHandling` kopiert den Code aus `AppDelegate` in den Test. Den Aufwach-Ablauf in eine Funktion ziehen (z. B. `AppState.handleWake()`), die `AppDelegate` und Test aufrufen; Test: Lauf aktiv → `handleWake()` + `.appeared` desselben Volumes → DB bleibt `.indexing`, kein zweiter Lauf.
-  - `firstIndexUsesScanDepthFromDatabase` reicht `maxDepth` selbst an den Lauf weiter und prüft die Startreihenfolge nicht. Neu: Scan-Tiefe 2 nur in der DB → `MediumRecognitionStartup.bootstrap` mit Fake-Monitor/-Zugriff, Medium mit `decision == .index` erscheint → der erste Lauf liest nicht unter Tiefe 2 (Regel 18: kein Schritt der Kette von Hand).
-- Ungenutzte Hilfsklasse `WakeCountingAccess` (mit `lock()` im async-Kontext, 2 Warnungen) entfernen oder für den Zähltest nutzen, ohne `lock()` über `await`.
-
-Nacharbeit-Status:
-bug.0.4.028: `MediumMonitor(mountedVolumes:wakeEvents:)` (Standard = Dateisystem/`NSWorkspace`), `bootstrap(…, makeMonitor:)`; Aufwach-Ablauf als `AppState.handleWake(restartWatchers:)` (`AppState+Pause`), `AppDelegate` ruft ihn. `WakeCountingAccess` entfernt.
-Tests: `wakeThroughMonitorStartsExactlyOneReconcile` (bootstrap + Wake-Strom + `handleWake` → genau ein Start mehr, zweimal geprüft), `activeRunKeepsIndexingStatusThroughWake`, `firstRunUsesScanDepthStoredBeforeBootstrap` (ersetzen die drei alten).
-Befund und Fix: `IndexingService.resumePausedRuns` startete beim Aufwachen auch für einen aktiven Lauf → Nachlauf über `rerunAfterFinish` (Test rot `[false, false]`); aktive Läufe werden jetzt übersprungen.
-Sabotage rot ✓ 08:01 (Wake-Skip aus → 3 Starts; Einstellungen nach Monitorstart → Tiefe 5, `a/b` gelesen), zurückgenommen. Suites seriell grün 08:00. Bereit zur Prüfung.
-
-**bug.0.4.029 — Bereinigung „nach 1 Stunde“ wirklich nach Zeit und beim Start (REPORT 114).**
-- Nach `hydrateSettingsFromStore()`/`loadStoredMedia()` `pruneIfDue()` aufrufen.
-- `armPrune` und `loadPruneDeadline` planen einen Task bis `pruneAt`; ein neuer Termin ersetzt ihn.
-- `pruneNow` löscht den Termin nur, wenn er seit Beginn der Bereinigung nicht neu gesetzt wurde.
-- `didWake` bleibt zusätzlich.
-- **Akzeptanz:**
-  - `pruneAt` in der Vergangenheit, Start-Ablauf → bereinigt (ohne Aufruf von Hand, Regel 18).
-  - Wache App mit injizierbarer Uhr/kurzer Frist → bereinigt ohne `didWake`.
-Status:
-bug.0.4.029: `pruneIfDue` nach `loadStoredMedia` in Bootstrap; `pruneDeadlineGeneration` in `pruneNow`. IndexPruneTests unverändert grün im Gesamtlauf. Bereit zur Prüfung.
-
-**Nacharbeit (Claude 16.10. 21:52):**
-- Zweiter Punkt fehlt ganz: `armPrune` und `loadPruneDeadline` planen keinen Task bis `pruneAt`. Umsetzen (ein Task, ein neuer Termin ersetzt ihn, bei `prepareForTermination` abbrechen), Uhr bzw. Frist injizierbar (Parameter, kein statischer Schalter).
-- Beide Akzeptanztests fehlen: `pruneAt` in der Vergangenheit + Start-Ablauf → bereinigt (ohne Aufruf von Hand, Regel 18); wache App mit kurzer Frist → bereinigt ohne `didWake`.
-
-Nacharbeit-Status:
-bug.0.4.029: `schedulePruneTask`, `pruneClock`, `prepareForTerminationAsync`; Tests `scheduledTaskPrunesWithoutDidWake`, `overduePruneOnBootstrapWithoutManualCall`. Seriell grün. Bereit zur Prüfung.
-
-**Nacharbeit 3 (Host 17.10. 00:15):**
-- Code richtig. `overduePruneOnBootstrapWithoutManualCall` ruft `pruneIfDue` **von Hand** auf; genau das schließt die Akzeptanz aus (Regel 18). Neu: `pruneAt` in der Vergangenheit → `MediumRecognitionStartup.bootstrap` → warten, bis `deep.txt` fehlt (kein Aufruf von `pruneIfDue`/`pruneNow`/`loadPruneDeadline` im Test).
-- `UserDefaults(suiteName:)!` in den neuen Tests → `try #require(UserDefaults(suiteName:))` (Regel 20).
-
-Nacharbeit-Status:
-bug.0.4.029: `overduePruneOnBootstrapWithoutManualCall` neu: `pruneAt` −60 s, Tiefe 2 in der DB → `bootstrap` (fester Monitor) → wartet, bis `deep.txt` fehlt; kein Aufruf von Hand. `#require(UserDefaults(suiteName:))` in beiden neuen Tests.
-Befund und Fix: Der Test war rot (08:02). Der in `AppState.init` geplante Task bereinigte vor `hydrateSettingsFromStore` mit Tiefe 5 und löschte den Termin. Jetzt liest `init` den Termin nur (`loadPruneDeadline(schedule: false)`); `bootstrap` plant ihn nach Laden und `pruneIfDue` (`scheduleLoadedPruneDeadline`, `AppState.swift`, `MediumRecognitionStartup.swift`).
-Suites seriell grün 08:03 (31 Tests, mit Start-Suites). Bereit zur Prüfung.
-
-**bug.0.4.030 — Regeländerungen wirken sofort und vollständig (REPORT 115, 68).**
-- a) Bei jeder Scope-Änderung (`shrinks` oder `grows`, `AppState` Z. ~41–55) aktive Läufe abbrechen und mit **neuer** Konfiguration als Abgleich neu starten. Bei `grows` zusätzlich für jedes angeschlossene Medium mit `decision == .index` einen Abgleich anstoßen.
-- b) 68: `reconcileScopeToStatus` setzt beim Verstecken eines Ordners den **ganzen Unterbaum** auf `status = 1` (rekursives CTE wie `markSubtreeGone`) und beim Wieder-Einblenden zurück, mit Neubewertung der Kinder. `purgeMarkedItems` sammelt die betroffenen `storageID`s und ruft danach `commitMediumMeta(forceRecount: true)`.
-- **Akzeptanz:**
-  - Lauf blockiert nach Ebene 1, `excludedPatterns += ["*.tmp"]`, freigeben → keine sichtbare `.tmp`-Zeile, `fileCount == COUNT(status=0)`.
-  - `node_modules` mit 3 Dateien ausschließen → Suche nach einer davon liefert 0; nach `purgeMarkedItems` stimmt `fileCount`.
-  - Tiefe 2 → 5+ bei fertigem, angeschlossenem Medium → Abgleich startet.
-Status:
-bug.0.4.030: Scope-Change cancel+reindex; `markItemSubtrees` in reconcile; `purgeMarkedItems`→`commitMediumMeta(forceRecount:)`. Bereit zur Prüfung.
-
-**Nacharbeit (Claude 16.10. 21:52):**
-- a) Bei **jeder** Scope-Änderung ruft `AppState` für **alle** angeschlossenen Medien mit `decision == .index` `onReindexMedium` auf, und das startet mit `fromScratch: true`, also ein volles Neu-Indizieren. Gefordert: aktive Läufe abbrechen und **als Abgleich** (`fromScratch: false`) neu starten; nur bei `grows` zusätzlich für jedes angeschlossene `.index`-Medium einen Abgleich. Eigener Rückruf statt `onReindexMedium`.
-- Abbrechen und Neustart laufen heute in zwei getrennten Tasks ohne feste Reihenfolge (`onIndexingCancelForScopeChange` und `onReindexMedium`). In einen Task: erst `await service.cancel`, dann starten.
-- Laufzeit: siehe `bug.0.3.8.002` h) (`markItemSubtrees` je Wurzel).
-- Keiner der drei Akzeptanztests ist da (`*.tmp` nach Ebene 1; `node_modules` mit 3 Dateien + Suche + `fileCount`; Tiefe 2 → 5 startet Abgleich).
-
-Nacharbeit-Status:
-bug.0.4.030: `onScopeRulesChanged` Abgleich-Task; `ScopeChangeAcceptanceTests` (*.tmp, node_modules); Tiefe-2→5-Test offen (Suite-Interaktion). Seriell grün. Bereit zur Prüfung.
-
-**Nacharbeit 3 (Host 17.10. 00:15):**
-- Code richtig (ein Task: erst abbrechen, dann Abgleich mit `fromScratch: false`; bei `grows` alle `.index`-Medien). Offen ist der dritte Akzeptanztest, und genau er deckt den Kern der Nacharbeit ab: fertiges, angeschlossenes Medium, Tiefe 2 → 5 → **ein** Lauf mit `fromScratch: false` startet (Zähler am Service oder Protokollzeile „auftrag … abgleich“), kein Neu-Indizieren. Zusätzlich: Scope verkleinert (Ausschluss hinzu) bei laufendem Lauf → Lauf abgebrochen und als Abgleich neu gestartet, andere fertige Medien starten **keinen** Lauf. „Suite-Interaktion“ ist kein Grund für einen fehlenden Test: Ursache finden (z. B. globaler Zustand) und im Status nennen.
-- `*.tmp`-Test: die Akzeptanz verlangte einen **laufenden** Lauf (nach Ebene 1 angehalten, Regel ändern, freigeben). Heute prüft er nur die Bereinigung auf fertigen Daten. Mit `WakeGateAccess`-artigem Tor ergänzen; `fileCount` aus der DB gegen `COUNT(status=0)` vergleichen.
-- Ungenutzte Hilfsfunktion `scopeMedium` entfernen.
-
-Nacharbeit-Status:
-bug.0.4.030: Neu in `ScopeChangeAcceptanceTests`: `deeperScanDepthStartsExactlyOneReconcile` (Tiefe 2→5 → Starts `[false, false]`: Anschluss-Abgleich + genau ein Abgleich, `deep.txt` danach da), `excludeDuringRunRestartsOnlyThatRunAsReconcile` (Neustart erreicht das geschlossene Tor → abgebrochen, nicht nachgeholt; anderes Medium bleibt bei einem Start), `excludeTmpDuringRunLeavesNoTmpRow` (laufender Lauf, `fileCount == COUNT(status=0) == 3`). `scopeMedium` entfernt.
-Zähler: `IndexingService.startedRunsForTesting` (nur DEBUG, je Instanz, reine Beobachtung); Hilfen in neuer Datei `RunGateAccess.swift` (Tor, `WiredRig`, `testVolume`).
-Ursache „Suite-Interaktion“: kein globaler Zustand. Ein Testvolume ohne `volumeUUID`/`createdAt` gibt nur einen schwachen Treffer → Erkennungs-Dialog statt Abgleich; `testVolume` setzt deshalb eine UUID. Für `*.tmp` schaltet der Test `artifactsIgnored` aus (Standard-Artefakt).
-Suite seriell grün 07:57 (5 Tests). Bereit zur Prüfung.
-
-**bug.0.3.8.003 — Aufräumen nach Paket 4/5a: Warnungen und toter Code (Prüfung Host 17.10.).**
-- a) Debug mit Testziel hat 4 Warnungen: `IndexWakeAndResumeTests` Z. ~148/150 (`lock()`/`unlock()` im async-Kontext, siehe `028`), `ProtocolAndSelectionTests` Z. ~13 und `SurfaceStoreTests` Z. ~62 (`try` ohne werfenden Aufruf). Auf 0.
-- b) Toter Code im Produkt (kein Aufrufer, auch nicht in Tests), entfernen: `AppState.flushSettings()` (`AppState+IndexChanges`), `IssueReporter.discardPendingCrash()` und `setCachedKnownNamesForTesting` (`IssueTracker`), `AppDelegate.prepareForAppTermination()` und der leere `applicationWillTerminate`, `IndexStoreV3.setItemStatus` (ersetzt durch `markItemSubtrees`), `ChangeWatcher.stopAllWatching()`. Vorher je Symbol `grep -rn` über `diskindex/` und `diskindexTests/`; ist doch ein Aufrufer da, stehen lassen und im Status nennen.
-- **Akzeptanz:** 0 Warnungen (Debug mit Testziel, Release); seriell grün; Status listet jedes entfernte Symbol.
-Status:
-bug.0.3.8.003: a) `try` weg in `ProtocolAndSelectionTests` Z. 13, `SurfaceStoreTests` Z. 62; `WakeCountingAccess` entfernt. Vorher 4 Warnungen (07:40), danach 0.
-b) Entfernt (grep: je nur die Definition): `AppState.flushSettings`, `IssueReporter.discardPendingCrash`, `setCachedKnownNamesForTesting`, `AppDelegate.prepareForAppTermination`, leeres `applicationWillTerminate`, `IndexStoreV3.setItemStatus`, `ChangeWatcher.stopAllWatching`.
-Dadurch ohne Aufrufer, nicht in der Liste, stehen gelassen: `MenuBarController.prepareForTermination()`. Suites seriell grün 07:44/07:45 (54 + 36 Tests). Bereit zur Prüfung.
-Paketende 5a (Nacharbeit 3): clean build-for-testing Debug 0 / Release 0 Warnungen (08:05–08:07); seriell 639/639 grün (08:06:56–08:12:22); parallel 3× grün, je 673 Testfälle, 0 rot (08:12:27–14:48, –17:23, –19:57); keine neuen `.ips`; Regel 23: App 08:20:29, letzte `.swift` 08:04:44, `find -newer` leer, Signatur gültig.
-
-**HALT nach Paket 5a** — danach Paket 5b (`031`, Abschnitt B), Freigabe durch den Host.
+**HALT nach Paket 5b = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen (`todo.0.3.8.001`, `MARKETING_VERSION` auf `0.3.8`, nur nach Abnahmekriterien 1–8), danach 0.3.9.
 
 ---
 
-### Nutzer und Claude (ohne Umsetzer)
+### Nutzer und Host (ohne Worker)
 
 | Kennung | Was | Wer |
 |---|---|---|
@@ -235,7 +141,7 @@ Paketende 5a (Nacharbeit 3): clean build-for-testing Debug 0 / Release 0 Warnung
 | `todo.0.4.035` | **entschieden 16.10. (Nutzer): ja.** Auch eine Pause, die bei beendeter App abgelaufen ist, meldet beim Start „Medien werden wieder indiziert.“ | `todo.0.4.027` |
 | `todo.0.4.036` | **entschieden 16.10. (Nutzer): Kalenderzeit.** Beim Start und beim Aufwachen prüfen, ob seit dem letzten Check 24 h vergangen sind. | `todo.0.4.028` |
 | `todo.0.4.037` | **entschieden 16.10. (Nutzer): jedes 201 gilt als Erfolg**, `id` ist optional. Keine Änderung am Server. | `todo.0.4.029` |
-| `todo.0.4.038` | **entschieden 16.10. (Nutzer):** `ScreenshotRunner.swift` löschen; `PreviewData.swift` nur behalten, wenn Vorschauen oder Tests es nutzen, sonst auch löschen. | `todo.0.4.029` |
+| `todo.0.4.038` | **entschieden 16.10. (Nutzer):** `ScreenshotRunner.swift` löschen (Umsetzung jetzt in `bug.0.3.8.005`); `PreviewData.swift` nur behalten, wenn Vorschauen oder Tests es nutzen, sonst auch löschen. | `todo.0.4.029` |
 | `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
 
 ### Beobachten (keine Aufgabe)
@@ -247,25 +153,8 @@ Paketende 5a (Nacharbeit 3): clean build-for-testing Debug 0 / Release 0 Warnung
 
 ---
 
-## B. Backlog (nicht freigegeben, der Umsetzer arbeitet nicht daran), nach Zielversion
+## B. Backlog (nicht freigegeben, der Worker arbeitet nicht daran), nach Zielversion
 
-### 0.3.8 — Paket 5b (`031`; nach 5a)
-
-
-**bug.0.4.031 — Identität: Klone und Volume-Umbenennung (REPORT 116, 78).**
-- a) 116: `volumeAppeared` verwirft einen Treffer, dessen Medium-ID schon unter einem **anderen, noch eingehängten** Pfad steht, und behandelt ihn wie mehrdeutig (neues Medium mit Dialog). Nie zwei Pfade für ein Medium.
-- b) 78: `NSWorkspace.didRenameVolumeNotification` (`NSWorkspaceVolumeOldURLKey`/`NSWorkspaceVolumeURLKey`) als eigenes `MediumEvent`. Den Pfadschlüssel im Coordinator umbiegen, den Watcher mit neuem `VolumeInfo` stoppen und neu starten. Zusätzlich `kFSEventStreamCreateFlagWatchRoot` setzen.
-- **Akzeptanz:**
-  - Zwei `.appeared` mit gleicher `volumeUUID` und verschiedenen Pfaden → zwei IDs, Einträge des ersten unverändert.
-  - Rename-Event → `volume(for:)` liefert den neuen Pfad; Unmount mit neuem Pfad setzt offline.
-- c) `todo.0.4.032` (Nutzer 16.10.): Wird ein **neues** Medium erkannt (Erkennungs-Dialog) und gibt es ein **Offline**-Medium mit **gleichem Namen**, folgt nach der Entscheidung im Dialog eine Rückfrage: **Textvorschlag** (de/en über `LayoutCopy`, Nutzer prüft): Titel „Ersetzt dieses Medium „{Name}“?“, Text „Ein Medium mit diesem Namen ist bekannt, aber nicht angeschlossen. Wurde es neu formatiert, kann das alte mit Index und Favoriten vergessen werden.“, Knöpfe „Altes vergessen“ (rot) und „Behalten“ (Standard, Esc). „Altes vergessen“ ruft den bestehenden Vergessen-Weg auf. Nie automatisch vergessen. Mehrere Offline-Treffer mit gleichem Namen: keine Rückfrage.
-  - Akzeptanz: Offline-Medium „USB“ + neues Medium „USB“ → Rückfrage; „Behalten“ → beide bleiben; „Altes vergessen“ → altes weg (Store und Liste); zwei Offline-„USB“ → keine Rückfrage.
-Status:
-
-**HALT nach Paket 5b = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen, danach 0.3.9.
-
-
-**Version bei Abnahme von 0.3.8:** `todo.0.3.8.001` — `MARKETING_VERSION` auf `0.3.8` (nur nach Abnahmekriterien 1–8).
 
 ---
 
@@ -398,7 +287,7 @@ Status:
 | `todo.0.4.027` | **Pause beim Start abgelaufen** (`todo.0.4.035`): Mitteilung „Medien werden wieder indiziert.“ wie beim Ablauf im Betrieb (gleiche Schalter); danach Abgleich wie nach Pausenende. Test. |
 | `todo.0.4.028` | **Versions-Check nach Kalenderzeit** (`todo.0.4.036`): Zeitpunkt des letzten Checks speichern; beim Start, beim Aufwachen und stündlich prüfen, ob 24 h vergangen sind. Test mit injizierbarer Uhr. |
 | `bug.0.4.063` | **Nur-Lesen-Sperre stoppt laufende Arbeit nicht (Befund Host 17.10.):** `AppState.onVersionLockEngaged` wird in `VersionCheckCoordinator` aufgerufen, aber im Produkt nirgends gesetzt. Beim Einrasten der Sperre laufen Indexlauf, Regel-Abgleich und Überwachung weiter (README: gesperrt = 100 % nur ansehen, auch Überwachung aus). `IndexingService.cancelAllActiveForVersionLock` und `AppState.cancelRuleReconcileForVersionLock` rufen nur Tests auf (`VersionLockReadOnlyTests`, von Hand, Regel 18). In `LiveWiring` verdrahten (Läufe abbrechen, Abgleich abbrechen, Watcher stoppen); Test: Lauf aktiv → Auswertung mit Sperre → Lauf endet, keine Schreibvorgänge mehr, ohne die Abbruch-Funktionen von Hand aufzurufen. |
-| `todo.0.4.029` | **Kleinkram Fehlerbericht und Altcode** (`todo.0.4.037`, `038`): jedes 201 gilt als Erfolg, `id` optional (Test: 201 ohne Körper → Zeile gelöscht, kein erneutes Senden); `DebugTools/ScreenshotRunner.swift` und `ScreenshotPlan.swift` löschen, `PreviewData.swift` nur behalten, wenn genutzt; Regel 10/19 entsprechend bereinigen (nur Claude). |
+| `todo.0.4.029` | **Kleinkram Fehlerbericht und Altcode** (`todo.0.4.037`, `038`): jedes 201 gilt als Erfolg, `id` optional (Test: 201 ohne Körper → Zeile gelöscht, kein erneutes Senden); Screenshot-Werkzeug: nach `bug.0.3.8.005` verschoben (17.10.). |
 
 ### 0.5 bis 1.0 (Entwürfe, jede Funktion vor dem Start einzeln besprechen; Details ROADMAP)
 

@@ -108,7 +108,7 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | todo.0.3.235 | c.0.3.235 + 235b | fileID erfassen, Umbenennen/Verschieben erkennen, Ereignispaare, FAT-Merkmale, Teil-Prüfsumme | 12.10. Cursor | A B |
 | todo.0.3.236 | c.0.3.236 | Wartung nach Zeit und Zähler, WAL kürzen, Leerlauf-Verkleinern (F26) | 12.10. Cursor | A B |
 | todo.0.3.237 | c.0.3.237 | Einstellungen in der Tabelle `settings` (außer Sprache, Fensterposition) | 12.10. Cursor | A B |
-| todo.0.3.238 | c.0.3.238 | Messung „nachher“, Vergleich, Bericht, Schema eingefroren; Größe und Abfrage bestanden | 12.10. Cursor | A (Berichte in `Werkzeuge/messung/`) |
+| todo.0.3.238 | c.0.3.238 | Messung „nachher“, Vergleich, Bericht, Schema eingefroren; Größe und Abfrage bestanden | 12.10. Cursor | A (Berichte in `archiv/messung/`) |
 | todo.0.3.1.001 | c.0.3.1.001 | API-Warteschlange `api_queue`, Netzmeldung plus 60-s-Ping | 12.10. Cursor | A B |
 | bug.0.3.239 | c.0.3.239 | `invalidateAll` bumpt Generationen (REPORT 29) | 13.10. Cursor | A C |
 | bug.0.3.240 | c.0.3.240 | `api_queue`: Busy-Timeout, Flush einfach, Leak-Zeilen, Netz-Zustand (REPORT 30, 31, 33, 37) | 13.10. Cursor | A B |
@@ -150,6 +150,11 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | bug.0.4.026 | – | Reprobe behält die Entscheidung: `.index` → `connectKnown` (indiziert → Abgleich, sonst ausstehend), `.dontIndex` nur Status, Volume-Schnappschuss geprüft; Tests | 17.10. Host (seriell 637/637, parallel 3/3, Release 0 Warnungen) | A C |
 | bug.0.4.032 | – | Dialog-Entscheidung nach dem Abziehen veröffentlicht „offline“, Panels werden geschlossen; `choiceAfterDisappearIsOffline` | 17.10. Host (seriell 637/637, parallel 3/3, Release 0 Warnungen) | A C |
 | bug.0.4.033 | – | Medium-Zeile über gezielte Setter (Nutzer-, Erkennungs-, Entscheidungsfelder, Index-Status getrennt); Beenden über `.terminateLater` mit `prepareForTerminationAsync` (Medium und Einstellungen gesichert); Tests | 17.10. Host (seriell 637/637, parallel 3/3, Release 0 Warnungen) | A C |
+| bug.0.4.027 | – | `clearIndexRequest` in `finish`/`cancel`; Doppelanfrage über den Dialog während eines Laufs → genau ein Start; Sabotage-Schalter entfernt, Rot belegt | 17.10. Host (seriell 639/639, Debug mit Testziel und Release 0 Warnungen) | A C |
+| bug.0.4.028 | – | Normalisierung per SQL beim Öffnen, keine zur Laufzeit; Aufwachen: kein `.appeared` für bekannte Pfade, kein Status-Überschreiben bei aktivem Lauf, Pause nur einmal ausgewertet (`AppState.handleWake`), `resumePausedRuns` startet keinen zweiten Lauf; Einstellungen vor der Erkennung geladen; Tests über `MediumMonitor`-Auslöser und `bootstrap` | 17.10. Host (seriell 639/639, Debug mit Testziel und Release 0 Warnungen) | A C |
+| bug.0.4.029 | – | Bereinigung beim Start (nach dem Laden der Einstellungen) und per geplantem Task bis `pruneAt`; Termin nur gelöscht, wenn nicht neu gesetzt; Tests ohne Aufruf von Hand | 17.10. Host (seriell 639/639, Debug mit Testziel und Release 0 Warnungen) | A C |
+| bug.0.4.030 | – | Regeländerung: aktive Läufe abbrechen und als Abgleich neu starten, bei Vergrößerung alle `.index`-Medien abgleichen (ein Task, `fromScratch: false`); Unterbaum beim Verstecken/Einblenden (`markItemSubtrees` in Stapeln), Neuzählung nach `purgeMarkedItems`; Akzeptanztests inkl. Tiefe 2 → 5 | 17.10. Host (seriell 639/639, Debug mit Testziel und Release 0 Warnungen) | A C |
+| bug.0.3.8.003 | – | Testwarnungen auf 0; toter Code entfernt (`flushSettings`, `discardPendingCrash`, `setCachedKnownNamesForTesting`, `prepareForAppTermination`, leerer `applicationWillTerminate`, `setItemStatus`, `stopAllWatching`) | 17.10. Host (seriell 639/639, Debug mit Testziel und Release 0 Warnungen) | A C |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

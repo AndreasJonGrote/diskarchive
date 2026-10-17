@@ -1,7 +1,0 @@
-diskindex column-load bench 2026-10-06T19:46:58Z
-config=Release
-batchSize=2000
-flag=BENCH
-baseline-ram-bytes=55803904
-wide-14300 seed-s=0.146 load-s=0.043 first-page-ms=3.938 first-page-count=2000 count=14300 ram-delta-mb=10.047 ram-vs-baseline-mb=26.562 goal=<0.5s pass=yes
-display-14300 first-visible-ms=57.199 max-main-block-ms=0.000 count=14300 ram-delta-mb=7.516 ram-vs-baseline-mb=41.406 goal-first-ms=<150 goal-block-ms=<50 pass-first=yes pass-block=yes
