@@ -35,8 +35,8 @@ extension AppState {
         }
         DiskIndexLog.shared.ui("ignore confirm count=\(targetCount)")
         ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: targetCount, patterns: patterns)
-        if !RuntimeEnvironment.isRunningTests {
-            AppWindowPresenter.openIgnoreConfirmation(appState: self)
+        if let placement = promptPanelPlacement {
+            AppWindowPresenter.openIgnoreConfirmation(appState: self, placement: placement)
         }
     }
 
@@ -177,6 +177,9 @@ extension AppState {
         guard offlineNamesakes.count == 1, let old = offlineNamesakes.first else { return false }
         DiskIndexLog.shared.ui("replace prompt new=\(newID) old=\(old.id)")
         replaceMediumPrompt = ReplaceMediumPrompt(newID: newID, oldID: old.id, name: newMedium.name)
+        if let placement = promptPanelPlacement {
+            AppWindowPresenter.openReplaceMediumPrompt(appState: self, placement: placement)
+        }
         return true
     }
 

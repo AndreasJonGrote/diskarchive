@@ -59,17 +59,20 @@ import Testing
         var limits = IndexingRunLimits.standard
         limits.directoryStallTimeout = 1
         limits.consecutiveTimeoutLimit = 1
-        // bug.0.3.9.004 a: Obergrenze aus der Wiederholungspause (keine Wiederholung nach dem Stillstand), nicht aus
-        // der Last; Untergrenze = Stillstandsgrenze 1 s.
-        let retryPause: Duration = .seconds(60)
-        limits.readRetryDelays = [retryPause]
+        // Eine Wiederholung nach dem Stillstand würde 60 s warten (gibt es nicht; sonst rot über die Obergrenze).
+        limits.readRetryDelays = [.seconds(60)]
+        // bug.0.3.9.008: Die Grenze misst, dass der Wächter rechtzeitig auslöst: Stillstand 1 s + höchstens 2 Takte
+        // des Wächters (1 s, `DirectoryIndexer` Lesestrom) + 5 s Reserve für Last = 8 s. Kein Bezug zur Wiederholungspause.
+        let stall: Duration = .seconds(1)
+        let watchdogTick: Duration = .seconds(1)
+        let bound = stall + watchdogTick * 2 + .seconds(5)
         let started = ContinuousClock.now
         let outcome = try await harness.run(access: access, maxDepth: nil, limits: limits)
         let elapsed = started.duration(to: .now)
         #expect(outcome.status == .pending)
         #expect(outcome.failureReason == .timeout)
-        #expect(elapsed >= .seconds(1))
-        #expect(elapsed < retryPause / 2)
+        #expect(elapsed >= stall)
+        #expect(elapsed < bound, "Wächter nach \(elapsed), Grenze \(bound)")
     }
 }
 

@@ -90,6 +90,88 @@ struct IgnoreConfirmDialogWindowTests {
         #expect(abs(probe.cancel.height - 38.8) <= 0.5, "Abbrechen hoch \(probe.cancel.height)")
         #expect(abs(probe.ignore.width - 149) <= 0.5, "Ignorieren breit \(probe.ignore.width)")
         #expect(abs(probe.ignore.height - 38.8) <= 0.5, "Ignorieren hoch \(probe.ignore.height)")
+        // bug.0.3.9.007 a: Katalog „Dialog: Abstand 12“ zwischen Text und Knöpfen.
+        #expect(abs(probe.textToButtons - 12) <= 0.5, "Abstand Text–Knöpfe \(probe.textToButtons)")
+    }
+
+    /// bug.0.3.9.005 c: echtes Panel über den echten Menüeintrag, Esc → Abbrechen. Zwei Wege: `window.sendEvent`
+    /// (Tastenereignis an das Fenster) und `performKeyEquivalent` (Weg der App über das Key-Fenster).
+    @Test(arguments: [false, true])
+    func escapeInTheRealPanelCancels(viaKeyEquivalent: Bool) async throws {
+        let app = AppState()
+        app.promptPanelPlacement = .offscreen
+        defer { AppWindowPresenter.closePromptPanels(for: app) }
+        try ignoreNameEntry(targets(500), app: app).action()
+        #expect(app.ignoreConfirmationPrompt?.count == 500)
+        let panel = try #require(AppWindowPresenter.ignoreConfirmationPanel(for: app))
+        #expect(panel.isVisible)
+        #expect(panel.frame.minX <= -10_000 && panel.frame.minY <= -10_000, "Panel \(panel.frame)")
+        #expect(!panel.isKeyWindow)
+        try await Task.sleep(for: .milliseconds(300))
+
+        try sendEscape(to: panel, viaKeyEquivalent: viaKeyEquivalent)
+        let closed = await waitUntil(timeout: 3) {
+            app.ignoreConfirmationPrompt == nil && AppWindowPresenter.ignoreConfirmationPanel(for: app) == nil
+        }
+        #expect(closed)
+        #expect(!panel.isVisible)
+        #expect(app.appSettings.excludedPatterns.isEmpty)
+    }
+
+    /// Ohne gesetzte Lage öffnet die Instanz kein Panel (Standard im Testprozess).
+    @Test func withoutPlacementNoPanelOpens() throws {
+        let app = AppState()
+        #expect(app.promptPanelPlacement == nil)
+        try ignoreNameEntry(targets(500), app: app).action()
+        #expect(app.ignoreConfirmationPrompt != nil)
+        #expect(AppWindowPresenter.ignoreConfirmationPanel(for: app) == nil)
+    }
+
+    /// Prüf-Agent zu 005c: Panels gehören zur Instanz — ein fremdes offenes Panel wird weder gezeigt noch geschlossen.
+    @Test func panelsBelongToTheirInstance() throws {
+        let first = AppState()
+        let second = AppState()
+        first.promptPanelPlacement = .offscreen
+        defer {
+            AppWindowPresenter.closePromptPanels(for: first)
+            AppWindowPresenter.closePromptPanels(for: second)
+        }
+        first.requestIgnore(["a"], targetCount: 500)
+        let firstPanel = try #require(AppWindowPresenter.ignoreConfirmationPanel(for: first))
+        second.requestIgnore(["b"], targetCount: 500)
+        #expect(AppWindowPresenter.ignoreConfirmationPanel(for: second) == nil)
+
+        second.promptPanelPlacement = .offscreen
+        second.resolveIgnoreConfirmation(confirm: false)
+        second.requestIgnore(["b"], targetCount: 500)
+        let secondPanel = try #require(AppWindowPresenter.ignoreConfirmationPanel(for: second))
+        #expect(secondPanel !== firstPanel)
+
+        AppWindowPresenter.closePromptPanels(for: second)
+        #expect(second.ignoreConfirmationPrompt == nil)
+        #expect(first.ignoreConfirmationPrompt != nil)
+        #expect(firstPanel.isVisible)
+        #expect(AppWindowPresenter.ignoreConfirmationPanel(for: first) === firstPanel)
+    }
+
+    /// bug.0.3.9.007 b: Schließen aller Fenster setzt beide Rückfragen zurück.
+    @Test func closingAllWindowsResetsBothPrompts() async throws {
+        let app = AppState()
+        defer { AppWindowPresenter.closePromptPanels(for: app) }
+        app.ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: 500, patterns: ["a"])
+        AppWindowPresenter.openIgnoreConfirmation(appState: app, placement: .offscreen)
+        app.replaceMediumPrompt = ReplaceMediumPrompt(newID: UUID(), oldID: UUID(), name: "USB")
+        AppWindowPresenter.openReplaceMediumPrompt(appState: app, placement: .offscreen)
+        try #require(AppWindowPresenter.ignoreConfirmationPanel(for: app) != nil)
+        try #require(AppWindowPresenter.replaceMediumPromptPanel(for: app) != nil)
+
+        // Gleicher Weg wie `prepareForTermination`, aber nur für diese Instanz (keine fremden Fenster).
+        AppWindowPresenter.closePromptPanels(for: app)
+        #expect(app.ignoreConfirmationPrompt == nil)
+        #expect(app.replaceMediumPrompt == nil)
+        #expect(AppWindowPresenter.ignoreConfirmationPanel(for: app) == nil)
+        #expect(AppWindowPresenter.replaceMediumPromptPanel(for: app) == nil)
+        #expect(app.appSettings.excludedPatterns.isEmpty)
     }
 
     @Test func cancelClickChangesNothing() async throws {
@@ -118,6 +200,40 @@ struct IgnoreConfirmDialogWindowTests {
 }
 }
 
+/// Esc als Tastenereignis an das eigene Testfenster (Regel 21).
+@MainActor
+func escapeKey(in window: NSWindow) throws -> NSEvent {
+    try #require(NSEvent.keyEvent(
+        with: .keyDown,
+        location: .zero,
+        modifierFlags: [],
+        timestamp: ProcessInfo.processInfo.systemUptime,
+        windowNumber: window.windowNumber,
+        context: nil,
+        characters: "\u{1b}",
+        charactersIgnoringModifiers: "\u{1b}",
+        isARepeat: false,
+        keyCode: 53
+    ))
+}
+
+/// Esc an das Panel: `sendEvent` (Fenster) oder `performKeyEquivalent` (wie NSApp beim Key-Fenster).
+@MainActor
+func sendEscape(to window: NSWindow, viaKeyEquivalent: Bool) throws {
+    let event = try escapeKey(in: window)
+    if viaKeyEquivalent {
+        #expect(window.performKeyEquivalent(with: event), "Esc als Tastenkürzel nicht behandelt")
+    } else {
+        window.sendEvent(event)
+    }
+}
+
+/// Höhe eines Textblocks bei der Innenbreite des Dialogs (340 − 2 × 17).
+@MainActor
+func dialogTextHeight<V: View>(_ text: V) -> CGFloat {
+    NSHostingView(rootView: text.frame(width: 340 - 2 * 17, alignment: .leading)).fittingSize.height
+}
+
 /// Dialog auf grünem Grund, Maße aus Pixeln (pt, Ursprung oben links).
 @MainActor
 private struct IgnoreDialogProbe {
@@ -125,6 +241,8 @@ private struct IgnoreDialogProbe {
     let dialog: CGRect
     let ignore: CGRect
     let cancel: CGRect
+    /// Oberkante der Knöpfe minus (Dialogoberkante + Rahmen und Innenabstand 17 + Texthöhe).
+    let textToButtons: CGFloat
 
     static func open(app: AppState, prompt: IgnoreConfirmationPrompt, appearance: NSAppearance.Name) async throws -> IgnoreDialogProbe {
         let content = IgnoreConfirmDialog(prompt: prompt)
@@ -150,7 +268,8 @@ private struct IgnoreDialogProbe {
         let ignore = try #require(bounds(in: bitmap, scale: scale, area: CGRect(x: dialog.minX, y: band.minY, width: dialog.width / 2, height: band.height)) { c in
             abs(c.redComponent - border.r) < 0.08 && abs(c.greenComponent - border.g) < 0.08 && abs(c.blueComponent - border.b) < 0.08
         })
-        return IgnoreDialogProbe(session: session, dialog: dialog, ignore: ignore, cancel: cancel)
+        let textToButtons = min(cancel.minY, ignore.minY) - dialog.minY - 17 - dialogTextHeight(IgnoreConfirmDialog.text(prompt))
+        return IgnoreDialogProbe(session: session, dialog: dialog, ignore: ignore, cancel: cancel, textToButtons: textToButtons)
     }
 
     /// Randfarbe des Sekundärknopfs aus dem Design-Token (hell/dunkel aufgelöst).

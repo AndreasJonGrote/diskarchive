@@ -17,18 +17,19 @@ struct NoticeThrottleTests {
         let app = AppState()
         app.appSettings.notificationsEnabled = false
         var posted: [String] = []
-        SystemNotice.testPostHandler = { request, _ in posted.append(request.content.body) }
-        defer { SystemNotice.testPostHandler = nil }
-        let start = Date(timeIntervalSince1970: 20_000)
-        app.setNotificationsEnabled(true, now: start)
-        app.setNotificationsEnabled(false, now: start.addingTimeInterval(0.4))
-        app.setNotificationsEnabled(true, now: start.addingTimeInterval(0.8))
-        #expect(posted == [LayoutCopy.noticesTurnedOn, LayoutCopy.noticesTurnedOff])
-        app.setNotificationsEnabled(true, now: start.addingTimeInterval(5))
-        #expect(posted == [
-            LayoutCopy.noticesTurnedOn,
-            LayoutCopy.noticesTurnedOff,
-            LayoutCopy.noticesTurnedOn,
-        ])
+        let hooks = NoticeTestHooks(post: { request, _ in posted.append(request.content.body) })
+        SystemNotice.$testHooks.withValue(hooks) {
+            let start = Date(timeIntervalSince1970: 20_000)
+            app.setNotificationsEnabled(true, now: start)
+            app.setNotificationsEnabled(false, now: start.addingTimeInterval(0.4))
+            app.setNotificationsEnabled(true, now: start.addingTimeInterval(0.8))
+            #expect(posted == [LayoutCopy.noticesTurnedOn, LayoutCopy.noticesTurnedOff])
+            app.setNotificationsEnabled(true, now: start.addingTimeInterval(5))
+            #expect(posted == [
+                LayoutCopy.noticesTurnedOn,
+                LayoutCopy.noticesTurnedOff,
+                LayoutCopy.noticesTurnedOn,
+            ])
+        }
     }
 }

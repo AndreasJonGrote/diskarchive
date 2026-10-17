@@ -317,6 +317,16 @@ struct RegressionSmokeTests {
         #expect(ids.allSatisfy(selection.contains))
     }
 
+    /// bug.0.3.9.005 c / 007 b: Rückfrage-Panel je Instanz (außerhalb des Bildschirms); Schließen setzt sie zurück.
+    @Test func ignorePromptPanelClosesAndResets() {
+        let app = AppState()
+        app.promptPanelPlacement = .offscreen
+        app.requestIgnore(["b"], targetCount: 500)
+        #expect(AppWindowPresenter.ignoreConfirmationPanel(for: app)?.isVisible == true)
+        AppWindowPresenter.closePromptPanels(for: app)
+        #expect(app.ignoreConfirmationPrompt == nil && AppWindowPresenter.ignoreConfirmationPanel(for: app) == nil)
+    }
+
     /// bug.0.4.036: sichtbare Spalten bleiben im Cache, auch wenn viele andere Ordner geladen werden.
     @Test func visibleColumnStaysCached() {
         let app = AppState()
@@ -362,7 +372,8 @@ struct RegressionSmokeTests {
         let log = DiskIndexLog(directory: folder)
         #expect(AppStartup.willFinishLaunching(launchKind: .click, resolveSingleInstance: { .handOff }, log: log, installHandlers: false))
         #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("crash-last.txt").path))
-        #expect(AppStartup.shouldTerminate(handedOff: true, teardown: {}, finish: {}) == .terminateNow)
+        let flow = TerminationFlow(log: log)
+        #expect(flow.shouldTerminate(handedOff: true, teardown: {}, finish: {}, reply: {}) == .terminateNow)
     }
 
     private func makeSmokeMedium() -> Medium {

@@ -21,10 +21,10 @@ import Testing
         #expect(await store.maintenanceDebt() == 0)
     }
 
-    @Test func incrementalVacuumSabotageLeavesFreelistUntouched() async throws {
-        let previous = DatabaseMaintenance.incrementalVacuumEnabled
-        defer { DatabaseMaintenance.incrementalVacuumEnabled = previous }
-
+    /// Nach vielen gelöschten Zeilen senkt die Wartung die freelist (incremental_vacuum in `runCompactionIfNeeded`).
+    /// bug.0.3.9.001: ohne prozessweiten Sabotage-Schalter; die Gegenprobe ist eine Handprobe (Vakuum-Aufruf in
+    /// `IndexStoreV3.runCompactionIfNeeded` auskommentieren → rot).
+    @Test func compactionShrinksFreelist() async throws {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Bulk", fsType: "apfs", bytes: 1_000_000)
         _ = try await harness.addRoot(
@@ -45,17 +45,9 @@ import Testing
         let freeBefore = try await harness.store.pool.read { db in try DatabaseMaintenance.freelistCount(db) }
         #expect(freeBefore > 0)
 
-        DatabaseMaintenance.incrementalVacuumEnabled = false
         await harness.store.recordMaintenanceDebt(MaintenancePolicy.changeThreshold)
         await harness.store.runCompactionIfNeeded()
-
-        let freeAfter = try await harness.store.pool.read { db in try DatabaseMaintenance.freelistCount(db) }
-        #expect(freeAfter == freeBefore)
         #expect(await harness.store.maintenanceDebt() == 0)
-
-        DatabaseMaintenance.incrementalVacuumEnabled = true
-        await harness.store.recordMaintenanceDebt(MaintenancePolicy.changeThreshold)
-        await harness.store.runCompactionIfNeeded()
         let freeCompacted = try await harness.store.pool.read { db in try DatabaseMaintenance.freelistCount(db) }
         #expect(freeCompacted < freeBefore)
     }

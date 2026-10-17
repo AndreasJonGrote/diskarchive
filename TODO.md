@@ -50,7 +50,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.8**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 17.10. 17:21–17:36: 0 Warnungen, seriell 712/712, parallel 3/3. Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
+**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.8**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 17.10. 19:37–19:53: 0 Warnungen, seriell 741/741, parallel 3/3. Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
@@ -73,8 +73,8 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 5c | **0.3.8** | ~~`bug.0.3.8.006`, `007`~~ | Zeitgrenze Medienprüfung, Parallellauf stabil | **abgenommen 17.10.; 0.3.8 fertig** |
 | 6 | **0.3.9** | ~~`todo.0.3.8.001`, `bug.0.4.034`–`040`~~ | Version 0.3.8, Oberfläche | **abgenommen 17.10.** |
 | 7 | **0.3.9** | ~~`bug.0.3.9.004`, `bug.0.4.041`–`042`~~ | Parallellauf unter Last, Absturzschreiber, Start | **abgenommen 17.10.** |
-| 8a | **0.3.9** | `bug.0.3.9.001`–`003`, `005`–`010` | Befunde aus den Prüfungen | **freigegeben 17.10.** |
-| 8b | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere (Audit) | B |
+| 8a | **0.3.9** | ~~`bug.0.3.9.001`–`003`, `005`–`010`~~ | Befunde aus den Prüfungen | **abgenommen 17.10.** |
+| 8b | **0.3.9** | `bug.0.3.9.011`–`014`, `bug.0.4.050`–`062` | Prüfbefunde 8a, Fehler niedriger Schwere (Audit) | **freigegeben 17.10.** |
 | – | **0.4** | `todo.0.4.020`–`025` | Weitergabe an Beta-Tester | B |
 
 Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. Neue sichtbare Texte nur über „Frage:“ oder als freigegebener Textvorschlag in der Aufgabe (Regel 3 bleibt).
@@ -87,55 +87,46 @@ Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. 
 
 **Prüfung Host 17.10. 08:30–08:45 (Commit `58ec44e`):** Debug mit Testziel und Release 0 Warnungen, seriell **639/639** grün, Parallel **2 von 3** grün (Lauf 2 rot: `MainThreadMediumIOTests/directProbeKeepsMainActorResponsive`, Ticker 2 statt ≥ 8, Messaufbau, siehe `bug.0.3.8.004`), keine neuen `.ips`, Regel 23 erfüllt. **Paket 5a abgenommen** (`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`); die neuen Tests gehen über die echten Wege (Regel 18). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5a.md`.
 
-**Prüfung Host 17.10. 17:21–17:36 (Paket 7, ungecommittet auf `3d7f1a4`):** Debug mit Testziel und Release 0 Warnungen, seriell **712/712** grün, **Parallel 3 von 3 grün**, keine neuen `.ips`, Regel 23 (App 17:36:20, Signatur gültig). Code je Aufgabe von einem Prüf-Agenten gelesen: kein hoher Befund; zwei mittlere (`bug.0.3.9.008`, `009`) und niedrige (`010`) in Paket 8a. **Paket 7 abgenommen** (`bug.0.3.9.004`, `bug.0.4.041`, `042`). Paket 6 wurde nachträglich ebenfalls von Prüf-Agenten gelesen (Befunde `bug.0.3.9.005`–`007`). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket7.md`.
+**Prüfung Host 17.10. 19:37–19:53 (Paket 8a, ungecommittet auf `151ea0f`):** Debug mit Testziel und Release 0 Warnungen, seriell **741/741** grün, **Parallel 3 von 3 grün**, keine neuen `.ips`, Regel 23 (App 19:52:52, Signatur gültig). Drei Prüf-Agenten: kein hoher Befund; zwei mittlere (`bug.0.3.9.011` Beenden hängt am Hauptthread, `012` langsames Volume) und niedrige (`013`, `014`) in Paket 8b. **Paket 8a abgenommen** (`bug.0.3.9.001`–`003`, `005`–`010`). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket8a.md`.
 
-#### Paket 8a — Befunde aus den Prüfungen (0.3.9, freigegeben 17.10.)
+#### Paket 8b — Prüfbefunde 8a und Audit-Fehler niedriger Schwere (0.3.9, freigegeben 17.10.)
 
-Reihenfolge: `bug.0.3.9.008`, `009`, `010`, dann `001`, `002`, `003`, `005`, `006`, `007`. Die drei neuen kommen aus den Prüf-Agenten zu Paket 7.
+Reihenfolge: zuerst `bug.0.3.9.011`, `012`, `013`, `014` (Befunde der Prüf-Agenten zu 8a), dann `bug.0.4.050`–`062` in Zahlenfolge. Für die Audit-Fehler steht die Lösung im Archiv `archiv/report-audit-2026-10-13.md` unter der REPORT-Nummer; im Status je Kennung die REPORT-Nummer, die geänderte Stelle und den Test nennen. Trifft ein Audit-Fehler nicht mehr zu (durch frühere Pakete behoben), mit Beleg (Datei, Zeile, Test) als „erledigt durch …“ melden, nichts erfinden.
 
-**bug.0.3.9.008 — Wächter-Test: Laufzeitgrenze wieder eng (Prüf-Agent 17.10., mittel).** `IndexerWriteReproTests.hungStreamTriggersDirectoryReadStalled`: In `bug.0.3.9.004` von `< 4 s` auf `< retryPause / 2` (30 s) gelockert, obwohl `DirectoryReadStalled` nie wiederholt wird; die Grenze misst, dass der Wächter nach der Stillstandszeit rechtzeitig auslöst. Grenze aus `directoryStallTimeout` und dem Takt ableiten (Stillstand + 2 Takte + Reserve, etwa 8–10 s) und begründen. Sabotage: Wächter-Takt verzehnfachen → rot ✓. Dazu `BulkDirectoryReaderTests` Z. ~102 (`< 2 s` auf echtem Dateisystem) in `MeasurementTestGroup`.
+**bug.0.3.9.011 — Beenden: Zeitgrenze darf nicht am Hauptthread hängen (Prüf-Agent 17.10., mittel).** Der Zeitgeber aus `bug.0.3.9.009` ist ein `@MainActor`-Task; `finishTermination` ruft `appState.indexStore?.checkpoint()` aber **synchron** auf dem MainActor (`pool.writeWithoutTransaction`, TRUNCATE). Hält ein Indexer die Schreibsperre oder hängt die Platte, blockiert der Hauptthread, und der Zeitgeber feuert nie. Abhilfe: Checkpoint und andere synchrone DB-Schritte beim Beenden vom Hauptthread nehmen (`await` auf einen Hintergrund-Aufruf) **und** den Notfall-Zeitgeber unabhängig vom MainActor betreiben (z. B. `DispatchQueue.global().asyncAfter`, `replied` atomar, Antwort an AppKit auf main einreihen; reicht das nicht, `exit` nach weiterer Frist mit Protokollzeile). Test: Checkpoint blockiert synchron (injizierbarer Hook) → Antwort kommt nach der Zeitgrenze; kein doppeltes `reply`.
 Status:
 
-**bug.0.3.9.009 — Beenden mit Zeitgrenze (Prüf-Agent 17.10., mittel).** `AppStartup` (`shouldTerminate`/`finishTermination`): Hängt `flushPendingWritesForTermination`, hängt das Beenden für immer; seit `bug.0.4.042` gilt das auch für SIGTERM (vorher sofort beendet, jetzt `SIG_IGN`). Zeitgrenze für den Abschluss (Standard 8 s, injizierbar); danach Protokollzeile „beenden zeitgrenze“ und `reply(toApplicationShouldTerminate: true)`. Merker gegen doppelten Abschluss (zweites SIGTERM oder ⌘Q während `.terminateLater`): Abbau und Abschluss genau einmal. Tests: hängender Abschluss → Antwort nach der Zeitgrenze (Notfall-Grenze großzügig); zweiter Aufruf → kein zweiter Abschluss (Zähler je Instanz).
+**bug.0.3.9.012 — Langsames Volume beim Einhängen nicht verlieren (Prüf-Agent 17.10., mittel).** Seit `bug.0.3.9.002` gibt `VolumeLookup.info` nach 5 s `nil` zurück; `MediumMonitor` verwirft dann das `.appeared`. Eine Festplatte, die erst anläuft (die große Platte des Nutzers!), wird so erst beim nächsten Aufwachen oder Neustart erkannt. Nach einer Zeitgrenze im Hintergrund erneut versuchen (z. B. nach 5 s, 15 s, 30 s, danach Protokollzeile „volume nicht erreichbar“), ohne andere Volumes aufzuhalten; ein inzwischen ausgehängtes Volume nicht weiter versuchen. Hängende Lookups belegen je einen GCD-Thread: höchstens einen laufenden Lookup je Pfad zulassen. Test mit Lookup, der beim ersten Mal hängt und beim zweiten antwortet → genau ein `.appeared`.
 Status:
 
-**bug.0.3.9.010 — Absturzschreiber härten (Prüf-Agent 17.10., niedrig).** `DiskIndexLog.swift`: `lock.try()`/`unlock()` aus dem Signal-Handler entfernen (Z. ~334/336; nicht signalsicher, schützt nichts); `backtrace` einmal in `start` aufrufen (Initialisierung vorwegnehmen); `O_CLOEXEC` bei beiden `open` (Z. ~314/628); Nullbytes mitten im Ring beim Lesen überspringen (`crashSection`, gleichzeitiges `storeCrumb`). Den ungenutzten Parameter `crashAutoSend:` entfernen oder mit einem Test für Auto-Senden → `enqueue` → `consumeCrashMarker` belegen. Statuszeile von `041` („Ende-Bytes“) ist überholt, nichts tun.
+**bug.0.3.9.013 — `WriteGuard`: prozessweiter Test-Zustand (Prüf-Agent 17.10., niedrig bis mittel).** `WriteGuard.swift` Z. ~14–31: `extraAllowedRoots` und `blockedWriteCountStorage` sind prozessweit; `clearTestingOverrides()` setzt sie mitten in parallel laufenden Tests zurück; `setExtraAllowedRootsForTesting` steht nicht hinter `#if DEBUG`. Auf `@TaskLocal` bzw. Instanz umstellen (Regel 20), Test-Funktionen nur in DEBUG. `blockedWriteCount` für die Produktion behalten.
 Status:
 
-**bug.0.3.9.001 — Weitere prozessweite Test-Schalter (Befund Worker 17.10.).** `SystemNotice.center`/`testPostHandler`, `DatabaseMaintenance.incrementalVacuumEnabled`, `LaunchAtLogin.setEnabledForTesting`, `ReportScrubber.pathPatternForTesting` als Parameter, Instanz oder `@TaskLocal` (Regel 20). Akzeptanz: Parallellauf 3× grün; `grep -rn "static var.*Testing\|ForTesting" diskindex/diskindex` im Status begründet.
+**bug.0.3.9.014 — Kleinkram aus der Prüfung 8a (niedrig).**
+- a) Erkennungs-Dialog (`NewMediumDetectedDialog.swift` Z. ~25): `onExitCommand` ist im Panel vermutlich wirkungslos; Esc wie bei den Rückfragen (Panel-Ebene) umsetzen, Test per `sendEvent`.
+- b) Live-Suche (`AppState+IndexChanges.swift` Z. ~188): den Nachlauf schon beim **Start** der Direktsuche abbrechen, nicht erst nach den Ergebnissen; Test `SearchBehaviorTests` Z. ~84–103 mit größerem Abstand (z. B. 3 s), damit er unter Last nicht zu Unrecht rot wird.
+- c) `IndexerWriteReproTests` Z. ~66–68: Stillstand und Takt des Wächters aus `limits.directoryStallTimeout` bzw. einer Konstante im Produktcode lesen statt fest eintragen.
+- d) `AppState.promptPanelPlacement`: Startwert nicht aus `RuntimeEnvironment.isRunningTests`, sondern von den Tests gesetzt.
 Status:
 
-**bug.0.3.9.002 — `VolumeLookup.info` ohne Zeitgrenze (Befund Worker 17.10.).** Serielle Queue: ein hängendes Volume hält alle weiteren Lookups auf (Erkennung, Aufwachen). Zeitgrenze wie `DirectMediumAccess.probe` (einmal fortsetzbare Continuation, injizierbar, Standard 5 s; Ergebnis `nil` = kein Kandidat, Protokollzeile). Test mit hängendem Lookup: zweiter Lookup kehrt zurück. Sabotage rot ✓.
-Status:
 
-**bug.0.3.9.003 — Live-Suche: Nachlauf nach Direktlauf nicht abgebrochen (Befund Worker 17.10.).** `runSearchAfterLiveChange` bricht den ausstehenden Nachlauf nicht ab, wenn eine Suche direkt ausgelöst wird; es läuft eine überflüssige zweite Suche. Abbrechen; Test: Live-Änderung, dann sofort Direktsuche → genau eine Suche (Zähler, nach kurzem Abwarten erneut geprüft).
-Status:
+| Kennung | REPORT | Kurz |
+|---|---|---|
+| `bug.0.4.050` | 84 | Pfeiltasten in anderer Spalte → falscher Spaltenindex |
+| `bug.0.4.051` | 89 | Versions-Check-Zeilen verdrängen Absturzberichte |
+| `bug.0.4.052` | 92 | Pausentimer nach Store-Fehler |
+| `bug.0.4.053` | 93 | Versions-Sperre: Lücken (API nie erreicht, Uhr zurückgestellt, 0 Medien = „frisch“) |
+| `bug.0.4.054` | 95 | Pause in der Zählphase speichert Teilsumme |
+| `bug.0.4.055` | 96 | `getattrlistbulk`-Offsets (teilweise in `bug.0.4.016`) |
+| `bug.0.4.056` | 97 | Hot Path Matcher und Artefakte |
+| `bug.0.4.057` | 100 | Kollation der Folgeseiten (latent) |
+| `bug.0.4.058` | 104 | Feste deutsche Texte, Locale-Formatierung |
+| `bug.0.4.059` | 105 | Pausentimer leitet Dauer aus Restzeit ab |
+| `bug.0.4.060` | 106 | Popover-Höhe „Keine Treffer“ |
+| `bug.0.4.061` | 107 | Mindestanzeige (400 ms) des Ladehinweises wirkt nie |
+| `bug.0.4.062` | 132 | Sammelzeile Nebenläufigkeit (Verdacht) |
 
-**bug.0.3.9.005 — Nachprüfung Paket 6, Tests (Prüf-Agenten des Hosts 17.10., mittel).**
-- a) Feste Laufzeitgrenzen im normalen Testlauf: `ColumnSelectionScaleTests` Z. ~73–85 (< 50 ms) und `FavoritesPagingTests` Z. ~136–147 (< 300 ms). Gleiche Fehlerklasse wie `bug.0.3.9.004`. Laufzeit nur noch protokollieren (Zahl im Testbericht) oder durch eine Zählung ersetzen (Zugriffe, gebaute Zeilen); die Aussage „ohne quadratischen Aufwand“ über ein Verhältnis prüfen (z. B. 50.000 vs. 5.000 Einträge, Faktor deutlich unter 100), nicht über Wanduhr-Millisekunden.
-- b) `FavoritesPagingTests` (300-ms-Test und Tick-Test) rufen `reloadFavoritePage()` selbst auf und frieren mit `screenshotFrozenLists = true` das Laden der Ansicht ein (Regel 18). Über die echte Kette laden (`FavoritesView` im Fenster → `.task` → Laden), dann zählen.
-- c) Rückfrage beim Ignorieren: Die App überspringt `AppWindowPresenter.openIgnoreConfirmation`, wenn `RuntimeEnvironment.isRunningTests` gilt (`AppState+Media.swift` Z. ~38–40); Panel, `IgnoreConfirmDialogWindowHost` und **Esc** (`onExitCommand`, gefordert) sind ungetestet. Öffnen des Panels injizierbar machen (Instanz statt Prozess-Schalter), Test: Panel außerhalb des Bildschirms, Esc per `sendEvent` → Abbrechen, nichts ignoriert. Gleiches für `openReplaceMediumPrompt` prüfen.
-- d) `ColumnSelectionScaleTests.ignoreBatchAndMenuPlanUseSets` prüft `ContextMenuPlan` nicht; ergänzen oder umbenennen. `PopoverSearchDebounceTests`: eine veraltete **Seite** wird nicht verworfen geprüft; ergänzen. `ColumnCacheVisibleTests`: Nach-hinten-Setzen beim Lesen über `children()` und „alter Load endet nach neuem Load“ ergänzen.
-Status:
-
-**bug.0.3.9.006 — Favoriten: Zahl, Fehler, Aufräumen (Prüf-Agent des Hosts 17.10.).**
-- a) **mittel:** `AppState+IndexChanges.swift` Z. ~293–306: Die Zählabfragen der Favoriten-Seite prüfen `favoriteEditGeneration` nicht. Wird während der Zählung abgewählt, überschreibt das alte Ergebnis die gesenkte Zahl; die Fußzeile bleibt um 1 falsch. Nach der Zählung die Generation prüfen und bei Änderung neu zählen. Test mit Tor in der Zählung.
-- b) niedrig: Schlägt `setFavorites` fehl, bleibt der lokale Stand geändert (`AppState+Favorites.swift` Z. ~146–150). Lokalen Stand zurücknehmen, Protokollzeile. Test mit fehlschlagendem Store.
-- c) niedrig: `favoriteChecksumTasks` wächst je Umschalten um zwei Tasks und wird nur beim Beenden geleert; fertige Tasks entfernen.
-- d) niedrig: Beim Beenden wartet `prepareForTerminationAsync` nicht auf die Favoriten-Schreibkette (`favoriteWriteTail`); die letzten Umschaltungen können verloren gehen. Wie `bug.0.4.033`: vor dem Beenden auf die Kette warten (mit Zeitgrenze).
-- e) niedrig: Auf einer vollen Seite (> 500 Favoriten) fehlt nach dem Abwählen eine Zeile, bis neu geladen wird. Den nächsten Favoriten nachladen oder die Seite neu laden.
-Status:
-
-**bug.0.3.9.007 — Kleinkram aus der Nachprüfung Paket 6 (niedrig).**
-- a) `IgnoreConfirmDialog.swift` Z. ~41/65: 12 pt Abstand plus `padding(.top, 8)` = 20 pt zwischen Text und Knöpfen; Katalog „Dialog: Abstand 12“ (Regel 13). Gleiches in `ReplaceMediumDialog.swift` prüfen. Messtest anpassen.
-- b) `AppWindowPresenter.closeAll` blendet das Ignorier-Panel nur aus; `ignoreConfirmationPrompt` (und `replaceMediumPrompt`) zurücksetzen.
-- c) `IndexRepository`: Nach `invalidateAll` kann der alte Load bis zum nächsten Yield den Fortschritt wieder füllen (kurz veraltete Anzeige). Fortschritt nur mit passender Generation schreiben.
-- d) Suche nach Medium sortiert innerhalb eines Mediums binär („datei 10“ vor „datei 2“); innerhalb der Seite wie bei Name natürlich nachsortieren.
-- e) `PopoverSearch.complete` (`< 3`) startet bei genau 3 Dateien und 0 Ordnern eine unnötige Zählung; Bedingung korrigieren.
-- *Bewusst so (Host 17.10.):* Ein Ordner genau auf der Scan-Tiefe darf offen bleiben (`clampPathToScanDepth` mit `<=`): die Statusspalte zeigt „Inhalt wird nicht indiziert“. Eigene Endungen in Favoriten-/Suchfiltern treffen exakt über `extID` (wie die Suche), mehrteilige Endungen wie „tar.gz“ nicht.
-Status:
-
-**HALT nach Paket 8a.**
+**HALT nach Paket 8b = Ende von 0.3.9** — Abnahmekriterien 1–6 und 8, `todo.0.3.9.001` (`MARKETING_VERSION` auf `0.3.9`), Stabilitätsprüfung; erst dann 0.4.
 
 
 
@@ -177,28 +168,6 @@ Status:
 
 ---
 
-### 0.3.9 — Paket 8b (nach 8a), danach Stabilitätsprüfung
-
-#### Paket 8b — Fehler niedriger Schwere aus dem Audit (nach 8a; Lösung im Archiv-Report, Nummer nennen)
-
-| Kennung | REPORT | Kurz |
-|---|---|---|
-| `bug.0.4.050` | 84 | Pfeiltasten in anderer Spalte → falscher Spaltenindex |
-| `bug.0.4.051` | 89 | Versions-Check-Zeilen verdrängen Absturzberichte |
-| `bug.0.4.052` | 92 | Pausentimer nach Store-Fehler |
-| `bug.0.4.053` | 93 | Versions-Sperre: Lücken (API nie erreicht, Uhr zurückgestellt, 0 Medien = „frisch“) |
-| `bug.0.4.054` | 95 | Pause in der Zählphase speichert Teilsumme |
-| `bug.0.4.055` | 96 | `getattrlistbulk`-Offsets (teilweise in `bug.0.4.016`) |
-| `bug.0.4.056` | 97 | Hot Path Matcher und Artefakte |
-| `bug.0.4.057` | 100 | Kollation der Folgeseiten (latent) |
-| `bug.0.4.058` | 104 | Feste deutsche Texte, Locale-Formatierung |
-| `bug.0.4.059` | 105 | Pausentimer leitet Dauer aus Restzeit ab |
-| `bug.0.4.060` | 106 | Popover-Höhe „Keine Treffer“ |
-| `bug.0.4.061` | 107 | Mindestanzeige (400 ms) des Ladehinweises wirkt nie |
-| `bug.0.4.062` | 132 | Sammelzeile Nebenläufigkeit (Verdacht) |
-
-**HALT nach Paket 8b = Ende von 0.3.9** — Abnahmekriterien 1–6 und 8, `todo.0.3.9.001` (`MARKETING_VERSION` auf `0.3.9`), Stabilitätsprüfung; erst dann 0.4.
-
 ---
 
 ### 0.4 — Beta für Beta-Tester (nach 0.3.9) (Voraussetzungen der Weitergabe, ROADMAP)
@@ -223,7 +192,7 @@ Status:
 | Kennung | Inhalt |
 |---|---|
 | `todo.0.5.001` | **Metadaten und EXIF** (Video, Foto/RAW, Audio, PDF; zweiter Durchgang nach dem Index, Markierung `_analyzed`), neue Layouts, **Wartescreen der Suche** |
-| `todo.0.5.002` | **Natürliche Namensordnung über die Seitengrenze** (Vorschlag Worker 17.10., `bug.0.4.038`): Index `items_search_natural ON items(slug COLLATE "natural", status)` als eigene Migration (Regel 27). Heute bestimmt bei mehr als 500 Treffern die binäre Ordnung, welche 500 auf die Seite kommen; innerhalb der Seite wird natürlich sortiert. Kosten: größere Datenbank und Migration bei Nutzern (`todo.0.4.025`). Erst entscheiden, wenn es im Alltag stört. |
+| `todo.0.5.002` | **Natürliche Namensordnung über die Seitengrenze** (Vorschlag Worker 17.10., `bug.0.4.038`): Index `items_search_natural ON items(slug COLLATE "natural", status)` als eigene Migration (Regel 27). Heute bestimmt bei mehr als 500 Treffern die binäre Ordnung, welche 500 auf die Seite kommen; innerhalb der Seite wird natürlich sortiert. Kosten: größere Datenbank und Migration bei Nutzern (`todo.0.4.025`). Gleiches gilt für die Sortierung nach Medium (heute innerhalb der Seite natürlich nachsortiert, `bug.0.3.9.007`). Erst entscheiden, wenn es im Alltag stört. |
 | `todo.0.6.001` | **Vorschaubilder** 250 px, Abschalter global und je Medium, Dateien `Thumbnails/<storageID>/<itemID>` |
 | `todo.0.7.001` | **CSV-Export** (Umfang, Spalten, Kodierung offen) |
 | `todo.0.8.001` | **Duplikate** über volle Prüfsumme, nach Größe gruppiert, nur im Hintergrund |

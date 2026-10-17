@@ -48,20 +48,22 @@ private func sortRig() async throws -> (app: AppState, store: IndexStoreV3) {
 
 /// 30 Dateien `datei 1.txt` … `datei 30.txt` (eine Seite): natürlich steht „datei 2“ vor „datei 10“, binär nicht.
 @MainActor
-private func naturalRig() async throws -> AppState {
+private func naturalRig(media names: [String] = ["ARCHIV"]) async throws -> AppState {
     let directory = FileManager.default.temporaryDirectory
         .appendingPathComponent("diskindex-searchnatural-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
-    let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "ARCHIV", type: .usb, decision: .index)
-    try await store.upsertMedium(medium)
-    let entries = (1...30).map { ScannedEntry(name: "datei \($0).txt", isFolder: false, sizeBytes: 1) }
-    try await store.applyDirectories(
-        mediumUUID: medium.uuid,
-        batches: [(parentID: nil, path: "/", depth: 1, entries: entries, finalize: false)],
-        seenAt: Date()
-    )
-    try await store.completeLayer(mediumUUID: medium.uuid, depth: 1)
+    for name in names {
+        let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: name, type: .usb, decision: .index)
+        try await store.upsertMedium(medium)
+        let entries = (1...30).map { ScannedEntry(name: "datei \($0).txt", isFolder: false, sizeBytes: 1) }
+        try await store.applyDirectories(
+            mediumUUID: medium.uuid,
+            batches: [(parentID: nil, path: "/", depth: 1, entries: entries, finalize: false)],
+            seenAt: Date()
+        )
+        try await store.completeLayer(mediumUUID: medium.uuid, depth: 1)
+    }
     let app = AppState(store: store)
     await app.loadStoredMedia()
     app.mainWindowDestination = .search
@@ -100,6 +102,29 @@ struct SearchSortPagingTests {
         await app.runSearch()
         let names = displayedNames(app)
         #expect(names == (1...30).reversed().map { "datei \($0).txt" }, "Anfang: \(names.prefix(4))")
+    }
+
+    /// bug.0.3.9.007 d: Nach Medium sortiert bleibt die Reihenfolge der Medien aus der Datenbank, innerhalb eines
+    /// Mediums natürlich nach Name („datei 2“ vor „datei 10“), auch absteigend.
+    @Test func mediumSortIsNaturalWithinEachMedium() async throws {
+        let app = try await naturalRig(media: ["ARCHIV", "BACKUP"])
+        defer { app.prepareForTermination() }
+        for direction in [SortDirection.ascending, .descending] {
+            app.searchState.sort = SearchSort(column: .medium, direction: direction)
+            await app.runSearch()
+            let rows = ObjectResultsOrdering.rows(
+                app.searchMatch.items,
+                sort: app.searchState.sort,
+                serverSortedColumns: SearchSort.pageOrderedColumns,
+                clientSortAvailable: app.searchMatch.allItemsOnPage,
+                mediumNames: [:]
+            )
+            let expected = (1...30).map { "datei \($0).txt" }
+            #expect(rows.map(\.name) == expected + expected, "\(direction): \(rows.prefix(4).map(\.name))")
+            let firstMedium = try #require(rows.first?.mediumID)
+            #expect(rows.prefix(30).allSatisfy { $0.mediumID == firstMedium })
+            #expect(rows.dropFirst(30).allSatisfy { $0.mediumID != firstMedium })
+        }
     }
 
     /// Über 500 Treffer bleibt der Kopf „Name“ klickbar, Pfad und Status nicht.

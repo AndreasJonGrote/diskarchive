@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Laufende Instanz, an die übergeben wird (aus `resolveSingleInstance`).
     private var handOffTarget: NSRunningApplication?
     private let terminationSignal = DispatchTerminationSignalSource()
+    private lazy var terminationFlow = TerminationFlow(log: DiskIndexLog.shared)
 
     /// Vor `install`, damit kein zweites Menüleisten-Icon aufblitzt (Aufgabe 30.1).
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -148,7 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !Self.isRunningUnitTests else { return .terminateNow }
         return MainActor.assumeIsolated {
-            AppStartup.shouldTerminate(
+            terminationFlow.shouldTerminate(
                 handedOff: handedOff,
                 teardown: {
                     MenuBarController.shared.uninstallFromStatusBar()
@@ -157,8 +158,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 },
                 finish: {
                     await AppStartup.finishTermination(appState: AppDelegateBridge.appState, log: DiskIndexLog.shared)
-                    NSApp.reply(toApplicationShouldTerminate: true)
-                }
+                },
+                reply: { NSApp.reply(toApplicationShouldTerminate: true) }
             )
         }
     }

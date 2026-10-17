@@ -27,12 +27,10 @@ enum LaunchAtLogin {
         SMAppService.agent(plistName: agentPlistName)
     }
 
-    /// Testattrappe. Wenn gesetzt, ersetzt sie die Systemabfrage.
-    nonisolated(unsafe) static var stateProvider: (() -> State)?
-
+    /// Echte Systemabfrage. Aufrufer gehen über `AppState.launchAtLoginStateProvider`, damit Tests
+    /// sie je Instanz ersetzen können (bug.0.3.9.001).
     nonisolated static var state: State {
-        if let stateProvider { return stateProvider() }
-        return switch agent.status {
+        switch agent.status {
         case .enabled: .on
         case .requiresApproval: .requiresApproval
         case .notRegistered, .notFound: .off
@@ -45,14 +43,9 @@ enum LaunchAtLogin {
         state != .off
     }
 
-    /// Testattrappe. Wenn gesetzt, ersetzt sie die Systemregistrierung.
-    nonisolated(unsafe) static var setEnabledForTesting: ((Bool) -> Void)?
-
+    /// Echte Systemregistrierung. Aufrufer gehen über `AppState.launchAtLoginRegister`, damit Tests
+    /// sie je Instanz ersetzen können (bug.0.3.9.001).
     nonisolated static func setEnabled(_ enabled: Bool) {
-        if let setEnabledForTesting {
-            setEnabledForTesting(enabled)
-            return
-        }
         if enabled {
             switch agent.status {
             case .notRegistered, .notFound:

@@ -128,25 +128,25 @@ struct FavoritesTableWindowTests {
         )
     }
 
-    @Test func tenThousandFavoritesRenderFirstUnder300ms() async throws {
+    /// bug.0.3.9.005 a/b: Laden über die echte Kette (Fenster → `.task` → Seite), ohne Wanduhr-Grenze. Geprüft wird
+    /// gezählt: eine Seite (500) statt 10.000 Zeilen geladen, nur sichtbare Zeilen gebaut; die Dauer wird protokolliert.
+    @Test func tenThousandFavoritesLoadOnePageAndBuildOnlyVisibleRows() async throws {
         let names = (0..<10_000).map { String(format: "datei-%05d.txt", $0) }
         let rig = try await FavoritesRig.make(names: names)
         rig.app.mainWindowDestination = .favorites
         let probe = ObjectRowRenderProbe()
-        // Erste Darstellung: Seite laden (Abfrage) und das Fenster einmal zeichnen.
         let started = ContinuousClock.now
-        await rig.app.reloadFavoritePage()
-        rig.app.screenshotFrozenLists = true
         let session = open(rig.app, probe: probe)
         defer { session.close() }
-        session.window.contentView?.layoutSubtreeIfNeeded()
-        session.window.display()
+        let loaded = await waitUntil(timeout: 20) {
+            rig.app.favoriteObjects.count == SearchIndex.pageLimit && rig.app.favoriteItemCount == 10_000
+        }
+        await PixelProbe.settleOpenWindow(session)
         let elapsed = started.duration(to: .now)
         let ms = Double(elapsed.components.attoseconds) / 1e15 + Double(elapsed.components.seconds) * 1000
-        print("bug.0.4.040 Messung: 10.000 Favoriten, erste Darstellung \(String(format: "%.1f", ms)) ms, Zeilen gebaut \(probe.rowBodies)")
-        #expect(rig.app.favoriteObjects.count == SearchIndex.pageLimit)
-        #expect(rig.app.favoriteItemCount == 10_000)
-        #expect(elapsed < .milliseconds(300), "erste Darstellung \(ms) ms")
+        print("bug.0.4.040 Messung: 10.000 Favoriten, Fenster bis geladen \(String(format: "%.1f", ms)) ms, Zeilen gebaut \(probe.rowBodies)")
+        #expect(loaded, "Ansicht lädt die Favoriten nicht (Seite \(rig.app.favoriteObjects.count), Zahl \(String(describing: rig.app.favoriteItemCount)))")
+        #expect(rig.app.favoriteObjects.count == SearchIndex.pageLimit, "nur eine Seite geladen")
         #expect(probe.rowBodies > 0, "Zeilen gezeichnet")
         #expect(probe.rowBodies < 100, "nur sichtbare Zeilen gebaut (lazy), gebaut: \(probe.rowBodies)")
     }
@@ -155,11 +155,14 @@ struct FavoritesTableWindowTests {
         let names = (0..<2_000).map { String(format: "datei-%05d.txt", $0) }
         let rig = try await FavoritesRig.make(names: names)
         rig.app.mainWindowDestination = .favorites
-        await rig.app.reloadFavorites()
-        rig.app.screenshotFrozenLists = true
         let probe = ObjectRowRenderProbe()
         let session = open(rig.app, probe: probe)
         defer { session.close() }
+        // bug.0.3.9.005 b: die Ansicht lädt selbst (`.task`), kein Neuladen von Hand, kein Einfrieren.
+        let loaded = await waitUntil(timeout: 20) {
+            rig.app.favoriteObjects.count == SearchIndex.pageLimit && rig.app.favoriteItemCount == 2_000
+        }
+        try #require(loaded, "Ansicht lädt die Favoriten nicht")
         await PixelProbe.settleOpenWindow(session)
         let built = probe.rowBodies
         #expect(built > 5, "sichtbare Zeilen gebaut: \(built)")

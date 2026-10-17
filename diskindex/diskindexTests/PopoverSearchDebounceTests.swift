@@ -13,14 +13,14 @@ import Testing
 @Suite(.serialized) @MainActor
 struct PopoverSearchDebounceTests {
     /// 600 Dateien `Rechnung_…`: die Dateigruppe ist voll, die Zahl muss also nachgereicht werden.
-    private func rig() async throws -> (app: AppState, store: IndexStoreV3) {
+    private func rig(files: Int = 600) async throws -> (app: AppState, store: IndexStoreV3) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-popoverdebounce-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "BUERO", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
-        let entries = (0..<600).map { ScannedEntry(name: String(format: "Rechnung_%03d.pdf", $0), isFolder: false, sizeBytes: 1) }
+        let entries = (0..<files).map { ScannedEntry(name: String(format: "Rechnung_%03d.pdf", $0), isFolder: false, sizeBytes: 1) }
         try await store.applyDirectories(
             mediumUUID: medium.uuid,
             batches: [(parentID: nil, path: "/", depth: 1, entries: entries, finalize: false)],
@@ -118,5 +118,57 @@ struct PopoverSearchDebounceTests {
         app.prepareForTermination()
         #expect(app.popoverSearchTask == nil)
         #expect(app.popoverCountTask == nil)
+    }
+
+    /// bug.0.3.9.007 e: Genau 3 Dateien und 0 Ordner füllen die Gruppe, es gibt aber nicht mehr → keine Zählung.
+    /// 4 Dateien → Zählung, gezeigt bleiben 3.
+    @Test func exactlyThreeHitsNeedNoCount() async throws {
+        let (app, store) = try await rig(files: 3)
+        defer { app.prepareForTermination() }
+        app.popoverSearchDebounce = .zero
+        let before = store.searchCountCalls.value
+        app.popoverSearchText = "rechnung"
+        app.schedulePopoverSearch()
+        await app.waitForPopoverSearch()
+        #expect(store.searchCountCalls.value == before, "Zählabfragen: \(store.searchCountCalls.value - before)")
+        #expect(app.popoverResults.totalCount == 3)
+        #expect(!app.popoverResults.isCountPending)
+
+        let (four, fourStore) = try await rig(files: 4)
+        defer { four.prepareForTermination() }
+        four.popoverSearchDebounce = .zero
+        four.popoverSearchText = "rechnung"
+        four.schedulePopoverSearch()
+        await four.waitForPopoverSearch()
+        #expect(fourStore.searchCountCalls.value >= 1)
+        #expect(four.popoverResults.totalCount == 4)
+        #expect(four.popoverResults.groups.first { $0.title == "DATEIEN" }?.hits.count == 3)
+    }
+
+    /// bug.0.3.9.005 d: Eine überholte **Seite** (alte Eingabe, Abfrage läuft noch) kommt nach der neuen an und wird verworfen.
+    @Test func aStalePageIsDropped() async throws {
+        let (app, store) = try await rig()
+        defer { app.prepareForTermination() }
+        app.popoverSearchDebounce = .zero
+        let hold: Duration = .milliseconds(600)
+        await store.setSearchQueryHold((query: "rechnung_1", duration: hold))
+        let before = store.searchCalls.value
+        app.popoverSearchText = "rechnung_1"
+        app.schedulePopoverSearch()
+        // Die alte Seitenabfrage steht im Store (nicht abbrechbar) …
+        let held = await waitUntil(timeout: 5) { store.searchCalls.value > before }
+        try #require(held, "alte Seitenabfrage lief nicht an")
+        let heldAt = ContinuousClock.now
+        // … während die neue Eingabe durchläuft.
+        app.popoverSearchText = "rechnung_00"
+        app.schedulePopoverSearch()
+        await app.waitForPopoverSearch()
+        #expect(app.popoverResults.groups.first { $0.title == "DATEIEN" }?.hits.first?.title == "Rechnung_000.pdf")
+        // Alte Seite fertig: ihre Dateiabfrage kehrt nach dem Halten zurück (danach bricht sie ab, ihre Seite ist leer
+        // und käme ohne Prüfung über die neue). Warten bis nach dem Halten, mit Reserve.
+        try await Task.sleep(until: heldAt + hold + .milliseconds(400), clock: .continuous)
+        #expect(app.popoverResults.totalCount == 10, "Zahl \(app.popoverResults.totalCount)")
+        #expect(app.popoverResults.groups.first { $0.title == "DATEIEN" }?.hits.first?.title == "Rechnung_000.pdf")
+        await store.setSearchQueryHold(nil)
     }
 }

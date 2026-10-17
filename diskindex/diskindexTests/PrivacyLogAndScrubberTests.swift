@@ -69,9 +69,8 @@ import Testing
 
     /// Sabotage: alter Pfad-Regex ohne file:// → file-URL bleibt ungescrubbt → rot.
     @Test func sabotageOldPathRegexLeavesFileURL() {
-        defer { ReportScrubber.pathPatternForTesting = nil }
-        ReportScrubber.pathPatternForTesting = #"(?:/Volumes|/Users|~)[^\n\"']*"#
-        let scrubbed = ReportScrubber.text("file:///Volumes/O'Brien/x")
+        let oldPattern = #"(?:/Volumes|/Users|~)[^\n\"']*"#
+        let scrubbed = ReportScrubber.text("file:///Volumes/O'Brien/x", pathPattern: oldPattern)
         #expect(scrubbed.contains("O'Brien") || scrubbed.contains("file://"), "Sabotage muss rot zeigen")
     }
 

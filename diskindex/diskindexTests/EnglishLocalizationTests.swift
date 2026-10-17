@@ -73,17 +73,17 @@ struct EnglishLocalizationTests {
 
     @Test func noticeBodyAndNumbersFollowTheLanguage() throws {
         func body(_ language: AppDisplayLanguage) -> String? {
-            let previous = SystemNotice.testPostHandler
-            defer { SystemNotice.testPostHandler = previous }
             var captured: String?
-            SystemNotice.testPostHandler = { request, _ in captured = request.content.body }
-            L10n.$languageOverride.withValue(language) {
-                SystemNotice.postIndexedComplete(
-                    name: "Stick",
-                    objectCount: 1_234_567,
-                    durationSeconds: 120,
-                    settings: AppSettings()
-                )
+            let hooks = NoticeTestHooks(post: { request, _ in captured = request.content.body })
+            SystemNotice.$testHooks.withValue(hooks) {
+                L10n.$languageOverride.withValue(language) {
+                    SystemNotice.postIndexedComplete(
+                        name: "Stick",
+                        objectCount: 1_234_567,
+                        durationSeconds: 120,
+                        settings: AppSettings()
+                    )
+                }
             }
             return captured
         }

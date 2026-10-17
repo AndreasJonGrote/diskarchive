@@ -80,28 +80,6 @@ import Testing
         #expect(lesenLines.count <= 10)
     }
 
-    @Test func bulkReadMatchesFileCountAndSkipsAppleDouble() throws {
-        let root = FileManager.default.temporaryDirectory.appendingPathComponent("bulk-read-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: root) }
-
-        for index in 0..<2_500 {
-            let file = root.appendingPathComponent("file-\(index).txt")
-            try Data("x".utf8).write(to: file)
-            let dot = root.appendingPathComponent("._file-\(index).txt")
-            try Data("y".utf8).write(to: dot)
-        }
-
-        let started = ContinuousClock.now
-        let result = try BulkDirectoryReader.readResult(at: root)
-        let elapsed = started.duration(to: .now)
-
-        #expect(result.stats.usedBulk)
-        #expect(!result.stats.usedFallback)
-        #expect(result.entries.count == 2_500)
-        #expect(elapsed < .seconds(2))
-    }
-
     @Test func bulkReadStreamsInChunks() async throws {
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("bulk-chunk-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
@@ -182,4 +160,32 @@ import Testing
         #expect(!result.stats.usedFallback)
         #expect(result.entries.count == 200)
     }
+}
+
+/// bug.0.3.9.008: Die 2-s-Grenze auf echtem Dateisystem misst bewusst Laufzeit, darum seriell in der Messgruppe.
+extension MeasurementTestGroup {
+@Suite(.serialized)
+struct BulkDirectoryReaderMeasurementTests {
+    @Test func bulkReadMatchesFileCountAndSkipsAppleDouble() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("bulk-read-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        for index in 0..<2_500 {
+            let file = root.appendingPathComponent("file-\(index).txt")
+            try Data("x".utf8).write(to: file)
+            let dot = root.appendingPathComponent("._file-\(index).txt")
+            try Data("y".utf8).write(to: dot)
+        }
+
+        let started = ContinuousClock.now
+        let result = try BulkDirectoryReader.readResult(at: root)
+        let elapsed = started.duration(to: .now)
+
+        #expect(result.stats.usedBulk)
+        #expect(!result.stats.usedFallback)
+        #expect(result.entries.count == 2_500)
+        #expect(elapsed < .seconds(2))
+    }
+}
 }

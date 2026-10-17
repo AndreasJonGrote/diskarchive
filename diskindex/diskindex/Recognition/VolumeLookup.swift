@@ -7,20 +7,40 @@ import Darwin
 import Foundation
 
 nonisolated enum VolumeLookup {
-    private static let queue = DispatchQueue(label: "app.diskarchive.volume-lookup")
+    /// Zeitgrenze je Abfrage (bug.0.3.9.002), wie `DirectMediumAccess.probeTimeout`.
+    static let defaultTimeout: TimeInterval = 5
 
-    static func info(at url: URL) async -> VolumeInfo? {
+    /// Volume-Daten abseits des Hauptfadens. Jede Abfrage läuft für sich (nebenläufige Queue statt einer seriellen):
+    /// ein hängendes Volume hält keine weitere Abfrage auf. Nach `timeout` Sekunden kehrt der Aufruf mit `nil`
+    /// (kein Kandidat) zurück und wartet nicht auf die blockierte Abfrage. `lookup` und `logTimeout` (erhält den
+    /// Pfad): nur Tests ersetzen sie, damit kein Testlauf in das gemeinsame Protokoll schreibt.
+    static func info(
+        at url: URL,
+        timeout: TimeInterval = defaultTimeout,
+        lookup: @escaping @Sendable (URL) -> VolumeInfo? = { infoSync(at: $0) },
+        logTimeout: @escaping @Sendable (String) -> Void = { logTimeoutLine(path: $0) }
+    ) async -> VolumeInfo? {
+        // Abfrage und Zeitgeber setzen dieselbe Continuation fort; der Erste gewinnt, der Verlierer wird verworfen.
         await withCheckedContinuation { continuation in
-            queue.async {
-                continuation.resume(returning: infoSync(at: url))
+            let once = LookupResumeOnce(continuation)
+            DispatchQueue.global(qos: .utility).async {
+                once.resume(lookup(url))
+            }
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout) {
+                if once.resume(nil) {
+                    logTimeout(url.path)
+                }
             }
         }
+    }
+
+    static func logTimeoutLine(path: String) {
+        DiskIndexLog.shared.record(.medium, .error, "volume-lookup zeitgrenze", privateDetail: path)
     }
 
     private static func infoSync(at url: URL) -> VolumeInfo? {
         #if DEBUG
         dispatchPrecondition(condition: .notOnQueue(.main))
-        VolumeLookupTestHooks.infoCallCount += 1
         #endif
         let path = url.path
         let keys: Set<URLResourceKey> = [
@@ -61,8 +81,24 @@ nonisolated enum VolumeLookup {
     }
 }
 
-#if DEBUG
-nonisolated enum VolumeLookupTestHooks {
-    static var infoCallCount = 0
+/// Setzt eine Continuation höchstens einmal fort (Abfrage gegen Zeitgrenze, bug.0.3.9.002).
+nonisolated private final class LookupResumeOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<VolumeInfo?, Never>?
+
+    init(_ continuation: CheckedContinuation<VolumeInfo?, Never>) {
+        self.continuation = continuation
+    }
+
+    /// `true`, wenn dieser Aufruf fortgesetzt hat; spätere Aufrufe werden verworfen.
+    @discardableResult
+    func resume(_ result: VolumeInfo?) -> Bool {
+        let pending: CheckedContinuation<VolumeInfo?, Never>? = lock.withLock {
+            let value = continuation
+            continuation = nil
+            return value
+        }
+        pending?.resume(returning: result)
+        return pending != nil
+    }
 }
-#endif

@@ -436,9 +436,8 @@ final class MediumCoordinator {
             }
             let connection: ConnectionStatus = volume(for: mediumID) != nil ? .connected : .offline
             publish(stored, connection: connection)
-            if appState.offerReplaceMediumPrompt(newID: mediumID), !Self.isRunningUnitTests {
-                AppWindowPresenter.openReplaceMediumPrompt(appState: appState)
-            }
+            // Öffnet das Panel selbst, wenn `appState.promptPanelPlacement` gesetzt ist (bug.0.3.9.005 c).
+            appState.offerReplaceMediumPrompt(newID: mediumID)
             guard allowIndexing, let volume = volume(for: mediumID) else { return }
             requestIndex(mediumID: mediumID, volume: volume)
         }

@@ -31,6 +31,36 @@ struct ReplaceMediumDialogWindowTests {
         #expect(abs(probe.keep.height - 38.8) <= 0.5, "Behalten hoch \(probe.keep.height)")
         #expect(abs(probe.forget.minY - probe.keep.minY) <= 0.5)
         #expect(probe.forget.maxX < probe.keep.minX)
+        // bug.0.3.9.007 a: Katalog „Dialog: Abstand 12“ zwischen Text und Knöpfen.
+        let textToButtons = min(probe.forget.minY, probe.keep.minY) - probe.dialog.minY - 17
+            - dialogTextHeight(ReplaceMediumDialog.text(prompt))
+        #expect(abs(textToButtons - 12) <= 0.5, "Abstand Text–Knöpfe \(textToButtons)")
+    }
+
+    /// bug.0.3.9.005 c: Rückfrage über `offerReplaceMediumPrompt` (Aufruf des Erkennungs-Coordinators) öffnet das
+    /// echte Panel; Esc per `window.sendEvent` → Behalten, beide Medien bleiben.
+    @Test(arguments: [false, true])
+    func escapeInTheRealPanelKeepsBothMedia(viaKeyEquivalent: Bool) async throws {
+        let (app, store, oldID, newID) = try await twoMedia()
+        app.promptPanelPlacement = .offscreen
+        defer { AppWindowPresenter.closePromptPanels(for: app) }
+        #expect(app.offerReplaceMediumPrompt(newID: newID))
+        let panel = try #require(AppWindowPresenter.replaceMediumPromptPanel(for: app))
+        #expect(panel.isVisible)
+        #expect(panel.frame.minX <= -10_000 && panel.frame.minY <= -10_000, "Panel \(panel.frame)")
+        #expect(!panel.isKeyWindow)
+        try await Task.sleep(for: .milliseconds(300))
+
+        try sendEscape(to: panel, viaKeyEquivalent: viaKeyEquivalent)
+        let closed = await waitUntil(timeout: 3) {
+            app.replaceMediumPrompt == nil && AppWindowPresenter.replaceMediumPromptPanel(for: app) == nil
+        }
+        #expect(closed)
+        #expect(!panel.isVisible)
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(app.medium(with: oldID) != nil)
+        #expect(app.medium(with: newID) != nil)
+        #expect(try await store.medium(uuid: oldID) != nil)
     }
 
     @Test func keepClosesThePromptAndLeavesBothMedia() async throws {

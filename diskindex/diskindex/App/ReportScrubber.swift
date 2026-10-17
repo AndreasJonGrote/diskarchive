@@ -8,20 +8,17 @@
 import Foundation
 
 nonisolated enum ReportScrubber {
-    #if DEBUG
-    /// Sabotage-Tests: alter Pfad-Regex ohne `file://` und ohne Zeilenende.
-    nonisolated(unsafe) static var pathPatternForTesting: String?
-    #endif
+    /// Pfade bis Zeilenende; inkl. file:// (bug.0.4.011 d).
+    static let defaultPathPattern = #"(?:/Volumes|/Users|~|file://)[^\n]*"#
 
     static func text(_ input: String) -> String {
+        text(input, pathPattern: defaultPathPattern)
+    }
+
+    /// `pathPattern`: nur Sabotage-Tests geben einen anderen Regex mit (bug.0.3.9.001: Parameter statt Schalter).
+    static func text(_ input: String, pathPattern: String) -> String {
         var value = input
         value = replace(value, pattern: #"query=([^\n]+)"#) { queryProfile(String($0)) }
-        // Pfade bis Zeilenende; inkl. file:// (bug.0.4.011 d).
-        #if DEBUG
-        let pathPattern = pathPatternForTesting ?? #"(?:/Volumes|/Users|~|file://)[^\n]*"#
-        #else
-        let pathPattern = #"(?:/Volumes|/Users|~|file://)[^\n]*"#
-        #endif
         value = replace(value, pattern: pathPattern) { pathProfile(String($0)) }
         // Typografische und ASCII-Anführungszeichen.
         value = replace(value, pattern: #"[„“«»][^„“«»\n]{1,240}[„“«»]"#) { nameProfile(stripQuotes(String($0))) }

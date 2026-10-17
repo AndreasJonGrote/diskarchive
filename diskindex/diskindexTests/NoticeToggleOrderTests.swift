@@ -43,19 +43,14 @@ extension WindowTestGroup {
 @MainActor
 @Suite
 struct NoticeToggleOrderTests {
+    /// bug.0.3.9.001: Attrappe nur für diesen Task (`@TaskLocal`), kein prozessweites `SystemNotice.center`.
     private func withCenter(_ body: (AppState, DelayedCenter) async -> Void) async {
-        let previousCenter = SystemNotice.center
-        let previousHandler = SystemNotice.testPostHandler
-        SystemNotice.testPostHandler = nil
-        defer {
-            SystemNotice.center = previousCenter
-            SystemNotice.testPostHandler = previousHandler
-        }
         let app = AppState()
         let center = DelayedCenter()
         center.app = app
-        SystemNotice.center = center
-        await body(app, center)
+        await SystemNotice.$testHooks.withValue(NoticeTestHooks(center: center)) {
+            await body(app, center)
+        }
     }
 
     @Test func offPostsBeforeEffectiveFalls() async {

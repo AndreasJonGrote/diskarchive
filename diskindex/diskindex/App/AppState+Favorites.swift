@@ -103,11 +103,46 @@ extension AppState {
             indexRepository.setFavoritesLocally(ids: objects.map(\.id), isFavorite: next)
         }
         let pageRowIDs = Set(favoriteObjects.compactMap(\.item.rowID))
-        let reloadsPage = next || !rowIDs.isSubset(of: pageRowIDs)
+        // Neu gesetzt, abgewählt außerhalb der Seite oder eine volle Seite (dann rückt der nächste Favorit nach,
+        // bug.0.3.9.006 e): nach dem Schreiben die Seite neu laden.
+        let pageWasFull = favoriteObjects.count >= SearchIndex.pageLimit
+        let reloadsPage = next || !rowIDs.isSubset(of: pageRowIDs) || pageWasFull
         patchListsFavorite(rowIDs: rowIDs, next)
         guard let store = indexStore, !rowIDs.isEmpty else { return }
         enqueueFavoriteWrite(store: store, objects: objects, rowIDs: Array(rowIDs), next, reloadsPage: reloadsPage)
         if favoriteRowIDs == nil { scheduleFavoriteIDsLoad() }
+    }
+
+    /// bug.0.3.9.006 b: Schreiben fehlgeschlagen — den lokalen Stand aus der Datenbank wiederherstellen (nicht einen
+    /// gemerkten Vorher-Stand zurückspielen: schlagen mehrere Schreibvorgänge derselben Zeile fehl, stimmte die
+    /// Reihenfolge nicht). Nach der Kette Kennungen neu lesen, dann Spalten-Cache, Suche und Favoriten-Seite angleichen.
+    private func restoreFavoritesFromStore(objects: [ObjectContextTarget], next: Bool, error: Error) {
+        DiskIndexLog.shared.record(.store, .error, "setFavorites fehlgeschlagen, Stand aus der Datenbank count=\(objects.count) next=\(next) \(error)")
+        favoriteEditGeneration += 1
+        let previousRestore = favoriteRestoreTask
+        favoriteRestoreTask = Task { [weak self] in
+            await previousRestore?.value
+            guard let self else { return }
+            await self.reloadFavoriteIDs()
+            guard let ids = self.favoriteRowIDs else { return }
+            for isFavorite in [true, false] {
+                let matching = objects.filter { ($0.rowID.map(ids.contains) ?? false) == isFavorite }
+                if !matching.isEmpty { self.indexRepository.setFavoritesLocally(ids: matching.map(\.id), isFavorite: isFavorite) }
+            }
+            let rowIDs = Set(objects.compactMap(\.rowID))
+            let searchIndices = self.searchMatch.items.indices.filter { index in
+                self.searchMatch.items[index].item.rowID.map(rowIDs.contains) ?? false
+            }
+            if !searchIndices.isEmpty {
+                var items = self.searchMatch.items
+                for index in searchIndices {
+                    if let rowID = items[index].item.rowID { items[index].item.isFavorite = ids.contains(rowID) }
+                }
+                self.searchMatch.items = items
+            }
+            // Abgewählte Zeilen kommen zurück, neu gesetzte verschwinden: die Seite fragt neu ab.
+            if self.mainWindowDestination == .favorites { await self.reloadFavoritePage() }
+        }
     }
 
     /// Suche und Favoriten-Seite: Favorit an den Zeilen umstellen; abgewählte Favoriten verschwinden sofort.
@@ -138,14 +173,17 @@ extension AppState {
         _ next: Bool,
         reloadsPage: Bool
     ) {
-        let previous = favoriteWriteTail
+        let tail = favoriteWriteTail
+        let writeKey = UUID()
         let write = Task { [weak self] in
-            await previous?.value
+            // bug.0.3.9.006 c: fertige Aufgaben entfernen sich selbst.
+            defer { self?.favoriteChecksumTasks[writeKey] = nil }
+            await tail?.value
             do {
                 try await store.setFavorites(itemIDs: rowIDs, next)
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
-                DiskIndexLog.shared.record(.store, .error, "setFavorites \(error)")
+                self?.restoreFavoritesFromStore(objects: objects, next: next, error: error)
                 return
             }
             // Neu gesetzter Favorit oder abgewählter außerhalb der Seite: die sichtbare Favoriten-Seite holt Zeilen und
@@ -154,14 +192,16 @@ extension AppState {
             self.favoritePageReloadTask = Task { [weak self] in await self?.reloadFavoritePage() }
         }
         favoriteWriteTail = write
-        favoriteChecksumTasks.append(write)
+        favoriteChecksumTasks[writeKey] = write
         guard next else { return }
         let mounts = objects.compactMap { object -> (Int64, String)? in
             guard let rowID = object.rowID, let mount = mountPath?(object.mediumID) else { return nil }
             return (rowID, mount)
         }
         guard !mounts.isEmpty else { return }
-        let checksums = Task {
+        let checksumKey = UUID()
+        let checksums = Task { [weak self] in
+            defer { self?.favoriteChecksumTasks[checksumKey] = nil }
             await write.value
             do {
                 for (rowID, mount) in mounts {
@@ -173,7 +213,7 @@ extension AppState {
                 DiskIndexLog.shared.record(.store, .error, "setFavorite \(error)")
             }
         }
-        favoriteChecksumTasks.append(checksums)
+        favoriteChecksumTasks[checksumKey] = checksums
     }
 
     private func scheduleFavoriteIDsLoad() {
@@ -207,6 +247,28 @@ extension AppState {
         }
     }
 
+    /// bug.0.3.9.006 d: Beenden wartet auf die Favoriten-Schreibkette, höchstens `timeout` (wie bug.0.4.033: erst
+    /// sichern, dann abbauen). `false` = Zeitgrenze erreicht (Protokollzeile), die Kette läuft dann nicht weiter mit.
+    @discardableResult
+    func waitForFavoriteWriteTail(timeout: Duration) async -> Bool {
+        // Eine Frist für alle Runden (kommt während des Wartens ein Schreibvorgang dazu, gilt nur die Restzeit).
+        let deadline = ContinuousClock.now + timeout
+        while let tail = favoriteWriteTail {
+            let remaining = ContinuousClock.now.duration(to: deadline)
+            let finished = remaining > .zero ? await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                let once = FavoriteTailResumeOnce(continuation)
+                let timer = Task { try? await Task.sleep(for: remaining); once.resume(false) }
+                Task { await tail.value; once.resume(true); timer.cancel() }
+            } : false
+            guard finished else {
+                DiskIndexLog.shared.record(.store, .error, "favoriten beenden zeitgrenze after=\(timeout)")
+                return false
+            }
+            if favoriteWriteTail == tail { return true }
+        }
+        return true
+    }
+
     #if DEBUG
     /// Tests: wartet auf alle ausstehenden Favoriten-Schreibvorgänge und das Nachladen der Kennungen.
     func waitForFavoriteWrites() async {
@@ -218,10 +280,34 @@ extension AppState {
             await load.value
             if favoriteIDsLoadTask == load { break }
         }
+        while let restore = favoriteRestoreTask {
+            await restore.value
+            if favoriteRestoreTask == restore { break }
+        }
         while let reload = favoritePageReloadTask {
             await reload.value
             if favoritePageReloadTask == reload { break }
         }
     }
     #endif
+}
+
+
+/// Setzt eine Continuation höchstens einmal fort (Favoriten-Kette gegen Zeitgrenze, bug.0.3.9.006 d).
+nonisolated private final class FavoriteTailResumeOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Bool, Never>?
+
+    init(_ continuation: CheckedContinuation<Bool, Never>) {
+        self.continuation = continuation
+    }
+
+    func resume(_ value: Bool) {
+        let pending: CheckedContinuation<Bool, Never>? = lock.withLock {
+            let current = continuation
+            continuation = nil
+            return current
+        }
+        pending?.resume(returning: value)
+    }
 }

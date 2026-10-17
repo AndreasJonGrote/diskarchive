@@ -19,9 +19,10 @@ struct PauseNoticeTextTests {
         app.appSettings.notificationsEnabled = true
         app.appSettings.notifySystem = true
         var texts: [String] = []
-        SystemNotice.testPostHandler = { request, _ in texts.append(request.content.body) }
-        defer { SystemNotice.testPostHandler = nil }
-        body(app, defaults)
+        let hooks = NoticeTestHooks(post: { request, _ in texts.append(request.content.body) })
+        SystemNotice.$testHooks.withValue(hooks) {
+            body(app, defaults)
+        }
         return texts
     }
 

@@ -84,10 +84,12 @@ struct SettingsGeneralTab: View {
                     get: { launchAtLogin != .off },
                     set: { enabled in
                         appState.launchAtLoginState = enabled ? .on : .off
+                        let register = appState.launchAtLoginRegister
+                        let readState = appState.launchAtLoginStateProvider
                         Task {
                             let state = await Task.detached {
-                                LaunchAtLogin.setEnabled(enabled)
-                                return LaunchAtLogin.state
+                                register(enabled)
+                                return readState()
                             }.value
                             if (state != .off) != enabled {
                                 LaunchAtLogin.logMismatch(requested: enabled, actual: state)

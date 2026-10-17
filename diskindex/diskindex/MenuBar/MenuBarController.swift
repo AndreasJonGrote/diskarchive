@@ -271,8 +271,9 @@ final class MenuBarController: NSObject {
         guard let appState else { return }
         let enable = appState.launchAtLoginState == .off
         appState.launchAtLoginState = enable ? .on : .off
+        let register = appState.launchAtLoginRegister
         Task { @MainActor [weak appState] in
-            await Task.detached { LaunchAtLogin.setEnabled(enable) }.value
+            await Task.detached { register(enable) }.value
             appState?.refreshLaunchAtLoginState()
         }
     }

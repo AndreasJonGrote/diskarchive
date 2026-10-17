@@ -100,6 +100,56 @@ struct IndexRepositoryInvalidateAllTests {
         #expect(loadFinished)
         #expect(!repo.hasCachedChildren(mediumID: mediumID, path: missingPath))
     }
+
+    /// bug.0.3.9.007 c: Nach `invalidateAll` schreibt der alte Load keinen Fortschritt mehr (vorher bis zum nächsten
+    /// Yield wieder gefüllt: kurz veraltete Anzeige).
+    @Test func invalidateAllClearsProgressForGood() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-invalidate-progress-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
+        let app = AppState(store: store)
+        var medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Bulk", decision: .index, indexStatus: .indexed, completedDepth: 1)
+        try await store.upsertMedium(medium)
+        medium = try #require(try await store.medium(uuid: medium.uuid))
+        let fileCount = IndexRepository.loadBatchSize + 10
+        let entries = (0..<fileCount).map { ScannedEntry(name: "file-\($0).txt", isFolder: false, sizeBytes: 1, modifiedAt: Date()) }
+        try await store.applyDirectory(mediumUUID: medium.uuid, parentID: nil, entries: entries, seenAt: Date())
+
+        let repo = app.indexRepository
+        let mediumID = medium.uuid
+        let gate = MissingFolderLoadGate()
+        var counted = false
+        var seen: [Int] = []
+        var pages = 0
+        // Am Tor nach der Zählung anhalten; nach jeder Seite (direkt nach dem Schreiben) den Fortschritt ablesen.
+        repo.loadProgressStepForTesting = { step in
+            switch step {
+            case .counted:
+                guard !counted else { return }
+                counted = true
+                await gate.pauseUntilProceed()
+            case .page:
+                pages += 1
+                let progress = repo.loadingProgress(mediumID: mediumID, path: [])
+                seen.append(progress.total)
+                seen.append(progress.loaded)
+            }
+        }
+        // Kein neuer Load nach dem Invalidieren: geprüft wird nur, was der alte Load schreibt.
+        repo.requestLoad(mediumID: mediumID, path: [])
+        await gate.waitUntilLoadAtGate()
+        repo.blocksLoadsForRuleReconcile = true
+        repo.invalidateAll()
+        #expect(repo.loadingProgress(mediumID: mediumID, path: []) == (0, 0))
+        gate.proceed()
+        let loadFinished = await waitUntil(timeout: 10) { !repo.isLoading(mediumID: mediumID, path: []) }
+        #expect(loadFinished)
+        // Der alte Load läuft bis zur ersten Seite (danach Abbruch per Generation): mindestens ein Messpunkt.
+        #expect(pages >= 1)
+        #expect(seen.allSatisfy { $0 == 0 }, "Fortschritt nach invalidateAll: \(Set(seen).sorted())")
+    }
 }
 
 @MainActor

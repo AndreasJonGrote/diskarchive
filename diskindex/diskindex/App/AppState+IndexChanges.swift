@@ -12,6 +12,10 @@ extension AppState {
     /// Tests (bug.0.4.033): z. B. `commitMediumMeta` zwischen Lesen und Schreiben.
     @TaskLocal static var writeMediumBeforePersistHook: (@Sendable (UUID, IndexStoreV3) async throws -> Void)?
     @TaskLocal static var writeMediumDelayForTesting: Duration?
+    /// Tests (bug.0.3.9.003): Abstand der Live-Suche während der Indizierung statt 2 s.
+    @TaskLocal static var liveSearchIntervalForTesting: Duration?
+    /// Tests (bug.0.3.9.006 a): Tor nach jeder Favoriten-Zählung, bevor das Ergebnis übernommen wird.
+    @TaskLocal static var favoriteCountGateForTesting: (@Sendable () async -> Void)?
     #endif
 
     func beginMediumLiveSync(_ id: UUID) {
@@ -65,9 +69,11 @@ extension AppState {
         }
     }
 
-    /// Vor Prozessende: ausstehende Nutzer-Schreibvorgänge sichern (bug.0.4.033).
+    /// Vor Prozessende: ausstehende Nutzer-Schreibvorgänge sichern (bug.0.4.033), zuerst die Favoriten-Schreibkette
+    /// (höchstens `favoriteWriteTimeout`, bug.0.3.9.006 d), denn der Abbau bricht ihre Aufgaben ab.
     @MainActor
-    func prepareForTerminationAsync() async {
+    func prepareForTerminationAsync(favoriteWriteTimeout: Duration = .seconds(3)) async {
+        await waitForFavoriteWriteTail(timeout: favoriteWriteTimeout)
         prepareForTerminationTeardown()
         let pendingIDs = Array(pendingMediumWrites.keys)
         let shouldFlush = !pendingIDs.isEmpty || (persistsSettings && storeReady && indexStore != nil)
@@ -96,7 +102,9 @@ extension AppState {
         cancelPopoverSearch()
         trailingLiveSearch?.cancel()
         trailingLiveSearch = nil
-        for task in favoriteChecksumTasks { task.cancel() }
+        for task in favoriteChecksumTasks.values { task.cancel() }
+        favoriteRestoreTask?.cancel()
+        favoriteRestoreTask = nil
         favoriteChecksumTasks.removeAll()
         for task in trailingIndexReload.values { task.cancel() }
         trailingIndexReload.removeAll()
@@ -134,6 +142,7 @@ extension AppState {
         let filters = searchState.filters
         let hasCriteria = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || filters.hasActiveFilters
         guard hasCriteria else {
+            cancelTrailingLiveSearch()
             searchMatch = SearchMatch()
             searchState.isSearchInProgress = false
             return
@@ -176,6 +185,9 @@ extension AppState {
         }
         searchMatch = match
         searchState.isSearchInProgress = false
+        // bug.0.3.9.003: Diese Suche deckt den ausstehenden Nachlauf der Live-Suche ab, außer ein reiner Sortierklick
+        // (zählt nicht neu; der Nachlauf bringt dann die Zahl auf den neuen Stand).
+        if !sortOnly { cancelTrailingLiveSearch() }
         clampSearchSortToAvailableColumns()
         // Ergebnisse stehen; die Zahl(en) kommen in einer eigenen Aufgabe nach.
         let needsCount = !sortOnly && (countPending || filters.hasActiveFilters)
@@ -228,10 +240,18 @@ extension AppState {
         }
     }
 
+    private func cancelTrailingLiveSearch() {
+        trailingLiveSearch?.cancel()
+        trailingLiveSearch = nil
+    }
+
     /// Suche nach einer Live-Meldung: Während ein Medium indiziert wird höchstens alle 2 s neu (die Meldungen
     /// kommen im Takt des Fortschritts). Eine vom Nutzer abgeschickte Suche läuft immer sofort (`runSearch`).
     func runSearchAfterLiveChange() async {
-        let interval = Duration.seconds(2)
+        var interval = Duration.seconds(2)
+        #if DEBUG
+        if let override = Self.liveSearchIntervalForTesting { interval = override }
+        #endif
         guard media.contains(where: { $0.indexStatus == .indexing }) else {
             await runSearch()
             return
@@ -292,19 +312,39 @@ extension AppState {
         } else if pageComplete {
             favoriteUnfilteredCount = objects.count
         }
+        // bug.0.3.9.006 a: Wird während einer Zählung umgeschaltet, gilt das alte Ergebnis nicht (es überschriebe die
+        // lokal gesenkte Zahl); nach dem Schreiben neu zählen.
         if !pageComplete {
-            let counted = await SearchIndex.favoriteCount(store: store, request: request, scope: scope)
-            guard generation == favoriteGeneration else { return }
+            guard let counted = await countFavoritesAfterWrites(store: store, request: request, objectFilters: true, scope: scope, generation: generation) else { return }
             favoriteItemCount = counted
         }
         if hasObjectFilters {
-            let unfiltered = await SearchIndex.favoriteCount(store: store, request: request, objectFilters: false, scope: scope)
-            guard generation == favoriteGeneration else { return }
+            guard let unfiltered = await countFavoritesAfterWrites(store: store, request: request, objectFilters: false, scope: scope, generation: generation) else { return }
             favoriteUnfilteredCount = unfiltered
         } else {
             favoriteUnfilteredCount = favoriteItemCount
         }
         lastFavoritesRequest = request
+    }
+
+    /// Zählt so lange, bis während der Zählung kein Umschalten dazwischenkam; `nil` = Seite inzwischen neu angefragt.
+    private func countFavoritesAfterWrites(
+        store: IndexStoreV3?,
+        request: FavoritesRequest,
+        objectFilters: Bool,
+        scope: IndexScope,
+        generation: Int
+    ) async -> Int? {
+        while true {
+            let edits = favoriteEditGeneration
+            let counted = await SearchIndex.favoriteCount(store: store, request: request, objectFilters: objectFilters, scope: scope)
+            #if DEBUG
+            if let gate = Self.favoriteCountGateForTesting { await gate() }
+            #endif
+            guard generation == favoriteGeneration else { return nil }
+            if edits == favoriteEditGeneration { return counted }
+            await favoriteWriteTail?.value
+        }
     }
 
     /// bug.0.4.039 (REPORT 85): Eingabe entprellt (`popoverSearchDebounce`), jede neue Eingabe bricht Seite und

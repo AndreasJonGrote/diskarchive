@@ -81,15 +81,146 @@ struct MainThreadMediumIOTests {
     }
 
     @Test func networkStyleMountPathSkipsVolumeLookup() async {
-        VolumeLookupTestHooks.infoCallCount = 0
-        let before = VolumeLookupTestHooks.infoCallCount
-        let url = URL(fileURLWithPath: "/Network/SomeShare", isDirectory: true)
         // MediumMonitor prüft nur /Volumes/ in emitMount — kein Lookup für Netzwerk-Pfade.
-        _ = url
-        #expect(before == VolumeLookupTestHooks.infoCallCount)
+        // bug.0.3.9.002: ohne den früheren prozessweiten Aufrufzähler (Regel 20).
         let paths = LocalVolumeMounts.candidateMountPaths()
         #expect(!paths.contains { $0.hasPrefix("/Network/") })
     }
+
+    /// bug.0.3.9.002: Die Abfrage hängt (am Tor, das erst am Testende öffnet) → `VolumeLookup.info` kehrt nach der
+    /// Zeitgrenze mit `nil` (kein Kandidat) zurück, wartet nicht auf die blockierte Abfrage und meldet die Zeitgrenze
+    /// (eigene Senke statt des gemeinsamen Protokolls).
+    @Test func hangingVolumeLookupReturnsNilAfterTimeout() async throws {
+        let gate = LookupHoldGate()
+        defer { gate.open() }
+        let logged = LookupLogSink()
+        let outcome = LookupOutcome()
+        let url = URL(fileURLWithPath: "/Volumes/Hang-\(UUID().uuidString)", isDirectory: true)
+        let late = Self.volume(name: "Spät")
+        Task { @MainActor in
+            outcome.result = await VolumeLookup.info(
+                at: url,
+                timeout: 0.3,
+                lookup: { _ in
+                    gate.hold(onMain: Thread.isMainThread)
+                    return late
+                },
+                logTimeout: { logged.add($0) }
+            )
+            outcome.finished = true
+            gate.finish()
+        }
+        let report = await gate.arrived()
+        try #require(report != nil, "Abfrage endete ohne Meldung")
+        #expect(report == false, "Abfrage lief auf dem Hauptfaden")
+        // Notfall-Grenze großzügig; das Tor bleibt bis zum Testende zu.
+        let returned = await waitUntil(timeout: 8) { outcome.finished }
+        #expect(returned, "info wartet auf die blockierte Abfrage")
+        #expect(outcome.result == nil)
+        #expect(logged.paths == [url.path], "Zeitgrenze nicht gemeldet")
+    }
+
+    /// bug.0.3.9.002: Ein hängendes Volume hält keine weitere Abfrage auf (vorher eine serielle Queue).
+    @Test func secondLookupReturnsWhileFirstHangs() async throws {
+        let gate = LookupHoldGate()
+        defer { gate.open() }
+        let logged = LookupLogSink()
+        let first = LookupOutcome()
+        let hangingURL = URL(fileURLWithPath: "/Volumes/Hang-\(UUID().uuidString)", isDirectory: true)
+        Task { @MainActor in
+            // Große Zeitgrenze: die erste Abfrage soll während des ganzen Tests hängen bleiben.
+            first.result = await VolumeLookup.info(
+                at: hangingURL,
+                timeout: 60,
+                lookup: { _ in
+                    gate.hold(onMain: Thread.isMainThread)
+                    return nil
+                },
+                logTimeout: { logged.add($0) }
+            )
+            first.finished = true
+            gate.finish()
+        }
+        let report = await gate.arrived()
+        try #require(report == false, "erste Abfrage hat das Tor nicht erreicht")
+
+        let second = LookupOutcome()
+        let expected = Self.volume(name: "Zweites")
+        let secondURL = URL(fileURLWithPath: expected.mountPath, isDirectory: true)
+        Task { @MainActor in
+            second.result = await VolumeLookup.info(
+                at: secondURL,
+                timeout: 60,
+                lookup: { _ in expected },
+                logTimeout: { logged.add($0) }
+            )
+            second.finished = true
+        }
+        let returned = await waitUntil(timeout: 8) { second.finished }
+        #expect(returned, "zweite Abfrage wartet hinter der hängenden ersten")
+        #expect(second.result == expected)
+        #expect(first.finished == false, "erste Abfrage hätte noch hängen müssen")
+    }
+
+    private static func volume(name: String) -> VolumeInfo {
+        VolumeInfo(
+            mountPath: "/Volumes/\(name)", name: name, fsType: "apfs",
+            volumeTotalBytes: 1_000, volumeFreeBytes: 500, diskSizeBytes: 1_000, volumeUUID: nil, createdAt: nil,
+            isRemovable: true, isEjectable: true, isInternal: false, isLocal: true,
+            deviceProtocol: nil, model: nil, isTimeMachineSnapshot: false
+        )
+    }
+}
+
+/// Tor ohne Selbstfreigabe (bug.0.3.9.002): die Abfrage meldet sich an und wartet, bis der Test öffnet (`defer`).
+private final class LookupHoldGate: @unchecked Sendable {
+    private let semaphore = DispatchSemaphore(value: 0)
+    private let stream: AsyncStream<Bool>
+    private let continuation: AsyncStream<Bool>.Continuation
+
+    init() {
+        (stream, continuation) = AsyncStream.makeStream(of: Bool.self)
+    }
+
+    /// Von der Abfrage aufgerufen (Hintergrund-Thread): melden, dann warten.
+    func hold(onMain: Bool) {
+        continuation.yield(onMain)
+        semaphore.wait()
+    }
+
+    func arrived() async -> Bool? {
+        var iterator = stream.makeAsyncIterator()
+        return await iterator.next()
+    }
+
+    func open() {
+        semaphore.signal()
+    }
+
+    /// Endet die Abfrage ohne Meldung, endet auch das Warten auf `arrived` (rot statt Hängen).
+    func finish() {
+        continuation.finish()
+    }
+}
+
+/// Eigene Protokollsenke je Test (statt `DiskIndexLog.shared`).
+private final class LookupLogSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [String] = []
+
+    func add(_ path: String) {
+        lock.withLock { stored.append(path) }
+    }
+
+    var paths: [String] {
+        lock.withLock { stored }
+    }
+}
+
+@MainActor
+private final class LookupOutcome {
+    var finished = false
+    var result: VolumeInfo?
 }
 
 /// Tor für „läuft nicht auf main“ (bug.0.3.8.004): die Arbeit meldet sich an und wartet, bis der Test öffnet.

@@ -23,7 +23,7 @@ struct ReplaceMediumDialogWindowHost: View {
             }
         }
         .fixedSize()
-        .onExitCommand {
+        .onPanelEscape {
             appState.resolveReplaceMediumPrompt(forgetOld: false)
             onDone()
         }
@@ -36,9 +36,11 @@ struct ReplaceMediumDialog: View {
     var onDone: () -> Void = {}
 
     static let width: CGFloat = 340
+    static let spacing: CGFloat = 12
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+    /// Textblock (Titel und Erklärung) über den Knöpfen; eine Quelle für Ansicht und Messtest.
+    static func text(_ prompt: ReplaceMediumPrompt) -> some View {
+        VStack(alignment: .leading, spacing: spacing) {
             Text(LayoutCopy.replaceMediumTitle(name: prompt.name))
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(DesignColor.text)
@@ -48,6 +50,13 @@ struct ReplaceMediumDialog: View {
                 .font(.system(size: 13))
                 .foregroundStyle(DesignColor.text.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    var body: some View {
+        // Katalog „Dialog: Abstand 12“ zwischen Text und Knöpfen (bug.0.3.9.007 a), kein Zusatzabstand.
+        VStack(alignment: .leading, spacing: Self.spacing) {
+            Self.text(prompt)
 
             HStack(spacing: 8) {
                 // Katalog: zwei Antworten gleich breit — der Inhalt füllt die Breite, Rahmen und Fläche folgen.
@@ -70,7 +79,6 @@ struct ReplaceMediumDialog: View {
                 .keyboardShortcut(.defaultAction)
                 .pointerCursor()
             }
-            .padding(.top, 8)
         }
         // Katalog: 340 einschließlich 1-pt-Rahmen, Innenabstand 16 innerhalb des Rahmens.
         .padding(16 + DesignBorder.width)

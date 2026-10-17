@@ -383,7 +383,11 @@ extension IndexStoreV3 {
         sort: SearchSort = SearchSort(),
         isFolder: Bool? = nil
     ) async throws -> [StoredItem] {
+        searchCalls.add(1)
         if let delay = searchQueryDelay { try await Task.sleep(for: delay) }
+        if let hold = searchQueryHold, hold.query == query {
+            await Task { try? await Task.sleep(for: hold.duration) }.value
+        }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty, !filters.hasActiveFilters { return [] }
         guard limit > 0 else { return [] }

@@ -27,6 +27,10 @@ actor IndexStoreV3 {
     var searchCountDelay: Duration?
     /// Tests: `search` braucht künstlich länger (Abbruch / Generationswechsel, 007).
     var searchQueryDelay: Duration?
+    /// Tests: `search` für einen Suchtext ohne Abbruch anhalten (bug.0.3.9.005 d).
+    var searchQueryHold: (query: String, duration: Duration)?
+    /// Zahl der Aufrufe von `search` an diesem Store (Tests).
+    nonisolated let searchCalls = NameCheckCounter()
     /// Tests: `deleteMedium` schlägt für diese UUIDs fehl (forgetAll, 007).
     var deleteMediumFailUUIDs: Set<UUID> = []
     /// Tests: Teil-Prüfsummen-Abgleich (235b); kein globales Flag (bug.0.4.010).
@@ -135,6 +139,12 @@ actor IndexStoreV3 {
     /// Tests: `search` braucht künstlich länger.
     func setSearchQueryDelay(_ delay: Duration?) {
         searchQueryDelay = delay
+    }
+
+    /// Tests (bug.0.3.9.005 d): `search` mit genau diesem Suchtext hält so lange an, ohne Abbruch (wie eine laufende
+    /// SQLite-Abfrage) — eine überholte Seite kommt so wirklich nach der neuen an.
+    func setSearchQueryHold(_ hold: (query: String, duration: Duration)?) {
+        searchQueryHold = hold
     }
 
     /// Tests: `deleteMedium` für UUIDs fehlschlagen lassen.

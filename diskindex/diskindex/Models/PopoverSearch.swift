@@ -67,11 +67,15 @@ enum PopoverSearch {
             media: media,
             maxDepth: appState.appSettings.indexedMaxDepth,
             scope: appState.indexScope,
-            perGroup: maxHitsPerGroup
+            // bug.0.3.9.007 e: ein Treffer mehr als gezeigt — nur dann gibt es mehr, als die Gruppe zeigt, und es
+            // braucht eine Zählung (vorher: genau 3 Dateien und 0 Ordner zählten unnötig nach).
+            perGroup: maxHitsPerGroup + 1
         )
-        let shown = found.files.count + found.folders.count
-        let complete = found.files.count < maxHitsPerGroup && found.folders.count < maxHitsPerGroup
-        var results = grouped(media: found.media, files: found.files, folders: found.folders, totalCount: found.media.count + shown, allMedia: media)
+        let complete = found.files.count <= maxHitsPerGroup && found.folders.count <= maxHitsPerGroup
+        let files = Array(found.files.prefix(maxHitsPerGroup))
+        let folders = Array(found.folders.prefix(maxHitsPerGroup))
+        let shown = files.count + folders.count
+        var results = grouped(media: found.media, files: files, folders: folders, totalCount: found.media.count + shown, allMedia: media)
         results.isCountPending = !complete
         return PopoverSearchPage(
             results: results,

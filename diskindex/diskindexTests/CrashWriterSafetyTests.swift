@@ -155,6 +155,78 @@ import Testing
         #expect(!report.contains("CRASH signal="))
     }
 
+    /// bug.0.3.9.010: Ein gleichzeitiges `storeCrumb` beim Absturz hinterlässt Nullbytes mitten im Ring.
+    @Test func nullBytesInsideTheRingAreSkippedWhenReading() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try Data("app info start\n".utf8).write(to: directory.appendingPathComponent("diskindex.log"))
+        var bytes = Array("CRASH signal=SIGSEGV\nui info erste\n".utf8)
+        bytes.append(contentsOf: [UInt8](repeating: 0, count: 12))
+        bytes.append(contentsOf: Array("\nui in".utf8))
+        bytes.append(contentsOf: [0, 0, 0])
+        bytes.append(contentsOf: Array("fo zweite\nframe\n".utf8))
+        try Data(bytes).write(to: crashFile(directory))
+        let log = DiskIndexLog(directory: directory)
+        log.start(installHandlers: false)
+        #expect(log.shouldShowCrashDialog)
+        let excerpt = log.crashExcerpt()
+        #expect(excerpt.signal == "SIGSEGV")
+        #expect(excerpt.stack == ["ui info erste", "ui info zweite", "frame"])
+        #expect(!excerpt.stack.contains { $0.contains("\u{0}") })
+        let report = log.report(includeCrash: true, logLineLimit: 50, actionLimit: 50)
+        #expect(report.contains("CRASH signal=SIGSEGV"))
+        #expect(!report.contains("\u{0}"))
+    }
+
+    /// bug.0.3.9.010: Parameter `crashAutoSend:` belegt. Auto-Senden an → Bericht in die eigene Warteschlange
+    /// (Endpunkt `file:`, nichts wird gesendet) → Marker verbraucht, kein Dialog. Aus → Dialog, nichts eingereiht.
+    @Test func autoSendQueuesTheCrashReportAndConsumesTheMarker() throws {
+        for autoSend in [true, false] {
+            let directory = try makeDirectory()
+            defer { try? FileManager.default.removeItem(at: directory) }
+            let pool = try ApiQueuePersistence.openQueuePool(at: directory.appendingPathComponent("queue.sqlite"))
+            let suiteName = "diskindex-crash-\(UUID().uuidString)"
+            let defaults = try #require(UserDefaults(suiteName: suiteName))
+            defer { defaults.removePersistentDomain(forName: suiteName) }
+            let reporter = IssueReporter(
+                endpoint: try #require(URL(string: "file:///dev/null")),
+                directory: directory.appendingPathComponent("outbox", isDirectory: true),
+                queuePool: pool,
+                defaults: defaults,
+                session: URLSession(configuration: .ephemeral),
+                log: { _ in },
+                makeDraft: { kind in
+                    IssueDraft(
+                        kind: kind, signature: kind, actions: [], logTail: [], crashSignal: "SIGSEGV",
+                        crashStack: ["frame"], media: 0, items: 0, dbBytes: 0
+                    )
+                }
+            )
+            reporter.sendsImmediately = false
+            try Data("app info start\n".utf8).write(to: directory.appendingPathComponent("diskindex.log"))
+            try Data("CRASH signal=SIGSEGV\nframe\n".utf8).write(to: crashFile(directory))
+            let log = DiskIndexLog(directory: directory, crashAutoSend: { autoSend }, crashReporter: reporter)
+            log.start(installHandlers: false)
+            reporter.waitForPendingEnqueuesForTesting()
+            let queued = try ApiQueuePersistence.count(pool, kind: .issueReport)
+            let handled = directory.appendingPathComponent("crash-handled", isDirectory: true)
+            let moved = (try? FileManager.default.contentsOfDirectory(at: handled, includingPropertiesForKeys: nil)) ?? []
+            let current = try String(decoding: Data(contentsOf: crashFile(directory)), as: UTF8.self)
+            if autoSend {
+                #expect(queued == 1)
+                #expect(!log.shouldShowCrashDialog)
+                #expect(moved.count == 1)
+                #expect(!current.contains("CRASH"))
+                #expect(log.crashFDForTesting >= 0)
+            } else {
+                #expect(queued == 0)
+                #expect(log.shouldShowCrashDialog)
+                #expect(moved.isEmpty)
+                #expect(current.contains("CRASH signal=SIGSEGV"))
+            }
+        }
+    }
+
     @Test func crashPathRecognizesTheWriteQueue() {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         let log = DiskIndexLog(directory: directory)

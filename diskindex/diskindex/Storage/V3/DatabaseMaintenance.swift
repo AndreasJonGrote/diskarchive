@@ -18,9 +18,6 @@ nonisolated enum MaintenancePolicy {
 }
 
 nonisolated enum DatabaseMaintenance {
-    /// Tests: Sabotage — ohne incremental_vacuum bleibt freelist hoch.
-    nonisolated(unsafe) static var incrementalVacuumEnabled = true
-
     static func readDebt(_ db: Database) throws -> Int {
         guard let raw = try String.fetchOne(
             db,
@@ -67,7 +64,6 @@ nonisolated enum DatabaseMaintenance {
     }
 
     static func runIncrementalVacuum(_ db: Database) throws {
-        guard incrementalVacuumEnabled else { return }
         for _ in 0..<MaintenancePolicy.maxVacuumPasses {
             let free = try freelistCount(db)
             if free == 0 { break }

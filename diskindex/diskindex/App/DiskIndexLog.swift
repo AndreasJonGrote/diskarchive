@@ -77,9 +77,22 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     /// Auto-Senden von Absturzberichten beim Start: je Instanz (bug.0.3.9.004/bug.0.4.041). Das gemeinsame Protokoll
     /// liest die Einstellung; Instanzen mit eigenem Ordner (Tests) senden nie und hängen so nicht am Prozesszustand.
     let crashAutoSendEnabled: () -> Bool
+    /// Ziel für den automatisch gesendeten Absturzbericht (bug.0.3.9.010): Standard `IssueReporter.shared`,
+    /// erst beim Senden aufgelöst; Tests geben eine eigene Instanz mit eigener Warteschlange mit.
+    private let crashReporter: () -> IssueReporter
 
-    init(directory: URL? = nil, byteLimit: Int = DiskIndexLog.defaultByteLimit, crashAutoSend: (() -> Bool)? = nil) {
+    init(
+        directory: URL? = nil,
+        byteLimit: Int = DiskIndexLog.defaultByteLimit,
+        crashAutoSend: (() -> Bool)? = nil,
+        crashReporter: IssueReporter? = nil
+    ) {
         self.crashAutoSendEnabled = crashAutoSend ?? (directory == nil ? { IssueConsent.autoSendEnabled() } : { false })
+        if let crashReporter {
+            self.crashReporter = { crashReporter }
+        } else {
+            self.crashReporter = { IssueReporter.shared }
+        }
         self.writesToDisk = directory != nil || !RuntimeEnvironment.isRunningTests
         self.directory = directory ?? Self.defaultDirectory
         self.byteLimit = byteLimit
@@ -147,7 +160,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         let crashText = Self.readText(crashFileURL)
         if crashText.contains("CRASH") {
             if crashAutoSendEnabled() {
-                IssueReporter.shared.enqueue(kind: "crash")
+                crashReporter().enqueue(kind: "crash")
                 consumeCrashMarker()
             } else {
                 shouldShowCrashDialog = true
@@ -172,6 +185,16 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         // bug.0.4.041: Deskriptoren hier öffnen (außerhalb des Signalkontexts); der Handler öffnet nie selbst.
         if crashFD < 0 { openCrashFile() }
         openLogFDIfNeeded()
+        // bug.0.3.9.010: `backtrace` einmal außerhalb des Signalkontexts aufrufen. Der erste Aufruf initialisiert
+        // libunwind/dyld (Sperren, Allokation); im Handler soll nur noch der schon vorbereitete Weg laufen. Ebenso
+        // `backtrace_symbols_fd` (dladdr) einmal auf /dev/null. Gegen einen Absturz bei gehaltener dyld-Sperre hilft
+        // das nicht, es nimmt nur die erste Initialisierung vorweg.
+        let warmed = backtrace(frames, Int32(Self.frameCapacity))
+        let devNull = open("/dev/null", O_WRONLY | O_CLOEXEC)
+        if devNull >= 0 {
+            backtrace_symbols_fd(frames, warmed, devNull)
+            close(devNull)
+        }
         guard installHandlers else { return }
         lock.lock()
         let already = handlersInstalled
@@ -311,7 +334,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
 
     private func reopenLogFD() {
         let previous = logFD
-        logFD = Darwin.open(fileURL.path, O_WRONLY | O_APPEND | O_CREAT, 0o600)
+        logFD = Darwin.open(fileURL.path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0o600)
         if previous >= 0 { close(previous) }
     }
 
@@ -329,11 +352,15 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     /// Schreibt die vorbereitete Spur auch dann, wenn `lock` schon gehalten wird. Signalsicher:
-    /// kein Öffnen, keine Allokation, kein `sync` auf die Schreib-Queue.
+    /// kein Öffnen, keine Allokation, kein `sync` auf die Schreib-Queue, keine Sperre (bug.0.3.9.010:
+    /// `NSLock` ist nicht signalsicher, und `try()` schützte nichts, weil bei gehaltener Sperre trotzdem
+    /// geschrieben wurde). Ohne Sperre sicher, weil der Ring nur aus Rohspeicher besteht, der in `init`
+    /// einmal angelegt und nie neu zugeteilt wird, und `crashFD` einmal in eine lokale Variable gelesen
+    /// und auf `>= 0` geprüft wird (`consumeCrashMarker` setzt ihn vor dem Schließen auf -1). Ein gleichzeitiges
+    /// `storeCrumb` kann höchstens einen Platz halb geschrieben (mit Nullbytes) hinterlassen; das Lesen
+    /// überspringt Nullbytes (`withoutNullBytes`).
     func writeCrashSnapshot(signal: Int32) {
-        let ownsLock = lock.try()
         writeRing(signal: signal)
-        if ownsLock { lock.unlock() }
     }
 
     private var isOnDiskWriteQueue: Bool {
@@ -625,7 +652,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         try? FileManager.default.createDirectory(
             at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
         )
-        let fresh = Darwin.open(url.path, O_RDWR | O_CREAT, 0o600)
+        let fresh = Darwin.open(url.path, O_RDWR | O_CREAT | O_CLOEXEC, 0o600)
         guard fresh >= 0 else { return }
         if !Self.readText(url).contains("CRASH") {
             ftruncate(fresh, Self.crashFileBytes)
@@ -646,8 +673,9 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     private func crashSection(in log: String, fallback: String) -> String? {
-        // Die frische Absturzdatei ist 64 KB Nullbytes: die zählen nicht als Inhalt.
-        let trimmedFile = fallback.trimmingCharacters(in: Self.crashFileFiller)
+        // Die frische Absturzdatei ist 64 KB Nullbytes: die zählen nicht als Inhalt. Nullbytes mitten im Ring
+        // (gleichzeitiges `storeCrumb` beim Absturz, bug.0.3.9.010) fallen ebenfalls weg.
+        let trimmedFile = Self.withoutNullBytes(fallback).trimmingCharacters(in: Self.crashFileFiller)
         if !trimmedFile.isEmpty {
             if let range = trimmedFile.range(of: "CRASH signal=") {
                 return String(trimmedFile[range.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -669,6 +697,17 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         let text = Self.readText(folder.appendingPathComponent(match))
         guard !text.isEmpty else { return nil }
         return CrashReportText.tail(text, limit: 40).joined(separator: "\n")
+    }
+
+    /// Entfernt Nullbytes; Zeilen, die nur aus Nullbytes bestanden (halb gelöschter Ringplatz), fallen ganz weg.
+    static func withoutNullBytes(_ text: String) -> String {
+        guard text.contains("\u{0}") else { return text }
+        return text.split(separator: "\n", omittingEmptySubsequences: false)
+            .compactMap { line -> String? in
+                let kept = line.replacingOccurrences(of: "\u{0}", with: "")
+                return kept.isEmpty && !line.isEmpty ? nil : kept
+            }
+            .joined(separator: "\n")
     }
 
     private static let crashFileFiller = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "\u{0}"))

@@ -19,8 +19,10 @@ enum AppWindowPresenter {
     private static var mainWindow: NSWindow?
     private static var newMediumPanels: [UUID: NSPanel] = [:]
     private static var crashReportWindow: NSPanel?
-    private static var replaceMediumPanel: NSPanel?
-    private static var ignoreConfirmPanel: NSPanel?
+    /// Rückfrage-Panels je `AppState`-Instanz (bug.0.3.9.005 c): in der App genau eins je Art; Tests mit eigener
+    /// Instanz sehen und schließen nie das Panel eines anderen Tests.
+    private static var replaceMediumPanels: [ObjectIdentifier: NSPanel] = [:]
+    private static var ignoreConfirmPanels: [ObjectIdentifier: NSPanel] = [:]
     private static var windowDelegates: [ObjectIdentifier: PresenterWindowDelegate] = [:]
 
     /// Anzahl offener Erkennungs-Panels (Tests).
@@ -149,20 +151,34 @@ enum AppWindowPresenter {
             panel.orderOut(nil)
         }
         crashReportWindow?.orderOut(nil)
-        replaceMediumPanel?.orderOut(nil)
-        ignoreConfirmPanel?.orderOut(nil)
+        closePromptPanels()
+    }
+
+    /// Schließt die Rückfrage-Panels (`appState == nil`: alle, beim Beenden) ohne Neuzeichnen; `windowWillClose`
+    /// setzt die zugehörige Rückfrage in `AppState` zurück (bug.0.3.9.007 b), sonst bliebe eine Rückfrage ohne
+    /// sichtbares Panel stehen.
+    static func closePromptPanels(for appState: AppState? = nil) {
+        let key = appState.map(ObjectIdentifier.init)
+        let panels = [replaceMediumPanels, ignoreConfirmPanels].flatMap { panels in
+            panels.filter { key == nil || $0.key == key }.map(\.value)
+        }
+        for panel in panels {
+            panel.orderOut(nil)
+            panel.contentView = nil
+            panel.close()
+        }
     }
 
     /// Rückfrage „Ersetzt dieses Medium?“ als schwebendes Panel wie der Erkennungs-Dialog (bug.0.4.031 c).
-    static func openReplaceMediumPrompt(appState: AppState) {
+    static func openReplaceMediumPrompt(appState: AppState, placement: PromptPanelPlacement = .centered) {
         guard appState.replaceMediumPrompt != nil else { return }
-        if let panel = replaceMediumPanel {
-            panel.orderFrontRegardless()
-            panel.makeKey()
+        let key = ObjectIdentifier(appState)
+        if let panel = replaceMediumPanels[key] {
+            show(panel, placement: placement)
             return
         }
         let hosting = NSHostingView(
-            rootView: ReplaceMediumDialogWindowHost(onDone: { closeReplaceMediumPrompt() })
+            rootView: ReplaceMediumDialogWindowHost(onDone: { replaceMediumPanels[key]?.close() })
                 .environment(appState)
         )
         let size = hosting.fittingSize
@@ -182,27 +198,25 @@ enum AppWindowPresenter {
         panel.contentView = hosting
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
-        panel.center()
-        register(panel) { replaceMediumPanel = nil }
-        replaceMediumPanel = panel
-        panel.orderFrontRegardless()
-        panel.makeKey()
-    }
-
-    static func closeReplaceMediumPrompt() {
-        replaceMediumPanel?.close()
+        register(panel) { [weak appState] in
+            replaceMediumPanels[key] = nil
+            appState?.replaceMediumPrompt = nil
+        }
+        replaceMediumPanels[key] = panel
+        place(panel, placement: placement)
+        show(panel, placement: placement)
     }
 
     /// Rückfrage vor dem Ignorieren vieler Ziele (bug.0.4.035), gleiches Panel wie die Medium-Rückfrage.
-    static func openIgnoreConfirmation(appState: AppState) {
+    static func openIgnoreConfirmation(appState: AppState, placement: PromptPanelPlacement = .centered) {
         guard appState.ignoreConfirmationPrompt != nil else { return }
-        if let panel = ignoreConfirmPanel {
-            panel.orderFrontRegardless()
-            panel.makeKey()
+        let key = ObjectIdentifier(appState)
+        if let panel = ignoreConfirmPanels[key] {
+            show(panel, placement: placement)
             return
         }
         let hosting = NSHostingView(
-            rootView: IgnoreConfirmDialogWindowHost(onDone: { ignoreConfirmPanel?.close() })
+            rootView: IgnoreConfirmDialogWindowHost(onDone: { ignoreConfirmPanels[key]?.close() })
                 .environment(appState)
         )
         let panel = KeyablePanel(
@@ -221,11 +235,41 @@ enum AppWindowPresenter {
         panel.contentView = hosting
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
-        panel.center()
-        register(panel) { ignoreConfirmPanel = nil }
-        ignoreConfirmPanel = panel
+        register(panel) { [weak appState] in
+            ignoreConfirmPanels[key] = nil
+            appState?.ignoreConfirmationPrompt = nil
+        }
+        ignoreConfirmPanels[key] = panel
+        place(panel, placement: placement)
+        show(panel, placement: placement)
+    }
+
+    /// Offenes Ignorier-Panel dieser Instanz (Tests, bug.0.3.9.005 c).
+    static func ignoreConfirmationPanel(for appState: AppState) -> NSPanel? {
+        ignoreConfirmPanels[ObjectIdentifier(appState)]
+    }
+
+    /// Offenes Panel „Ersetzt dieses Medium?“ dieser Instanz (Tests, bug.0.3.9.005 c).
+    static func replaceMediumPromptPanel(for appState: AppState) -> NSPanel? {
+        replaceMediumPanels[ObjectIdentifier(appState)]
+    }
+
+    private static func place(_ panel: NSPanel, placement: PromptPanelPlacement) {
+        switch placement {
+        case .centered:
+            panel.center()
+        case .offscreen:
+            panel.setFrameOrigin(PromptPanelPlacement.offscreenOrigin)
+        }
+    }
+
+    /// Gleicher Responder in App und Test; nur die App macht das Panel zum Key-Fenster (Tests: Regel 19/21).
+    private static func show(_ panel: NSPanel, placement: PromptPanelPlacement) {
         panel.orderFrontRegardless()
-        panel.makeKey()
+        panel.makeFirstResponder(panel.contentView)
+        if placement == .centered {
+            panel.makeKey()
+        }
     }
 
     static func openCrashReport() {
@@ -358,6 +402,17 @@ enum AppWindowPresenter {
         window.delegate = delegate
         window.isReleasedWhenClosed = false
     }
+}
+
+/// Wo die Rückfrage-Panels (Ignorieren, Medium ersetzen) erscheinen — je `AppState`-Instanz
+/// (`AppState.promptPanelPlacement`, bug.0.3.9.005 c), nicht über einen Prozess-Schalter.
+enum PromptPanelPlacement: Equatable {
+    /// App: Bildschirmmitte, wird Key-Fenster.
+    case centered
+    /// Tests: außerhalb des sichtbaren Bereichs, ohne Key-Fenster (Regel 19/21).
+    case offscreen
+
+    static let offscreenOrigin = NSPoint(x: -20_000, y: -20_000)
 }
 
 private final class PresenterWindowDelegate: NSObject, NSWindowDelegate {

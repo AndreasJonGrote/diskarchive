@@ -14,15 +14,18 @@ extension WindowTestGroup {
 @MainActor
 @Suite
 struct AutostartToggleTests {
-    @Test func checkboxFlipsBeforeSetEnabledReturns() {
+    @Test func checkboxFlipsBeforeSetEnabledReturns() async {
         let finished = LockedFlag()
-        LaunchAtLogin.setEnabledForTesting = { _ in
-            Thread.sleep(forTimeInterval: 0.5)
+        // Tor statt Schlaf: die Registrierung hält, bis der Test das Kästchen geprüft hat (spätestens am Testende).
+        let release = DispatchSemaphore(value: 0)
+        defer { release.signal() }
+        let app = AppState()
+        // bug.0.3.9.001: Attrappe je AppState-Instanz statt prozessweitem Schalter.
+        app.launchAtLoginRegister = { _ in
+            release.wait()
             finished.set()
         }
-        defer { LaunchAtLogin.setEnabledForTesting = nil }
-
-        let app = AppState()
+        app.launchAtLoginStateProvider = { .requiresApproval }
         let session = PixelProbe.open(
             SettingsGeneralTab(section: .advanced)
                 .environment(app)
@@ -41,6 +44,27 @@ struct AutostartToggleTests {
         let after = session.bitmap()
         #expect(!finished.isSet)
         #expect(interiorInk(in: before, rect: box) != interiorInk(in: after, rect: box))
+        release.signal()
+        // Der Klick erreicht die Attrappe dieser Instanz (also nie die echte Systemregistrierung).
+        let registered = await waitUntil(timeout: 10) { finished.isSet }
+        #expect(registered, "Klick hat die Registrierung der AppState-Instanz nicht erreicht")
+        // Danach liest der Schalter den Systemstand über die Abfrage derselben Instanz.
+        let mirrored = await waitUntil(timeout: 10) { app.launchAtLoginState == .requiresApproval }
+        #expect(mirrored, "Schalter las den Systemstand nicht über die AppState-Instanz")
+    }
+
+    /// bug.0.3.9.001: `refreshLaunchAtLoginState` fragt über die Abfrage der Instanz ab, nie auf dem Hauptfaden.
+    @Test func refreshReadsInstanceProviderOffMain() async {
+        let ranOnMain = LockedFlag()
+        let app = AppState()
+        app.launchAtLoginStateProvider = {
+            if Thread.isMainThread { ranOnMain.set() }
+            return .requiresApproval
+        }
+        app.refreshLaunchAtLoginState()
+        let mirrored = await waitUntil(timeout: 10) { app.launchAtLoginState == .requiresApproval }
+        #expect(mirrored, "Abfrage der AppState-Instanz nicht verwendet")
+        #expect(!ranOnMain.isSet)
     }
 
     private func checkboxRows(in window: NSWindow) -> [CGRect] {

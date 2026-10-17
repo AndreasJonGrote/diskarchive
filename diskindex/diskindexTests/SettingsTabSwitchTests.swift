@@ -19,14 +19,13 @@ struct SettingsTabSwitchTests {
 
     @Test func everyTabAppearsWithin50msAndProviderNeverRunsOnMain() {
         let calls = ThreadCounter()
-        LaunchAtLogin.stateProvider = {
+        let app = AppState()
+        // bug.0.3.9.001: Attrappe je AppState-Instanz statt prozessweitem Schalter.
+        app.launchAtLoginStateProvider = {
             calls.record(main: Thread.isMainThread)
             Thread.sleep(forTimeInterval: 0.3)
             return .off
         }
-        defer { LaunchAtLogin.stateProvider = nil }
-
-        let app = AppState()
         app.settingsTab = .advanced
         let session = PixelProbe.open(
             SettingsView()

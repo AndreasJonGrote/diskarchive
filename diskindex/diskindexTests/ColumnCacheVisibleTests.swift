@@ -81,6 +81,57 @@ private func visibleTree(otherFolders: Int) async throws -> (app: AppState, stor
         #expect(settled)
         #expect(!repo.hasCachedChildren(mediumID: id, path: ["Fehlt"]), "alter Load schrieb nach replaceStore")
     }
+
+    /// bug.0.3.9.005 d: Lesen über `children()` setzt den Ordner nach hinten; verdrängt wird der am längsten nicht
+    /// gelesene (ohne sichtbare Spalten, damit kein Pin mitspielt).
+    @Test func readingThroughChildrenKeepsAFolderInTheCache() async throws {
+        let tree = try await visibleTree(otherFolders: 31)
+        let repo = tree.app.indexRepository
+        let id = tree.medium.uuid
+        repo.pinVisibleColumns(mediumID: nil, pathStack: [])
+        // 30 Ordner = Grenze des Caches; F00 ist der älteste.
+        for index in 0..<30 {
+            _ = await repo.loadChildren(mediumID: id, path: [String(format: "F%02d", index)])
+        }
+        try #require(repo.hasCachedChildren(mediumID: id, path: ["F00"]))
+        _ = repo.children(mediumID: id, path: ["F00"])
+        _ = await repo.loadChildren(mediumID: id, path: ["F30"])
+        #expect(repo.hasCachedChildren(mediumID: id, path: ["F00"]), "gelesener Ordner verdrängt")
+        #expect(!repo.hasCachedChildren(mediumID: id, path: ["F01"]), "ältester ungelesener Ordner blieb")
+        #expect(repo.hasCachedChildren(mediumID: id, path: ["F30"]))
+    }
+
+    /// bug.0.3.9.005 d: Ein alter Load (vor `replaceStore`) endet, während der neue noch läuft: er räumt den Ladezustand
+    /// des neuen nicht ab und schreibt nichts; der neue Load beendet sich danach selbst.
+    @Test func anOldLoadEndingAfterTheNewOneLeavesItAlone() async throws {
+        let tree = try await visibleTree(otherFolders: 0)
+        let repo = tree.app.indexRepository
+        let id = tree.medium.uuid
+        let oldGate = OneShotGate()
+        repo.awaitMissingFolderCacheGateForTesting = { await oldGate.pause() }
+        repo.requestLoad(mediumID: id, path: ["Fehlt"])
+        let oldAtGate = await waitUntil { await oldGate.isWaiting }
+        try #require(oldAtGate)
+
+        repo.replaceStore(tree.store)
+        let newGate = OneShotGate()
+        repo.awaitMissingFolderCacheGateForTesting = { await newGate.pause() }
+        repo.requestLoad(mediumID: id, path: ["Fehlt"])
+        let newAtGate = await waitUntil { await newGate.isWaiting }
+        try #require(newAtGate)
+
+        let completedBefore = repo.loadSessionsCompletedForTesting
+        await oldGate.open()
+        let oldEnded = await waitUntil { repo.loadSessionsCompletedForTesting > completedBefore }
+        try #require(oldEnded)
+        #expect(repo.isLoading(mediumID: id, path: ["Fehlt"]), "alter Load räumte den Ladezustand des neuen ab")
+        #expect(!repo.hasCachedChildren(mediumID: id, path: ["Fehlt"]), "alter Load schrieb in den Cache")
+
+        await newGate.open()
+        let newEnded = await waitUntil { !repo.isLoading(mediumID: id, path: ["Fehlt"]) }
+        #expect(newEnded)
+        #expect(repo.hasCachedChildren(mediumID: id, path: ["Fehlt"]))
+    }
 }
 
 extension WindowTestGroup {

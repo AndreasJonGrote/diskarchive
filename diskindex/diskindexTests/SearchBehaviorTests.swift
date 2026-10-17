@@ -80,6 +80,52 @@ struct SearchBehaviorTests {
         app.prepareForTermination()
     }
 
+    /// bug.0.3.9.003: Eine direkte Suche bricht den ausstehenden Nachlauf der Live-Suche ab (keine zweite Suche).
+    @Test func directSearchCancelsThePendingLiveSearch() async throws {
+        let (app, medium) = try await appWithResults()
+        app.updateMedium(id: medium.uuid) { $0.indexStatus = .indexing }
+        try #require(app.media.contains { $0.indexStatus == .indexing })
+        let interval = Duration.seconds(1)
+        try await AppState.$liveSearchIntervalForTesting.withValue(interval) {
+            // Letzte Live-Suche „eben“: die nächste Live-Meldung plant den Nachlauf (unabhängig von der Suchdauer).
+            app.lastLiveSearchAt = .now
+            await app.runSearchAfterLiveChange()
+            try #require(app.trailingLiveSearch != nil, "Live-Meldung innerhalb des Abstands plant den Nachlauf")
+            let before = app.searchGeneration
+            await app.runSearch()
+            #expect(app.searchGeneration == before + 1)
+            #expect(app.trailingLiveSearch == nil, "Direktsuche bricht den Nachlauf ab")
+            // Über die Nachlaufzeit hinaus warten (2,5 × Abstand) und erneut zählen.
+            try await Task.sleep(for: interval * 2.5)
+            #expect(app.searchGeneration == before + 1, "Nachlauf lief trotzdem: \(app.searchGeneration - before) Suchen")
+        }
+        app.prepareForTermination()
+    }
+
+    /// bug.0.3.9.003 (Nachprüfung): Ein reiner Sortierklick zählt nicht neu und lässt den Nachlauf stehen, damit die
+    /// Zahl nach der Live-Änderung nachkommt.
+    @Test func sortOnlyClickKeepsThePendingLiveSearch() async throws {
+        let (app, medium) = try await appWithResults()
+        await app.runSearch()
+        await app.waitForSearchCount()
+        try #require(app.searchMatch.itemCount != nil)
+        app.updateMedium(id: medium.uuid) { $0.indexStatus = .indexing }
+        let interval = Duration.milliseconds(500)
+        try await AppState.$liveSearchIntervalForTesting.withValue(interval) {
+            app.lastLiveSearchAt = .now
+            await app.runSearchAfterLiveChange()
+            try #require(app.trailingLiveSearch != nil)
+            let before = app.searchGeneration
+            app.searchState.sort = SearchSort(column: .date)
+            await app.runSearch()
+            #expect(app.searchGeneration == before + 1)
+            #expect(app.trailingLiveSearch != nil, "Sortierklick darf den Nachlauf nicht abbrechen")
+            let trailed = await waitUntil(timeout: 10) { app.searchGeneration >= before + 2 }
+            #expect(trailed, "Nachlauf lief nach dem Sortierklick nicht")
+        }
+        app.prepareForTermination()
+    }
+
     @Test func emptyPopoverFieldShowsNoResultsEvenWithMainSearchFilters() async throws {
         let (app, _) = try await appWithResults()
         app.popoverSearchText = "bericht"

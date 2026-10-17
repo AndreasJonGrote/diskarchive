@@ -78,13 +78,23 @@ struct AppStartupTests {
     }
 
     /// Beenden bei Übergabe: sofort, kein Abbau, kein Abschluss (keine Protokollzeile).
-    @Test func handedOffTerminationTearsNothingDown() {
+    @Test func handedOffTerminationTearsNothingDown() throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let flow = TerminationFlow(log: DiskIndexLog(directory: folder))
         var teardowns = 0
         var finishes = 0
-        let reply = AppStartup.shouldTerminate(handedOff: true, teardown: { teardowns += 1 }, finish: { finishes += 1 })
+        var replies = 0
+        let reply = flow.shouldTerminate(
+            handedOff: true,
+            teardown: { teardowns += 1 },
+            finish: { finishes += 1 },
+            reply: { replies += 1 }
+        )
         #expect(reply == .terminateNow)
         #expect(teardowns == 0)
         #expect(finishes == 0)
+        #expect(replies == 0)
     }
 
     /// SIGTERM-Weg: Auslöser der Signalquelle → Beenden wie `NSApp.terminate` → Abbau, Checkpoint, „app terminate ok“.
@@ -96,23 +106,22 @@ struct AppStartupTests {
         let harness = try StoreHarness.make()
         let app = AppState(store: harness.store)
         let source = FakeTerminationSignalSource()
+        let flow = TerminationFlow(log: log)
         var replies: [NSApplication.TerminateReply] = []
         var teardowns = 0
         let finished = FinishFlag()
-        // Wie in der App: SIGTERM → terminate → `applicationShouldTerminate` → `AppStartup.shouldTerminate`.
+        // Wie in der App: SIGTERM → terminate → `applicationShouldTerminate` → `TerminationFlow.shouldTerminate`.
         TerminationSignal.install(source) {
-            replies.append(AppStartup.shouldTerminate(
+            replies.append(flow.shouldTerminate(
                 handedOff: false,
                 teardown: { teardowns += 1 },
-                finish: {
-                    await AppStartup.finishTermination(appState: app, log: log)
-                    finished.done = true
-                }
+                finish: { await AppStartup.finishTermination(appState: app, log: log) },
+                reply: { finished.replies += 1 }
             ))
         }
         let checkpointsBefore = harness.store.checkpointCalls.value
         source.fire()
-        let done = await waitUntil { finished.done }
+        let done = await waitUntil { finished.replies > 0 }
         #expect(done)
         #expect(replies == [.terminateLater])
         #expect(teardowns == 1)
@@ -120,6 +129,69 @@ struct AppStartupTests {
         log.flushPendingWritesForTesting()
         let text = String(decoding: try Data(contentsOf: log.fileURL), as: UTF8.self)
         #expect(text.contains("app terminate ok"))
+        #expect(!text.contains("app terminate timeout"))
+    }
+
+    /// bug.0.3.9.009: Hängt der Abschluss, kommt die Antwort nach der Zeitgrenze (hier 0,3 s statt 8 s) mit Protokollzeile.
+    @Test func hangingFinishRepliesAfterTheTimeout() async throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let log = DiskIndexLog(directory: folder)
+        let timeout: Duration = .milliseconds(300)
+        let flow = TerminationFlow(timeout: timeout, log: log)
+        let gate = FinishGate()
+        let finished = FinishFlag()
+        let started = ContinuousClock.now
+        let reply = flow.shouldTerminate(
+            handedOff: false,
+            teardown: {},
+            finish: { await gate.wait() },
+            reply: { finished.replies += 1 }
+        )
+        #expect(reply == .terminateLater)
+        // Notfall-Grenze großzügig (Last); die Aussage ist „kommt überhaupt, und nicht vor der Zeitgrenze“.
+        let done = await waitUntil(timeout: 20) { finished.replies > 0 }
+        let elapsed = started.duration(to: .now)
+        #expect(done)
+        #expect(elapsed >= timeout)
+        log.flushPendingWritesForTesting()
+        let text = String(decoding: (try? Data(contentsOf: log.fileURL)) ?? Data(), as: UTF8.self)
+        #expect(text.contains("app terminate timeout"))
+        // Der hängende Abschluss endet später: keine zweite Antwort.
+        gate.open()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(finished.replies == 1)
+    }
+
+    /// bug.0.3.9.009: Zweites SIGTERM oder ⌘Q während `.terminateLater`: Abbau und Abschluss genau einmal, eine Antwort.
+    @Test func secondTerminateStartsNothingAgain() async throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let flow = TerminationFlow(log: DiskIndexLog(directory: folder))
+        let gate = FinishGate()
+        let counts = FinishFlag()
+        var teardowns = 0
+        func terminate() -> NSApplication.TerminateReply {
+            flow.shouldTerminate(
+                handedOff: false,
+                teardown: { teardowns += 1 },
+                finish: {
+                    counts.finishes += 1
+                    await gate.wait()
+                },
+                reply: { counts.replies += 1 }
+            )
+        }
+        #expect(terminate() == .terminateLater)
+        #expect(await waitUntil { counts.finishes == 1 })
+        #expect(terminate() == .terminateLater)
+        #expect(teardowns == 1)
+        gate.open()
+        #expect(await waitUntil { counts.replies > 0 })
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(counts.finishes == 1)
+        #expect(counts.replies == 1)
+        #expect(teardowns == 1)
     }
 
     /// `O_APPEND`: zwei Schreiber auf dieselbe Datei überschreiben sich nicht (vorher: Handle sprang einmal ans Ende).
@@ -160,5 +232,25 @@ private final class FakeTerminationSignalSource: TerminationSignalSource {
 
 @MainActor
 private final class FinishFlag {
-    var done = false
+    var replies = 0
+    var finishes = 0
+}
+
+/// Tor für einen hängenden Abschluss (öffnet erst, wenn der Test es sagt).
+@MainActor
+private final class FinishGate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        let pending = waiters
+        waiters = []
+        pending.forEach { $0.resume() }
+    }
 }

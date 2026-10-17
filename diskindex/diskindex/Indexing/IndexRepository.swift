@@ -39,6 +39,14 @@ final class IndexRepository {
     /// Tests (245): Pause vor missing-folder-Cache-Write, damit `invalidateAll` dazwischen laufen kann.
     /// bug.0.3.8.007: je Instanz statt prozessweit — sonst hält der Schalter Ladevorgänge paralleler Suiten an.
     var awaitMissingFolderCacheGateForTesting: (() async -> Void)?
+    /// Tests (bug.0.3.9.007 c): Schritte des Loads rund um den Fortschritt — `.counted` nach der Zählung (vor dem
+    /// ersten Schreiben), `.page` nach jeder Seite (nach dem Schreiben, vor dem Yield).
+    var loadProgressStepForTesting: ((LoadProgressStep) async -> Void)?
+
+    enum LoadProgressStep: Equatable {
+        case counted
+        case page
+    }
     #endif
     /// Sequentiell aus der DB, damit sehr große Ordner den Ladevorgang nicht abbrechen.
     static let loadBatchSize = 2_000
@@ -272,9 +280,15 @@ final class IndexRepository {
                 }
             }
             let totalCount = try await store.childCount(mediumUUID: mediumID, parentID: parentID, scope: scope)
+            #if DEBUG
+            if let step = loadProgressStepForTesting {
+                await step(.counted)
+            }
+            #endif
             // Fortschritt nur für den eigenen Load schreiben (bug.0.4.036): nach `replaceStore` gehört der Schlüssel
-            // keinem bzw. einem neueren Load.
-            let ownsProgress = { self.loadingOwner[key] == loadToken }
+            // keinem bzw. einem neueren Load. bug.0.3.9.007 c: nach `invalidateAll` bleibt der Eigentümer, aber die
+            // Generation ist weiter — der alte Load füllt den geleerten Fortschritt nicht wieder.
+            let ownsProgress = { self.loadingOwner[key] == loadToken && self.loadGenerations[key, default: 0] == loadToken }
             if ownsProgress() {
                 loadingTotals[key] = totalCount
                 loadingLoaded[key] = 0
@@ -303,6 +317,11 @@ final class IndexRepository {
                     loadingLoaded[key] = accumulated.count
                     lastProgress = now
                 }
+                #if DEBUG
+                if let step = loadProgressStepForTesting {
+                    await step(.page)
+                }
+                #endif
                 if cursor == nil { break }
                 await Task.yield()
                 if loadGenerations[key, default: 0] != loadToken { return }

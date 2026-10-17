@@ -68,15 +68,37 @@ protocol NoticePosting: AnyObject {
 
 extension UNUserNotificationCenter: NoticePosting {}
 
+#if DEBUG
+/// Testattrappe je Task (bug.0.3.9.001, Regel 20): `post` fängt Posts ab, `center` ersetzt die Mitteilungszentrale.
+/// Gilt nur innerhalb von `SystemNotice.$testHooks.withValue(…)`, nie prozessweit.
+@MainActor
+final class NoticeTestHooks {
+    let center: NoticePosting?
+    let post: ((UNNotificationRequest, String) -> Void)?
+
+    init(center: NoticePosting? = nil, post: ((UNNotificationRequest, String) -> Void)? = nil) {
+        self.center = center
+        self.post = post
+    }
+}
+#endif
+
 enum SystemNotice {
     @MainActor
-    static var center: NoticePosting = UNUserNotificationCenter.current()
+    static let center: NoticePosting = UNUserNotificationCenter.current()
 
     #if DEBUG
-    /// Tests: fängt Posts ab, ohne `UNUserNotificationCenter` global zu ersetzen (Paralleltests).
-    @MainActor
-    static var testPostHandler: ((UNNotificationRequest, String) -> Void)?
+    /// Tests: Attrappe für den laufenden Task (statt eines prozessweiten Schalters).
+    @TaskLocal static var testHooks: NoticeTestHooks?
     #endif
+
+    @MainActor
+    private static var activeCenter: NoticePosting {
+        #if DEBUG
+        if let hooked = testHooks?.center { return hooked }
+        #endif
+        return center
+    }
 
     nonisolated static let noticesOnKind = "notices-on"
     nonisolated static let noticesOffKind = "notices-off"
@@ -166,14 +188,14 @@ enum SystemNotice {
     @MainActor
     static func submit(_ request: UNNotificationRequest, kind: String, added: (@MainActor () -> Void)? = nil) {
         #if DEBUG
-        if let testPostHandler {
-            testPostHandler(request, kind)
+        if let testPost = testHooks?.post {
+            testPost(request, kind)
             added?()
             return
         }
         #endif
         logAuthorizationStatus()
-        center.add(request) { error in
+        activeCenter.add(request) { error in
             if let error {
                 DiskIndexLog.shared.record(.app, .error, "notice post failed kind=\(kind) \(error.localizedDescription)")
             } else {
@@ -187,9 +209,9 @@ enum SystemNotice {
     @MainActor
     static func logAuthorizationStatus() {
         #if DEBUG
-        if testPostHandler != nil { return }
+        if testHooks?.post != nil { return }
         #endif
-        center.getNotificationSettings { settings in
+        activeCenter.getNotificationSettings { settings in
             let status: String
             switch settings.authorizationStatus {
             case .notDetermined: status = "notDetermined"

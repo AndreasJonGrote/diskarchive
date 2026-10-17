@@ -71,6 +71,9 @@ final class AppState {
     var indexingFailure: IndexingFailureNotice?
     var replaceMediumPrompt: ReplaceMediumPrompt?
     var ignoreConfirmationPrompt: IgnoreConfirmationPrompt?
+    /// Wo die Rückfrage-Panels erscheinen; `nil` = kein Panel (Standard im Testprozess, ein Test setzt `.offscreen`
+    /// je Instanz). bug.0.3.9.005 c.
+    @ObservationIgnored var promptPanelPlacement: PromptPanelPlacement? = RuntimeEnvironment.isRunningTests ? nil : .centered
     var versionLockState: VersionLockState = .unlocked
     var versionLockBannerVisible = false
     var updateNotice: UpdateNotice?
@@ -108,6 +111,8 @@ final class AppState {
     @ObservationIgnored var favoriteWriteTail: Task<Void, Never>?
     @ObservationIgnored var favoriteIDsLoadTask: Task<Void, Never>?
     @ObservationIgnored var favoritePageReloadTask: Task<Void, Never>?
+    /// bug.0.3.9.006 b: Wiederherstellen aus der Datenbank nach fehlgeschlagenem Schreiben (nacheinander).
+    @ObservationIgnored var favoriteRestoreTask: Task<Void, Never>?
     var popoverResults = PopoverSearchResults()
     let indexRepository: IndexRepository
     private(set) var indexStore: IndexStoreV3?
@@ -136,7 +141,8 @@ final class AppState {
     var databaseMaintenanceTask: Task<Void, Never>?
     var pendingSearchAfterRuleReconcile = false
     var pendingMediumWrites: [UUID: Task<Void, Never>] = [:]
-    @ObservationIgnored var favoriteChecksumTasks: [Task<Void, Never>] = []
+    /// Favoriten-Schreib- und Prüfsummen-Aufgaben; jede entfernt sich am Ende selbst (bug.0.3.9.006 c).
+    @ObservationIgnored var favoriteChecksumTasks: [UUID: Task<Void, Never>] = [:]
     var changeLoop: Task<Void, Never>?
     var lastChangeGeneration = 0
     var lastIndexReload: [UUID: ContinuousClock.Instant] = [:]
@@ -229,10 +235,15 @@ final class AppState {
 
     /// Spiegel von `LaunchAtLogin.state`; nur im Hintergrund gelesen.
     var launchAtLoginState: LaunchAtLogin.State = .off
+    /// Systemregistrierung „Bei Systemstart“; Tests ersetzen sie je Instanz (bug.0.3.9.001, statt statischem Schalter).
+    @ObservationIgnored var launchAtLoginRegister: @Sendable (Bool) -> Void = { LaunchAtLogin.setEnabled($0) }
+    /// Systemabfrage „Bei Systemstart“ (nur im Hintergrund); Tests ersetzen sie je Instanz (bug.0.3.9.001).
+    @ObservationIgnored var launchAtLoginStateProvider: @Sendable () -> LaunchAtLogin.State = { LaunchAtLogin.state }
 
     func refreshLaunchAtLoginState() {
+        let provider = launchAtLoginStateProvider
         Task { @MainActor [weak self] in
-            let state = await Task.detached { LaunchAtLogin.state }.value
+            let state = await Task.detached { provider() }.value
             self?.launchAtLoginState = state
         }
     }
