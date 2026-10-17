@@ -110,13 +110,6 @@ final class ChangeWatcher {
         }
     }
 
-    /// Beenden der App: alle FSEvents-Streams schließen (ohne async-Warten auf DB).
-    func stopAllWatching() async {
-        for id in Array(tasks.keys) {
-            await stop(mediumID: id)
-        }
-    }
-
     func stopAllForTermination() {
         cursorTimer?.cancel()
         cursorTimer = nil

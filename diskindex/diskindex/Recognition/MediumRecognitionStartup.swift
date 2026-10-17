@@ -25,7 +25,8 @@ enum MediumRecognitionStartup {
         appState: AppState,
         store: IndexStoreV3,
         coordinator: MediumCoordinator,
-        startChangeLoop: @escaping () -> Void
+        startChangeLoop: @escaping () -> Void,
+        makeMonitor: @escaping @MainActor () -> MediumMonitor = { MediumMonitor() }
     ) {
         DiskIndexLog.shared.record(.medium, .info, "recognition start")
         appState.attach(store: store)
@@ -35,7 +36,7 @@ enum MediumRecognitionStartup {
             await appState.hydrateSettingsFromStore()
             didHydrateSettingsBeforeRecognition = true
             didStartCoordinatorBeforeLoad = true
-            let monitor = MediumMonitor()
+            let monitor = makeMonitor()
             monitor.skipWakeAppearedIfKnown = { [weak coordinator] volume in
                 coordinator?.isKnownConnected(volume: volume) ?? false
             }
@@ -44,6 +45,7 @@ enum MediumRecognitionStartup {
             startChangeLoop()
             await appState.loadStoredMedia()
             await appState.pruneIfDue()
+            appState.scheduleLoadedPruneDeadline()
             DiskIndexLog.shared.record(.medium, .info, "loaded media=\(appState.media.count)")
         }
     }

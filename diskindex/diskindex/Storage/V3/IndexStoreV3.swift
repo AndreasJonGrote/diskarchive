@@ -998,23 +998,6 @@ actor IndexStoreV3 {
         return updated
     }
 
-    private nonisolated static func setItemStatus(_ db: Database, ids: [Int64], status: Int) throws -> Int {
-        guard !ids.isEmpty else { return 0 }
-        var updated = 0
-        var offset = 0
-        while offset < ids.count {
-            let chunk = Array(ids[offset..<min(offset + 1_000, ids.count)])
-            let marks = Array(repeating: "?", count: chunk.count).joined(separator: ",")
-            try db.execute(
-                sql: "UPDATE items SET status = ? WHERE id IN (\(marks))",
-                arguments: StatementArguments([status] + chunk)
-            )
-            updated += db.changesCount
-            offset += 1_000
-        }
-        return updated
-    }
-
     /// Löscht die Einträge (die Zusatztabellen folgen per Kaskade) und liefert die Zahl der gelöschten Einträge.
     @discardableResult
     private nonisolated static func deleteItems(_ db: Database, ids: [Int64]) throws -> Int {

@@ -9,7 +9,8 @@ import Foundation
 @MainActor
 final class IndexingService {
     #if DEBUG
-    var skipClearIndexRequestForTesting = false
+    /// Tests: gestartete Läufe je Medium, Wert = `fromScratch` (Zähler, keine Steuerung).
+    private(set) var startedRunsForTesting: [UUID: [Bool]] = [:]
     #endif
 
     private let store: IndexStoreV3
@@ -40,13 +41,6 @@ final class IndexingService {
 
     func attach(_ coordinator: MediumCoordinator) {
         self.coordinator = coordinator
-    }
-
-    private func clearIndexRequestUnlessTesting(_ mediumUUID: UUID) {
-        #if DEBUG
-        if skipClearIndexRequestForTesting { return }
-        #endif
-        coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
     func isRunActive(_ mediumUUID: UUID) -> Bool {
@@ -102,6 +96,9 @@ final class IndexingService {
             return
         }
         DiskIndexLog.shared.record(.index, .info, "auftrag medium=\(mediumUUID) scratch=\(fromScratch)")
+        #if DEBUG
+        startedRunsForTesting[mediumUUID, default: []].append(fromScratch)
+        #endif
 
         let token = UUID()
         runs[mediumUUID] = token
@@ -196,7 +193,7 @@ final class IndexingService {
             tasks[mediumUUID] = nil
         }
         BulkDirectoryReader.flushReadLogSummary(force: true)
-        clearIndexRequestUnlessTesting(mediumUUID)
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
     /// Popover-Schalter „Automatisches Indizieren“.
@@ -316,13 +313,14 @@ final class IndexingService {
             }
         }
         BulkDirectoryReader.flushReadLogSummary(force: true)
-        clearIndexRequestUnlessTesting(mediumUUID)
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
     private func resumePausedRuns() {
         guard let coordinator, !appState.globalAutoIndexPaused else { return }
         for (id, volume) in coordinator.connectedVolumes() {
-            guard !isPaused(id) else { continue }
+            // Ein aktiver Lauf ist nicht angehalten; ein Start würde nur einen zweiten Lauf nachholen (bug.0.4.028).
+            guard !isPaused(id), tasks[id] == nil else { continue }
             Task {
                 let stored: StoredMedium?
                 do {
@@ -338,6 +336,7 @@ final class IndexingService {
                 guard stored.indexStatus == .pending || stored.indexStatus == .indexing || stored.indexStatus == .indexed else {
                     return
                 }
+                guard tasks[id] == nil else { return }
                 start(mediumUUID: id, volume: volume, fromScratch: false)
             }
         }

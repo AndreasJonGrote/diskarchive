@@ -33,24 +33,34 @@ struct MediumRecognitionStartupTests {
         coordinator.stop()
     }
 
-    @Test func firstIndexUsesScanDepthFromDatabase() async throws {
-        let harness = try StoreHarness.make()
+    /// Nacharbeit 3 (todo.0.4.033): Scan-Tiefe 2 liegt nur in der DB → `bootstrap` mit festem Monitor →
+    /// der erste Lauf liest nicht unter Tiefe 2 (kein Schritt der Kette von Hand).
+    @Test func firstRunUsesScanDepthStoredBeforeBootstrap() async throws {
+        let harness = try await ScanHarness.make()
+        let id = harness.mediumID
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
         try await harness.store.savePersistedAppSettings(persisted)
-        let app = AppState(store: harness.store)
-        await app.hydrateSettingsFromStore()
-        #expect(app.appSettings.scanDepth == 2)
-
-        let scan = try await ScanHarness.make()
         let inner = MemoryVolume(mountPath: "/Volumes/T")
         inner.file("a/b/deep.txt")
-        let outcome = try await scan.run(
-            access: inner,
-            maxDepth: app.appSettings.scanDepth,
-            fromScratch: true
+        let volume = testVolume(path: "/Volumes/T", name: "TEST")
+        try await harness.store.recordIdentity(mediumUUID: id, volume.identity)
+
+        let app = AppState(store: harness.store)
+        #expect(app.appSettings.scanDepth == AppSettings.defaultScanDepth)
+        let rig = WiredRig(store: harness.store, access: inner, app: app)
+        MediumRecognitionStartup.bootstrap(
+            appState: app,
+            store: harness.store,
+            coordinator: rig.coordinator,
+            startChangeLoop: {},
+            makeMonitor: { MediumMonitor(mountedVolumes: { [volume] }, wakeEvents: { AsyncStream { _ in } }) }
         )
-        #expect(outcome.status == .indexed)
+        defer { rig.coordinator.stop() }
+        let done = await waitUntil { rig.starts(id).count == 1 && !rig.service.isRunActive(id) }
+        #expect(done)
+        #expect(app.appSettings.scanDepth == 2)
+        #expect(inner.listed.contains("/Volumes/T/a"))
         #expect(!inner.listed.contains { $0.hasSuffix("/a/b") })
     }
 }

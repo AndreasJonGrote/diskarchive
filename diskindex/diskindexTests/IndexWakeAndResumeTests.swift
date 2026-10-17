@@ -40,66 +40,78 @@ struct IndexWakeAndResumeTests {
         await service.waitUntilIdle(harness.mediumID)
     }
 
-    @Test func wakeAfterSleepStartsExactlyOneReconcileForIndexedMedium() async throws {
+    /// Nacharbeit 3: echter Aufwach-Weg (Monitor-Auslöser → Coordinator → Service, dazu `handleWake` wie im
+    /// `AppDelegate`) → bei verbundenem, indiziertem Medium genau ein zusätzlicher Start.
+    @Test func wakeThroughMonitorStartsExactlyOneReconcile() async throws {
         let harness = try await ScanHarness.make()
+        let id = harness.mediumID
         let inner = MemoryVolume(mountPath: "/Volumes/T")
         inner.file("only.txt")
-        _ = try await harness.run(access: inner, maxDepth: nil, fromScratch: true)
+        let volume = testVolume(path: "/Volumes/T", name: "TEST")
+        _ = try await harness.run(access: inner, maxDepth: nil, fromScratch: true, volume: volume)
+        try await harness.store.recordIdentity(mediumUUID: id, volume.identity)
 
-        let access = MemoryVolume(mountPath: "/Volumes/T")
-        access.file("only.txt")
-        let app = AppState()
-        let stored = try #require(try await harness.store.medium(uuid: harness.mediumID))
-        app.media = [wakeMedium(from: stored)]
-        let service = IndexingService(store: harness.store, access: access, appState: app)
-        let coordinator = MediumCoordinator(store: harness.store, access: access, appState: app)
-        LiveWiring.connect(
-            coordinator: coordinator,
-            service: service,
-            watcher: ChangeWatcher(store: harness.store, access: access, appState: app),
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: inner, app: app)
+        let (wakes, wake) = AsyncStream<Void>.makeStream()
+        let appearedAt = ContinuousClock.now
+        MediumRecognitionStartup.bootstrap(
             appState: app,
-            startWatching: { _, _ in }
+            store: harness.store,
+            coordinator: rig.coordinator,
+            startChangeLoop: {},
+            makeMonitor: { MediumMonitor(mountedVolumes: { [volume] }, wakeEvents: { wakes }) }
         )
-        let volume = harness.volume(at: "/Volumes/T")
-        await coordinator.handle(.appeared(volume))
-        await service.waitUntilIdle(harness.mediumID)
-        let ordersBefore = DiskIndexLog.shared.recentBreadcrumbs().filter { $0.contains("auftrag medium=") }.count
-        app.globalAutoIndexPaused = true
-        service.pauseChanged()
-        app.globalAutoIndexPaused = false
-        service.pauseChanged()
-        await service.waitUntilIdle(harness.mediumID)
-        let ordersAfter = DiskIndexLog.shared.recentBreadcrumbs().filter { $0.contains("auftrag medium=") }.count
-        #expect(ordersAfter >= ordersBefore)
+        defer { rig.coordinator.stop() }
+        let connected = await waitUntil { rig.starts(id) == [false] && !rig.service.isRunActive(id) }
+        #expect(connected)
+        // Entprellung des Monitors (1 s) abwarten, sonst verschluckt sie ein doppeltes `.appeared` schon vorher.
+        try await Task.sleep(until: appearedAt + .milliseconds(1_200), clock: .continuous)
+
+        wake.yield()
+        app.handleWake()
+        let woke = await waitUntil { rig.starts(id).count >= 2 }
+        #expect(woke)
+        await rig.service.waitUntilIdle(id)
+        try await Task.sleep(for: .milliseconds(500))
+        await rig.service.waitUntilIdle(id)
+        #expect(rig.starts(id) == [false, false])
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(rig.starts(id) == [false, false])
     }
 
-    @Test func activeRunKeepsIndexingStatusThroughWakeHandling() async throws {
+    /// Nacharbeit 3: Lauf aktiv → `handleWake()` + `.appeared` desselben Volumes → DB bleibt `.indexing`,
+    /// kein zweiter Lauf.
+    @Test func activeRunKeepsIndexingStatusThroughWake() async throws {
         let harness = try await ScanHarness.make()
+        let id = harness.mediumID
         let inner = MemoryVolume(mountPath: "/Volumes/T")
         inner.file("hold/x.txt")
-        var stored = try #require(try await harness.store.medium(uuid: harness.mediumID))
-        stored.decision = .index
-        try await harness.store.upsertMedium(stored)
+        let volume = testVolume(path: "/Volumes/T", name: "TEST")
+        try await harness.store.recordIdentity(mediumUUID: id, volume.identity)
 
-        let access = WakeGateAccess(inner: inner)
-        let app = AppState()
-        app.media = [wakeMedium(from: stored)]
-        let service = IndexingService(store: harness.store, access: access, appState: app)
-        let volume = harness.volume(at: "/Volumes/T")
-        service.start(mediumUUID: harness.mediumID, volume: volume, fromScratch: true)
-        await access.entered.wait()
+        let access = RunGateAccess([inner]) { $0 == "/Volumes/T/hold" }
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: access, app: app)
+        await rig.coordinator.handle(.appeared(volume))
+        let held = await waitUntil { await access.heldCount() >= 1 }
+        try #require(held)
+        #expect(rig.starts(id) == [false])
 
-        app.heldForSleep = false
-        app.refreshGlobalPause()
-        let pauseBefore = app.globalAutoIndexPaused
-        if pauseBefore == app.globalAutoIndexPaused {
-            app.onAutoIndexPauseChanged?()
-        }
+        app.handleWake()
+        await rig.coordinator.handle(.appeared(volume))
+        try await Task.sleep(for: .milliseconds(200))
+        let during = try #require(try await harness.store.medium(uuid: id))
+        #expect(during.indexStatus == .indexing)
+        #expect(app.medium(with: id)?.indexStatus == .indexing)
 
-        let dbDuring = try #require(try await harness.store.medium(uuid: harness.mediumID))
-        #expect(dbDuring.indexStatus == .indexing)
-        await access.release()
-        await service.waitUntilIdle(harness.mediumID)
+        await access.open()
+        await rig.service.waitUntilIdle(id)
+        try await Task.sleep(for: .milliseconds(500))
+        await rig.service.waitUntilIdle(id)
+        #expect(rig.starts(id) == [false])
+        let after = try #require(try await harness.store.medium(uuid: id))
+        #expect(after.indexStatus == .indexed)
     }
 }
 
@@ -131,25 +143,6 @@ private func wakeMedium(from stored: StoredMedium) -> Medium {
         isForgotten: false,
         indexingProgress: status == .indexed ? 1 : 0
     )
-}
-
-private final class WakeCountingAccess: MediumAccess, @unchecked Sendable {
-    let inner: MemoryVolume
-    private let lock = NSLock()
-    private(set) var starts = 0
-
-    init(inner: MemoryVolume) {
-        self.inner = inner
-    }
-
-    func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
-
-    func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
-        lock.lock()
-        starts += 1
-        lock.unlock()
-        return try await inner.listDirectory(at: url)
-    }
 }
 
 private final class WakeGateAccess: MediumAccess, @unchecked Sendable {

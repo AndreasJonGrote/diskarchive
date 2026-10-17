@@ -51,17 +51,6 @@ extension AppState {
         for id in ids { await writeMedium(id) }
     }
 
-    /// Tests schreiben die Einstellungen aus, ohne die Debounce abzuwarten.
-    func flushSettings() {
-        settingsSaveTask?.cancel()
-        settingsSaveTask = nil
-        guard persistsSettings else { return }
-        AppLanguagePolicy.saveDisplayLanguage(appSettings.displayLanguage, to: settingsDefaults)
-        if storeReady, indexStore != nil {
-            Task { await persistAppSettingsNow() }
-        }
-    }
-
     /// Schreibt ausstehende Nutzer-Medium- und Einstellungs-Updates (bug.0.4.033).
     @MainActor
     func flushPendingWritesForTermination() async {

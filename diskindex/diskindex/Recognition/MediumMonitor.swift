@@ -10,6 +10,40 @@ final class MediumMonitor {
     private var debouncer = MountEventDebouncer()
     /// bug.0.4.028: beim Aufwachen kein `.appeared`, wenn Pfad schon verbunden ist.
     var skipWakeAppearedIfKnown: ((VolumeInfo) -> Bool)?
+    /// Eingehängte Kandidaten-Volumes (Tests: feste Liste statt Dateisystem).
+    private let mountedVolumes: @MainActor () async -> [VolumeInfo]
+    /// Aufwach-Auslöser (Tests: eigener Strom statt `NSWorkspace.didWakeNotification`).
+    private let wakeEvents: @MainActor () -> AsyncStream<Void>
+
+    init(
+        mountedVolumes: @escaping @MainActor () async -> [VolumeInfo] = MediumMonitor.liveMountedVolumes,
+        wakeEvents: @escaping @MainActor () -> AsyncStream<Void> = MediumMonitor.liveWakeEvents
+    ) {
+        self.mountedVolumes = mountedVolumes
+        self.wakeEvents = wakeEvents
+    }
+
+    static func liveMountedVolumes() async -> [VolumeInfo] {
+        var found: [VolumeInfo] = []
+        for path in LocalVolumeMounts.candidateMountPaths() {
+            let url = URL(fileURLWithPath: path, isDirectory: true)
+            guard let info = await VolumeLookup.info(at: url) else { continue }
+            found.append(info)
+        }
+        return found
+    }
+
+    static func liveWakeEvents() -> AsyncStream<Void> {
+        AsyncStream { continuation in
+            let center = NSWorkspace.shared.notificationCenter
+            let token = center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
+                continuation.yield()
+            }
+            continuation.onTermination = { @Sendable _ in
+                Task { @MainActor in center.removeObserver(token) }
+            }
+        }
+    }
 
     func events() -> AsyncStream<MediumEvent> {
         AsyncStream { continuation in
@@ -30,14 +64,16 @@ final class MediumMonitor {
                         self.emitPath(note, kind: "did", event: { .disappeared(path: $0) }, continuation: continuation)
                     }
                 },
-                center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
-                    MainActor.assumeIsolated {
-                        self.emitMounted(continuation: continuation, wakeRescan: true)
-                    }
-                },
             ]
+            let wakes = self.wakeEvents()
+            let wakeTask = Task { @MainActor in
+                for await _ in wakes {
+                    self.emitMounted(continuation: continuation, wakeRescan: true)
+                }
+            }
             self.emitMounted(continuation: continuation, wakeRescan: false)
             continuation.onTermination = { @Sendable _ in
+                wakeTask.cancel()
                 Task { @MainActor in
                     for token in tokens {
                         center.removeObserver(token)
@@ -48,12 +84,9 @@ final class MediumMonitor {
     }
 
     private func emitMounted(continuation: AsyncStream<MediumEvent>.Continuation, wakeRescan: Bool) {
-        let paths = LocalVolumeMounts.candidateMountPaths()
+        let mountedVolumes = mountedVolumes
         Task {
-            for path in paths {
-                let url = URL(fileURLWithPath: path, isDirectory: true)
-                guard let info = await VolumeLookup.info(at: url),
-                      VolumeCandidateRule.isCandidate(info.candidateInput) else { continue }
+            for info in await mountedVolumes() where VolumeCandidateRule.isCandidate(info.candidateInput) {
                 await MainActor.run {
                     if wakeRescan, self.skipWakeAppearedIfKnown?(info) == true { return }
                     guard self.debouncer.shouldEmit(path: info.mountPath, kind: "appeared") else { return }

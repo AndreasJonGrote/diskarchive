@@ -98,6 +98,23 @@ extension AppState {
         indexingFailure = IndexingFailureNotice(id: mediumID, name: name, reason: reason)
         SystemNotice.postIndexingFailure(mediumID: mediumID, name: name, reason: reason, settings: appSettings)
     }
+
+    /// Aufwachen nach dem Ruhezustand (bug.0.4.028): Pause neu bewerten, die Indizierung genau einmal anstoßen
+    /// (läuft die Pause dabei ab, hat `globalAutoIndexPaused.didSet` das schon getan), danach Bereinigung und
+    /// `restartWatchers`. `AppDelegate` und Tests rufen dieselbe Funktion.
+    @discardableResult
+    func handleWake(restartWatchers: (@MainActor () async -> Void)? = nil) -> Task<Void, Never> {
+        let pauseBefore = globalAutoIndexPaused
+        heldForSleep = false
+        refreshGlobalPause()
+        if pauseBefore == globalAutoIndexPaused {
+            onAutoIndexPauseChanged?()
+        }
+        return Task { @MainActor in
+            await pruneIfDue()
+            await restartWatchers?()
+        }
+    }
 }
 
 nonisolated struct FailureCount: Codable {

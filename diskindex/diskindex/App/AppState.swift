@@ -223,7 +223,9 @@ final class AppState {
             persistsSettings = true
             appSettings = AppLanguagePolicy.bootstrap(defaults: defaults)
             loadPause(from: defaults)
-            loadPruneDeadline()
+            // Nur lesen: geplant wird erst nach dem Laden der Einstellungen (`bootstrap`), sonst bereinigt der
+            // Task mit Standardwerten und löscht den Termin (bug.0.4.029).
+            loadPruneDeadline(schedule: false)
         } else {
             settingsDefaults = AppDefaults.current
             persistsSettings = false
@@ -381,9 +383,16 @@ final class AppState {
         schedulePruneTask(from: now)
     }
 
-    func loadPruneDeadline() {
+    func loadPruneDeadline(schedule: Bool = true) {
         let value = settingsDefaults.double(forKey: Self.pruneAtKey)
         pruneAt = value > 0 ? Date(timeIntervalSince1970: value) : nil
+        guard schedule else { return }
+        schedulePruneTask(from: pruneClock())
+    }
+
+    /// Start: den gelesenen Termin planen, nachdem die Einstellungen geladen sind.
+    func scheduleLoadedPruneDeadline() {
+        guard persistsSettings else { return }
         schedulePruneTask(from: pruneClock())
     }
 

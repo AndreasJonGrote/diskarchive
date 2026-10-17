@@ -293,13 +293,6 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         knownNamesLock.unlock()
     }
 
-    #if DEBUG
-    /// Tests: Cache sofort setzen (ohne Dateisystem).
-    func setCachedKnownNamesForTesting(_ names: [String]) {
-        storeCachedKnownNames(names)
-    }
-    #endif
-
     func noteError(category: String, message: String) {
         DiskIndexLog.shared.record(.app, .error, "index error category=\(category)")
     }
@@ -380,12 +373,6 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             let issueID = ApiQueuePersistence.issueID(in: body) ?? "?"
             await send(row: row, body: body, issueID: issueID, pool: pool)
         }
-        syncReachabilityTimer()
-    }
-
-    func discardPendingCrash() {
-        guard let pool = try? resolvePool() else { return }
-        try? ApiQueuePersistence.deleteAll(pool, kind: .issueReport)
         syncReachabilityTimer()
     }
 

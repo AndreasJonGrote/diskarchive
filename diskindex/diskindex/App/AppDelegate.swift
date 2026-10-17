@@ -158,20 +158,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return .terminateLater
     }
 
-    func applicationWillTerminate(_ notification: Notification) {
-        // Schreibvorgänge laufen in `applicationShouldTerminate` (bug.0.4.033).
-    }
-
-    /// Indizierung, FSEvents und UI-Overlays vor dem Prozessende stoppen (vermeidet Callbacks nach dem Abbau).
-    private func prepareForAppTermination() {
-        MenuBarController.shared.prepareForTermination()
-        AppWindowPresenter.prepareForTermination()
-        let appState = AppDelegateBridge.appState
-        stopLiveServicesBeforeRewire()
-        appState.prepareForTermination()
-        appState.indexStore?.checkpoint()
-    }
-
     /// Coordinator, Watcher und Indexer stoppen (Retry, Integritätsfehler, Beenden).
     private func stopLiveServicesBeforeRewire() {
         mediumCoordinator?.stop()
@@ -245,14 +231,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated {
-                let pauseBefore = appState.globalAutoIndexPaused
-                appState.heldForSleep = false
-                appState.refreshGlobalPause()
-                if pauseBefore == appState.globalAutoIndexPaused {
-                    appState.onAutoIndexPauseChanged?()
-                }
-                Task { @MainActor in await appState.pruneIfDue() }
-                Task { @MainActor in await self?.restartWatchersAfterWake() }
+                _ = appState.handleWake(restartWatchers: { await self?.restartWatchersAfterWake() })
             }
         }
     }

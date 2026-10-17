@@ -88,7 +88,7 @@ struct IndexPruneTests {
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
         let suite = "diskindex-prune-task-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = try #require(UserDefaults(suiteName: suite))
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
         try await harness.store.savePersistedAppSettings(persisted)
@@ -105,24 +105,36 @@ struct IndexPruneTests {
         defaults.removePersistentDomain(forName: suite)
     }
 
+    /// Nacharbeit 3: `pruneAt` in der Vergangenheit → `MediumRecognitionStartup.bootstrap` → bereinigt
+    /// (kein Aufruf von `pruneIfDue`/`pruneNow`/`loadPruneDeadline` im Test, Regel 18).
     @Test func overduePruneOnBootstrapWithoutManualCall() async throws {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
-        let start = Date(timeIntervalSince1970: 1_700_000_000)
         let suite = "diskindex-prune-bootstrap-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.set(start.addingTimeInterval(-60).timeIntervalSince1970, forKey: AppState.pruneAtKey)
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(Date().addingTimeInterval(-60).timeIntervalSince1970, forKey: AppState.pruneAtKey)
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
         try await harness.store.savePersistedAppSettings(persisted)
+        #expect(try await harness.store.storedNames().contains("deep.txt"))
+
         let app = AppState(store: harness.store, defaults: defaults)
-        await app.hydrateSettingsFromStore()
-        app.loadPruneDeadline()
-        await app.loadStoredMedia()
-        await app.pruneIfDue(now: start)
-        #expect(!(try await harness.store.storedNames().contains("deep.txt")))
-        defaults.removePersistentDomain(forName: suite)
+        let coordinator = MediumCoordinator(store: harness.store, access: GrantedAccess(), appState: app)
+        MediumRecognitionStartup.bootstrap(
+            appState: app,
+            store: harness.store,
+            coordinator: coordinator,
+            startChangeLoop: {},
+            makeMonitor: { MediumMonitor(mountedVolumes: { [] }, wakeEvents: { AsyncStream { _ in } }) }
+        )
+        defer { coordinator.stop() }
+        let pruned = await waitUntil(timeout: 5) {
+            (try? await harness.store.storedNames().contains("deep.txt")) == false
+        }
+        #expect(pruned)
+        #expect(app.pruneAt == nil)
     }
 
     @Test func aSecondShrinkRestartsTheHourAndGrowingDoesNotCancelIt() async throws {

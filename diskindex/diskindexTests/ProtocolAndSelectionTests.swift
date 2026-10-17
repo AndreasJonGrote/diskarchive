@@ -10,7 +10,7 @@ import Testing
 @Suite struct DiskIndexLogTests {
     @Test func manyRecordsCallRestrictAtMostOncePerLogFile() throws {
         let tracker = FilePrivacy.RestrictCountTracker()
-        try FilePrivacy.$restrictCountTracker.withValue(tracker) {
+        FilePrivacy.$restrictCountTracker.withValue(tracker) {
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
             let log = DiskIndexLog(directory: directory)
             log.start(installHandlers: false)

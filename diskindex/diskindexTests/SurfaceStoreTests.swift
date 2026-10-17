@@ -59,7 +59,7 @@ extension WindowTestGroup {
                 )
             }
         }
-        try await AppState.$writeMediumBeforePersistHook.withValue(hook) {
+        await AppState.$writeMediumBeforePersistHook.withValue(hook) {
             app.updateMedium(id: medium.uuid, persist: true) { $0.isFavorite = true }
             await app.flushMediumEdits()
         }

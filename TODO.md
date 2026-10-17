@@ -105,6 +105,10 @@ bug.0.4.027: `doubleIndexRequestDuringRunKeepsOneActiveRun`, `sabotageWithoutCle
 - `doubleIndexRequestDuringRunKeepsOneActiveRun` ruft `service.start` zweimal direkt auf. Gemeint ist die Doppelanfrage über den normalen Weg: Lauf aktiv → zweimal `coordinator.requestIndex` (bzw. „Ja“ im Dialog / `onNewMediumChoice`) → nach `waitUntilIdle` **genau ein** Lauf insgesamt (kein nachgeholter zweiter über `rerunAfterFinish`; Zähler am Service oder an „auftrag“-Zeilen, nach kurzem Abwarten erneut prüfen).
 - `sabotageWithoutClearIndexRequestBlocksNr60Rerun` bleibt nicht als Dauertest mit Schalter im Produktcode: Sabotage einmal lokal ausführen, Rot im Status belegen, dann Test und `skipClearIndexRequestForTesting` entfernen (Regel 25: Erwartung des Repro bleibt, der Sabotage-Schalter gehört nicht ins Produkt).
 
+Nacharbeit-Status:
+bug.0.4.027: `doubleIndexRequestDuringRunKeepsOneRun` ersetzt den Direktaufruf: neues Medium → Dialog „Ja“ → Lauf am Tor → nochmals „Ja“ (`onNewMediumChoice`) + `onMediumDecisionChanged(.index)` → nach Ende genau ein Start (zweimal geprüft). Sabotage-Test, `skipClearIndexRequestForTesting` und `DoubleRequestGateAccess` entfernt (`IndexingService.swift`, `YesAfterNoIndexingTests.swift`).
+Sabotage lokal, danach zurückgenommen: `clearIndexRequest` in `finish` weg → `nr60` rot ✓ (08:04:44); Anfrage schon beim Start freigeben → Doppeltest rot `[false, false]` ✓ (08:04:17). Suite seriell grün 08:03. Bereit zur Prüfung.
+
 **bug.0.4.028 — Status laufender Läufe nicht von außen überschreiben; Aufwachen ohne Doppel-Abgleich (REPORT 71, 72, Korrektur B-71).**
 - a) `normalizeInterruptedIndexingStatuses` aus `loadStoredMedia` entfernen. Die Normalisierung nach Absturz (`indexing` → `indexed`/`pending`) läuft als SQL-`UPDATE` **beim Öffnen der DB vor `wire`**. Zur Laufzeit wird nicht normalisiert, `mediumLiveSyncIDs` wird nicht geleert.
 - b) Aufwachen:
@@ -134,6 +138,12 @@ bug.0.4.028: AppDelegate didWake-Dedup; `IndexWakeAndResumeTests`; `firstIndexUs
   - `firstIndexUsesScanDepthFromDatabase` reicht `maxDepth` selbst an den Lauf weiter und prüft die Startreihenfolge nicht. Neu: Scan-Tiefe 2 nur in der DB → `MediumRecognitionStartup.bootstrap` mit Fake-Monitor/-Zugriff, Medium mit `decision == .index` erscheint → der erste Lauf liest nicht unter Tiefe 2 (Regel 18: kein Schritt der Kette von Hand).
 - Ungenutzte Hilfsklasse `WakeCountingAccess` (mit `lock()` im async-Kontext, 2 Warnungen) entfernen oder für den Zähltest nutzen, ohne `lock()` über `await`.
 
+Nacharbeit-Status:
+bug.0.4.028: `MediumMonitor(mountedVolumes:wakeEvents:)` (Standard = Dateisystem/`NSWorkspace`), `bootstrap(…, makeMonitor:)`; Aufwach-Ablauf als `AppState.handleWake(restartWatchers:)` (`AppState+Pause`), `AppDelegate` ruft ihn. `WakeCountingAccess` entfernt.
+Tests: `wakeThroughMonitorStartsExactlyOneReconcile` (bootstrap + Wake-Strom + `handleWake` → genau ein Start mehr, zweimal geprüft), `activeRunKeepsIndexingStatusThroughWake`, `firstRunUsesScanDepthStoredBeforeBootstrap` (ersetzen die drei alten).
+Befund und Fix: `IndexingService.resumePausedRuns` startete beim Aufwachen auch für einen aktiven Lauf → Nachlauf über `rerunAfterFinish` (Test rot `[false, false]`); aktive Läufe werden jetzt übersprungen.
+Sabotage rot ✓ 08:01 (Wake-Skip aus → 3 Starts; Einstellungen nach Monitorstart → Tiefe 5, `a/b` gelesen), zurückgenommen. Suites seriell grün 08:00. Bereit zur Prüfung.
+
 **bug.0.4.029 — Bereinigung „nach 1 Stunde“ wirklich nach Zeit und beim Start (REPORT 114).**
 - Nach `hydrateSettingsFromStore()`/`loadStoredMedia()` `pruneIfDue()` aufrufen.
 - `armPrune` und `loadPruneDeadline` planen einen Task bis `pruneAt`; ein neuer Termin ersetzt ihn.
@@ -155,6 +165,11 @@ bug.0.4.029: `schedulePruneTask`, `pruneClock`, `prepareForTerminationAsync`; Te
 **Nacharbeit 3 (Host 17.10. 00:15):**
 - Code richtig. `overduePruneOnBootstrapWithoutManualCall` ruft `pruneIfDue` **von Hand** auf; genau das schließt die Akzeptanz aus (Regel 18). Neu: `pruneAt` in der Vergangenheit → `MediumRecognitionStartup.bootstrap` → warten, bis `deep.txt` fehlt (kein Aufruf von `pruneIfDue`/`pruneNow`/`loadPruneDeadline` im Test).
 - `UserDefaults(suiteName:)!` in den neuen Tests → `try #require(UserDefaults(suiteName:))` (Regel 20).
+
+Nacharbeit-Status:
+bug.0.4.029: `overduePruneOnBootstrapWithoutManualCall` neu: `pruneAt` −60 s, Tiefe 2 in der DB → `bootstrap` (fester Monitor) → wartet, bis `deep.txt` fehlt; kein Aufruf von Hand. `#require(UserDefaults(suiteName:))` in beiden neuen Tests.
+Befund und Fix: Der Test war rot (08:02). Der in `AppState.init` geplante Task bereinigte vor `hydrateSettingsFromStore` mit Tiefe 5 und löschte den Termin. Jetzt liest `init` den Termin nur (`loadPruneDeadline(schedule: false)`); `bootstrap` plant ihn nach Laden und `pruneIfDue` (`scheduleLoadedPruneDeadline`, `AppState.swift`, `MediumRecognitionStartup.swift`).
+Suites seriell grün 08:03 (31 Tests, mit Start-Suites). Bereit zur Prüfung.
 
 **bug.0.4.030 — Regeländerungen wirken sofort und vollständig (REPORT 115, 68).**
 - a) Bei jeder Scope-Änderung (`shrinks` oder `grows`, `AppState` Z. ~41–55) aktive Läufe abbrechen und mit **neuer** Konfiguration als Abgleich neu starten. Bei `grows` zusätzlich für jedes angeschlossene Medium mit `decision == .index` einen Abgleich anstoßen.
@@ -180,11 +195,21 @@ bug.0.4.030: `onScopeRulesChanged` Abgleich-Task; `ScopeChangeAcceptanceTests` (
 - `*.tmp`-Test: die Akzeptanz verlangte einen **laufenden** Lauf (nach Ebene 1 angehalten, Regel ändern, freigeben). Heute prüft er nur die Bereinigung auf fertigen Daten. Mit `WakeGateAccess`-artigem Tor ergänzen; `fileCount` aus der DB gegen `COUNT(status=0)` vergleichen.
 - Ungenutzte Hilfsfunktion `scopeMedium` entfernen.
 
+Nacharbeit-Status:
+bug.0.4.030: Neu in `ScopeChangeAcceptanceTests`: `deeperScanDepthStartsExactlyOneReconcile` (Tiefe 2→5 → Starts `[false, false]`: Anschluss-Abgleich + genau ein Abgleich, `deep.txt` danach da), `excludeDuringRunRestartsOnlyThatRunAsReconcile` (Neustart erreicht das geschlossene Tor → abgebrochen, nicht nachgeholt; anderes Medium bleibt bei einem Start), `excludeTmpDuringRunLeavesNoTmpRow` (laufender Lauf, `fileCount == COUNT(status=0) == 3`). `scopeMedium` entfernt.
+Zähler: `IndexingService.startedRunsForTesting` (nur DEBUG, je Instanz, reine Beobachtung); Hilfen in neuer Datei `RunGateAccess.swift` (Tor, `WiredRig`, `testVolume`).
+Ursache „Suite-Interaktion“: kein globaler Zustand. Ein Testvolume ohne `volumeUUID`/`createdAt` gibt nur einen schwachen Treffer → Erkennungs-Dialog statt Abgleich; `testVolume` setzt deshalb eine UUID. Für `*.tmp` schaltet der Test `artifactsIgnored` aus (Standard-Artefakt).
+Suite seriell grün 07:57 (5 Tests). Bereit zur Prüfung.
+
 **bug.0.3.8.003 — Aufräumen nach Paket 4/5a: Warnungen und toter Code (Prüfung Host 17.10.).**
 - a) Debug mit Testziel hat 4 Warnungen: `IndexWakeAndResumeTests` Z. ~148/150 (`lock()`/`unlock()` im async-Kontext, siehe `028`), `ProtocolAndSelectionTests` Z. ~13 und `SurfaceStoreTests` Z. ~62 (`try` ohne werfenden Aufruf). Auf 0.
 - b) Toter Code im Produkt (kein Aufrufer, auch nicht in Tests), entfernen: `AppState.flushSettings()` (`AppState+IndexChanges`), `IssueReporter.discardPendingCrash()` und `setCachedKnownNamesForTesting` (`IssueTracker`), `AppDelegate.prepareForAppTermination()` und der leere `applicationWillTerminate`, `IndexStoreV3.setItemStatus` (ersetzt durch `markItemSubtrees`), `ChangeWatcher.stopAllWatching()`. Vorher je Symbol `grep -rn` über `diskindex/` und `diskindexTests/`; ist doch ein Aufrufer da, stehen lassen und im Status nennen.
 - **Akzeptanz:** 0 Warnungen (Debug mit Testziel, Release); seriell grün; Status listet jedes entfernte Symbol.
 Status:
+bug.0.3.8.003: a) `try` weg in `ProtocolAndSelectionTests` Z. 13, `SurfaceStoreTests` Z. 62; `WakeCountingAccess` entfernt. Vorher 4 Warnungen (07:40), danach 0.
+b) Entfernt (grep: je nur die Definition): `AppState.flushSettings`, `IssueReporter.discardPendingCrash`, `setCachedKnownNamesForTesting`, `AppDelegate.prepareForAppTermination`, leeres `applicationWillTerminate`, `IndexStoreV3.setItemStatus`, `ChangeWatcher.stopAllWatching`.
+Dadurch ohne Aufrufer, nicht in der Liste, stehen gelassen: `MenuBarController.prepareForTermination()`. Suites seriell grün 07:44/07:45 (54 + 36 Tests). Bereit zur Prüfung.
+Paketende 5a (Nacharbeit 3): clean build-for-testing Debug 0 / Release 0 Warnungen (08:05–08:07); seriell 639/639 grün (08:06:56–08:12:22); parallel 3× grün, je 673 Testfälle, 0 rot (08:12:27–14:48, –17:23, –19:57); keine neuen `.ips`; Regel 23: App 08:20:29, letzte `.swift` 08:04:44, `find -newer` leer, Signatur gültig.
 
 **HALT nach Paket 5a** — danach Paket 5b (`031`, Abschnitt B), Freigabe durch den Host.
 
