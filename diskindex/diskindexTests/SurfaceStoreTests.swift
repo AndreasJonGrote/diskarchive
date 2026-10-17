@@ -196,7 +196,13 @@ extension WindowTestGroup {
         rig.app.attach(store: rig.store)
         await rig.app.loadStoredMedia()
         rig.app.forgetMedium(id: stored.uuid)
-        try await Task.sleep(for: .milliseconds(50))
+        // bug.0.3.8.007: statt fester 50 ms warten, bis das Löschen in der Datenbank angekommen ist.
+        let deleted = try await waitUntil {
+            let medium = try await rig.store.medium(uuid: stored.uuid)
+            let rows = try await rig.store.children(mediumUUID: stored.uuid, parentID: nil)
+            return medium == nil && rows.isEmpty
+        }
+        #expect(deleted)
         #expect(rig.app.media.isEmpty)
         #expect(try await rig.store.medium(uuid: stored.uuid) == nil)
         #expect(try await rig.store.children(mediumUUID: stored.uuid, parentID: nil).isEmpty)

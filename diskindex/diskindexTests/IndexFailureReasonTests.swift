@@ -89,12 +89,14 @@ struct IndexFailureReasonTests {
         await service.waitUntilIdle(medium.uuid)
 
         // `waitUntilIdle` kehrt schon zurück, bevor `finish` den Dialog gesetzt hat (Befund F11) → warten.
-        let shown = await waitUntil(timeout: 10) { app.indexingFailure != nil }
-        #expect(shown)
-        let notice = try #require(app.indexingFailure)
-        #expect(notice.reason == .database)
-        #expect(try await dialogInkHeight(notice, reason: .database, app: app)
-            > (try await dialogInkHeight(notice, reason: .unknown, app: app)) + 8)
+        let shown = await waitUntil { app.indexingFailure != nil }
+        // bug.0.3.8.007: Bei Fehlschlag Stand des Mediums und Grund mitschreiben (bug.0.4.070, nur parallel rot).
+        let status = app.media.first { $0.id == medium.uuid }.map { "\($0.indexStatus)" } ?? "kein Medium"
+        let reason = app.indexingFailure.map { "\($0.reason)" } ?? "kein Dialog"
+        #expect(shown, "Dialog nicht gesetzt: status=\(status) reason=\(reason)")
+        let notice = try #require(app.indexingFailure, "status=\(status)")
+        #expect(notice.reason == .database, "status=\(status) reason=\(reason)")
+        // bug.0.3.8.007: Pixelprüfung entfernt — dass die Grundzeile im Dialog steht, prüft `dialogShowsTheReasonLine`.
     }
 
     /// Die Grundzeile steht im Dialog: mit Grund ist der Inhalt höher als ohne.

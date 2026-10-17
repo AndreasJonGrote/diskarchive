@@ -28,29 +28,27 @@ nonisolated enum PartialChecksum {
         let existsDelay = testFileExistsDelay ?? fileExistsDelayForTesting
         #else
         let testDelay: TimeInterval? = nil
-        let existsDelay: TimeInterval? = nil
         #endif
-        return try await withThrowingTaskGroup(of: (partial: Data, info: String)?.self) { group in
-            group.addTask {
-                try await Task.detached(priority: .utility) { () async throws -> (partial: Data, info: String)? in
-                    #if DEBUG
-                    if let existsDelay {
-                        try await Task.sleep(for: .seconds(existsDelay))
-                    }
-                    #endif
-                    guard FileManager.default.fileExists(atPath: path) else { return nil }
-                    return try compute(at: fileURL, testComputeDelay: testDelay)
-                }.value
+        let seconds = Double(timeout.components.seconds) + Double(timeout.components.attoseconds) / 1e18
+        // Arbeit und Zeitgeber setzen dieselbe Continuation höchstens einmal fort; nichts wartet auf ein blockiertes
+        // `fileExists`/Lesen (bug.0.3.8.006, gleiche Bauart wie `DirectMediumAccess.probe`).
+        return try await withCheckedThrowingContinuation { continuation in
+            let once = ChecksumResumeOnce(continuation)
+            DispatchQueue.global(qos: .utility).async {
+                #if DEBUG
+                if let existsDelay {
+                    Thread.sleep(forTimeInterval: existsDelay)
+                }
+                #endif
+                guard FileManager.default.fileExists(atPath: path) else {
+                    once.resume(.success(nil))
+                    return
+                }
+                once.resume(Result { try compute(at: fileURL, testComputeDelay: testDelay) })
             }
-            group.addTask {
-                try await Task.sleep(for: timeout)
-                return nil
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + seconds) {
+                once.resume(.success(nil))
             }
-            for try await result in group {
-                group.cancelAll()
-                return result
-            }
-            return nil
         }
     }
 
@@ -94,5 +92,25 @@ nonisolated enum PartialChecksum {
             remaining -= UInt64(chunk.count)
         }
         return data
+    }
+}
+
+/// Setzt die Continuation höchstens einmal fort (Prüfsumme gegen Zeitgrenze, bug.0.3.8.006).
+nonisolated private final class ChecksumResumeOnce: @unchecked Sendable {
+    typealias Value = (partial: Data, info: String)?
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Value, Error>?
+
+    init(_ continuation: CheckedContinuation<Value, Error>) {
+        self.continuation = continuation
+    }
+
+    func resume(_ result: Result<Value, Error>) {
+        let pending: CheckedContinuation<Value, Error>? = lock.withLock {
+            let value = continuation
+            continuation = nil
+            return value
+        }
+        pending?.resume(with: result)
     }
 }

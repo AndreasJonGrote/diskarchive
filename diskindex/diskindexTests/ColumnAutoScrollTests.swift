@@ -43,13 +43,20 @@ private enum ColumnAutoScrollTestSupport {
         let mediumID = try #require(app.columnBrowserState.selectedMediumID)
         _ = await app.indexRepository.loadChildren(mediumID: mediumID, path: ["A", "B", "C"])
         scrollMainHorizontalToLeading(in: session.window)
-        try await Task.sleep(for: .milliseconds(200))
+        // bug.0.3.8.007: auf den linken Rand warten statt fester 200 ms (Last bei Parallel-Lauf).
+        let atLeading = await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            guard let scroll = mainColumnHorizontalScroll(in: session.window) else { return false }
+            return scroll.documentVisibleRect.minX <= 1.5
+        }
+        #expect(atLeading)
         let scroll = try #require(mainColumnHorizontalScroll(in: session.window))
         #expect(scroll.documentVisibleRect.minX <= 1.5)
         #expect(!detailTrailingFlushWithViewport(scroll))
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A", "B", "C"]).first { !$0.isFolder })
         app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
-        let aligned = await waitUntil(timeout: 0.5) {
+        // bug.0.3.8.007: Standard-Zeitgrenze (10 s) statt 0,5 s — positives Warten bricht beim Eintreten ab.
+        let aligned = await waitUntil {
             session.window.contentView?.layoutSubtreeIfNeeded()
             session.window.display()
             guard let scroll = mainColumnHorizontalScroll(in: session.window) else { return false }
@@ -94,7 +101,8 @@ private enum ColumnAutoScrollTestSupport {
         _ = await app.indexRepository.loadChildren(mediumID: mediumID, path: ["A", "B", "C"])
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A", "B", "C"]).first { !$0.isFolder })
         app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
-        let aligned = await waitUntil(timeout: 0.5) {
+        // bug.0.3.8.007: Standard-Zeitgrenze (10 s) statt 0,5 s — positives Warten bricht beim Eintreten ab.
+        let aligned = await waitUntil {
             session.window.contentView?.layoutSubtreeIfNeeded()
             guard let scroll = mainColumnHorizontalScroll(in: session.window) else { return false }
             return detailTrailingFlushWithViewport(scroll)
@@ -128,7 +136,8 @@ private enum ColumnAutoScrollTestSupport {
             if let scroll = view as? NSScrollView {
                 let docW = scroll.documentView?.frame.width ?? 0
                 if docW > scroll.bounds.width + 20 {
-                    if best == nil || docW > best!.docWidth {
+                    // bug.0.3.8.007: ohne `!` (Regel 20).
+                    if docW > (best?.docWidth ?? -1) {
                         best = (scroll, docW)
                     }
                 }

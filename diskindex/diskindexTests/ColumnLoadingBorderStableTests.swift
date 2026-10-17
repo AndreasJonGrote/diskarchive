@@ -14,14 +14,18 @@ extension WindowTestGroup {
 @Suite @MainActor
 struct ColumnLoadingBorderStableTests {
     @Test func shortLoadKeepsTheColumnBorder() async {
-        let samples = await sampleBorder(loadSeconds: 0.45, observeSeconds: 0.7)
+        // bug.0.3.8.007: Beobachtungsende relativ zum Ladeende statt fest 0,7 s nach Start.
+        let samples = await sampleBorder(loadSeconds: 0.45, settleSeconds: 0.25)
+        // Das Ladeende muss beobachtet worden sein, sonst sagt die Stabilität nichts.
+        #expect(samples.contains { !$0.loading })
         #expect(samples.allSatisfy { $0.border })
         let xs = Set(samples.map { Int($0.edge.rounded()) })
         #expect(xs.count == 1)
     }
 
     @Test func longLoadSwitchesToStatusFillOnce() async {
-        let samples = await sampleBorder(loadSeconds: 2.0, observeSeconds: 2.4)
+        // bug.0.3.8.007: Beobachtungsende relativ zum Ladeende statt fest 2,4 s nach Start.
+        let samples = await sampleBorder(loadSeconds: 2.0, settleSeconds: 0.4)
         let drops = transitions(samples, toBorder: false)
         let returns = transitions(samples, toBorder: true)
         #expect(drops.count == 1)
@@ -38,7 +42,9 @@ struct ColumnLoadingBorderStableTests {
         var loading: Bool
     }
 
-    private func sampleBorder(loadSeconds: Double, observeSeconds: Double) async -> [Sample] {
+    /// Tastet ab Start ab; nach dem Ladeende (`loadSeconds`) noch mindestens `settleSeconds`,
+    /// und bis der Rand wieder steht (höchstens `maxAfterStop`).
+    private func sampleBorder(loadSeconds: Double, settleSeconds: Double, maxAfterStop: Double = 5) async -> [Sample] {
         let app = AppState()
         let mediumID = UUID()
         var medium = Medium(
@@ -80,12 +86,20 @@ struct ColumnLoadingBorderStableTests {
         window.orderFrontRegardless()
         let start = Date()
         var samples: [Sample] = []
-        var stopped = false
-        while Date().timeIntervalSince(start) < observeSeconds {
+        // bug.0.3.8.007: Ende hängt am tatsächlichen Ladeende, nicht an einer festen Uhrzeit —
+        // ein Hänger des Schedulers verschiebt sonst das Ladeende hinter das Beobachtungsende.
+        var stoppedAt: Double?
+        while true {
             let elapsed = Date().timeIntervalSince(start)
+            if let stoppedAt {
+                let since = elapsed - stoppedAt
+                if since >= maxAfterStop { break }
+                if since >= settleSeconds, let last = samples.last, last.border, !last.loading { break }
+            }
+            let stopped = stoppedAt != nil
             if !stopped, elapsed >= loadSeconds {
                 app.indexRepository.setLoadingForUITest(mediumID: mediumID, path: [], loading: false)
-                stopped = true
+                stoppedAt = elapsed
             } else if !stopped {
                 app.indexRepository.setLoadingForUITest(
                     mediumID: mediumID,
@@ -133,11 +147,10 @@ struct ColumnLoadingBorderStableTests {
     }
 
     private func transitions(_ samples: [Sample], toBorder: Bool) -> [Double] {
-        var times: [Double] = []
-        for index in samples.indices.dropFirst() where samples[index].border == toBorder && samples[index - 1].border != toBorder {
-            times.append(samples[index].time)
-        }
-        return times
+        // bug.0.3.8.007: Paare statt Indexzugriff (Regel 20).
+        zip(samples, samples.dropFirst())
+            .filter { previous, current in current.border == toBorder && previous.border != toBorder }
+            .map { _, current in current.time }
     }
 
     private func same(_ a: NSColor, _ b: NSColor) -> Bool {

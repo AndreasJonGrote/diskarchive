@@ -346,15 +346,16 @@ struct IssueTrackerTests {
             let writer = Task.detached {
                 try pool.write { _ in
                     gate.markEntered()
-                    gate.waitForRelease(timeoutSeconds: 5)
+                    // bug.0.3.8.007: Sperre hält bis `release()`; 30 s nur als Notausgang, falls der Test vorher abbricht.
+                    gate.waitForRelease(timeoutSeconds: 30)
                 }
             }
-            let entered = await waitUntil(timeout: 5) { gate.hasEntered }
+            let entered = await waitUntil { gate.hasEntered }
             #expect(entered)
-            let started = ContinuousClock.now
             reporter.enqueue(kind: "crash")
-            let elapsed = started.duration(to: .now)
-            #expect(elapsed < .milliseconds(100))
+            // bug.0.3.8.007: statt Zeitgrenze (< 100 ms) — `enqueue` ist zurück, während der Schreiber die
+            // Datenbank noch hält. Wartete `enqueue` auf die Datenbank, käme es erst nach Ablauf der Sperre zurück.
+            #expect(!gate.hasLeft, "enqueue hat auf die blockierte Datenbank gewartet")
             gate.release()
             try await writer.value
             reporter.waitForPendingEnqueuesForTesting()
@@ -374,15 +375,15 @@ struct IssueTrackerTests {
         let writer = Task.detached {
             try store.pool.write { _ in
                 gate.markEntered()
-                gate.waitForRelease(timeoutSeconds: 5)
+                // bug.0.3.8.007: Sperre hält bis `release()`; 30 s nur als Notausgang, falls der Test vorher abbricht.
+                gate.waitForRelease(timeoutSeconds: 30)
             }
         }
-        let entered = await waitUntil(timeout: 5) { gate.hasEntered }
+        let entered = await waitUntil { gate.hasEntered }
         #expect(entered)
-        let started = ContinuousClock.now
         VersionCheckCoordinator.enqueueCheckIfNeeded(store: store, force: true)
-        let elapsed = started.duration(to: .now)
-        #expect(elapsed < .milliseconds(100))
+        // bug.0.3.8.007: statt Zeitgrenze (< 100 ms) — der Aufruf ist zurück, solange der Schreiber noch hält.
+        #expect(!gate.hasLeft, "enqueueCheckIfNeeded hat auf die blockierte Datenbank gewartet")
         gate.release()
         try await writer.value
     }
@@ -482,11 +483,19 @@ private final class ExclusiveWriteGate: @unchecked Sendable {
     private let lock = NSLock()
     private let releaseSem = DispatchSemaphore(value: 0)
     private var entered = false
+    private var left = false
 
     var hasEntered: Bool {
         lock.lock()
         defer { lock.unlock() }
         return entered
+    }
+
+    /// bug.0.3.8.007: Der Schreiber hat die Sperre verlassen (nach `release()` oder nach Ablauf der Wartezeit).
+    var hasLeft: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return left
     }
 
     func markEntered() {
@@ -497,6 +506,9 @@ private final class ExclusiveWriteGate: @unchecked Sendable {
 
     func waitForRelease(timeoutSeconds: Double) {
         _ = releaseSem.wait(timeout: .now() + timeoutSeconds)
+        lock.lock()
+        left = true
+        lock.unlock()
     }
 
     func release() {

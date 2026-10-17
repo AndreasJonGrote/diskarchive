@@ -11,10 +11,6 @@ import Testing
 
 @MainActor
 private func columnCacheTree() async throws -> (app: AppState, store: IndexStoreV3, medium: StoredMedium) {
-    // bug.0.4.044: globale Test-Gates anderer Suiten zurücksetzen.
-    IndexRepository.awaitMissingFolderCacheGateForTesting = nil
-    IndexRepository.resetLoadSessionsCounterForTesting()
-    IndexRepository.resetRequestLoadCounterForTesting()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-cache-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
     let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))

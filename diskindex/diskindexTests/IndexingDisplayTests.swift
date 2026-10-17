@@ -109,10 +109,10 @@ struct IndexingDisplayTests {
             return bytes
         }
         let first = snapshot()
-        try await Task.sleep(for: .milliseconds(300))
-        let second = snapshot()
         #expect(!first.isEmpty)
-        let changed = first != second
+        // bug.0.3.8.007: bis zu 5 s auf eine Änderung warten statt genau einer Aufnahme nach 300 ms —
+        // unter Parallel-Last kann ein einzelnes Bild zufällig noch gleich sein.
+        let changed = await waitUntil(timeout: 5) { snapshot() != first }
         #expect(changed, "Spinner hat sich zwischen den Aufnahmen nicht verändert")
     }
 }

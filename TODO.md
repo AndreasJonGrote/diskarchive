@@ -50,11 +50,11 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.2**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach Stick-Test des Nutzers und `todo.0.3.8.001` (Version). Letzte Prüfung 17.10. 12:47–13:02: 0 Warnungen, seriell 643/643, parallel 2/3 (zeitabhängige Tests, `bug.0.3.8.007`). Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
+**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.2**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 17.10. 13:49–14:03: 0 Warnungen, seriell 645/645, parallel 3/3. Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
-**Abnahmekriterien je Sprung (alle müssen erfüllt sein):** (1) alle Kennungen des Sprungs vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün (Zahl der Tests genannt); (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) Regel 23: Claude baut die App des Nutzers als letzten Schritt; (7) Nutzertest am echten Stick bestanden (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung); (8) keine offene „Frage:“ in dieser Datei. Bei Abnahme eines Sprungs setzt der Umsetzer `MARKETING_VERSION` (`todo.0.3.8.001`, `todo.0.3.9.001`).
+**Abnahmekriterien je Sprung (alle müssen erfüllt sein):** (1) alle Kennungen des Sprungs vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün (Zahl der Tests genannt); (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) Regel 23: der Host baut die App des Nutzers als letzten Schritt; (7) **entfällt je Sprung (Nutzer 17.10.):** der Test am echten Stick kommt gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`: Großplatten-Lauf, Stick, Layout; danach an die Nutzer); (8) keine offene „Frage:“ in dieser Datei. Bei Abnahme eines Sprungs setzt der Umsetzer `MARKETING_VERSION` (`todo.0.3.8.001`, `todo.0.3.9.001`).
 
 **Abnahme (Host, billiger):** je Aufgabe gezielte Tests, Code lesen, Build ohne Warnung; Gesamtlauf und Parallelläufe nur am Paketende; die Nutzer-App wird einmal je Paket gebaut. Ablauf: [archiv/abnahme-ablauf.md](archiv/abnahme-ablauf.md).
 
@@ -70,13 +70,13 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 4 | **0.3.8** | ~~`bug.0.3.8.001`–`002`, `bug.0.4.045`, `021`–`025`~~ | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | **abgenommen 16./17.10.** |
 | 5a | **0.3.8** | ~~`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`~~ | Entscheidung, Status, Regeln, Identität, Teil 1 | **abgenommen 17.10.** |
 | 5b | **0.3.8** | ~~`bug.0.3.8.004`, `005`, `bug.0.4.031`~~ | Testaufbau, tote Dateien, Identität | **abgenommen 17.10.** |
-| 5c | **0.3.8** | `bug.0.3.8.006`, `007` | Zeitgrenze Medienprüfung, Parallellauf stabil | **freigegeben 17.10.** |
-| 6 | **0.3.9** | `bug.0.4.034`–`040` | Oberfläche | B |
+| 5c | **0.3.8** | ~~`bug.0.3.8.006`, `007`~~ | Zeitgrenze Medienprüfung, Parallellauf stabil | **abgenommen 17.10.; 0.3.8 fertig** |
+| 6 | **0.3.9** | `todo.0.3.8.001`, `bug.0.4.034`–`040` | Version 0.3.8, Oberfläche | **freigegeben 17.10.** |
 | 7 | **0.3.9** | `bug.0.4.041`–`042` | Absturzschreiber und Start | B |
-| 8 | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere | B |
+| 8 | **0.3.9** | `bug.0.4.050`–`062`, `bug.0.3.9.001`–`003` | Fehler niedriger Schwere | B |
 | – | **0.4** | `todo.0.4.020`–`025` | Weitergabe an Beta-Tester | B |
 
-Reihenfolge in 0.3.8 (verbindlich): Pakete 4, 5a und 5b abgenommen; jetzt Paket 5c, dann Stick-Test des Nutzers (Abnahmekriterium 7), dann `todo.0.3.8.001`. Neue sichtbare Texte nur über „Frage:“ oder als freigegebener Textvorschlag in der Aufgabe (Regel 3 bleibt).
+Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. Neue sichtbare Texte nur über „Frage:“ oder als freigegebener Textvorschlag in der Aufgabe (Regel 3 bleibt).
 
 #### Paket 4 und 5a — abgenommen (Hintergrund gilt weiter)
 
@@ -86,69 +86,15 @@ Reihenfolge in 0.3.8 (verbindlich): Pakete 4, 5a und 5b abgenommen; jetzt Paket 
 
 **Prüfung Host 17.10. 08:30–08:45 (Commit `58ec44e`):** Debug mit Testziel und Release 0 Warnungen, seriell **639/639** grün, Parallel **2 von 3** grün (Lauf 2 rot: `MainThreadMediumIOTests/directProbeKeepsMainActorResponsive`, Ticker 2 statt ≥ 8, Messaufbau, siehe `bug.0.3.8.004`), keine neuen `.ips`, Regel 23 erfüllt. **Paket 5a abgenommen** (`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`); die neuen Tests gehen über die echten Wege (Regel 18). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5a.md`.
 
-**Prüfung Host 17.10. 12:47–13:02 (Nacharbeit 5b, ungecommittet auf `acdfcf9`):** Debug mit Testziel und Release 0 Warnungen, seriell **643/643** grün, Parallel **2 von 3** (Lauf 1 rot: `ChangeWatcherTests/saveCursorWritesOnlyWhenEventIDChanges`, exakter Zählvergleich, siehe `bug.0.3.8.007`), keine neuen `.ips`, Regel 23 (App 13:02:24, Signatur gültig). **Paket 5b abgenommen** (`bug.0.3.8.004`, `005`, `bug.0.4.031`); Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5b.md`. Im Parallellauf wackelt bei jeder Prüfung ein **anderer** zeitabhängiger Test; das räumt `bug.0.3.8.007` grundsätzlich auf.
+**Prüfung Host 17.10. 13:49–14:03 (Paket 5c, ungecommittet auf `6d13db7`):** Debug mit Testziel und Release 0 Warnungen, seriell **645/645** grün, **Parallel 3 von 3 grün** (13:54–14:02), keine neuen `.ips`, Regel 23 (App 14:03:16, Signatur gültig). **Paket 5c abgenommen** (`bug.0.3.8.006`, `007`, dazu `bug.0.4.070`/`071`). **Damit sind alle Kennungen von 0.3.8 abgenommen und die Kriterien 1–6 und 8 erfüllt: 0.3.8 ist fertig**, die Version setzt der Worker als erste Aufgabe von Paket 6 (`todo.0.3.8.001`). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5c.md`.
 
-#### Paket 5c — Stabilität für 0.3.8 (freigegeben 17.10.)
+#### Paket 6 — Oberfläche (0.3.9, freigegeben 17.10.)
 
-Reihenfolge: `bug.0.3.8.006`, `bug.0.3.8.007`. Danach Stick-Test des Nutzers.
+Reihenfolge: zuerst `todo.0.3.8.001`, dann `034`, `035`, `036`, `037`, `038`, `039`, `040`. Für `035` gilt der Textvorschlag der Rückfrage als freigegeben (im Status unter „Neue Texte:“ auflisten). Jede Aufgabe, die Ansichten berührt: Test mit echtem Fenster außerhalb des Bildschirms (Regel 10/19/21), Maße aus dem Komponentenkatalog (Regel 13), `RegressionSmokeTests` erweitern (Regel 11).
 
-**bug.0.3.8.006 — Zeitgrenze der Medienprüfung greift nie (Befund Worker 17.10., zu `bug.0.4.021`; Fehler in der Abnahme des Hosts).**
-- `DirectMediumAccess.probe` (`MediumAccess.swift`): Der Zeitgrenzen-Zweig der `TaskGroup` liefert `nil`, `for await` wartet weiter auf die Prüfung. Und selbst mit Rückgabe wartet `withTaskGroup` vor dem Verlassen auf das Kind, das im blockierten `contentsOfDirectory` steckt. Ein hängendes Volume hängt damit die Erkennung.
-- Umbau: Prüfung auf der Queue starten und das Ergebnis über eine **einmal** fortsetzbare Continuation liefern, die entweder die Prüfung oder ein Timer (Zeitgrenze, Standard 5 s, als Parameter injizierbar) fortsetzt; der Verlierer wird verworfen. Keine Struktur, die auf den blockierten Aufruf wartet. Ergebnis bei Zeitgrenze `.denied(reason: "timeout")`.
-- Test: Prüfung mit Test-Hook, der nie zurückkehrt (bzw. am `MainHopGate` hängt und erst nach dem Test geöffnet wird), Zeitgrenze 0,3 s → `probe` kehrt mit `.denied(reason: "timeout")` zurück (Notfall-Grenze des Tests großzügig, z. B. 10 s). Sabotage (alter Zeitgrenzen-Zweig) → Test läuft in die Notfall-Grenze → rot ✓. `directProbeKeepsMainActorResponsive` muss mit dem Umbau grün bleiben (dort die Zeitgrenze groß genug injizieren, damit sie unter Last nicht greift).
-- Gleiche Bauart suchen (`withTaskGroup` + Zeitgrenze mit `nil`: `grep -rn "Task.sleep" diskindex/diskindex | grep -B3 "return nil"`, `PartialChecksum.computeOffActor` prüfen) und im Status nennen; nur umbauen, wo derselbe Fehler steckt.
+**todo.0.3.8.001 — Version 0.3.8 setzen (Abnahme 0.3.8 durch den Host 17.10.).** `MARKETING_VERSION` an allen Stellen in `project.pbxproj` auf `0.3.8` (wie `todo.0.3.2.002`), `BundleVersionTests`/`AboutAndSettingsMenuTests` anpassen. Status: Zahl der geänderten Stellen.
+Status:
 
-**bug.0.3.8.007 — Zeitabhängige Tests: Parallellauf endgültig stabil (Host 17.10.).**
-- Befund: In vier Prüfungen hintereinander wackelte jedes Mal ein anderer Test (`directProbe…`, `slowOpen…`, zuletzt `saveCursorWritesOnlyWhenEventIDChanges`). Einzelreparaturen reichen nicht.
-- a) `saveCursorWritesOnlyWhenEventIDChanges` (`ChangeWatcherTests` Z. ~736): vergleicht `recordEventCursorCallCountForTesting == 1` bzw. `== 2`, während Watcher-Flush und der 5-s-`cursorTimer` den Cursor selbst speichern (Regel 20: kein exakter Zählvergleich auf asynchrone Ereignisse). Umbau: Zeitgeber des Watchers injizierbar (im Test aus), Prüfung als Differenz („dreimal `saveCursor` ohne neues Ereignis erhöht nicht“, „neues Ereignis + `saveCursor` erhöht“).
-- b) Durchgang über **alle** Tests: `grep -rn "== [0-9]\+\b" diskindexTests | grep -i "count\|calls"` sowie Messungen mit `ContinuousClock`/`Date()` und festen Grenzen unter 1 s auf asynchrone Abläufe. Jeden Fund entweder auf die Bedingung warten bzw. als Differenz/`>=` prüfen oder begründen, warum er deterministisch ist. Leistungstests (feste Grenzen auf Laufzeit, z. B. `pruningAfterLowerDepth…`, `recordOnMainStaysFast`) nicht lockern; im Status als „Laufzeitgrenze, bewusst“ nennen.
-- c) Beobachten-Punkte `bug.0.4.070`/`071` in diesen Durchgang aufnehmen und danach aus „Beobachten“ streichen lassen (Host).
-- **Akzeptanz:** Parallellauf **dreimal hintereinander** grün beim Worker und danach beim Host; Status listet jede geänderte Stelle (Datei, Test, vorher/nachher in einem Halbsatz).
-
-**HALT nach Paket 5c = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen (`todo.0.3.8.001`, `MARKETING_VERSION` auf `0.3.8`, nur nach Abnahmekriterien 1–8), danach 0.3.9.
-
----
-
-### Nutzer und Host (ohne Worker)
-
-| Kennung | Was | Wer |
-|---|---|---|
-| `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
-
-### Entscheidungen des Nutzers (blockieren nur die genannte Stelle)
-
-**Alle Entscheidungen getroffen (Nutzer 16.10. abends).** Umsetzung: `todo.0.4.032` in `bug.0.4.031` c), `todo.0.4.031` in `bug.0.4.035`, `todo.0.4.034`–`038` als `todo.0.4.026`–`029` (0.4, Abschnitt B). Die Fragen bleiben zur Nachverfolgung hier stehen.
-
-| Kennung | Frage | betrifft |
-|---|---|---|
-| `todo.0.4.030` | **erledigt 16.10. (Nutzer):** Die API meldet wieder `0.3.0`; die Beta sperrt nicht mehr sofort. Keine Änderung an der App. | – |
-| `todo.0.4.031` | **entschieden 16.10. (Nutzer): Rückfrage ab Schwelle.** Ab 500 Zielen auf einmal fragt die App vor dem Ignorieren nach; nichts wird verhindert. | `bug.0.4.035` |
-| `todo.0.4.032` | **entschieden 16.10. (Nutzer): Hinweis anbieten.** Neues Medium mit gleichem Namen wie ein Offline-Medium → Rückfrage, ob es das alte ersetzt; nie automatisch vergessen. | `bug.0.4.031` c) |
-| `todo.0.4.033` | **entschieden 16.10. (Nutzer): ja.** Einstellungen müssen vor dem ersten Lauf geladen sein; fest als Regel (README, Abschnitt „Datenbank“/Start). Gilt für `bug.0.4.028`. | – |
-| `todo.0.4.034` | **entschieden 16.10. (Nutzer): README gilt.** Ohne Haken erscheint der Dialog beim nächsten Anschließen wieder, mit Haken nicht. | `todo.0.4.026` |
-| `todo.0.4.035` | **entschieden 16.10. (Nutzer): ja.** Auch eine Pause, die bei beendeter App abgelaufen ist, meldet beim Start „Medien werden wieder indiziert.“ | `todo.0.4.027` |
-| `todo.0.4.036` | **entschieden 16.10. (Nutzer): Kalenderzeit.** Beim Start und beim Aufwachen prüfen, ob seit dem letzten Check 24 h vergangen sind. | `todo.0.4.028` |
-| `todo.0.4.037` | **entschieden 16.10. (Nutzer): jedes 201 gilt als Erfolg**, `id` ist optional. Keine Änderung am Server. | `todo.0.4.029` |
-| `todo.0.4.038` | **entschieden 16.10. (Nutzer):** `ScreenshotRunner.swift` löschen (Umsetzung jetzt in `bug.0.3.8.005`); `PreviewData.swift` nur behalten, wenn Vorschauen oder Tests es nutzen, sonst auch löschen. | `todo.0.4.029` |
-| `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
-
-### Beobachten (keine Aufgabe)
-
-| Kennung | Stand |
-|---|---|
-| `bug.0.4.070` | `serviceRunPassesTheReasonToTheDialog` (früher F11), parallel selten rot |
-| `bug.0.4.071` | kurze `Task.sleep` in mehreren Suiten (früher F23); Wackelgefahr |
-
----
-
-## B. Backlog (nicht freigegeben, der Worker arbeitet nicht daran), nach Zielversion
-
-
----
-
-### 0.3.9 — Pakete 6, 7, 8 (nach 0.3.8), danach Stabilitätsprüfung
-
-#### Paket 6 — Oberfläche
 
 **bug.0.4.034 — Spaltenansicht: Zustand „wird indiziert“ richtig (REPORT 81, 126).**
 - a) `rowOpacity` übergibt `folderName`, `folderListedAt` und `folderUnreadable` wie `iconColor`. Den Zustand **einmal je Zeile** berechnen und für Farbe und Deckkraft verwenden.
@@ -211,6 +157,46 @@ Status:
 
 **HALT nach Paket 6.**
 
+
+---
+
+### Nutzer und Host (ohne Worker)
+
+| Kennung | Was | Wer |
+|---|---|---|
+| `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
+
+### Entscheidungen des Nutzers (blockieren nur die genannte Stelle)
+
+**Alle Entscheidungen getroffen (Nutzer 16.10. abends).** Umsetzung: `todo.0.4.032` in `bug.0.4.031` c), `todo.0.4.031` in `bug.0.4.035`, `todo.0.4.034`–`038` als `todo.0.4.026`–`029` (0.4, Abschnitt B). Die Fragen bleiben zur Nachverfolgung hier stehen.
+
+| Kennung | Frage | betrifft |
+|---|---|---|
+| `todo.0.4.030` | **erledigt 16.10. (Nutzer):** Die API meldet wieder `0.3.0`; die Beta sperrt nicht mehr sofort. Keine Änderung an der App. | – |
+| `todo.0.4.031` | **entschieden 16.10. (Nutzer): Rückfrage ab Schwelle.** Ab 500 Zielen auf einmal fragt die App vor dem Ignorieren nach; nichts wird verhindert. | `bug.0.4.035` |
+| `todo.0.4.032` | **entschieden 16.10. (Nutzer): Hinweis anbieten.** Neues Medium mit gleichem Namen wie ein Offline-Medium → Rückfrage, ob es das alte ersetzt; nie automatisch vergessen. | `bug.0.4.031` c) |
+| `todo.0.4.033` | **entschieden 16.10. (Nutzer): ja.** Einstellungen müssen vor dem ersten Lauf geladen sein; fest als Regel (README, Abschnitt „Datenbank“/Start). Gilt für `bug.0.4.028`. | – |
+| `todo.0.4.034` | **entschieden 16.10. (Nutzer): README gilt.** Ohne Haken erscheint der Dialog beim nächsten Anschließen wieder, mit Haken nicht. | `todo.0.4.026` |
+| `todo.0.4.035` | **entschieden 16.10. (Nutzer): ja.** Auch eine Pause, die bei beendeter App abgelaufen ist, meldet beim Start „Medien werden wieder indiziert.“ | `todo.0.4.027` |
+| `todo.0.4.036` | **entschieden 16.10. (Nutzer): Kalenderzeit.** Beim Start und beim Aufwachen prüfen, ob seit dem letzten Check 24 h vergangen sind. | `todo.0.4.028` |
+| `todo.0.4.037` | **entschieden 16.10. (Nutzer): jedes 201 gilt als Erfolg**, `id` ist optional. Keine Änderung am Server. | `todo.0.4.029` |
+| `todo.0.4.038` | **entschieden 16.10. (Nutzer):** `ScreenshotRunner.swift` löschen (Umsetzung jetzt in `bug.0.3.8.005`); `PreviewData.swift` nur behalten, wenn Vorschauen oder Tests es nutzen, sonst auch löschen. | `todo.0.4.029` |
+| `todo.0.4.039` | entschieden 15.10.: **Jeder Start zeigt alles**, auch der Anmeldestart (siehe `todo.0.4.013`). | – |
+
+### Beobachten (keine Aufgabe)
+
+| Kennung | Stand |
+|---|---|
+
+---
+
+## B. Backlog (nicht freigegeben, der Worker arbeitet nicht daran), nach Zielversion
+
+
+---
+
+### 0.3.9 — Pakete 7 und 8 (nach Paket 6), danach Stabilitätsprüfung
+
 #### Paket 7 — Absturzschreiber und Start
 
 **bug.0.4.041 — Absturzschreiber signalsicher, Ringzeilen UTF-8-sicher (REPORT 76, 128).**
@@ -257,7 +243,16 @@ Status:
 | `bug.0.4.061` | 107 | Mindestanzeige (400 ms) des Ladehinweises wirkt nie |
 | `bug.0.4.062` | 132 | Sammelzeile Nebenläufigkeit (Verdacht) |
 
-**HALT nach Paket 8 = Ende von 0.3.9** — Abnahmekriterien 1–8, `todo.0.3.9.001` (`MARKETING_VERSION` auf `0.3.9`), Stabilitätsprüfung; erst dann 0.4.
+**bug.0.3.9.001 — Weitere prozessweite Test-Schalter (Befund Worker 17.10.).** `SystemNotice.center`/`testPostHandler`, `DatabaseMaintenance.incrementalVacuumEnabled`, `LaunchAtLogin.setEnabledForTesting`, `ReportScrubber.pathPatternForTesting` als Parameter, Instanz oder `@TaskLocal` (Regel 20). Akzeptanz: Parallellauf 3× grün; `grep -rn "static var.*Testing\|ForTesting" diskindex/diskindex` im Status begründet.
+Status:
+
+**bug.0.3.9.002 — `VolumeLookup.info` ohne Zeitgrenze (Befund Worker 17.10.).** Serielle Queue: ein hängendes Volume hält alle weiteren Lookups auf (Erkennung, Aufwachen). Zeitgrenze wie `DirectMediumAccess.probe` (einmal fortsetzbare Continuation, injizierbar, Standard 5 s; Ergebnis `nil` = kein Kandidat, Protokollzeile). Test mit hängendem Lookup: zweiter Lookup kehrt zurück. Sabotage rot ✓.
+Status:
+
+**bug.0.3.9.003 — Live-Suche: Nachlauf nach Direktlauf nicht abgebrochen (Befund Worker 17.10.).** `runSearchAfterLiveChange` bricht den ausstehenden Nachlauf nicht ab, wenn eine Suche direkt ausgelöst wird; es läuft eine überflüssige zweite Suche. Abbrechen; Test: Live-Änderung, dann sofort Direktsuche → genau eine Suche (Zähler, nach kurzem Abwarten erneut geprüft).
+Status:
+
+**HALT nach Paket 8 = Ende von 0.3.9** — Abnahmekriterien 1–6 und 8, `todo.0.3.9.001` (`MARKETING_VERSION` auf `0.3.9`), Stabilitätsprüfung; erst dann 0.4.
 
 ---
 
@@ -270,6 +265,7 @@ Status:
 | `todo.0.4.022` | **Laufzeittest auf macOS 14** (z. B. VM); `pointerStyle` und `CGSize: Hashable` brauchen einen Ausweichweg. |
 | `todo.0.4.023` | **Fehlerbericht mit echten Protokollzeilen** testen (erst nach `bug.0.4.011` und `bug.0.4.012`). |
 | `todo.0.4.024` | **Update durch Ersetzen der App:** Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe bei neuerer Version, Launch-Agent neu registrieren; Schema-Erweiterungen mit Sicherung davor (nach `bug.0.4.013`). |
+| `todo.0.4.040` | **Große Abnahmerunde = letzter Schritt vor den Nutzern (Nutzer 17.10.):** erst, wenn **alles andere von 0.4 abgenommen** ist; nicht vorziehen. Inhalt: (1) Lauf über die große Platte des Nutzers (rund 2 Mio. HTML-Dateien): vollständig indizieren, suchen, Spaltenansicht in großen Ordnern, ab- und anstecken, Live-Änderung; Zeiten (Release-Build) und Protokoll festhalten. (2) Test am echten Stick (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung, Rückfrage „Ersetzt dieses Medium?“ samt Texten, Umbenennen eines Volumes). (3) Layout-Durchgang aller Ansichten gegen `layout/` (einschließlich `todo.0.3.2.001`). Funde als `bug.0.4.xxx`; nach ihrer Behebung und Abnahme geht die App an die Nutzer. Ersetzt das Kriterium 7 der Sprünge 0.3.8 und 0.3.9. |
 | `todo.0.4.025` | **Fenster „Datenbank wird aktualisiert“** (einmalig, mit Fortschritt) bei der ersten Schema-Erweiterung durch ein Update. |
 | `todo.0.4.026` | **„Für dieses Medium merken“ auswerten** (`todo.0.4.034`): `rememberDecision` beim Anschließen lesen; ohne Haken erscheint der Erkennungs-Dialog beim nächsten Anschließen wieder (Vorbelegung = letzte Entscheidung), mit Haken nicht. Test für beide Fälle. |
 | `todo.0.4.027` | **Pause beim Start abgelaufen** (`todo.0.4.035`): Mitteilung „Medien werden wieder indiziert.“ wie beim Ablauf im Betrieb (gleiche Schalter); danach Abgleich wie nach Pausenende. Test. |

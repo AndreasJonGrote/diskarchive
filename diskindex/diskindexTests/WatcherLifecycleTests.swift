@@ -29,10 +29,18 @@ struct WatcherLifecycleTests {
         rig.watcher.quietInterval = .milliseconds(20)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/x", eventID: 10, fileSystemUUID: "UUID-1"))
-        try await Task.sleep(for: .milliseconds(80))
+        // bug.0.3.8.007: Vorbedingung abwarten (erster Flush gespeichert) statt fester 80 ms.
+        let firstSaved = await waitUntil {
+            (try? await rig.store.medium(uuid: rig.medium.uuid))?.lastEventID == 10
+        }
+        #expect(firstSaved)
         await rig.store.setDirectoryWritesFailing(true)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/y", eventID: 11, fileSystemUUID: "UUID-1"))
-        try await Task.sleep(for: .milliseconds(120))
+        // bug.0.3.8.007: erst warten, bis der zweite Flush A gelesen hat (Schreiben schlägt danach fehl), dann kurz
+        // nachsehen — sonst wäre „Cursor nicht 11“ auch grün, wenn der Flush noch gar nicht lief.
+        let secondRead = await waitUntil { rig.access.listCount(for: "/Volumes/DISK/A") >= 2 }
+        #expect(secondRead)
+        try await Task.sleep(for: .milliseconds(100))
         let row = try #require(try await rig.store.medium(uuid: rig.medium.uuid))
         #expect(row.lastEventID != 11)
         await rig.store.setDirectoryWritesFailing(false)
@@ -114,8 +122,9 @@ struct WatcherLifecycleTests {
         await access.release.signal()
         await service.waitUntilIdle(stored.uuid)
         service.onRunIndexed?(stored.uuid, volume)
-        try await Task.sleep(for: .milliseconds(30))
-        #expect(watcher.isWatching(mediumID: stored.uuid))
+        // bug.0.3.8.007: auf das Starten warten statt fester 30 ms (Start läuft über einen Store-Zugriff).
+        let watching = await waitUntil { watcher.isWatching(mediumID: stored.uuid) }
+        #expect(watching)
     }
 }
 }

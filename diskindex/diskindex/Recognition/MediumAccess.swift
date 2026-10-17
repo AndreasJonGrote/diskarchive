@@ -62,42 +62,39 @@ nonisolated struct DirectMediumAccess: MediumAccess {
     @TaskLocal static var probeThreadObserverForTesting: (@Sendable (Bool) -> Void)?
     #endif
 
+    /// Zeitgrenze der Zugriffsprüfung (bug.0.3.8.006). Ein hängendes Volume darf die Erkennung nicht blockieren.
+    var probeTimeout: TimeInterval = 5
+
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult {
         #if DEBUG
         let threadObserver = Self.probeThreadObserverForTesting
         #endif
-        return await withTaskGroup(of: MediumAccessResult?.self) { group in
-            group.addTask {
-                await withCheckedContinuation { continuation in
-                    DispatchQueue.global(qos: .utility).async {
-                        #if DEBUG
-                        threadObserver?(Thread.isMainThread)
-                        dispatchPrecondition(condition: .notOnQueue(.main))
-                        #endif
-                        let url = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
-                        do {
-                            _ = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
-                            continuation.resume(returning: .granted)
-                        } catch {
-                            let nsError = error as NSError
-                            let posix = (nsError.userInfo[NSUnderlyingErrorKey] as? NSError)?.code
-                            let posixText = posix.map { ", POSIX \($0)" } ?? ""
-                            continuation.resume(returning: .denied(reason: "\(nsError.domain) \(nsError.code)\(posixText)"))
-                        }
-                    }
+        let timeout = probeTimeout
+        // Prüfung und Zeitgeber setzen dieselbe Continuation fort; der Erste gewinnt, der Verlierer wird verworfen.
+        // Nichts wartet auf den womöglich blockierten `contentsOfDirectory`-Aufruf.
+        return await withCheckedContinuation { continuation in
+            let once = ResumeOnce(continuation)
+            DispatchQueue.global(qos: .utility).async {
+                #if DEBUG
+                threadObserver?(Thread.isMainThread)
+                dispatchPrecondition(condition: .notOnQueue(.main))
+                #endif
+                let url = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
+                do {
+                    _ = try FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)
+                    once.resume(.granted)
+                } catch {
+                    let nsError = error as NSError
+                    let posix = (nsError.userInfo[NSUnderlyingErrorKey] as? NSError)?.code
+                    let posixText = posix.map { ", POSIX \($0)" } ?? ""
+                    once.resume(.denied(reason: "\(nsError.domain) \(nsError.code)\(posixText)"))
                 }
             }
-            group.addTask {
-                try? await Task.sleep(for: .seconds(5))
-                return nil
-            }
-            for await result in group {
-                if let result {
-                    group.cancelAll()
-                    return result
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout) {
+                if once.resume(.denied(reason: "timeout")) {
+                    DiskIndexLog.shared.record(.medium, .error, "zugriffsprüfung zeitgrenze", privateDetail: volume.mountPath)
                 }
             }
-            return .denied(reason: "timeout")
         }
     }
 
@@ -115,5 +112,27 @@ nonisolated struct DirectMediumAccess: MediumAccess {
 
     func listDirectoryCountChunks(at url: URL, chunkSize: Int = IndexingRunLimits.standard.directoryChunkSize) -> AsyncStream<Result<[ListedDirectoryEntry], Error>> {
         BulkDirectoryReader.chunkedStream(at: url, mode: .nameAndTypeOnly, chunkSize: chunkSize)
+    }
+}
+
+/// Setzt eine Continuation höchstens einmal fort (Prüfung gegen Zeitgrenze, bug.0.3.8.006).
+nonisolated private final class ResumeOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<MediumAccessResult, Never>?
+
+    init(_ continuation: CheckedContinuation<MediumAccessResult, Never>) {
+        self.continuation = continuation
+    }
+
+    /// `true`, wenn dieser Aufruf fortgesetzt hat; spätere Aufrufe werden verworfen.
+    @discardableResult
+    func resume(_ result: MediumAccessResult) -> Bool {
+        let pending: CheckedContinuation<MediumAccessResult, Never>? = lock.withLock {
+            let value = continuation
+            continuation = nil
+            return value
+        }
+        pending?.resume(returning: result)
+        return pending != nil
     }
 }

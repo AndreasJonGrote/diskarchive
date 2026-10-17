@@ -82,10 +82,9 @@ struct IndexRepositoryInvalidateAllTests {
         let repo = app.indexRepository
         let mediumID = medium.uuid
         let missingPath = ["OrdnerFehlt"]
-        defer { IndexRepository.awaitMissingFolderCacheGateForTesting = nil }
-
         let gate = MissingFolderLoadGate()
-        IndexRepository.awaitMissingFolderCacheGateForTesting = {
+        // bug.0.3.8.007: Tor am eigenen Repository (vorher prozessweit statisch).
+        repo.awaitMissingFolderCacheGateForTesting = {
             await gate.pauseUntilProceed()
         }
 

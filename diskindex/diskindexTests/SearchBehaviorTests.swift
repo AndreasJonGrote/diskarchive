@@ -39,8 +39,9 @@ struct SearchBehaviorTests {
         let (app, _) = try await appWithResults()
         await app.indexStore?.setSearchQueryDelay(.milliseconds(200))
         let slow = Task { await app.runSearch() }
-        try await Task.sleep(for: .milliseconds(30))
-        #expect(app.searchState.isSearchInProgress)
+        // bug.0.3.8.007: statt fester 30 ms warten, bis die langsame Suche läuft (Abfrage hält 200 ms).
+        let inProgress = await waitUntil { app.searchState.isSearchInProgress }
+        #expect(inProgress)
         await app.runSearch()
         await slow.value
         #expect(!app.searchState.isSearchInProgress)
@@ -63,12 +64,19 @@ struct SearchBehaviorTests {
         app.updateMedium(id: medium.uuid) { $0.indexStatus = .indexing }
         try #require(app.media.contains { $0.indexStatus == .indexing })
         let before = app.searchGeneration
+        let started = ContinuousClock.now
         for _ in 0..<20 {
             await app.runSearchAfterLiveChange()
             try await Task.sleep(for: .milliseconds(40))
         }
         let restarts = app.searchGeneration - before
-        #expect(restarts <= 1, "\(restarts) Neustarts in unter 1 s")
+        // bug.0.3.8.007: Die erlaubte Zahl folgt aus der gemessenen Dauer der Schleife statt aus „unter 1 s“:
+        // der erste Neustart sofort, danach höchstens einer je volle 2 s. Erst nach `restarts` messen, damit ein
+        // gerade feuernder Nachlauf nie mehr Neustarts als erlaubt ergibt.
+        let elapsed = started.duration(to: .now)
+        let allowed = 1 + Int(elapsed / .seconds(2))
+        #expect(restarts >= 1, "die erste Live-Meldung muss die Suche sofort neu starten")
+        #expect(restarts <= allowed, "\(restarts) Neustarts in \(elapsed), erlaubt \(allowed)")
         app.prepareForTermination()
     }
 

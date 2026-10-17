@@ -33,8 +33,11 @@ struct IndexingWiringTests {
             (try? await rig.store.medium(uuid: mediumID))?.indexStatus == .indexed
         }
         #expect(indexed)
+        // bug.0.3.8.007: auf das Beobachten warten statt es nach fester Pause vorauszusetzen. Die 2 s danach bleiben:
+        // Der echte FSEvents-Strom öffnet erst im Watch-Task, ein Umbenennen davor ginge verloren.
+        let watching = await waitUntil { rig.watcher.isWatching(mediumID: mediumID) }
+        #expect(watching)
         try await Task.sleep(for: .seconds(2))
-        #expect(rig.watcher.isWatching(mediumID: mediumID))
 
         let url = root.appendingPathComponent("a.txt")
         let renamed = root.appendingPathComponent("b.txt")

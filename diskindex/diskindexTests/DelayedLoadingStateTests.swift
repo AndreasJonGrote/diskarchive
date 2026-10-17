@@ -31,20 +31,16 @@ import Testing
     @Test func slowLoadShowsHintAfterDelay() async {
         let state = DelayedLoadingState(timing: fastTiming)
         state.beginLoading(total: 100)
-        var sawHint = false
-        for _ in 0..<40 {
-            if state.showsHint {
-                sawHint = true
-                break
-            }
-            try? await Task.sleep(for: .milliseconds(10))
-        }
+        // Direkt nach dem Start (synchron, vor Ablauf der 50 ms) ist der Hinweis noch aus.
+        #expect(!state.showsHint)
+        // bug.0.3.8.007: Zeitbudget (Standard 10 s) statt 40 × 10 ms — Last im Parallel-Lauf
+        // darf das Erscheinen verzögern, aber nicht den Test kippen.
+        let sawHint = await waitUntil { state.showsHint }
         #expect(sawHint)
         state.finishLoading()
-        for _ in 0..<20 where state.showsHint {
-            try? await Task.sleep(for: .milliseconds(10))
-        }
-        #expect(!state.showsHint)
+        // bug.0.3.8.007: ebenso fürs Ausblenden nach der Mindestanzeige (20 ms) statt 20 × 10 ms.
+        let hidden = await waitUntil { !state.showsHint }
+        #expect(hidden)
     }
 
     @Test func resetClearsHint() async {

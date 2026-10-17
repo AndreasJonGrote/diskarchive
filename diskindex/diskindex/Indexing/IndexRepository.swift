@@ -24,21 +24,15 @@ final class IndexRepository {
     private var loadGenerations: [String: UInt] = [:]
     private let cacheFolderLimit = 30
     #if DEBUG
-    private(set) static var loadSessionsStartedForTesting = 0
-    private(set) static var loadSessionsCompletedForTesting = 0
-    private(set) static var requestLoadCallsForTesting = 0
-
-    static func resetLoadSessionsCounterForTesting() {
-        loadSessionsStartedForTesting = 0
-        loadSessionsCompletedForTesting = 0
-    }
-
-    static func resetRequestLoadCounterForTesting() {
-        requestLoadCallsForTesting = 0
-    }
+    // bug.0.3.8.007: Zähler je Instanz statt prozessweit — parallele Suiten teilen den Prozess
+    // und würden sonst die Zählung fremder AppStates mitzählen (Regel 20).
+    private(set) var loadSessionsStartedForTesting = 0
+    private(set) var loadSessionsCompletedForTesting = 0
+    private(set) var requestLoadCallsForTesting = 0
 
     /// Tests (245): Pause vor missing-folder-Cache-Write, damit `invalidateAll` dazwischen laufen kann.
-    nonisolated(unsafe) static var awaitMissingFolderCacheGateForTesting: (() async -> Void)?
+    /// bug.0.3.8.007: je Instanz statt prozessweit — sonst hält der Schalter Ladevorgänge paralleler Suiten an.
+    var awaitMissingFolderCacheGateForTesting: (() async -> Void)?
     #endif
     /// Sequentiell aus der DB, damit sehr große Ordner den Ladevorgang nicht abbrechen.
     static let loadBatchSize = 2_000
@@ -72,7 +66,7 @@ final class IndexRepository {
     func requestLoad(mediumID: UUID, path: [String]) {
         if blocksLoadsForRuleReconcile { return }
         #if DEBUG
-        Self.requestLoadCallsForTesting += 1
+        requestLoadCallsForTesting += 1
         #endif
         let key = cacheKey(mediumID, path)
         if loading.contains(key) { return }
@@ -205,14 +199,14 @@ final class IndexRepository {
 
     private func load(mediumID: UUID, path: [String], key: String, loadToken: UInt) async {
         #if DEBUG
-        Self.loadSessionsStartedForTesting += 1
+        loadSessionsStartedForTesting += 1
         #endif
         defer {
             loading.remove(key)
             loadingLoaded[key] = nil
             loadingTotals[key] = nil
             #if DEBUG
-            Self.loadSessionsCompletedForTesting += 1
+            loadSessionsCompletedForTesting += 1
             #endif
         }
         loadErrors[key] = nil
@@ -230,7 +224,7 @@ final class IndexRepository {
                 parentID = try await store.folderID(mediumUUID: mediumID, path: path)
                 if parentID == nil {
                     #if DEBUG
-                    if let gate = Self.awaitMissingFolderCacheGateForTesting {
+                    if let gate = awaitMissingFolderCacheGateForTesting {
                         await gate()
                     }
                     #endif

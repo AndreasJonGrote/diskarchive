@@ -30,14 +30,14 @@ import Testing
         let checksumTask = Task {
             try await harness.store.storePartialChecksum(itemID: item.id, mountPath: mount.path)
         }
+        // bug.0.3.8.007: Reihenfolge statt Millisekunden — Lesen und Suchen kommen zurück, solange die Prüfsumme
+        // noch rechnet (8 s Verzögerung, Zeitgrenze 5 s).
+        let done = ChecksumDone()
+        Task { _ = try? await checksumTask.value; await done.mark() }
         try await Task.sleep(for: .milliseconds(300))
-        let childrenStarted = ContinuousClock.now
         _ = try await harness.store.childrenPage(mediumUUID: medium.uuid, parentID: nil, limit: 10)
-        // 750 ms Reserve unter Parallel-Last (5-s-Timeout vs. 8-s-Verzögerung).
-        #expect(childrenStarted.duration(to: ContinuousClock.now) < .milliseconds(750))
-        let searchStarted = ContinuousClock.now
         _ = try await harness.store.search(query: "big", filters: SearchFilters(), limit: 5)
-        #expect(searchStarted.duration(to: ContinuousClock.now) < .milliseconds(750))
+        #expect(await done.isDone == false, "Lesen wartete auf die Prüfsumme")
         try await checksumTask.value
         await harness.store.setPartialChecksumComputeDelayForTesting(nil)
     }
@@ -62,14 +62,44 @@ import Testing
             let checksumTask = Task {
                 try await harness.store.storePartialChecksum(itemID: item.id, mountPath: mount.path)
             }
+            // bug.0.3.8.007: Reihenfolge statt Millisekunden (Dateiprüfung schläft 2 s).
+            let done = ChecksumDone()
+            Task { _ = try? await checksumTask.value; await done.mark() }
             try await Task.sleep(for: .milliseconds(50))
-            let childrenStarted = ContinuousClock.now
             _ = try await harness.store.childrenPage(mediumUUID: medium.uuid, parentID: nil, limit: 10)
-            #expect(childrenStarted.duration(to: ContinuousClock.now) < .milliseconds(250))
-            let searchStarted = ContinuousClock.now
             _ = try await harness.store.search(query: "probe", filters: SearchFilters(), limit: 5)
-            #expect(searchStarted.duration(to: ContinuousClock.now) < .milliseconds(250))
+            #expect(await done.isDone == false, "Lesen wartete auf die Dateiprüfung")
             try await checksumTask.value
         }
+    }
+
+    /// bug.0.3.8.006: Die Prüfsumme hängt länger als ihre Zeitgrenze → `computeOffActor` kehrt nach der Zeitgrenze mit
+    /// `nil` zurück und wartet nicht auf das blockierte Lesen.
+    @Test func hangingChecksumReturnsAfterTimeout() async throws {
+        let mount = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-partial-hang-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: mount) }
+        let fileURL = mount.appendingPathComponent("hang.bin")
+        try Data(repeating: 0xEF, count: 64).write(to: fileURL)
+        let outcome = ChecksumDone()
+        Task {
+            let result = try? await PartialChecksum.computeOffActor(at: fileURL, timeout: .milliseconds(300), testComputeDelay: 8)
+            await outcome.mark(gotValue: result != nil)
+        }
+        // Notfall-Grenze 6 s liegt deutlich unter der 8-s-Verzögerung.
+        let returned = await waitUntil(timeout: 6) { await outcome.isDone }
+        #expect(returned, "computeOffActor wartet auf das blockierte Lesen")
+        #expect(await outcome.gotValue == false)
+    }
+}
+
+private actor ChecksumDone {
+    private(set) var isDone = false
+    private(set) var gotValue = false
+
+    func mark(gotValue: Bool = false) {
+        isDone = true
+        self.gotValue = gotValue
     }
 }

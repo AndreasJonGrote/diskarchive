@@ -85,8 +85,9 @@ struct WatcherRemountTests {
         rig.app.onNewMediumChoice?(mediumID, true, true)
         await rig.coordinator.waitForChoice()
         await rig.service.waitUntilIdle(mediumID)
-        try await Task.sleep(for: .seconds(2))
-        #expect(rig.watcher.isWatching(mediumID: mediumID))
+        // bug.0.3.8.007: auf das Beobachten warten statt fester 2 s (hier folgt keine Dateiänderung).
+        let watching = await waitUntil { rig.watcher.isWatching(mediumID: mediumID) }
+        #expect(watching)
         #expect(rig.coordinator.connectedVolumes().contains { $0.id == mediumID })
 
         await LiveWiring.restartWatchersAfterWake(

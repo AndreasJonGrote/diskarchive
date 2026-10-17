@@ -38,7 +38,8 @@ struct MainThreadMediumIOTests {
         )
         let gate = MainHopGate()
         let probing = DirectMediumAccess.$probeThreadObserverForTesting.withValue({ gate.arrive(onMain: $0) }) {
-            Task { @MainActor in await DirectMediumAccess().probe(volume) }
+            // Große Zeitgrenze: hier zählt nur der Thread, die Zeitgrenze darf unter Last nicht greifen.
+            Task { @MainActor in await DirectMediumAccess(probeTimeout: 60).probe(volume) }
         }
         // Endet die Prüfung, ohne das Tor zu erreichen, endet auch das Warten (rot statt Hängen).
         Task { _ = await probing.value; gate.finish() }
@@ -52,6 +53,31 @@ struct MainThreadMediumIOTests {
         let result = await probing.value
         #expect(result == .granted)
         #expect(gate.timedOut == false, "Prüfung blockierte den MainActor bis zur Notfall-Zeitgrenze")
+    }
+
+    /// bug.0.3.8.006: Die Prüfung hängt (am Tor, das erst nach dem Test öffnet) → `probe` kehrt nach der Zeitgrenze
+    /// mit `.denied(reason: "timeout")` zurück und wartet nicht auf den blockierten Aufruf.
+    @Test func hangingProbeReturnsTimeout() async throws {
+        let mount = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-probe-hang-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: mount) }
+        let volume = VolumeInfo(
+            mountPath: mount.path, name: "Hang", fsType: "apfs",
+            volumeTotalBytes: 1_000, volumeFreeBytes: 500, diskSizeBytes: 1_000, volumeUUID: nil, createdAt: nil,
+            isRemovable: true, isEjectable: true, isInternal: false, isLocal: true,
+            deviceProtocol: nil, model: nil, isTimeMachineSnapshot: false
+        )
+        let gate = MainHopGate()
+        defer { gate.open() }
+        let outcome = ProbeOutcome()
+        DirectMediumAccess.$probeThreadObserverForTesting.withValue({ gate.arrive(onMain: $0) }) {
+            Task { @MainActor in outcome.result = await DirectMediumAccess(probeTimeout: 0.3).probe(volume) }
+        }
+        // Notfall-Grenze großzügig; das Tor bleibt bis zum Testende zu.
+        let returned = await waitUntil(timeout: 8) { outcome.result != nil }
+        #expect(returned, "probe wartet auf den blockierten Aufruf")
+        #expect(outcome.result == .denied(reason: "timeout"))
     }
 
     @Test func networkStyleMountPathSkipsVolumeLookup() async {
@@ -104,4 +130,9 @@ final class MainHopGate: @unchecked Sendable {
     var timedOut: Bool {
         lock.withLock { didTimeOut }
     }
+}
+
+@MainActor
+private final class ProbeOutcome {
+    var result: MediumAccessResult?
 }

@@ -15,11 +15,25 @@ private final class DelayedCenter: NoticePosting {
     struct Entry { let kind: String; let effectiveAtAdd: Bool; let at: Date }
     var log: [Entry] = []
     weak var app: AppState?
+    /// bug.0.3.8.007: Zustellbestätigungen werden gehalten, bis der Test sie mit `completeAll()` auslöst
+    /// (statt fester 0,2 s per `asyncAfter`).
+    private var pending: [@Sendable (Error?) -> Void] = []
+
+    var pendingCount: Int { pending.count }
 
     func add(_ request: UNNotificationRequest, withCompletionHandler completionHandler: (@Sendable (Error?) -> Void)?) {
         let kind = request.content.userInfo["diskindex.noticeEvent"] as? String ?? ""
         log.append(Entry(kind: kind, effectiveAtAdd: app?.appSettings.notificationsEnabled ?? false, at: Date()))
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { completionHandler?(nil) }
+        if let completionHandler { pending.append(completionHandler) }
+    }
+
+    /// Meldet alle gehaltenen Mitteilungen als zugestellt und wartet, bis die daraus auf dem Main Actor
+    /// eingereihten Folgeschritte gelaufen sind (Main Actor arbeitet seine Aufträge der Reihe nach ab).
+    func completeAll() async {
+        let handlers = pending
+        pending.removeAll()
+        for handler in handlers { handler(nil) }
+        await Task { @MainActor in }.value
     }
 
     func getNotificationSettings(completionHandler: @escaping @Sendable (UNNotificationSettings) -> Void) {}
@@ -44,21 +58,21 @@ struct NoticeToggleOrderTests {
         await body(app, center)
     }
 
-    private func spin(_ seconds: TimeInterval) async {
-        try? await Task.sleep(for: .seconds(seconds))
-    }
-
     @Test func offPostsBeforeEffectiveFalls() async {
         await withCenter { app, center in
             app.appSettings.notificationsEnabled = true
             app.setNotificationsEnabled(false)
             #expect(center.log.map(\.kind) == [SystemNotice.noticesOffKind])
             #expect(center.log.first?.effectiveAtAdd == true)
-            await spin(0.1)
+            // bug.0.3.8.007: Vor der Zustellbestätigung bleibt der wirksame Wert stehen — ohne Zeitfenster,
+            // die Bestätigung wird gehalten.
+            await Task.yield()
+            #expect(center.pendingCount == 1)
             #expect(app.appSettings.notificationsEnabled == true)
             #expect(app.notificationsToggleShown == false)
-            await spin(0.25)
-            #expect(app.appSettings.notificationsEnabled == false)
+            await center.completeAll()
+            let fell = await waitUntil { !app.appSettings.notificationsEnabled }
+            #expect(fell, "der wirksame Wert ist nach der Zustellung nicht gefallen")
             #expect(app.notificationsToggleShown == false)
         }
     }
@@ -80,7 +94,9 @@ struct NoticeToggleOrderTests {
             app.setNotificationsEnabled(true, now: start)
             app.setNotificationsEnabled(false, now: start.addingTimeInterval(0.05))
             app.setNotificationsEnabled(true, now: start.addingTimeInterval(0.1))
-            await spin(0.35)
+            // bug.0.3.8.007: statt 0,35 s zu warten, die gehaltene „Aus“-Bestätigung ausdrücklich zustellen; sie
+            // gehört zu einem überholten Klick und darf den letzten Stand nicht mehr kippen.
+            await center.completeAll()
             #expect(app.appSettings.notificationsEnabled == true)
             #expect(app.notificationsToggleShown == true)
             let kinds = center.log.map(\.kind)

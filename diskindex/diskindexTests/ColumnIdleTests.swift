@@ -55,15 +55,14 @@ struct ColumnIdleTests {
         _ = await app.indexRepository.loadChildren(mediumID: medium.uuid, path: ["A", "C"])
 
         try await Task.sleep(for: .seconds(2))
-        IndexRepository.resetLoadSessionsCounterForTesting()
-        IndexRepository.resetRequestLoadCounterForTesting()
-        let loadsAtMark = IndexRepository.loadSessionsStartedForTesting
-        let requestsAtMark = IndexRepository.requestLoadCallsForTesting
+        // bug.0.3.8.007: Zähler dieser App-Instanz statt prozessweiter Zähler (parallele Suiten laden mit).
+        let loadsAtMark = app.indexRepository.loadSessionsStartedForTesting
+        let requestsAtMark = app.indexRepository.requestLoadCallsForTesting
         let generationAtMark = app.indexRepository.generation
 
         try await Task.sleep(for: .seconds(5))
-        #expect(IndexRepository.loadSessionsStartedForTesting == loadsAtMark)
-        #expect(IndexRepository.requestLoadCallsForTesting == requestsAtMark)
+        #expect(app.indexRepository.loadSessionsStartedForTesting == loadsAtMark)
+        #expect(app.indexRepository.requestLoadCallsForTesting == requestsAtMark)
         #expect(app.indexRepository.generation == generationAtMark)
     }
 }

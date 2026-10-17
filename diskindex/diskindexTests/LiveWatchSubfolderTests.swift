@@ -38,6 +38,10 @@ struct LiveWatchSubfolderTests {
             (try? await rig.store.medium(uuid: mediumID))?.indexStatus == .indexed
         }
         #expect(indexed)
+        // bug.0.3.8.007: erst auf das Beobachten warten; die 2 s danach bleiben als Anlaufzeit des echten
+        // FSEvents-Stroms (öffnet erst im Watch-Task, ein Umbenennen davor ginge verloren).
+        let watching = await waitUntil { rig.watcher.isWatching(mediumID: mediumID) }
+        #expect(watching)
         try await Task.sleep(for: .seconds(2))
 
         let session = openColumnSession(rig: rig, mediumID: mediumID)

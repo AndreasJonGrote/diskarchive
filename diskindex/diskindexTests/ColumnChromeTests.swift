@@ -53,15 +53,19 @@ struct ColumnChromeTests {
         defer { session.close() }
         await PixelProbe.settleOpenWindow(session)
         // Standard-Verzögerung des Ladehinweises: 1 s.
-        try await Task.sleep(for: .milliseconds(1400))
-        session.window.contentView?.layoutSubtreeIfNeeded()
-        session.window.display()
-        let bitmap = session.bitmap()
+        // bug.0.3.8.007: statt fester 1400 ms bis zum Erscheinen des Hinweises abfragen (Standardgrenze 10 s),
+        // damit eine Verzögerung des Schedulers im Parallel-Lauf nicht zum Fehlschlag führt.
         let sidebar = DesignSpacing.columnBrowserSidebarWidth
         let column = DesignSpacing.columnBrowserColumnWidth
         let body = CGRect(x: sidebar + column * 2 + 16, y: 36, width: 180, height: 90)
-        let ink = PixelProbe.inkBounds(in: bitmap, rect: body, background: CGPoint(x: sidebar + column * 2 + 24, y: 320))
-        #expect(ink != nil)
+        var bitmap = session.bitmap()
+        let hintShown = await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            session.window.display()
+            bitmap = session.bitmap()
+            return PixelProbe.inkBounds(in: bitmap, rect: body, background: CGPoint(x: sidebar + column * 2 + 24, y: 320)) != nil
+        }
+        #expect(hintShown)
         let left = PixelProbe.color(in: bitmap, at: CGPoint(x: sidebar + column * 2 + column - 4, y: 200))
         let right = PixelProbe.color(in: bitmap, at: CGPoint(x: 1200, y: 200))
         #expect(same(left, right))

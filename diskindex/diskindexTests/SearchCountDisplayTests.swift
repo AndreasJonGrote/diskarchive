@@ -63,7 +63,7 @@ struct SearchCountDisplayTests {
 
     @Test func aNewSearchDropsTheOldCount() async throws {
         let (app, store) = try await appWithData()
-        await store.setSearchCountDelay(.milliseconds(300))
+        await store.setSearchCountDelay(.milliseconds(500))
         app.searchState.submittedQuery = "bericht"
         await app.runSearch()
         let samples = CountSamples()
@@ -74,8 +74,11 @@ struct SearchCountDisplayTests {
             }
         }
         // Zweite Suche, während die erste noch zählt; ihre Zählung dauert länger als der Rest der ersten.
-        try await Task.sleep(for: .milliseconds(60))
-        await store.setSearchCountDelay(.milliseconds(700))
+        // bug.0.3.8.007: kein fester Schlaf (60 ms) mehr vor der zweiten Suche — er konnte unter Last länger als
+        // die erste Zählung dauern. Die Vorbedingung wird geprüft: Zwischen dieser Prüfung und dem Generations-
+        // wechsel am Anfang von `runSearch` gibt der Main Actor nicht ab, die erste Zahl kann also nicht mehr landen.
+        await store.setSearchCountDelay(.milliseconds(1_200))
+        try #require(app.searchMatch.itemCount == nil, "Vorbedingung: die erste Zählung läuft noch")
         app.searchState.submittedQuery = "protokoll"
         await app.runSearch()
         #expect(app.searchMatch.items.count == 10)

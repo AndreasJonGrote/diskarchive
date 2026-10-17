@@ -37,10 +37,12 @@ extension WindowTestGroup {
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/a.txt", eventID: 1))
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/b.txt", eventID: 2))
-        let count = try await waitFor(timeoutMs: 800) {
-            rig.access.listCount(for: "/Volumes/DISK/A") == 1 ? 1 : nil
-        }
-        #expect(count == 1)
+        // bug.0.3.8.007: erst auf das Lesen warten, dann 3× Ruheintervall nachsehen, ob ein zweites Lesen folgt —
+        // sonst beweist der Test „nur einmal“ nicht. Beide Ereignisse liegen vor dem ersten Flush im Puffer.
+        let listed = await waitUntil { rig.access.listCount(for: "/Volumes/DISK/A") >= 1 }
+        #expect(listed)
+        try await Task.sleep(for: .milliseconds(240))
+        #expect(rig.access.listCount(for: "/Volumes/DISK/A") == 1)
     }
 
     @Test func liveRenamePairKeepsFolderAndFavorite() async throws {
@@ -336,7 +338,11 @@ extension WindowTestGroup {
         rig.watcher.quietInterval = .milliseconds(30)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/B/deep/file.txt", eventID: 9))
-        try await Task.sleep(for: .milliseconds(160))
+        // bug.0.3.8.007: erst auf das Lesen von A warten; danach kurz (3× Ruheintervall) nachsehen, damit ein
+        // fälschliches Lesen von B oder ein zweites Lesen von A noch auffallen kann. Ein Ereignis = ein Flush.
+        let listed = await waitUntil { rig.access.listCount(for: "/Volumes/DISK/A") >= 1 }
+        #expect(listed)
+        try await Task.sleep(for: .milliseconds(90))
         #expect(rig.access.listCount(for: "/Volumes/DISK/A") == 1)
         #expect(rig.access.listCount(for: "/Volumes/DISK/A/B") == 0)
         let root = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: nil)
@@ -353,7 +359,9 @@ extension WindowTestGroup {
         }
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK", eventID: 1, mustScanSubDirs: true))
-        try await Task.sleep(for: .milliseconds(80))
+        // bug.0.3.8.007: auf den Abgleich warten statt fester 80 ms; ein Ereignis löst höchstens einen aus.
+        let reconciled = await waitUntil { !log.ids.isEmpty }
+        #expect(reconciled)
         #expect(log.ids == [rig.medium.uuid])
     }
 
@@ -363,7 +371,9 @@ extension WindowTestGroup {
         rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/B", eventID: 2, mustScanSubDirs: true))
-        try await Task.sleep(for: .milliseconds(80))
+        // bug.0.3.8.007: auf den Abgleich warten statt fester 80 ms; ein Ereignis löst höchstens einen aus.
+        let reconciled = await waitUntil { !log.ids.isEmpty }
+        #expect(reconciled)
         #expect(log.ids == [rig.medium.uuid])
         #expect(rig.access.listCountIsEmpty())
     }
@@ -457,7 +467,8 @@ extension WindowTestGroup {
         rig.watcher.quietInterval = .milliseconds(25)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/Neu/a.txt", eventID: 5))
-        let ok = await waitUntil(timeout: 1.2) {
+        // bug.0.3.8.007: Standard-Zeitgrenze (10 s) statt 1,2 s.
+        let ok = await waitUntil {
             guard let neu = try? await rig.store.item(mediumUUID: rig.medium.uuid, path: [], name: "Neu"),
                   neu.isFolder else { return false }
             return (try? await rig.store.item(mediumUUID: rig.medium.uuid, path: ["Neu"], name: "a.txt")) != nil
@@ -602,7 +613,11 @@ extension WindowTestGroup {
         rig.watcher.quietInterval = .milliseconds(30)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/neu.txt", eventID: 1))
-        try await Task.sleep(for: .milliseconds(160))
+        // bug.0.3.8.007: gewöhnliches Ereignis im Wurzelordner (kein `rootChanged`-Flag). Erst auf das Lesen der
+        // Wurzel warten, dann kurz (3× Ruheintervall) nachsehen, ob fälschlich A/B gelesen werden.
+        let listed = await waitUntil { rig.access.listCount(for: "/Volumes/DISK") >= 1 }
+        #expect(listed)
+        try await Task.sleep(for: .milliseconds(90))
         #expect(rig.access.listCount(for: "/Volumes/DISK") == 1)
         #expect(rig.access.listCount(for: "/Volumes/DISK/A") == 0)
         #expect(rig.access.listCount(for: "/Volumes/DISK/B") == 0)
@@ -733,31 +748,40 @@ extension WindowTestGroup {
         #expect(flag.sawOffMain)
     }
 
+    /// bug.0.3.8.007: Zeitgeber aus, Prüfung als Differenz (kein absoluter Zählvergleich).
     @Test func saveCursorWritesOnlyWhenEventIDChanges() async throws {
         let rig = try await watchRig()
         rig.watcher.quietInterval = .milliseconds(80)
+        rig.watcher.cursorSaveInterval = nil
         rig.access.listings["/Volumes/DISK/A"] = [
             ListedDirectoryEntry(name: "a.txt", isDirectory: false, isPackage: false, isSymbolicLink: false, isHidden: false, fileSize: 1, modifiedAt: nil),
         ]
-        await rig.store.resetEventCursorCallCountForTesting()
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/a.txt", eventID: 10, fileSystemUUID: "UUID-1"))
-        _ = try await waitFor(timeoutMs: 10_000) {
-            rig.access.listCount(for: "/Volumes/DISK/A") > 0 ? 1 : nil
+        // Der Flush sichert am Ende selbst; erst wenn Stand 10 gespeichert ist und ein eigenes Sichern durch ist,
+        // gilt der Ausgangswert.
+        let firstSaved = await waitUntil {
+            await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
+            return (try? await rig.store.medium(uuid: rig.medium.uuid))?.lastEventID == 10
         }
+        #expect(firstSaved)
+        let afterFirstSave = await rig.store.recordEventCursorCallCountForTesting
+
+        // Dreimal sichern ohne neues Ereignis erhöht nicht.
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
         await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
-        #expect(await rig.store.recordEventCursorCallCountForTesting == 1)
-        try await Task.sleep(for: .milliseconds(150))
+        #expect(await rig.store.recordEventCursorCallCountForTesting - afterFirstSave == 0)
+
+        // Neues Ereignis + sichern erhöht.
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/b.txt", eventID: 11, fileSystemUUID: "UUID-1"))
-        _ = try await waitFor(timeoutMs: 10_000) {
-            rig.access.listCount(for: "/Volumes/DISK/A") >= 2 ? 2 : nil
+        let secondSaved = await waitUntil {
+            await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
+            return (try? await rig.store.medium(uuid: rig.medium.uuid))?.lastEventID == 11
         }
-        await rig.watcher.saveCursor(mediumID: rig.medium.uuid)
-        _ = try await waitFor(timeoutMs: 10_000) {
-            await rig.store.recordEventCursorCallCountForTesting == 2 ? 2 : nil
-        }
+        #expect(secondSaved)
+        #expect(await rig.store.recordEventCursorCallCountForTesting - afterFirstSave >= 1)
+        await rig.watcher.stop(mediumID: rig.medium.uuid)
     }
 }
 }

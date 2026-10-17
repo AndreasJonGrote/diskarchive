@@ -40,6 +40,8 @@ final class ChangeWatcher {
     }
     /// Spätestens nach dieser Zeit wird trotz weiterer Ereignisse nachgelesen.
     var maxQuietInterval: Duration = .seconds(30)
+    /// Takt, in dem der Ereignisstand gesichert wird; `nil` schaltet den Zeitgeber ab (Tests, bug.0.3.8.007).
+    var cursorSaveInterval: Duration? = .seconds(5)
 
     private var tasks: [UUID: Task<Void, Never>] = [:]
     private var sources: [UUID: any ChangeSource] = [:]
@@ -97,15 +99,21 @@ final class ChangeWatcher {
     func saveCursor(mediumID: UUID) async {
         guard let cursor = cursors[mediumID] else { return }
         guard cursor.eventID != savedCursors[mediumID] else { return }
+        // Vor dem Schreiben vormerken: ein zweiter Aufruf während des Schreibens (Flush, Zeitgeber) schreibt
+        // denselben Stand nicht noch einmal (bug.0.3.8.007). Bei Fehler zurücknehmen.
+        let previous = savedCursors[mediumID]
+        savedCursors[mediumID] = cursor.eventID
         do {
             try await store.recordEventCursor(
                 mediumUUID: mediumID,
                 fsEventsUUID: cursor.uuid,
                 lastEventID: cursor.eventID
             )
-            savedCursors[mediumID] = cursor.eventID
             DiskIndexLog.shared.record(.watcher, .info, "ereignisstand id=\(cursor.eventID) medium=\(mediumID)")
         } catch {
+            if savedCursors[mediumID] == cursor.eventID {
+                savedCursors[mediumID] = previous
+            }
             DiskIndexLog.shared.record(.watcher, .error, "ereignisstand \(error)")
         }
     }
@@ -414,10 +422,10 @@ final class ChangeWatcher {
     }
 
     private func startCursorTimer() {
-        guard cursorTimer == nil else { return }
+        guard cursorTimer == nil, let interval = cursorSaveInterval else { return }
         cursorTimer = Task { [weak self] in
             while let self, !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(5))
+                try? await Task.sleep(for: interval)
                 for id in Array(self.tasks.keys) {
                     await self.saveCursor(mediumID: id)
                 }

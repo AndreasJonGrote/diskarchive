@@ -157,10 +157,6 @@ actor IndexStoreV3 {
     var recordEventCursorCallCountForTesting = 0
     var partialChecksumComputeDelayForTesting: TimeInterval?
 
-    func resetEventCursorCallCountForTesting() {
-        recordEventCursorCallCountForTesting = 0
-    }
-
     func setPartialChecksumComputeDelayForTesting(_ delay: TimeInterval?) {
         partialChecksumComputeDelayForTesting = delay
     }

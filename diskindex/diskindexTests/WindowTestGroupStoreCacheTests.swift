@@ -51,9 +51,9 @@ struct WindowTestGroupStoreCacheTests {
         let seeded = await app.indexRepository.loadChildren(mediumID: medium.uuid, path: ["Big"])
         #expect(!seeded.isEmpty)
         app.cancelPendingColumnCacheInvalidatesForTesting()
-        IndexRepository.resetLoadSessionsCounterForTesting()
         #expect(app.indexRepository.hasCachedChildren(mediumID: medium.uuid, path: ["Big"]))
-        let loadsBefore = IndexRepository.loadSessionsStartedForTesting
+        // bug.0.3.8.007: Zähler dieser App-Instanz statt prozessweiter Zähler (parallele Suiten laden mit).
+        let loadsBefore = app.indexRepository.loadSessionsStartedForTesting
         for _ in 0..<40 {
             try await store.flushMediumMeta(mediumUUID: medium.uuid, force: true)
             try await Task.sleep(for: .milliseconds(20))
@@ -61,13 +61,13 @@ struct WindowTestGroupStoreCacheTests {
         let deadline = Date().addingTimeInterval(3)
         while Date() < deadline {
             if app.indexRepository.hasCachedChildren(mediumID: medium.uuid, path: ["Big"])
-                && IndexRepository.loadSessionsStartedForTesting == loadsBefore {
+                && app.indexRepository.loadSessionsStartedForTesting == loadsBefore {
                 break
             }
             try await Task.sleep(for: .milliseconds(40))
         }
         let hasCacheAfter = app.indexRepository.hasCachedChildren(mediumID: medium.uuid, path: ["Big"])
-        let loadsAfter = IndexRepository.loadSessionsStartedForTesting
+        let loadsAfter = app.indexRepository.loadSessionsStartedForTesting
         #expect(hasCacheAfter)
         #expect(loadsAfter == loadsBefore)
     }

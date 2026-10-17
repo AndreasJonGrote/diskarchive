@@ -47,8 +47,9 @@ struct RuleReconcileQueueTests {
         try #require(app.isRuleReconcileQueueActive || app.pruneAt != nil)
 
         let searchTask = Task { await app.runSearch() }
-        try? await Task.sleep(for: .milliseconds(30))
-        #expect(app.searchState.isSearchInProgress)
+        // bug.0.3.8.007: statt fester 30 ms warten, bis die Suche läuft (sie wartet auf das Ende der Warteschlange).
+        let inProgress = await waitUntil { app.searchState.isSearchInProgress }
+        #expect(inProgress)
 
         await app.waitForRuleReconcileIdle()
         await searchTask.value
@@ -68,8 +69,8 @@ struct RuleReconcileQueueTests {
             await app.waitForRuleReconcileIdle()
         }
         app.enqueueRuleReconcile()
-        try await Task.sleep(for: .milliseconds(25))
-        #expect(app.isRuleReconcileQueueActive)
+        // bug.0.3.8.007: die frühere Prüfung „aktiv nach 25 ms“ entfällt (direkt nach `enqueue` immer wahr, mit
+        // Schlaf zeitabhängig). Den Beweis führen `idleWait` (endet erst nach dem Fehler-Neustart) und die 20 Treffer.
         await idleWait.value
         #expect(!app.isRuleReconcileQueueActive)
         await app.runSearch()
@@ -123,8 +124,9 @@ struct RuleReconcileQueueTests {
         app.mainWindowDestination = .columnBrowser
         app.columnBrowserState.selectedMediumID = medium.uuid
         app.indexRepository.requestLoad(mediumID: medium.uuid, path: [])
-        try await Task.sleep(for: .milliseconds(80))
-        #expect(!app.indexRepository.children(mediumID: medium.uuid, path: []).isEmpty)
+        // bug.0.3.8.007: statt fester 80 ms warten, bis die Spalte geladen ist.
+        let loaded = await waitUntil { !app.indexRepository.children(mediumID: medium.uuid, path: []).isEmpty }
+        try #require(loaded)
 
         await store.setReconcileBatchDelay(.milliseconds(200))
         app.appSettings.ignoreHiddenFiles = true

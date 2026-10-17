@@ -70,7 +70,9 @@ struct AppLaunchTests {
             let appState = AppState()
             scheduler.start(appState: appState, store: testStore.store)
             defer { scheduler.stop() }
-            let enqueued = await waitUntil(timeout: 5) {
+            // bug.0.3.8.007: genau 1 bleibt Absicht — `start` reiht genau einen Check sofort ein (kein doppelter),
+            // der nächste kommt erst nach 24 h; die Zahl ist also deterministisch. Frist: Standard (10 s) statt 5 s.
+            let enqueued = await waitUntil {
                 let count = try? await testStore.pool.read { db in
                     try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
                 }
