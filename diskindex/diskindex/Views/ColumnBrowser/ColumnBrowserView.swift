@@ -147,8 +147,10 @@ struct ColumnBrowserView: View {
         return "\(mediumID?.uuidString ?? "-")|\(paths)|g\(indexGeneration)"
     }
 
-    private func pruneSelectionToVisibleItems(in column: ColumnBrowserFolderColumn, items: [IndexedItem]) {
+    private func pruneSelectionToVisibleItems(in column: ColumnBrowserFolderColumn, items: [IndexedItem], mediumID: UUID) {
         guard appState.columnBrowserState.selection.focusColumnIndex == column.columnIndex else { return }
+        // Nur wenn der Ordner wirklich geladen ist: fehlender Cache oder laufendes Laden liefert [] (bug.0.4.036).
+        guard appState.indexRepository.hasLoadedChildren(mediumID: mediumID, path: column.path) else { return }
         guard !appState.columnBrowserState.selection.ids.isEmpty else { return }
         var selection = appState.columnBrowserState.selection
         let before = selection.ids
@@ -175,15 +177,21 @@ struct ColumnBrowserView: View {
         )
     }
 
-    private func iconColor(item: IndexedItem, columnIndex: Int, medium: Medium) -> Color {
+    /// Zustand einer Zeile, einmal je Zeile berechnet und für Farbe und Deckkraft genutzt (bug.0.4.034).
+    private func rowOpenState(item: IndexedItem, columnIndex: Int, medium: Medium) -> ColumnFolderOpenState {
+        guard item.isFolder else { return .normal }
+        return folderOpenState(
+            columnIndex: columnIndex,
+            medium: medium,
+            folderName: item.name,
+            folderListedAt: item.listedAt,
+            folderUnreadable: item.unreadable
+        )
+    }
+
+    private func iconColor(item: IndexedItem, openState: ColumnFolderOpenState) -> Color {
         if item.isFolder {
-            switch folderOpenState(
-                columnIndex: columnIndex,
-                medium: medium,
-                folderName: item.name,
-                folderListedAt: item.listedAt,
-                folderUnreadable: item.unreadable
-            ) {
+            switch openState {
             case .uncaptured:
                 return DesignColor.stateIgnored
             case .pendingIndex:
@@ -195,7 +203,7 @@ struct ColumnBrowserView: View {
         return item.isFavorite ? DesignColor.favorite : DesignColor.text
     }
 
-    private func rowOpacity(item: IndexedItem, columnIndex: Int, medium: Medium) -> Double {
+    private func rowOpacity(item: IndexedItem, columnIndex: Int, openState: ColumnFolderOpenState) -> Double {
         let state = appState.columnBrowserState
         if ColumnBrowserSelectionHighlight.isRowSelected(
             item: item,
@@ -206,7 +214,7 @@ struct ColumnBrowserView: View {
         ) {
             return 1
         }
-        guard item.isFolder, folderOpenState(columnIndex: columnIndex, medium: medium) == .pendingIndex else { return 1 }
+        guard item.isFolder, openState == .pendingIndex else { return 1 }
         return 0.55
     }
 
@@ -472,11 +480,13 @@ struct ColumnBrowserView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                 } else {
+                    // Einmal je Body statt je Zeile (bug.0.4.035).
+                    let selectedIDs = selectedIDs(in: items, column: column)
                     ColumnFolderContents(
                         mediumID: medium.id,
                         path: column.path,
                         filteredItems: items,
-                        selectedIDs: Set(items.filter { isRowSelected(item: $0, column: column) }.map(\.id)),
+                        selectedIDs: selectedIDs,
                         isLoading: false,
                         loaded: progress.loaded,
                         total: progress.total,
@@ -484,11 +494,12 @@ struct ColumnBrowserView: View {
                             publishLoadingHint(visible, medium: medium, path: column.path)
                         }
                     ) { item in
+                        let openState = rowOpenState(item: item, columnIndex: column.columnIndex, medium: medium)
                         ColumnBrowserRow(
                             title: item.name,
-                            isSelected: isRowSelected(item: item, column: column),
+                            isSelected: selectedIDs.contains(item.id),
                             iconAsset: item.fileKind.assetName,
-                            iconColor: iconColor(item: item, columnIndex: column.columnIndex, medium: medium),
+                            iconColor: iconColor(item: item, openState: openState),
                             fadeTitleOnOverflow: true,
                             contextTarget: .fromIndexedItem(item, medium: medium),
                             resolveTargets: { clicked in
@@ -496,7 +507,7 @@ struct ColumnBrowserView: View {
                             },
                             onSelect: { select(item: item, column: column) }
                         )
-                        .opacity(rowOpacity(item: item, columnIndex: column.columnIndex, medium: medium))
+                        .opacity(rowOpacity(item: item, columnIndex: column.columnIndex, openState: openState))
                     }
                 }
             }
@@ -514,10 +525,10 @@ struct ColumnBrowserView: View {
             handleColumnKey(press, column: column)
         }
         .onChange(of: appState.searchState.filters) { _, _ in
-            pruneSelectionToVisibleItems(in: column, items: items)
+            pruneSelectionToVisibleItems(in: column, items: items, mediumID: medium.id)
         }
         .onChange(of: column.items.count) { _, _ in
-            pruneSelectionToVisibleItems(in: column, items: items)
+            pruneSelectionToVisibleItems(in: column, items: items, mediumID: medium.id)
         }
         .overlay(alignment: .trailing) {
             if !statusRest {
@@ -548,10 +559,10 @@ struct ColumnBrowserView: View {
         }
     }
 
-    private func isRowSelected(item: IndexedItem, column: ColumnBrowserFolderColumn) -> Bool {
+    private func selectedIDs(in items: [IndexedItem], column: ColumnBrowserFolderColumn) -> Set<UUID> {
         let state = appState.columnBrowserState
-        return ColumnBrowserSelectionHighlight.isRowSelected(
-            item: item,
+        return ColumnBrowserSelectionHighlight.selectedIDs(
+            items: items,
             columnIndex: column.columnIndex,
             pathStack: state.pathStack,
             selection: state.selection,
@@ -577,7 +588,7 @@ struct ColumnBrowserView: View {
     private func commit(_ selection: ColumnSelection, column: ColumnBrowserFolderColumn) {
         guard let medium = resolvedSelectedMedium else { return }
         var state = appState.columnBrowserState
-        let ordered = selection.ids.compactMap { id in column.items.first { $0.id == id } }
+        let ordered = selection.ordered(in: column.items)
         let folder = ordered.count == 1 ? ordered[0] : nil
         let open = folderOpenState(
             columnIndex: column.columnIndex,
@@ -630,11 +641,9 @@ struct ColumnBrowserView: View {
     private func contextTargets(for clicked: ObjectContextTarget, column: ColumnBrowserFolderColumn, medium: Medium) -> [ObjectContextTarget] {
         let state = appState.columnBrowserState
         if state.selection.focusColumnIndex == column.columnIndex,
-           state.selection.ids.contains(clicked.id),
+           state.selection.contains(clicked.id),
            state.selection.isMultiple {
-            return state.selection.ids.compactMap { id in
-                column.items.first { $0.id == id }.map { ObjectContextTarget.fromIndexedItem($0, medium: medium) }
-            }
+            return state.selection.ordered(in: column.items).map { ObjectContextTarget.fromIndexedItem($0, medium: medium) }
         }
         var selection = ColumnSelection()
         selection.replace(id: clicked.id, column: column.columnIndex)
@@ -692,7 +701,7 @@ struct ColumnBrowserView: View {
                     FileTypeIcon(
                         kind: file.fileKind,
                         size: 26,
-                        color: iconColor(item: file, columnIndex: file.parentPath.count, medium: medium)
+                        color: iconColor(item: file, openState: rowOpenState(item: file, columnIndex: file.parentPath.count, medium: medium))
                     )
                     Text(file.name)
                         .font(.system(size: 13, weight: .semibold))
@@ -785,7 +794,7 @@ struct ColumnBrowserView: View {
         guard state.selection.isMultiple else { return nil }
         let path = Array(state.pathStack.prefix(state.selection.focusColumnIndex ?? 0))
         let items = appState.indexRepository.children(mediumID: medium.id, path: path)
-        let chosen = state.selection.ids.compactMap { id in items.first { $0.id == id } }
+        let chosen = state.selection.ordered(in: items)
         return chosen.count > 1 ? chosen : nil
     }
 

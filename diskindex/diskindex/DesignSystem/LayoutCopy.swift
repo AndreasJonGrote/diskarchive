@@ -183,6 +183,11 @@ nonisolated enum LayoutCopy {
         L10n.format("copy.new_medium.body", name, type, size)
     }
 
+    static func ignoreConfirmTitle(count: Int) -> String {
+        L10n.format("copy.ignore_confirm.title", count)
+    }
+    static var cancel: String { L10n.string("copy.common.cancel") }
+
     static func replaceMediumTitle(name: String) -> String {
         L10n.format("copy.replace_medium.title", name)
     }

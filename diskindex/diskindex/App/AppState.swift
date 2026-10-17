@@ -20,7 +20,17 @@ final class AppState {
             }
         }
     }
-    var columnBrowserState = ColumnBrowserState()
+    var columnBrowserState = ColumnBrowserState() {
+        didSet {
+            // Sichtbare Spalten vor dem Verdrängen aus dem Spalten-Cache schützen (bug.0.4.036).
+            guard oldValue.selectedMediumID != columnBrowserState.selectedMediumID
+                || oldValue.pathStack != columnBrowserState.pathStack else { return }
+            indexRepository.pinVisibleColumns(
+                mediumID: columnBrowserState.selectedMediumID,
+                pathStack: columnBrowserState.pathStack
+            )
+        }
+    }
     var appSettings = AppSettings() {
         didSet {
             let newScope = IndexScope.from(appSettings)
@@ -60,6 +70,7 @@ final class AppState {
     var heldForSleep = false
     var indexingFailure: IndexingFailureNotice?
     var replaceMediumPrompt: ReplaceMediumPrompt?
+    var ignoreConfirmationPrompt: IgnoreConfirmationPrompt?
     var versionLockState: VersionLockState = .unlocked
     var versionLockBannerVisible = false
     var updateNotice: UpdateNotice?
@@ -83,6 +94,18 @@ final class AppState {
     var popoverPauseMenuOpensAbove = false
     var searchMatch = SearchMatch()
     var favoriteObjects: [SearchResultItem] = []
+    /// bug.0.4.040: Zahl der Favoriten zur Anfrage (`nil` = wird gezählt, „–“) und ohne Dateityp/Alter („x von y“).
+    var favoriteItemCount: Int? = 0
+    var favoriteUnfilteredCount: Int? = 0
+    @ObservationIgnored var lastFavoritesRequest: FavoritesRequest?
+    /// bug.0.4.037: alle Favoriten-Kennungen (`items.id`), Quelle für `isFavorite` bei Dateien/Ordnern; `nil` bis geladen.
+    var favoriteRowIDs: Set<Int64>?
+    /// Umschalten, bevor `favoriteRowIDs` geladen ist.
+    var favoriteEditsBeforeLoad: [Int64: Bool] = [:]
+    @ObservationIgnored var favoriteEditGeneration = 0
+    @ObservationIgnored var favoriteWriteTail: Task<Void, Never>?
+    @ObservationIgnored var favoriteIDsLoadTask: Task<Void, Never>?
+    @ObservationIgnored var favoritePageReloadTask: Task<Void, Never>?
     var popoverResults = PopoverSearchResults()
     let indexRepository: IndexRepository
     private(set) var indexStore: IndexStoreV3?
@@ -133,6 +156,11 @@ final class AppState {
     var searchCountTask: Task<Void, Never>?
     var lastCountedSearch: SearchCountRequest?
     var popoverGeneration = 0
+    /// bug.0.4.039: laufende Popover-Suche (Seite) und nachgereichte Zahl; neue Eingabe bricht beide ab.
+    @ObservationIgnored var popoverSearchTask: Task<Void, Never>?
+    @ObservationIgnored var popoverCountTask: Task<Void, Never>?
+    /// Entprellung der Popover-Eingabe; Tests dürfen sie je Instanz verkürzen.
+    @ObservationIgnored var popoverSearchDebounce: Duration = .milliseconds(150)
     var favoriteGeneration = 0
     static let pauseKey = "diskindex.globalPause"
     static let failureCountsKey = "diskindex.failureModalCounts"
@@ -240,6 +268,8 @@ final class AppState {
         indexStore = store
         storeReady = true
         indexRepository.replaceStore(store)
+        // bug.0.4.037: Favoriten-Kennungen gehören zum Store; neu laden, sobald sie gebraucht werden.
+        favoriteRowIDs = nil
     }
 
     /// Change-Loop stoppen; Store bleibt angehängt (Retry/Rewire vor neuem `attach`).
@@ -353,7 +383,7 @@ final class AppState {
     /// dann `NSWorkspace.shared.activateFileViewerSelecting(_:)`.
     func revealInFinder(_ target: ObjectContextTarget) {
         DiskIndexLog.shared.ui("revealInFinder kind=\(target.kind) id=\(target.id)")
-        guard target.isMediumOnline else { return }
+        guard isMediumOnline(target.mediumID) else { return }
         guard let url = FinderReveal.url(
             mountPath: mountPath?(target.mediumID),
             itemPath: target.itemPath,

@@ -10,7 +10,7 @@ import Testing
 
 struct BundleVersionTests {
     @Test func marketingVersionIsZeroThreeTwo() {
-        #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String == "0.3.2")
+        #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String == "0.3.8")
     }
 
     @Test func buildNumberIsSetByTheBuild() throws {

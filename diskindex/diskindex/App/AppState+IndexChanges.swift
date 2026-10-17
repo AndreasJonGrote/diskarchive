@@ -93,6 +93,7 @@ extension AppState {
         pauseExpiryTask = nil
         searchCountTask?.cancel()
         searchCountTask = nil
+        cancelPopoverSearch()
         trailingLiveSearch?.cancel()
         trailingLiveSearch = nil
         for task in favoriteChecksumTasks { task.cancel() }
@@ -147,6 +148,7 @@ extension AppState {
         await waitForRuleReconcileIdle()
         guard generation == searchGeneration else { return }
         let scope = indexScope
+        let sort = searchState.sort.serverOrder
         var match = await SearchIndex.matching(
             store: indexStore,
             query: query,
@@ -154,13 +156,17 @@ extension AppState {
             media: indexedMedia,
             maxDepth: appSettings.indexedMaxDepth,
             scope: scope,
-            withCount: false
+            withCount: false,
+            sort: sort
         )
         guard generation == searchGeneration else { return }
         // Gleiche Anfrage (z. B. Neustart durch Live-Meldung): bisherige Zahl bleibt stehen; neue Anfrage: „–“.
-        let request = SearchCountRequest(query: query, filters: filters)
+        let request = SearchCountRequest(query: query, filters: filters, sort: sort)
         let countPending = match.itemCount == nil
-        if match.itemCount == nil, request == lastCountedSearch {
+        let sameHits = request.hasSameHits(as: lastCountedSearch)
+        // Nur die Reihenfolge geändert (Klick auf einen Spaltenkopf): die gezählte Zahl gilt weiter, keine neue Zählung.
+        let sortOnly = sameHits && lastCountedSearch?.sort != sort && searchMatch.itemCount != nil
+        if match.itemCount == nil, sameHits {
             match.itemCount = searchMatch.itemCount
             match.unfilteredItemCount = searchMatch.unfilteredItemCount
         } else if match.itemCount == nil {
@@ -170,8 +176,9 @@ extension AppState {
         }
         searchMatch = match
         searchState.isSearchInProgress = false
+        clampSearchSortToAvailableColumns()
         // Ergebnisse stehen; die Zahl(en) kommen in einer eigenen Aufgabe nach.
-        let needsCount = countPending || filters.hasActiveFilters
+        let needsCount = !sortOnly && (countPending || filters.hasActiveFilters)
         guard needsCount else {
             lastCountedSearch = request
             return
@@ -188,6 +195,7 @@ extension AppState {
                 guard !Task.isCancelled, generation == self.searchGeneration else { return }
                 itemCount = counted
                 self.searchMatch.itemCount = counted
+                self.clampSearchSortToAvailableColumns()
             }
             if filters.hasActiveFilters {
                 let unfiltered = await SearchIndex.unfilteredItemCount(
@@ -200,6 +208,14 @@ extension AppState {
             }
             self.lastCountedSearch = request
         }
+    }
+
+    /// bug.0.4.038: Pfad und Status sortiert nur der Client, und nur, wenn alle Treffer auf der Seite stehen. Steht
+    /// fest, dass es mehr sind, fällt eine solche Sortierung auf Name zurück (der Spaltenkopf ist dann deaktiviert).
+    func clampSearchSortToAvailableColumns() {
+        guard !SearchSort.serverColumns.contains(searchState.sort.column) else { return }
+        guard let count = searchMatch.itemCount, count > SearchIndex.pageLimit else { return }
+        searchState.sort = SearchSort()
     }
 
     /// Tests: wartet, bis die nachgereichte Trefferzahl da (oder verworfen) ist.
@@ -237,22 +253,66 @@ extension AppState {
         await runSearch()
     }
 
+    /// Favoriten-Seite samt Zahl und alle Favoriten-Kennungen (bug.0.4.037/040).
     func reloadFavorites() async {
-        favoriteGeneration += 1
-        let generation = favoriteGeneration
-        let objects = await SearchIndex.favoriteObjects(
-            store: indexStore,
-            media: indexedMedia,
-            maxDepth: appSettings.indexedMaxDepth,
-            scope: indexScope
-        )
-        guard generation == favoriteGeneration else { return }
-        favoriteObjects = objects
+        await reloadFavoritePage()
+        await reloadFavoriteIDs()
     }
 
+    /// bug.0.4.040 (REPORT 86): erste Seite (`SearchIndex.pageLimit`) wie die Suche, Filter in der Abfrage; die Zahl
+    /// kommt danach (bis dahin „–“, bei gleicher Anfrage bleibt die bisherige Zahl stehen).
+    func reloadFavoritePage() async {
+        favoriteGeneration += 1
+        let generation = favoriteGeneration
+        let request = currentFavoritesRequest
+        let scope = indexScope
+        let store = indexStore
+        // Erst nach den ausstehenden Favoriten-Schreibvorgängen lesen; kam währenddessen ein Umschalten dazu, neu
+        // lesen. Sonst brächte ein Neuladen vor dem Schreiben einen eben abgewählten Favoriten zurück.
+        var objects: [SearchResultItem]
+        while true {
+            let edits = favoriteEditGeneration
+            await favoriteWriteTail?.value
+            objects = await SearchIndex.favoritePage(store: store, request: request, scope: scope)
+            guard generation == favoriteGeneration else { return }
+            if edits == favoriteEditGeneration { break }
+        }
+        let sameRequest = request == lastFavoritesRequest
+        favoriteObjects = objects
+        let hasObjectFilters = request.filters.hasActiveObjectFilters
+        // Seite nicht voll: das ist die ganze Treffermenge, keine Zählabfrage.
+        let pageComplete = objects.count < SearchIndex.pageLimit
+        if pageComplete {
+            favoriteItemCount = objects.count
+        } else if !sameRequest {
+            favoriteItemCount = nil
+        }
+        if hasObjectFilters {
+            if !sameRequest { favoriteUnfilteredCount = nil }
+        } else if pageComplete {
+            favoriteUnfilteredCount = objects.count
+        }
+        if !pageComplete {
+            let counted = await SearchIndex.favoriteCount(store: store, request: request, scope: scope)
+            guard generation == favoriteGeneration else { return }
+            favoriteItemCount = counted
+        }
+        if hasObjectFilters {
+            let unfiltered = await SearchIndex.favoriteCount(store: store, request: request, objectFilters: false, scope: scope)
+            guard generation == favoriteGeneration else { return }
+            favoriteUnfilteredCount = unfiltered
+        } else {
+            favoriteUnfilteredCount = favoriteItemCount
+        }
+        lastFavoritesRequest = request
+    }
+
+    /// bug.0.4.039 (REPORT 85): Eingabe entprellt (`popoverSearchDebounce`), jede neue Eingabe bricht Seite und
+    /// Zählung der vorigen ab. Die Seite kommt ohne Zahl, die Zahl getrennt und abbrechbar.
     func schedulePopoverSearch() {
         popoverGeneration += 1
         let generation = popoverGeneration
+        cancelPopoverSearch()
         let query = popoverSearchText
         // Leeres Feld (auch nach dem X): keine Suche, auch nicht über Filter der Hauptsuche.
         if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -260,13 +320,63 @@ extension AppState {
             NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
             return
         }
-        Task {
-            let results = await PopoverSearch.results(query: query, appState: self)
-            await MainActor.run {
-                guard generation == popoverGeneration else { return }
-                popoverResults = results
+        let debounce = popoverSearchDebounce
+        popoverSearchTask = Task { [weak self] in
+            try? await Task.sleep(for: debounce)
+            guard !Task.isCancelled, let self, generation == self.popoverGeneration else { return }
+            let page = await PopoverSearch.page(query: query, appState: self)
+            guard !Task.isCancelled, generation == self.popoverGeneration else { return }
+            guard let request = page.pendingCount else {
+                self.popoverResults = page.results
+                NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
+                return
+            }
+            // Fußzeile zeigt nie eine erfundene Zahl: Bis die Zählung da ist, bleibt die zuletzt bekannte Zahl stehen.
+            // Ohne bekannte Zahl (erste Suche nach leerem Feld) erscheint die Seite erst mit der Zahl, wie vor 0.4.039.
+            let known = self.popoverResults.totalCount
+            let pendingPage = page.results
+            let showsPageEarly = known > 0
+            if showsPageEarly {
+                var early = pendingPage
+                early.totalCount = known
+                self.popoverResults = early
                 NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
             }
+            let mediumCount = page.mediumCount
+            let store = self.indexStore
+            let media = self.indexedMedia
+            let depth = self.appSettings.indexedMaxDepth
+            let scope = self.indexScope
+            self.popoverCountTask = Task { [weak self] in
+                let counted = await SearchIndex.count(
+                    store: store, query: request.query, filters: request.filters, media: media, maxDepth: depth, scope: scope
+                )
+                guard !Task.isCancelled, let self, generation == self.popoverGeneration else { return }
+                var final = showsPageEarly ? self.popoverResults : pendingPage
+                final.totalCount = mediumCount + counted
+                final.isCountPending = false
+                self.popoverResults = final
+                NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
+            }
+        }
+    }
+
+    func cancelPopoverSearch() {
+        popoverSearchTask?.cancel()
+        popoverSearchTask = nil
+        popoverCountTask?.cancel()
+        popoverCountTask = nil
+    }
+
+    /// Tests: wartet, bis Seite und nachgereichte Zahl der letzten Popover-Eingabe da (oder verworfen) sind.
+    func waitForPopoverSearch() async {
+        while let search = popoverSearchTask {
+            await search.value
+            if popoverSearchTask == search { break }
+        }
+        while let count = popoverCountTask {
+            await count.value
+            if popoverCountTask == count { break }
         }
     }
 

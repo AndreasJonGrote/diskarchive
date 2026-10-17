@@ -71,6 +71,9 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
         let newIDs = items.map(\.id)
         let idsChanged = coordinator.itemIDs != newIDs
         let selectionChanged = coordinator.selectedIDs != selectedIDs
+        // bug.0.4.037 (REPORT 103): gleiche Kennungen, aber geänderte Werte (z. B. Favorit umgeschaltet) → sichtbare
+        // Zeilen neu bauen, sonst zeigt die Tabelle den alten Stand.
+        let valuesChanged = !idsChanged && coordinator.items != items
         let wasEmpty = coordinator.items.isEmpty
         coordinator.items = items
         coordinator.selectedIDs = selectedIDs
@@ -80,7 +83,7 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
         if idsChanged || (wasEmpty && !items.isEmpty) || (table?.numberOfRows ?? 0) != items.count {
             table?.noteNumberOfRowsChanged()
             table?.reloadData()
-        } else if selectionChanged {
+        } else if selectionChanged || valuesChanged {
             table?.enumerateAvailableRowViews { rowView, rowIndex in
                 guard items.indices.contains(rowIndex),
                       let host = rowView.view(atColumn: 0) as? NSHostingView<AnyView>,

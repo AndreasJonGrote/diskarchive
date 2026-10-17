@@ -25,8 +25,7 @@ import Testing
                 id: UUID(),
                 name: "a.pdf",
                 kind: .file,
-                mediumID: mediumID,
-                isMediumOnline: true
+                mediumID: mediumID
             ),
             result: nil
         )
@@ -57,8 +56,7 @@ import Testing
                     id: UUID(),
                     name: name,
                     kind: folder ? .folder : .file,
-                    mediumID: mediumID,
-                    isMediumOnline: true
+                    mediumID: mediumID
                 ),
                 result: nil
             )

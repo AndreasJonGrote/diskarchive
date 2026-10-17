@@ -24,6 +24,7 @@ nonisolated struct SearchPlanV3: Sendable {
         query: String,
         filters: SearchFilters,
         maxDepth: Int?,
+        isFolder: Bool? = nil,
         now: Date = Date()
     ) throws -> SearchPlanV3 {
         var conditions = ["i.status = 0"]
@@ -65,6 +66,10 @@ nonisolated struct SearchPlanV3: Sendable {
         if let maxDepth {
             conditions.append("i.depth <= ?")
             arguments.append(maxDepth.databaseValue)
+        }
+        // bug.0.4.038 (REPORT 130): Popover holt Ordner und Dateien je mit eigener kleiner Abfrage.
+        if let isFolder {
+            conditions.append(isFolder ? "i.isFolder = 1" : "i.isFolder = 0")
         }
         return SearchPlanV3(conditions: conditions, arguments: arguments)
     }

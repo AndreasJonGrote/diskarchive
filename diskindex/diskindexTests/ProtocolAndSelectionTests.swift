@@ -321,9 +321,10 @@ import Testing
         )
         var settings = AppSettings()
         settings.scanDepth = 2
-        if case .uncaptured(.scanDepth) = ColumnFolderOpenState.resolve(columnIndex: 2, medium: medium, settings: settings) {
+        // bug.0.4.034: der Indexer öffnet Ordner auf Tiefe = Scan-Tiefe nicht.
+        if case .uncaptured(.scanDepth) = ColumnFolderOpenState.resolve(columnIndex: 1, medium: medium, settings: settings) {
         } else {
-            Issue.record("Tiefe 3 bei Scan-Tiefe 2 muss uncaptured scanDepth sein")
+            Issue.record("Tiefe 2 bei Scan-Tiefe 2 muss uncaptured scanDepth sein")
         }
         settings = AppSettings()
         settings.excludedPatterns = ["*.tmp"]
@@ -497,5 +498,5 @@ private func item(_ name: String, _ kind: IndexedItem.Kind, size: Int64? = nil) 
 
 @MainActor
 private func target(_ name: String, _ kind: ObjectContextTarget.Kind) -> ObjectContextTarget {
-    ObjectContextTarget(id: UUID(), name: name, kind: kind, mediumID: UUID(), isMediumOnline: true)
+    ObjectContextTarget(id: UUID(), name: name, kind: kind, mediumID: UUID())
 }

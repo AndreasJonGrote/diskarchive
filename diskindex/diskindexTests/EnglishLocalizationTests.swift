@@ -14,7 +14,7 @@ import UserNotifications
 @Suite @MainActor
 struct EnglishLocalizationTests {
     private func target(_ name: String) -> ObjectContextTarget {
-        ObjectContextTarget(id: UUID(), name: name, kind: .file, mediumID: UUID(), isMediumOnline: true)
+        ObjectContextTarget(id: UUID(), name: name, kind: .file, mediumID: UUID())
     }
 
     private func contextTitles() -> [String] {

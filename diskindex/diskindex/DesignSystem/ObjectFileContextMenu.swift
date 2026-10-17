@@ -55,7 +55,7 @@ private func contextMenuGroups(for targets: [ObjectContextTarget], appState: App
 
     return groups + [
         [
-            ContextMenuEntry(id: "finder", title: LayoutCopy.contextShowInFinder, icon: "IconArrowSquareOut", isEnabled: target.isMediumOnline) {
+            ContextMenuEntry(id: "finder", title: LayoutCopy.contextShowInFinder, icon: "IconArrowSquareOut", isEnabled: appState.isMediumOnline(target.mediumID)) {
                 appState.revealInFinder(target)
             },
         ],
@@ -150,7 +150,7 @@ func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppSt
                 iconColor: plan.ignoreNameChecked ? DesignColor.stateError : nil,
                 checkColor: plan.ignoreNameChecked ? DesignColor.stateError : nil
             ) {
-                appState.toggleIgnoredPatterns(names)
+                appState.requestIgnore(names, targetCount: targets.count)
             },
             ContextMenuEntry(
                 id: "ignoreType",
@@ -160,7 +160,7 @@ func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppSt
                 checkColor: plan.ignoreTypeChecked ? DesignColor.stateError : nil,
                 isEnabled: plan.ignoreTypeEnabled
             ) {
-                appState.toggleIgnoredPatterns(extensions)
+                appState.requestIgnore(extensions, targetCount: targets.count)
             },
         ],
     ]
@@ -296,6 +296,14 @@ private struct ObjectContextMenuView: View {
         return ids[(index + step + ids.count) % ids.count]
     }
 }
+
+#if DEBUG
+/// Tests (bug.0.4.037): dieselbe Menü-Ansicht wie im Panel, aber in einem eigenen Fenster außerhalb des Bildschirms.
+/// Das echte Panel öffnet am Mauszeiger auf dem sichtbaren Bildschirm (Regel 19).
+func objectContextMenuForTesting(_ targets: [ObjectContextTarget], onClose: @escaping () -> Void = {}) -> some View {
+    ObjectContextMenuView(targets: targets, onClose: onClose)
+}
+#endif
 
 // MARK: - Presenter (Panel-Lebenszyklus)
 

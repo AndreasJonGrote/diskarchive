@@ -11,6 +11,8 @@ import SwiftUI
 struct TableSortHeader: View {
     let title: String
     let isActive: Bool
+    /// `false`: Kopf nicht klickbar, gedämpft wie ein deaktivierter Knopf (bug.0.4.038, Deckkraft wie `MenuBarGhostButton`).
+    var isEnabled = true
     let action: () -> Void
 
     var body: some View {
@@ -18,7 +20,9 @@ struct TableSortHeader: View {
             Self.label(title, isActive: isActive)
         }
         .buttonStyle(.plainFullHit)
-        .pointerCursor()
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.45)
+        .pointerCursor(isEnabled)
     }
 
     static func label(_ title: String, isActive: Bool) -> some View {

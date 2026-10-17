@@ -25,7 +25,13 @@ struct SearchView: View {
                     CompactMediumCardFlow(media: match.media)
                 }
 
-                ObjectResultsTable(results: match.items, sort: appState.searchStateBinding(\.sort)) {
+                // bug.0.4.038: Name, Datum, Medium sortiert die Abfrage; Pfad und Status nur, wenn alle Treffer da sind.
+                ObjectResultsTable(
+                    results: match.items,
+                    sort: appState.searchStateBinding(\.sort),
+                    serverSortedColumns: SearchSort.pageOrderedColumns,
+                    clientSortAvailable: match.allItemsOnPage
+                ) {
                     placeholder(match: match)
                 }
 
@@ -48,6 +54,7 @@ struct SearchView: View {
         let types = filters.fileTypes.map(\.rawValue).sorted().joined(separator: ",")
         let mediaIDs = filters.mediumIDs.map(\.uuidString).sorted().joined(separator: ",")
         let media = appState.indexedMedia.map(\.id.uuidString).joined(separator: ",")
+        let sort = appState.searchState.sort.serverOrder
         return [
             submittedQuery,
             filters.selectAllMedia ? "all" : mediaIDs,
@@ -57,6 +64,8 @@ struct SearchView: View {
             filters.combineWithAnd ? "and" : "or",
             String(appState.appSettings.indexedMaxDepth ?? -1),
             media,
+            // Klick auf Name/Datum/Medium fragt neu ab; Pfad/Status sortiert der Client (gleiche Abfrage).
+            "\(sort.column.rawValue)-\(sort.direction.rawValue)",
         ].joined(separator: "|")
     }
 

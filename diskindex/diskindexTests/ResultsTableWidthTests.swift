@@ -30,7 +30,7 @@ struct ResultsTableWidthTests {
                 sizeBytes: 10,
                 listedAt: Date()
             )
-            return SearchResultItem(item: item, mediumID: mediumID, isOnline: true)
+            return SearchResultItem(item: item, mediumID: mediumID)
         }
     }
 

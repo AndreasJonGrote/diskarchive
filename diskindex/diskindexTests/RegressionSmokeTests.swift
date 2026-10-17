@@ -290,6 +290,79 @@ struct RegressionSmokeTests {
         #expect(LayoutCopy.files != LayoutCopy.folders)
     }
 
+    // MARK: - Paket 6 (bug.0.4.034–036)
+
+    /// bug.0.4.034: Ordner auf Tiefe = Scan-Tiefe sind „nicht indiziert“ (gelb), nicht „wird indiziert“.
+    @Test func folderAtScanDepthIsUncaptured() {
+        var settings = AppSettings()
+        settings.scanDepth = 2
+        let medium = makeSmokeMedium()
+        #expect(ColumnFolderOpenState.resolve(columnIndex: 1, medium: medium, settings: settings) == .uncaptured(.scanDepth))
+        #expect(ColumnFolderOpenState.resolve(columnIndex: 0, medium: medium, settings: settings, folderListedAt: Date()) == .normal)
+    }
+
+    /// bug.0.4.035: ab 500 Zielen Rückfrage, darunter sofort; Auswahl prüft über die Menge.
+    @Test func ignoreFromFiveHundredAsksFirst() {
+        let app = AppState()
+        app.requestIgnore((0..<499).map { "a\($0)" }, targetCount: 499)
+        #expect(app.ignoreConfirmationPrompt == nil)
+        #expect(app.appSettings.excludedPatterns.count == 499)
+        app.requestIgnore(["b"], targetCount: 500)
+        #expect(app.ignoreConfirmationPrompt?.count == 500)
+        app.resolveIgnoreConfirmation(confirm: false)
+        #expect(!app.appSettings.excludedPatterns.contains("b"))
+        var selection = ColumnSelection()
+        let ids = (0..<3).map { _ in UUID() }
+        selection.selectAll(visible: ids, column: 0)
+        #expect(ids.allSatisfy(selection.contains))
+    }
+
+    /// bug.0.4.036: sichtbare Spalten bleiben im Cache, auch wenn viele andere Ordner geladen werden.
+    @Test func visibleColumnStaysCached() {
+        let app = AppState()
+        let medium = UUID()
+        app.columnBrowserState.selectedMediumID = medium
+        app.columnBrowserState.pathStack = ["Offen"]
+        app.indexRepository.seedScreenshotCache(mediumID: medium, entries: [([], []), (["Offen"], [])])
+        app.indexRepository.seedScreenshotCache(mediumID: medium, entries: (0..<40).map { (["F\($0)"], []) })
+        #expect(app.indexRepository.hasCachedChildren(mediumID: medium, path: []))
+        #expect(app.indexRepository.hasCachedChildren(mediumID: medium, path: ["Offen"]))
+    }
+
+    /// bug.0.4.038/039: Pfad/Status nur in der Seite sortierbar (sonst Rückfall auf Name), Name immer; Popover entprellt.
+    @Test func searchSortColumnsAndPopoverDebounce() {
+        #expect(SearchSort(column: .path, direction: .ascending).serverOrder == SearchSort())
+        #expect(SearchSort(column: .date, direction: .descending).serverOrder.column == .date)
+        #expect(ObjectResultsOrdering.isSortable(.name, serverSortedColumns: SearchSort.pageOrderedColumns, clientSortAvailable: false))
+        #expect(!ObjectResultsOrdering.isSortable(.status, serverSortedColumns: SearchSort.pageOrderedColumns, clientSortAvailable: false))
+        #expect(AppState().popoverSearchDebounce == .milliseconds(150))
+    }
+
+    /// bug.0.4.037/040: Favorit aus der Menge (zweiter Klick auf ein altes Ziel), Online abgeleitet, Verbindungsfilter als Medienauswahl.
+    @Test func favoriteFromSetAndDerivedOnline() {
+        #expect(FavoriteLookup(rowIDs: [7], editsBeforeLoad: [:]).isFavorite(rowID: 7, fallback: false))
+        #expect(!FavoriteLookup(rowIDs: [], editsBeforeLoad: [:]).isFavorite(rowID: 7, fallback: true))
+        #expect(!FavoriteLookup(rowIDs: nil, editsBeforeLoad: [7: false]).isFavorite(rowID: 7, fallback: true))
+        var medium = makeSmokeMedium()
+        let app = AppState()
+        app.media = [medium]
+        #expect(app.mediumConnectivity[medium.id] == true)
+        #expect(app.isMediumOnline(medium.id))
+        medium.connectionStatus = .offline
+        #expect(FavoritesRequest(media: [medium], connection: .offline, filters: SearchFilters(), maxDepth: nil).mediumIDs == [medium.id])
+        #expect(FavoritesRequest(media: [medium], connection: .online, filters: SearchFilters(), maxDepth: nil).mediumIDs.isEmpty)
+        #expect(SearchIndex.pageLimit == 500)
+    }
+
+    private func makeSmokeMedium() -> Medium {
+        Medium(
+            id: UUID(), name: "Rauch", type: .usb, connectionStatus: .connected, indexStatus: .indexing,
+            allowIndexing: true, autoIndexPaused: false, capacityTotalBytes: 1, capacityUsedBytes: 0,
+            fileCount: 0, folderCount: 0, lastSeenAt: Date(), firstIndexedAt: nil, lastIndexedAt: nil,
+            isForgotten: false, indexingProgress: 0
+        )
+    }
+
     // MARK: - Helpers
 
     private func assertColumnShowsFirstRow(count: Int, firstName: String, sampleOnly: Bool = false) async throws {

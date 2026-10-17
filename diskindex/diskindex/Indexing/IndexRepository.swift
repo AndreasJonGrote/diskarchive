@@ -11,7 +11,13 @@ import Foundation
 final class IndexRepository {
     private var store: IndexStoreV3?
     private var cache: [String: [IndexedItem]] = [:]
-    private var cacheOrder: [String] = []
+    /// Reihenfolge der letzten Nutzung (bug.0.4.036); Lesen in `children` setzt nach hinten. Nicht beobachtet:
+    /// das Umsortieren beim Lesen im Body darf keine neue Darstellung auslösen (Regel 15).
+    @ObservationIgnored private var cacheOrder: [String] = []
+    /// Schlüssel der sichtbaren Spalten (`pathStack`): werden nie verdrängt (bug.0.4.036).
+    @ObservationIgnored private var pinnedKeys: Set<String> = []
+    /// Welcher Lade-Token `loading` für einen Schlüssel gesetzt hat; nur dieser Load räumt ab (bug.0.4.036, 98).
+    @ObservationIgnored private var loadingOwner: [String: UInt] = [:]
     var scope = IndexScope.revealAll
     /// Regel-Warteschlange (234): keine neuen Spalten-Ladevorgänge starten.
     var blocksLoadsForRuleReconcile = false
@@ -44,23 +50,46 @@ final class IndexRepository {
     }
 
     func replaceStore(_ store: IndexStoreV3?) {
+        // Generationen erhöhen statt löschen (bug.0.4.036, 98): ein Load des alten Stores darf mit seinem Token
+        // nichts mehr schreiben und den Ladezustand eines neuen Loads nicht abräumen.
+        for key in Set(loading).union(loadGenerations.keys).union(cache.keys) {
+            bumpLoadGeneration(key)
+        }
         self.store = store
         cache.removeAll()
         cacheOrder.removeAll()
         loading.removeAll()
+        loadingOwner.removeAll()
         loadingLoaded.removeAll()
         loadingTotals.removeAll()
         loadErrors.removeAll()
-        loadGenerations.removeAll()
         generation += 1
     }
 
     /// Nur Cache/Ladezustand lesen — kein Nachladen aus dem View-Aufbau (109).
     func children(mediumID: UUID, path: [String]) -> [IndexedItem] {
         let key = cacheKey(mediumID, path)
-        if let cached = cache[key] { return cached }
+        if let cached = cache[key] {
+            touch(key)
+            return cached
+        }
         if loading.contains(key) { return [] }
         return []
+    }
+
+    /// Ordner ist geladen (im Cache und nicht im Laden) — erst dann darf die Auswahl beschnitten werden.
+    func hasLoadedChildren(mediumID: UUID, path: [String]) -> Bool {
+        let key = cacheKey(mediumID, path)
+        return cache[key] != nil && !loading.contains(key)
+    }
+
+    /// Sichtbare Spalten (Wurzel und jede Stufe von `pathStack`) vor dem Verdrängen schützen (bug.0.4.036).
+    func pinVisibleColumns(mediumID: UUID?, pathStack: [String]) {
+        guard let mediumID else {
+            pinnedKeys = []
+            return
+        }
+        pinnedKeys = Set((0...pathStack.count).map { cacheKey(mediumID, Array(pathStack.prefix($0))) })
     }
 
     func requestLoad(mediumID: UUID, path: [String]) {
@@ -75,6 +104,7 @@ final class IndexRepository {
         guard store != nil, loading.insert(key).inserted else { return }
         // Token hier binden: sonst liest `load` nach `invalidateAll` die neue Generation und schreibt trotzdem.
         let loadToken = loadGenerations[key, default: 0]
+        loadingOwner[key] = loadToken
         Task { await load(mediumID: mediumID, path: path, key: key, loadToken: loadToken) }
     }
 
@@ -119,6 +149,7 @@ final class IndexRepository {
         let keys = Set(cache.keys.filter { $0.hasPrefix(prefix) }).union(loading.filter { $0.hasPrefix(prefix) })
         for key in keys { stale.insert(key) }
         loading = loading.filter { !$0.hasPrefix(prefix) }
+        loadingOwner = loadingOwner.filter { !$0.key.hasPrefix(prefix) }
         loadingLoaded = loadingLoaded.filter { !$0.key.hasPrefix(prefix) }
         loadingTotals = loadingTotals.filter { !$0.key.hasPrefix(prefix) }
         loadErrors = loadErrors.filter { !$0.key.hasPrefix(prefix) }
@@ -130,6 +161,7 @@ final class IndexRepository {
         let key = cacheKey(mediumID, path)
         stale.insert(key)
         loading.remove(key)
+        loadingOwner[key] = nil
         loadingLoaded[key] = nil
         loadingTotals[key] = nil
         loadErrors[key] = nil
@@ -157,6 +189,7 @@ final class IndexRepository {
             bumpLoadGeneration(key)
         }
         loading.removeAll()
+        loadingOwner.removeAll()
     }
 
     #if DEBUG
@@ -202,9 +235,14 @@ final class IndexRepository {
         loadSessionsStartedForTesting += 1
         #endif
         defer {
-            loading.remove(key)
-            loadingLoaded[key] = nil
-            loadingTotals[key] = nil
+            // Nur der Load, der `loading` gesetzt hat, räumt ab (bug.0.4.036, 98). Nach `invalidateAll` bleibt der
+            // Eigentümer bestehen, der alte Load räumt also weiter selbst auf.
+            if loadingOwner[key] == loadToken {
+                loading.remove(key)
+                loadingOwner[key] = nil
+                loadingLoaded[key] = nil
+                loadingTotals[key] = nil
+            }
             #if DEBUG
             loadSessionsCompletedForTesting += 1
             #endif
@@ -234,8 +272,13 @@ final class IndexRepository {
                 }
             }
             let totalCount = try await store.childCount(mediumUUID: mediumID, parentID: parentID, scope: scope)
-            loadingTotals[key] = totalCount
-            loadingLoaded[key] = 0
+            // Fortschritt nur für den eigenen Load schreiben (bug.0.4.036): nach `replaceStore` gehört der Schlüssel
+            // keinem bzw. einem neueren Load.
+            let ownsProgress = { self.loadingOwner[key] == loadToken }
+            if ownsProgress() {
+                loadingTotals[key] = totalCount
+                loadingLoaded[key] = 0
+            }
 
             let parentDirectoryPath = path.isEmpty ? "/" : "/" + path.joined(separator: "/") + "/"
             var accumulated: [IndexedItem] = []
@@ -256,7 +299,7 @@ final class IndexRepository {
                 let batch = rows.map { IndexedItem(stored: $0, parentPath: path) }
                 accumulated.append(contentsOf: batch)
                 let now = ContinuousClock.now
-                if lastProgress.duration(to: now) >= Self.loadProgressInterval || cursor == nil {
+                if lastProgress.duration(to: now) >= Self.loadProgressInterval || cursor == nil, ownsProgress() {
                     loadingLoaded[key] = accumulated.count
                     lastProgress = now
                 }
@@ -272,7 +315,7 @@ final class IndexRepository {
                 return
             }
             stale.remove(key)
-            if totalCount == 0, !accumulated.isEmpty {
+            if totalCount == 0, !accumulated.isEmpty, ownsProgress() {
                 loadingTotals[key] = accumulated.count
             }
             DiskIndexLog.shared.perfIfSlow("children count=\(accumulated.count)", since: started)
@@ -300,13 +343,19 @@ final class IndexRepository {
 
     private func remember(_ key: String, _ items: [IndexedItem]) {
         cache[key] = items
-        cacheOrder.removeAll { $0 == key }
-        cacheOrder.append(key)
-        while cacheOrder.count > cacheFolderLimit {
-            let oldest = cacheOrder.removeFirst()
-            if oldest != key { cache[oldest] = nil }
+        touch(key)
+        // Den am längsten nicht gelesenen Schlüssel verdrängen, nie eine sichtbare Spalte (bug.0.4.036).
+        while cacheOrder.count > cacheFolderLimit,
+              let victim = cacheOrder.firstIndex(where: { $0 != key && !pinnedKeys.contains($0) }) {
+            cache[cacheOrder.remove(at: victim)] = nil
         }
         generation += 1
+    }
+
+    private func touch(_ key: String) {
+        if cacheOrder.last == key { return }
+        cacheOrder.removeAll { $0 == key }
+        cacheOrder.append(key)
     }
 
     private func forgetCached(_ key: String) {

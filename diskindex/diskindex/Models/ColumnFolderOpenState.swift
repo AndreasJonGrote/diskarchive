@@ -40,7 +40,8 @@ enum ColumnFolderOpenState: Equatable {
                 return .uncaptured(.excluded)
             }
         }
-        if let maxDepth = settings.indexedMaxDepth, folderDepth > maxDepth {
+        // Der Indexer öffnet Ordner auf Tiefe = Scan-Tiefe nicht (bug.0.4.034).
+        if let maxDepth = settings.indexedMaxDepth, folderDepth >= maxDepth {
             return .uncaptured(.scanDepth)
         }
         if folderListedAt != nil {

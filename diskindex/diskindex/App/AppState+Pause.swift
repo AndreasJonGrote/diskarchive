@@ -122,6 +122,12 @@ nonisolated struct FailureCount: Codable {
     var hourStart: Date
 }
 
+/// Rückfrage vor dem Ignorieren vieler Ziele auf einmal (bug.0.4.035, todo.0.4.031).
+nonisolated struct IgnoreConfirmationPrompt: Equatable {
+    var count: Int
+    var patterns: [String]
+}
+
 /// Rückfrage „Ersetzt dieses Medium?“ (bug.0.4.031 c, todo.0.4.032): neues Medium und ein Offline-Medium gleichen Namens.
 nonisolated struct ReplaceMediumPrompt: Equatable, Identifiable {
     var newID: UUID

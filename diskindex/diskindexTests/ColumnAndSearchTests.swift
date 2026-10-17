@@ -125,6 +125,13 @@ extension WindowTestGroup {
         let popover = PopoverSearch.grouped(match: match, media: rig.app.registryMedia)
         #expect(popover.totalCount == match.totalCount)
         #expect(popover.groups.contains { $0.title == "DATEIEN" })
+        // bug.0.4.038/039: der Popover-Weg (eigene Abfragen je Gruppe, Zahl nachgereicht) kommt auf dieselbe Zahl.
+        rig.app.popoverSearchDebounce = .zero
+        rig.app.popoverSearchText = "rechn"
+        rig.app.schedulePopoverSearch()
+        await rig.app.waitForPopoverSearch()
+        #expect(rig.app.popoverResults.totalCount == match.totalCount)
+        #expect(!rig.app.popoverResults.isCountPending)
     }
 
     @Test func favoritesSurviveANewStore() async throws {

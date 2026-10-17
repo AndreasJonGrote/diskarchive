@@ -222,6 +222,25 @@ extension IndexStoreV3 {
         "SELECT i.id, i.slug FROM items i WHERE \(whereClause) ORDER BY i.slug, i.id LIMIT ?"
     }
 
+    /// bug.0.4.038 (REPORT 83): Trefferkennungen in der gewählten Reihenfolge über **alle** Treffer, Seite per
+    /// `LIMIT ? OFFSET ?`. Name: `slug` binär (Suchhilfe `items_search`; welche
+    /// 500 auf die Seite kommen, die Seite sortiert der Client natürlich nach); Datum: `modifiedAt` (Suchhilfe `items_modified`, ohne Datum zuerst wie in der
+    /// Client-Sortierung); Medium: `storages.slug`, innerhalb eines Mediums nach Name. Kennung entscheidet Gleichstand.
+    nonisolated static func searchSortedHitsSQL(whereClause: String, sort: SearchSort) -> String {
+        let desc = sort.direction == .descending ? " DESC" : ""
+        switch sort.serverOrder.column {
+        case .date:
+            return "SELECT i.id FROM items i WHERE \(whereClause) ORDER BY i.modifiedAt\(desc), i.id\(desc) LIMIT ? OFFSET ?"
+        case .medium:
+            return """
+                SELECT i.id FROM items i JOIN storages s ON s.id = i.storageID WHERE \(whereClause)
+                ORDER BY s.slug\(desc), i.storageID\(desc), i.slug, i.id LIMIT ? OFFSET ?
+                """
+        case .name, .path, .status:
+            return "SELECT i.id FROM items i WHERE \(whereClause) ORDER BY i.slug\(desc), i.id\(desc) LIMIT ? OFFSET ?"
+        }
+    }
+
     /// Nur sichtbare Einträge (`status = 0`); ein verschwundener Eintrag ist hier nicht mehr da.
     func item(id: Int64) async throws -> StoredItem? {
         try await pool.read { db in
@@ -280,27 +299,158 @@ extension IndexStoreV3 {
         return rows.filter { !scope.hides(name: $0.name, depth: $0.depth) }
     }
 
+    /// bug.0.4.037: alle Favoriten-Kennungen (`items.id`), leichte Abfrage nur auf `favorites`. Quelle für
+    /// `AppState.isFavorite` bei Dateien und Ordnern, unabhängig von der geladenen Seite.
+    func favoriteItemIDs() async throws -> Set<Int64> {
+        try await pool.read { db in
+            Set(try Int64.fetchAll(db, sql: "SELECT itemID FROM favorites"))
+        }
+    }
+
+    /// bug.0.4.040 (REPORT 86): eine Seite Favoriten (nach Name, wie `favorites`) unter denselben Bedingungen wie die
+    /// Suche ohne Begriff (`SearchPlanV3`: Medien, Dateityp, Alter, Tiefe). Die Medienauswahl in `filters` trägt den
+    /// Verbindungsfilter (online/offline als Medienkennungen).
+    func favoritePage(filters: SearchFilters, limit: Int, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> [StoredItem] {
+        guard limit > 0 else { return [] }
+        let depth = scope?.maxDepth ?? maxDepth
+        let checksNames = scope?.checksNames ?? false
+        let counter = nameChecks
+        return try await pool.read { db in
+            let plan = try SearchPlanV3.make(db, query: "", filters: filters, maxDepth: depth)
+            let base = "SELECT i.id FROM favorites f JOIN items i ON i.id = f.itemID WHERE \(plan.whereClause) ORDER BY i.slug, i.id"
+            guard checksNames, let scope else {
+                let ids = try Int64.fetchAll(db, sql: base + " LIMIT ?", arguments: plan.statementArguments(extra: [limit.databaseValue]))
+                return try Self.items(db, ids: ids)
+            }
+            // Ausstehende Bereinigung: Namen in Swift prüfen, bis die Seite voll ist.
+            var visible: [StoredItem] = []
+            var offset = 0
+            let pageSize = max(limit, 100)
+            while visible.count < limit {
+                let ids = try Int64.fetchAll(
+                    db,
+                    sql: base + " LIMIT ? OFFSET ?",
+                    arguments: plan.statementArguments(extra: [pageSize.databaseValue, offset.databaseValue])
+                )
+                if ids.isEmpty { break }
+                let rows = try Self.items(db, ids: ids)
+                counter.add(rows.count)
+                for row in rows where !scope.hides(name: row.name, depth: row.depth) {
+                    visible.append(row)
+                    if visible.count >= limit { break }
+                }
+                if ids.count < pageSize { break }
+                offset += ids.count
+            }
+            return visible
+        }
+    }
+
+    /// bug.0.4.040: Zahl der Favoriten unter denselben Bedingungen wie `favoritePage`.
+    func favoriteCount(filters: SearchFilters, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> Int {
+        let depth = scope?.maxDepth ?? maxDepth
+        let checksNames = scope?.checksNames ?? false
+        let counter = nameChecks
+        return try await pool.read { db in
+            let plan = try SearchPlanV3.make(db, query: "", filters: filters, maxDepth: depth)
+            let from = "FROM favorites f JOIN items i ON i.id = f.itemID WHERE \(plan.whereClause)"
+            guard checksNames, let scope else {
+                return try Int.fetchOne(db, sql: "SELECT COUNT(*) " + from, arguments: plan.statementArguments()) ?? 0
+            }
+            let cursor = try Row.fetchCursor(db, sql: "SELECT i.name, i.depth " + from, arguments: plan.statementArguments())
+            var count = 0
+            var checked = 0
+            while let row = try cursor.next() {
+                checked += 1
+                if !scope.hides(name: row["name"], depth: row["depth"]) { count += 1 }
+            }
+            counter.add(checked)
+            return count
+        }
+    }
+
     // MARK: Suche
 
-    func search(query: String, filters: SearchFilters, limit: Int = 500, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> [StoredItem] {
+    /// - Parameters:
+    ///   - sort: Reihenfolge über alle Treffer (Name, Datum, Medium; Pfad/Status → Name aufsteigend, bug.0.4.038).
+    ///   - isFolder: nur Ordner (`true`) oder nur Dateien (`false`), z. B. je eine kleine Abfrage im Popover.
+    func search(
+        query: String,
+        filters: SearchFilters,
+        limit: Int = 500,
+        maxDepth: Int? = nil,
+        scope: IndexScope? = nil,
+        sort: SearchSort = SearchSort(),
+        isFolder: Bool? = nil
+    ) async throws -> [StoredItem] {
         if let delay = searchQueryDelay { try await Task.sleep(for: delay) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty, !filters.hasActiveFilters { return [] }
         guard limit > 0 else { return [] }
         let depth = scope?.maxDepth ?? maxDepth
-        let plan = try await pool.read { db in try SearchPlanV3.make(db, query: trimmed, filters: filters, maxDepth: depth) }
+        let plan = try await pool.read { db in
+            try SearchPlanV3.make(db, query: trimmed, filters: filters, maxDepth: depth, isFolder: isFolder)
+        }
+        let order = sort.serverOrder
         let ids: [Int64]
-        if let scope, scope.checksNames {
-            ids = try await visibleSearchHitIDs(plan: plan, limit: limit, scope: scope)
+        if order == SearchSort() {
+            if let scope, scope.checksNames {
+                ids = try await visibleSearchHitIDs(plan: plan, limit: limit, scope: scope)
+            } else {
+                ids = try await topHits(plan, limit: limit).map(\.id)
+            }
+        } else if let scope, scope.checksNames {
+            ids = try await visibleSortedHitIDs(plan: plan, sort: order, limit: limit, scope: scope)
         } else {
-            ids = try await topHits(plan, limit: limit).map(\.id)
+            ids = try await sortedHitPage(plan: plan, sort: order, offset: 0, limit: limit)
         }
         guard !ids.isEmpty else { return [] }
         return try await pool.read { db in try Self.items(db, ids: ids) }
     }
 
+    /// bug.0.4.038 (REPORT 131): Medien mit mindestens einem Treffer unter denselben Filtern, unabhängig von der
+    /// angezeigten Seite. Je Medium bricht die Prüfung beim ersten Treffer ab (`EXISTS`).
+    func searchMediumIDs(query: String, filters: SearchFilters, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> Set<UUID> {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty, !filters.hasActiveFilters { return [] }
+        let depth = scope?.maxDepth ?? maxDepth
+        let counter = nameChecks
+        return try await pool.read { db in
+            let plan = try SearchPlanV3.make(db, query: trimmed, filters: filters, maxDepth: depth)
+            let storageIDs: [Int64]
+            if let scope, scope.checksNames {
+                let cursor = try Row.fetchCursor(
+                    db,
+                    sql: "SELECT i.storageID, i.name, i.depth FROM items i WHERE \(plan.whereClause)",
+                    arguments: plan.statementArguments()
+                )
+                var found = Set<Int64>()
+                var checked = 0
+                while let row = try cursor.next() {
+                    let storageID: Int64 = row["storageID"]
+                    if found.contains(storageID) { continue }
+                    checked += 1
+                    if !scope.hides(name: row["name"], depth: row["depth"]) { found.insert(storageID) }
+                }
+                counter.add(checked)
+                storageIDs = Array(found)
+            } else {
+                storageIDs = try Int64.fetchAll(
+                    db,
+                    sql: "SELECT DISTINCT s.id FROM storages s WHERE EXISTS (SELECT 1 FROM items i WHERE i.storageID = s.id AND \(plan.whereClause))",
+                    arguments: plan.statementArguments()
+                )
+            }
+            guard !storageIDs.isEmpty else { return [] }
+            let marks = storageIDs.map { _ in "?" }.joined(separator: ",")
+            let blobs = try Data.fetchAll(db, sql: "SELECT uuid FROM storages WHERE id IN (\(marks))", arguments: StatementArguments(storageIDs))
+            return Set(blobs.compactMap(MediumCodecV3.uuid))
+        }
+    }
+
     /// Genaue Zahl der Treffer. Mit ausstehender Bereinigung (`checksNames`) prüft ein Cursor zusätzlich die Namen.
     func searchCount(query: String, filters: SearchFilters, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> Int {
+        searchCountCalls.add(1)
         #if DEBUG
         if let delay = searchCountDelay { try await Task.sleep(for: delay) }
         #endif
@@ -471,6 +621,37 @@ extension IndexStoreV3 {
             }
             if page.count < pageSize { break }
             after = SearchHitCursor(slug: page[page.count - 1].slug, id: page[page.count - 1].id)
+        }
+        return visible
+    }
+
+    /// Eine Seite Trefferkennungen in der Reihenfolge `sort` (bug.0.4.038).
+    private func sortedHitPage(plan: SearchPlanV3, sort: SearchSort, offset: Int, limit: Int) async throws -> [Int64] {
+        try await pool.read { db in
+            try Int64.fetchAll(
+                db,
+                sql: Self.searchSortedHitsSQL(whereClause: plan.whereClause, sort: sort),
+                arguments: plan.statementArguments(extra: [limit.databaseValue, offset.databaseValue])
+            )
+        }
+    }
+
+    /// Wie `visibleSearchHitIDs`, aber in der Reihenfolge `sort` (Seiten per Versatz).
+    private func visibleSortedHitIDs(plan: SearchPlanV3, sort: SearchSort, limit: Int, scope: IndexScope) async throws -> [Int64] {
+        var visible: [Int64] = []
+        var offset = 0
+        let pageSize = max(limit, 100)
+        while visible.count < limit {
+            let page = try await sortedHitPage(plan: plan, sort: sort, offset: offset, limit: pageSize)
+            if page.isEmpty { break }
+            let rows = try await pool.read { db in try Self.items(db, ids: page) }
+            nameChecks.add(rows.count)
+            for row in rows where !scope.hides(name: row.name, depth: row.depth) {
+                visible.append(row.id)
+                if visible.count >= limit { break }
+            }
+            if page.count < pageSize { break }
+            offset += page.count
         }
         return visible
     }

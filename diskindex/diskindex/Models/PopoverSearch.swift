@@ -34,36 +34,76 @@ struct PopoverSearchGroup: Identifiable {
 
 struct PopoverSearchResults {
     var groups: [PopoverSearchGroup] = []
-    /// Gesamtzahl wie in der Suchansicht (Medien + Objekte).
+    /// Gesamtzahl wie in der Suchansicht (Medien + Objekte). Solange die Zählung läuft (`isCountPending`), steht hier
+    /// die zuletzt bekannte Zahl der vorigen Eingabe (bug.0.4.039: die Zahl kommt getrennt und abbrechbar nach); ohne
+    /// bekannte Zahl wird die Seite erst mit der Zahl gezeigt. Nie die Zahl der gezeigten Zeilen.
     var totalCount = 0
+    var isCountPending = false
+}
+
+/// Eine Popover-Suche ohne Zählung: Medien nach Name, Dateien und Ordner je mit eigener kleiner Abfrage.
+struct PopoverSearchPage {
+    var results = PopoverSearchResults()
+    /// Anfrage für die nachgereichte Zahl; `nil` = Zahl steht schon fest (jede Gruppe unter ihrer Grenze).
+    var pendingCount: SearchCountRequest?
+    var mediumCount = 0
 }
 
 enum PopoverSearch {
     static let maxHitsPerGroup = 3
 
-    static func results(query: String, appState: AppState) async -> PopoverSearchResults {
+    /// Filter der Hauptsuche nur, wenn die Suchansicht offen ist.
+    static func filters(appState: AppState) -> SearchFilters {
+        appState.mainWindowDestination == .search ? appState.searchState.filters : SearchFilters()
+    }
+
+    static func page(query: String, appState: AppState) async -> PopoverSearchPage {
         let media = appState.indexedMedia
-        let filters = appState.mainWindowDestination == .search ? appState.searchState.filters : SearchFilters()
-        let match = await SearchIndex.matching(
+        let filters = filters(appState: appState)
+        let found = await SearchIndex.popoverPage(
             store: appState.indexStore,
             query: query,
             filters: filters,
             media: media,
             maxDepth: appState.appSettings.indexedMaxDepth,
-            scope: appState.indexScope
+            scope: appState.indexScope,
+            perGroup: maxHitsPerGroup
         )
-        return grouped(match: match, media: media)
+        let shown = found.files.count + found.folders.count
+        let complete = found.files.count < maxHitsPerGroup && found.folders.count < maxHitsPerGroup
+        var results = grouped(media: found.media, files: found.files, folders: found.folders, totalCount: found.media.count + shown, allMedia: media)
+        results.isCountPending = !complete
+        return PopoverSearchPage(
+            results: results,
+            pendingCount: complete ? nil : SearchCountRequest(query: query, filters: filters),
+            mediumCount: found.media.count
+        )
     }
 
     static func grouped(match: SearchMatch, media: [Medium]) -> PopoverSearchResults {
         guard !match.isEmpty else { return PopoverSearchResults() }
+        return grouped(
+            media: match.media,
+            files: match.items.filter { !$0.isFolder },
+            folders: match.items.filter(\.isFolder),
+            totalCount: match.totalCount,
+            allMedia: media
+        )
+    }
+
+    static func grouped(
+        media matchedMedia: [Medium],
+        files: [SearchResultItem],
+        folders: [SearchResultItem],
+        totalCount: Int,
+        allMedia media: [Medium]
+    ) -> PopoverSearchResults {
         let mediumNames = Dictionary(media.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
-        let mediumHits = match.media.prefix(maxHitsPerGroup).map { medium in
+        let mediumHits = matchedMedia.prefix(maxHitsPerGroup).map { medium in
             PopoverSearchHit(kind: .medium, title: medium.name, location: "", target: .fromMedium(medium), result: nil)
         }
-        func objectHits(folders: Bool) -> [PopoverSearchHit] {
-            match.items
-                .filter { $0.isFolder == folders }
+        func objectHits(_ items: [SearchResultItem], folders: Bool) -> [PopoverSearchHit] {
+            items
                 .prefix(maxHitsPerGroup)
                 .map { result in
                     PopoverSearchHit(
@@ -77,9 +117,9 @@ enum PopoverSearch {
         }
         let groups = [
             PopoverSearchGroup(title: "SPEICHERMEDIEN", hits: Array(mediumHits)),
-            PopoverSearchGroup(title: "DATEIEN", hits: objectHits(folders: false)),
-            PopoverSearchGroup(title: "ORDNER", hits: objectHits(folders: true)),
+            PopoverSearchGroup(title: "DATEIEN", hits: objectHits(files, folders: false)),
+            PopoverSearchGroup(title: "ORDNER", hits: objectHits(folders, folders: true)),
         ].filter { !$0.hits.isEmpty }
-        return PopoverSearchResults(groups: groups, totalCount: match.totalCount)
+        return PopoverSearchResults(groups: groups, totalCount: totalCount)
     }
 }

@@ -69,23 +69,43 @@ struct ObjectResultsTable<Placeholder: View>: View {
     let results: [SearchResultItem]
     /// Mit `sort` sind alle Spaltenköpfe klickbar und die Zeilen werden sortiert.
     var sort: Binding<SearchSort>?
+    /// bug.0.4.038: Spalten, nach denen `results` schon sortiert ankommen (Datenbank); sie werden nicht nachsortiert.
+    var serverSortedColumns: Set<SearchSortColumn> = []
+    /// `false`: Pfad und Status (Spalten außerhalb von `serverSortedColumns`, außer Name) sind nicht sortierbar (Kopf
+    /// deaktiviert), weil nicht alle Treffer auf der Seite stehen. Name bleibt klickbar: die Abfrage wählt die Seite nach
+    /// Name, der Client sortiert sie natürlich nach.
+    var clientSortAvailable = true
     @ViewBuilder var placeholder: () -> Placeholder
 
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        let rows = sortedResults
+        // bug.0.4.040 (REPORT 86): Mediennamen, Verbindung und Favoriten einmal je Body; die Zeilen bekommen nur Werte und
+        // beobachten `media` nicht (ein Fortschritts-Tick baut sie nicht neu).
+        let media = appState.media
+        let mediumNames = Dictionary(media.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let online = Dictionary(media.map { ($0.id, $0.connectionStatus == .connected) }, uniquingKeysWith: { first, _ in first })
+        let favorites = appState.favoriteLookup
+        let rows = sortedResults(mediumNames: mediumNames, online: online)
+        let lastID = rows.last?.id
 
         // Kein `GeometryReader` um die ScrollView (212: im Legacy-Stil läge die Leiste hinter dem Fensterrand) und keine
         // Breitenmessung (218: kam als 0 an). Die Spaltenbreiten bestimmt `ObjectTableRowLayout` aus der Zeilenbreite.
         ScrollView {
-            VStack(spacing: 0) {
-                ObjectResultsTableHeader(sort: sort)
+            LazyVStack(spacing: 0) {
+                ObjectResultsTableHeader(sort: sort, isSortable: isSortable)
                 if rows.isEmpty {
                     placeholder()
                 } else {
                     ForEach(rows) { result in
-                        ObjectResultRow(result: result, isLast: result.id == rows.last?.id)
+                        ObjectResultRow(
+                            result: result,
+                            mediumName: mediumNames[result.mediumID] ?? "—",
+                            isOnline: online[result.mediumID] ?? false,
+                            isFavorite: favorites.isFavorite(rowID: result.item.rowID, fallback: result.item.isFavorite),
+                            isLast: result.id == lastID
+                        )
+                        .equatable()
                     }
                 }
             }
@@ -93,15 +113,48 @@ struct ObjectResultsTable<Placeholder: View>: View {
         }
     }
 
-    private var sortedResults: [SearchResultItem] {
+    private func isSortable(_ column: SearchSortColumn) -> Bool {
+        ObjectResultsOrdering.isSortable(column, serverSortedColumns: serverSortedColumns, clientSortAvailable: clientSortAvailable)
+    }
+
+    private func sortedResults(mediumNames: [UUID: String], online: [UUID: Bool]) -> [SearchResultItem] {
         guard let sort = sort?.wrappedValue else { return results }
-        let mediumNames = Dictionary(appState.media.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
-        return sort.sorted(results, mediumNames: mediumNames)
+        return ObjectResultsOrdering.rows(
+            results,
+            sort: sort,
+            serverSortedColumns: serverSortedColumns,
+            clientSortAvailable: clientSortAvailable,
+            mediumNames: mediumNames,
+            online: online
+        )
+    }
+}
+
+/// Reihenfolge der angezeigten Zeilen (eine Quelle für Tabelle und Test, bug.0.4.038).
+enum ObjectResultsOrdering {
+    static func isSortable(_ column: SearchSortColumn, serverSortedColumns: Set<SearchSortColumn>, clientSortAvailable: Bool) -> Bool {
+        serverSortedColumns.contains(column) || column == .name || clientSortAvailable
+    }
+
+    /// Spalten in `serverSortedColumns` kommen fertig sortiert; Name wird immer (natürlich) nachsortiert, Pfad und
+    /// Status nur, wenn alle Treffer auf der Seite stehen.
+    static func rows(
+        _ results: [SearchResultItem],
+        sort: SearchSort,
+        serverSortedColumns: Set<SearchSortColumn>,
+        clientSortAvailable: Bool,
+        mediumNames: [UUID: String],
+        online: [UUID: Bool] = [:]
+    ) -> [SearchResultItem] {
+        if serverSortedColumns.contains(sort.column) { return results }
+        guard sort.column == .name || clientSortAvailable else { return results }
+        return sort.sorted(results, mediumNames: mediumNames, online: online)
     }
 }
 
 extension SearchSort {
-    func sorted(_ items: [SearchResultItem], mediumNames: [UUID: String]) -> [SearchResultItem] {
+    /// - Parameter online: `mediumID → angeschlossen` (bug.0.4.037: abgeleitet, nicht in der Zeile gespeichert).
+    func sorted(_ items: [SearchResultItem], mediumNames: [UUID: String], online: [UUID: Bool] = [:]) -> [SearchResultItem] {
         func ascending(_ lhs: String, _ rhs: String) -> Bool {
             lhs.localizedStandardCompare(rhs) == .orderedAscending
         }
@@ -117,7 +170,9 @@ extension SearchSort {
             case .path:
                 ordered = ascending(lhs.path, rhs.path)
             case .status:
-                ordered = lhs.isOnline == rhs.isOnline ? ascending(lhs.name, rhs.name) : lhs.isOnline
+                let left = online[lhs.mediumID] ?? false
+                let right = online[rhs.mediumID] ?? false
+                ordered = left == right ? ascending(lhs.name, rhs.name) : left
             }
             return direction == .ascending ? ordered : !ordered
         }
@@ -126,6 +181,7 @@ extension SearchSort {
 
 private struct ObjectResultsTableHeader: View {
     var sort: Binding<SearchSort>?
+    var isSortable: (SearchSortColumn) -> Bool = { _ in true }
 
     var body: some View {
         ObjectTableRowLayout {
@@ -145,7 +201,8 @@ private struct ObjectResultsTableHeader: View {
     @ViewBuilder
     private func header(_ title: String, column: SearchSortColumn) -> some View {
         if let sort {
-            TableSortHeader(title: title, isActive: sort.wrappedValue.column == column) {
+            let enabled = isSortable(column)
+            TableSortHeader(title: title, isActive: enabled && sort.wrappedValue.column == column, isEnabled: enabled) {
                 sort.wrappedValue.toggle(column)
             }
         } else {
@@ -154,15 +211,31 @@ private struct ObjectResultsTableHeader: View {
     }
 }
 
-private struct ObjectResultRow: View {
+/// Eine Zeile der Objekt-Tabelle. Bekommt Mediumname, Verbindung und Favorit als Werte (bug.0.4.040) und vergleicht
+/// sich über sie: ändert ein Fortschritts-Tick nur Zähler eines Mediums, bleibt der Body der Zeile unberührt.
+private struct ObjectResultRow: View, Equatable {
     @Environment(AppState.self) private var appState
+    #if DEBUG
+    @Environment(\.objectRowRenderProbe) private var renderProbe
+    #endif
     let result: SearchResultItem
+    let mediumName: String
+    let isOnline: Bool
+    let isFavorite: Bool
     let isLast: Bool
 
     @State private var isHovered = false
 
+    static func == (lhs: ObjectResultRow, rhs: ObjectResultRow) -> Bool {
+        lhs.result == rhs.result && lhs.mediumName == rhs.mediumName && lhs.isOnline == rhs.isOnline
+            && lhs.isFavorite == rhs.isFavorite && lhs.isLast == rhs.isLast
+    }
+
     var body: some View {
-        Button {
+        #if DEBUG
+        renderProbe?.noteRowBody()
+        #endif
+        return Button {
             appState.contextMenuHighlightObjectID = nil
             MediumNavigation.openObject(result, appState: appState)
         } label: {
@@ -170,7 +243,7 @@ private struct ObjectResultRow: View {
                 FileTypeIcon(
                     kind: result.item.fileKind,
                     size: 16,
-                    color: result.item.isFavorite ? DesignColor.favorite : DesignColor.text
+                    color: isFavorite ? DesignColor.favorite : DesignColor.text
                 )
                 .frame(width: ObjectTableColumns.icon)
 
@@ -187,7 +260,7 @@ private struct ObjectResultRow: View {
                     .lineLimit(1)
                     .frame(width: ObjectTableColumns.date, alignment: .leading)
 
-                Text(appState.medium(with: result.mediumID)?.name ?? "—")
+                Text(mediumName)
                     .lineLimit(1)
                     .frame(width: ObjectTableColumns.medium, alignment: .leading)
 
@@ -197,7 +270,7 @@ private struct ObjectResultRow: View {
                     .truncationMode(.head)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                ObjectRowOnlineStatusChip(isOnline: result.isOnline)
+                ObjectRowOnlineStatusChip(isOnline: isOnline)
                     .frame(width: ObjectTableColumns.status, alignment: .trailing)
             }
             .font(.system(size: 13))
@@ -214,9 +287,39 @@ private struct ObjectResultRow: View {
             }
         }
         .onHover { isHovered = $0 }
-        .objectContextMenu(.fromSearchResult(result))
+        .objectContextMenu(contextTarget)
+    }
+
+    /// Ziel mit dem aktuellen Favoriten-Stand der Zeile.
+    private var contextTarget: ObjectContextTarget {
+        var target = ObjectContextTarget.fromSearchResult(result)
+        target.isFavorite = isFavorite
+        return target
     }
 }
+
+#if DEBUG
+/// Tests (bug.0.4.040): zählt Body-Auswertungen der Tabellenzeilen. Je Test eine eigene Instanz über die Umgebung,
+/// kein prozessweiter Zähler (Regel 20). Ohne Probe (App) passiert nichts.
+final class ObjectRowRenderProbe {
+    private(set) var rowBodies = 0
+
+    func noteRowBody() {
+        rowBodies += 1
+    }
+}
+
+private struct ObjectRowRenderProbeKey: EnvironmentKey {
+    static let defaultValue: ObjectRowRenderProbe? = nil
+}
+
+extension EnvironmentValues {
+    var objectRowRenderProbe: ObjectRowRenderProbe? {
+        get { self[ObjectRowRenderProbeKey.self] }
+        set { self[ObjectRowRenderProbeKey.self] = newValue }
+    }
+}
+#endif
 
 /// Umbrechende Medium-Kacheln über der Tabelle (Suche, Favoriten; Layout Sektion 10).
 struct CompactMediumCardFlow: View {

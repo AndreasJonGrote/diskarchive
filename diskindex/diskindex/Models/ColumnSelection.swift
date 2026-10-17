@@ -8,10 +8,32 @@
 import Foundation
 
 struct ColumnSelection: Equatable {
-    var ids: [UUID] = []
+    var ids: [UUID] = [] {
+        didSet { idSet = Set(ids) }
+    }
+    /// Menge zu `ids` für `contains` in O(1) (bug.0.4.035: ⌘A in großen Ordnern ohne quadratischen Aufwand).
+    private(set) var idSet: Set<UUID> = []
     var anchorID: UUID?
     var focusColumnIndex: Int?
     var lastClickedID: UUID?
+
+    init(ids: [UUID] = [], anchorID: UUID? = nil, focusColumnIndex: Int? = nil, lastClickedID: UUID? = nil) {
+        self.ids = ids
+        idSet = Set(ids)
+        self.anchorID = anchorID
+        self.focusColumnIndex = focusColumnIndex
+        self.lastClickedID = lastClickedID
+    }
+
+    func contains(_ id: UUID) -> Bool {
+        idSet.contains(id)
+    }
+
+    /// Gewählte Objekte in Auswahlreihenfolge, über ein Dictionary statt Suche je ID.
+    func ordered(in items: [IndexedItem]) -> [IndexedItem] {
+        let byID = Dictionary(items.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return ids.compactMap { byID[$0] }
+    }
 
     var isMultiple: Bool { ids.count > 1 }
 
@@ -27,7 +49,7 @@ struct ColumnSelection: Equatable {
             replace(id: id, column: column)
             return
         }
-        if let index = ids.firstIndex(of: id) {
+        if idSet.contains(id), let index = ids.firstIndex(of: id) {
             ids.remove(at: index)
             if anchorID == id { anchorID = ids.first }
             if ids.isEmpty {
@@ -61,7 +83,7 @@ struct ColumnSelection: Equatable {
 
     mutating func collapseToLastClicked() {
         guard ids.count > 1 else { return }
-        let kept = lastClickedID.flatMap { ids.contains($0) ? $0 : nil } ?? ids.last
+        let kept = lastClickedID.flatMap { idSet.contains($0) ? $0 : nil } ?? ids.last
         guard let kept else { return }
         ids = [kept]
         anchorID = kept
@@ -99,11 +121,32 @@ enum ColumnBrowserSelectionHighlight {
         selectedUncapturedFolderID: UUID?
     ) -> Bool {
         if selectedUncapturedFolderID == item.id { return true }
-        if selection.ids.contains(item.id) { return true }
+        if selection.contains(item.id) { return true }
         if columnIndex < pathStack.count, item.isFolder, item.name == pathStack[columnIndex] {
             return true
         }
         return false
+    }
+
+    /// Markierte IDs einer Spalte, einmal je Body statt je Zeile (bug.0.4.035).
+    static func selectedIDs(
+        items: [IndexedItem],
+        columnIndex: Int,
+        pathStack: [String],
+        selection: ColumnSelection,
+        selectedUncapturedFolderID: UUID?
+    ) -> Set<UUID> {
+        var result = Set<UUID>()
+        for item in items where isRowSelected(
+            item: item,
+            columnIndex: columnIndex,
+            pathStack: pathStack,
+            selection: selection,
+            selectedUncapturedFolderID: selectedUncapturedFolderID
+        ) {
+            result.insert(item.id)
+        }
+        return result
     }
 }
 
@@ -149,28 +192,25 @@ enum ColumnSizeSummary {
 }
 
 enum IgnoreBatch {
+    /// Über Mengen statt `contains` auf Arrays (bug.0.4.035); Reihenfolge bleibt erhalten.
     static func applying(_ patterns: [String], to existing: [String]) -> [String] {
-        var unique: [String] = []
-        for pattern in patterns where !unique.contains(pattern) {
-            unique.append(pattern)
-        }
+        var seen = Set<String>()
+        let unique = patterns.filter { seen.insert($0).inserted }
         guard !unique.isEmpty else { return existing }
-        if unique.allSatisfy(existing.contains) {
-            return existing.filter { !unique.contains($0) }
+        let existingSet = Set(existing)
+        if unique.allSatisfy(existingSet.contains) {
+            return existing.filter { !seen.contains($0) }
         }
-        var result = existing
-        for pattern in unique where !result.contains(pattern) {
-            result.append(pattern)
-        }
-        return result
+        return existing + unique.filter { !existingSet.contains($0) }
     }
 
     static func extensionPatterns(of targets: [ObjectContextTarget]) -> [String] {
+        var seen = Set<String>()
         var patterns: [String] = []
         for target in targets {
             guard let ext = target.fileExtension else { continue }
             let pattern = AppState.ignorePattern(forExtension: ext)
-            if !patterns.contains(pattern) { patterns.append(pattern) }
+            if seen.insert(pattern).inserted { patterns.append(pattern) }
         }
         return patterns
     }
@@ -197,8 +237,9 @@ struct ContextMenuPlan: Equatable {
     static func multiple(targets: [ObjectContextTarget], favorites: [Bool], ignored: [String]) -> ContextMenuPlan {
         let names = targets.map(\.name)
         let extensions = IgnoreBatch.extensionPatterns(of: targets)
-        let namesIgnored = !names.isEmpty && names.allSatisfy { ignored.contains($0) }
-        let typesIgnored = !extensions.isEmpty && extensions.allSatisfy { ignored.contains($0) }
+        let ignoredSet = Set(ignored)
+        let namesIgnored = !names.isEmpty && names.allSatisfy(ignoredSet.contains)
+        let typesIgnored = !extensions.isEmpty && extensions.allSatisfy(ignoredSet.contains)
         return ContextMenuPlan(
             finderEnabled: false,
             favoriteEnabled: true,

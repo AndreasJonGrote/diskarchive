@@ -7,11 +7,11 @@
 
 import Foundation
 
-/// Objekt aus dem Index samt Medium (Such- und Favoriten-Tabellen).
+/// Objekt aus dem Index samt Medium (Such- und Favoriten-Tabellen). Der Verbindungsstatus wird nicht gespeichert,
+/// sondern beim Zeichnen und Filtern aus `AppState.mediumConnectivity` abgeleitet (bug.0.4.037, REPORT 82).
 struct SearchResultItem: Identifiable, Hashable {
-    let item: IndexedItem
+    var item: IndexedItem
     let mediumID: UUID
-    let isOnline: Bool
 
     var id: UUID { item.id }
     var name: String { item.name }
@@ -29,6 +29,14 @@ struct SearchResultItem: Identifiable, Hashable {
 struct SearchCountRequest: Equatable {
     var query: String
     var filters: SearchFilters
+    /// Reihenfolge der Seite; ändert die Trefferzahl nicht (bug.0.4.038: reiner Sortierklick zählt nicht neu).
+    var sort = SearchSort()
+
+    /// Gleiche Treffermenge (Begriff und Filter), Reihenfolge egal.
+    func hasSameHits(as other: SearchCountRequest?) -> Bool {
+        guard let other else { return false }
+        return query == other.query && filters == other.filters
+    }
 }
 
 struct SearchMatch {
@@ -40,6 +48,12 @@ struct SearchMatch {
 
     var totalCount: Int { media.count + (itemCount ?? items.count) }
     var isEmpty: Bool { totalCount == 0 }
+
+    /// Alle Treffer stehen auf der geladenen Seite: Pfad und Status lassen sich dann im Client sortieren (bug.0.4.038).
+    var allItemsOnPage: Bool {
+        if let itemCount { return itemCount <= SearchIndex.pageLimit }
+        return items.count < SearchIndex.pageLimit
+    }
 }
 
 enum SearchIndex {
@@ -52,7 +66,8 @@ enum SearchIndex {
         media: [Medium],
         maxDepth: Int?,
         scope: IndexScope? = nil,
-        withCount: Bool = true
+        withCount: Bool = true,
+        sort: SearchSort = SearchSort()
     ) async -> SearchMatch {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if query.isEmpty, !filters.hasActiveFilters {
@@ -63,9 +78,18 @@ enum SearchIndex {
         let started = ContinuousClock.now
         let stored: [StoredItem]
         var itemCount: Int?
+        // Ohne Begriff: Kacheln der Medien mit Treffern, über alle Treffer statt der ersten Seite (REPORT 131).
+        var mediumIDsWithItems: Set<UUID>?
         if let store {
             do {
-                let rows = try await store.search(query: query, filters: scoped, limit: pageLimit, maxDepth: maxDepth, scope: scope)
+                let rows = try await store.search(
+                    query: query, filters: scoped, limit: pageLimit, maxDepth: maxDepth, scope: scope, sort: sort
+                )
+                if query.isEmpty {
+                    mediumIDsWithItems = rows.isEmpty
+                        ? []
+                        : try await store.searchMediumIDs(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)
+                }
                 let counted: Int?
                 if withCount {
                     counted = try await store.searchCount(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)
@@ -88,25 +112,60 @@ enum SearchIndex {
         }
         DiskIndexLog.shared.perfIfSlow("search", since: started)
 
-        let online = Dictionary(media.map { ($0.id, $0.connectionStatus == .connected) }, uniquingKeysWith: { first, _ in first })
         let items = stored.map { row in
-            SearchResultItem(
-                item: IndexedItem(stored: row),
-                mediumID: row.mediumUUID,
-                isOnline: online[row.mediumUUID] ?? false
-            )
+            SearchResultItem(item: IndexedItem(stored: row), mediumID: row.mediumUUID)
         }
 
         let matchedMedia: [Medium]
         if query.isEmpty {
-            let mediumIDsWithItems = Set(items.map(\.mediumID))
-            matchedMedia = media.filter { mediumIDsWithItems.contains($0.id) && SearchItemFilter.matchesMedium($0, filters: filters) }
+            let withItems = mediumIDsWithItems ?? Set(items.map(\.mediumID))
+            matchedMedia = media.filter { withItems.contains($0.id) && SearchItemFilter.matchesMedium($0, filters: filters) }
         } else {
             matchedMedia = media.filter {
                 SearchItemFilter.matchesMedium($0, filters: filters) && $0.name.localizedCaseInsensitiveContains(query)
             }
         }
         return SearchMatch(media: matchedMedia, items: items, itemCount: itemCount)
+    }
+
+    /// Popover (bug.0.4.038, REPORT 130): Dateien und Ordner je mit eigener kleiner Abfrage (`LIMIT perGroup`), damit
+    /// eine Gruppe nicht fehlt, nur weil die andere die erste Seite füllt. Ohne Zählung (bug.0.4.039).
+    static func popoverPage(
+        store: IndexStoreV3?,
+        query: String,
+        filters: SearchFilters,
+        media: [Medium],
+        maxDepth: Int?,
+        scope: IndexScope? = nil,
+        perGroup: Int
+    ) async -> (media: [Medium], files: [SearchResultItem], folders: [SearchResultItem]) {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return ([], [], []) }
+        let matchedMedia = media.filter {
+            SearchItemFilter.matchesMedium($0, filters: filters) && $0.name.localizedCaseInsensitiveContains(query)
+        }
+        guard let store else { return (matchedMedia, [], []) }
+        let scoped = scopedFilters(filters, media: media)
+        let started = ContinuousClock.now
+        let files: [StoredItem]
+        let folders: [StoredItem]
+        do {
+            files = try await store.search(query: query, filters: scoped, limit: perGroup, maxDepth: maxDepth, scope: scope, isFolder: false)
+            try Task.checkCancellation()
+            folders = try await store.search(query: query, filters: scoped, limit: perGroup, maxDepth: maxDepth, scope: scope, isFolder: true)
+        } catch {
+            if DiskIndexLog.isOperationalFailure(error) {
+                DiskIndexLog.shared.record(.index, .error, "popover search \(error)")
+            }
+            return (matchedMedia, [], [])
+        }
+        DiskIndexLog.shared.perfIfSlow("popover search", since: started)
+        func results(_ rows: [StoredItem]) -> [SearchResultItem] {
+            rows.map { row in
+                SearchResultItem(item: IndexedItem(stored: row), mediumID: row.mediumUUID)
+            }
+        }
+        return (matchedMedia, results(files), results(folders))
     }
 
     /// Trefferzahl allein — wird nach der Ergebnisliste nachgereicht.
@@ -131,12 +190,23 @@ enum SearchIndex {
         return (try? await store.searchCount(query: query, filters: filters, maxDepth: maxDepth, scope: scope)) ?? 0
     }
 
+    /// Erste Seite aller Favoriten ohne Filter (Verbindung „Alle“).
     static func favoriteObjects(store: IndexStoreV3?, media: [Medium], maxDepth: Int?, scope: IndexScope? = nil) async -> [SearchResultItem] {
+        await favoritePage(
+            store: store,
+            request: FavoritesRequest(media: media, connection: .all, filters: SearchFilters(), maxDepth: maxDepth),
+            scope: scope
+        )
+    }
+
+    /// bug.0.4.040 (REPORT 86): eine Seite (`pageLimit`) Favoriten; Verbindungs-, Dateityp- und Altersfilter wirken in
+    /// der Abfrage, damit die Seite nicht nur die ersten 500 gefiltert zeigt.
+    static func favoritePage(store: IndexStoreV3?, request: FavoritesRequest, scope: IndexScope? = nil, limit: Int? = nil) async -> [SearchResultItem] {
         guard let store else { return [] }
         let started = ContinuousClock.now
         let rows: [StoredItem]
         do {
-            rows = try await store.favorites(maxDepth: maxDepth, scope: scope)
+            rows = try await store.favoritePage(filters: request.storeFilters, limit: limit ?? pageLimit, maxDepth: request.maxDepth, scope: scope)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
                 DiskIndexLog.shared.record(.index, .error, "favorites \(error)")
@@ -144,17 +214,27 @@ enum SearchIndex {
             rows = []
         }
         DiskIndexLog.shared.perfIfSlow("favorites", since: started)
-        let known = Dictionary(media.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         var seen = Set<UUID>()
         return rows.compactMap { row in
-            guard let medium = known[row.mediumUUID] else { return nil }
+            guard request.mediumIDs.contains(row.mediumUUID) else { return nil }
             let item = IndexedItem(stored: row)
             guard seen.insert(item.id).inserted else { return nil }
-            return SearchResultItem(
-                item: item,
-                mediumID: row.mediumUUID,
-                isOnline: medium.connectionStatus == .connected
-            )
+            return SearchResultItem(item: item, mediumID: row.mediumUUID)
+        }
+    }
+
+    /// bug.0.4.040: Zahl der Favoriten zur Anfrage; `objectFilters: false` zählt ohne Dateityp und Alter (Gesamtzahl
+    /// im Zähler „x von y“).
+    static func favoriteCount(store: IndexStoreV3?, request: FavoritesRequest, objectFilters: Bool = true, scope: IndexScope? = nil) async -> Int {
+        guard let store else { return 0 }
+        let filters = objectFilters ? request.storeFilters : request.withoutObjectFilters.storeFilters
+        do {
+            return try await store.favoriteCount(filters: filters, maxDepth: request.maxDepth, scope: scope)
+        } catch {
+            if DiskIndexLog.isOperationalFailure(error) {
+                DiskIndexLog.shared.record(.index, .error, "favorite count \(error)")
+            }
+            return 0
         }
     }
 
@@ -215,6 +295,40 @@ enum SearchItemFilter {
 
     static func matchesMedium(_ medium: Medium, filters: SearchFilters) -> Bool {
         filters.selectAllMedia || filters.mediumIDs.contains(medium.id)
+    }
+}
+
+/// Anfrage der Favoriten-Tabelle (bug.0.4.040): welche Medien (nach Verbindungsfilter), welche Objekt-Filter, Tiefe.
+/// Gleiche Anfrage = gleiche Treffermenge; der Verbindungsstatus geht über `mediumIDs` ein, nicht über die Zeilen.
+struct FavoritesRequest: Equatable {
+    /// Durchsuchbare Medien, die zum Verbindungsfilter passen.
+    var mediumIDs: Set<UUID>
+    var filters: SearchFilters
+    var maxDepth: Int?
+
+    init(media: [Medium], connection: FavoritesConnectionFilter, filters: SearchFilters, maxDepth: Int?) {
+        mediumIDs = Set(media.filter { connection.includes(isOnline: $0.connectionStatus == .connected) }.map(\.id))
+        var objectFilters = SearchFilters()
+        objectFilters.fileTypes = filters.fileTypes
+        objectFilters.customExtensions = filters.customExtensions
+        objectFilters.age = filters.age
+        objectFilters.combineWithAnd = filters.combineWithAnd
+        self.filters = objectFilters
+        self.maxDepth = maxDepth
+    }
+
+    /// Medienauswahl der Favoriten kommt aus dem Verbindungsfilter, nicht aus der Filterleiste der Suche.
+    var storeFilters: SearchFilters {
+        var copy = filters
+        copy.selectAllMedia = false
+        copy.mediumIDs = mediumIDs
+        return copy
+    }
+
+    var withoutObjectFilters: FavoritesRequest {
+        var copy = self
+        copy.filters = SearchFilters()
+        return copy
     }
 }
 

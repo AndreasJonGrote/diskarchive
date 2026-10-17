@@ -37,6 +37,8 @@ actor IndexStoreV3 {
     }
     /// Zählt Zeilen, deren Name in Swift gegen `IndexScope` geprüft wurde (Tests: ohne ausstehende Bereinigung 0).
     nonisolated let nameChecks = NameCheckCounter()
+    /// Zahl der Aufrufe von `searchCount` an diesem Store (Tests: Entprellung des Popovers, bug.0.4.039).
+    nonisolated let searchCountCalls = NameCheckCounter()
     /// Zahl der Bereiche der parallelen Suche; `nil` = Kerne − 1 (mindestens 2), 1 = eine einzelne Abfrage.
     var searchParallelism: Int?
 

@@ -221,16 +221,30 @@ struct V3ReadTests {
         let v3 = store.store
         let medium = try await store.insert(name: "Plan")
         _ = try await store.addRoot(medium: medium, entries: [ScannedEntry(name: "a.txt", isFolder: false)])
-        let (columns, search): (String, String) = try await v3.pool.read { db in
+        let (columns, search, byDate, byNameDesc): (String, String, String, String) = try await v3.pool.read { db in
             let plan = try SearchPlanV3.make(db, query: "abc", filters: SearchFilters(), maxDepth: nil)
             func detail(_ sql: String, _ arguments: StatementArguments) throws -> String {
                 try Row.fetchAll(db, sql: "EXPLAIN QUERY PLAN " + sql, arguments: arguments).map { (row: Row) -> String in row["detail"] }.joined(separator: " | ")
             }
             return (
                 try detail(IndexStoreV3.columnFirstPageSQL, [1, 5, 100, 0]),
-                try detail(IndexStoreV3.searchHitsSQL(whereClause: plan.whereClause), plan.statementArguments(extra: [500.databaseValue]))
+                try detail(IndexStoreV3.searchHitsSQL(whereClause: plan.whereClause), plan.statementArguments(extra: [500.databaseValue])),
+                // bug.0.4.038: Datum absteigend über die Suchhilfe `items_modified`, ohne Nachsortieren.
+                try detail(
+                    IndexStoreV3.searchSortedHitsSQL(whereClause: plan.whereClause, sort: SearchSort(column: .date, direction: .descending)),
+                    plan.statementArguments(extra: [500.databaseValue, 0.databaseValue])
+                ),
+                // Review 038: Name absteigend in natürlicher Reihenfolge, ebenfalls über eine Suchhilfe.
+                try detail(
+                    IndexStoreV3.searchSortedHitsSQL(whereClause: plan.whereClause, sort: SearchSort(column: .name, direction: .descending)),
+                    plan.statementArguments(extra: [500.databaseValue, 0.databaseValue])
+                )
             )
         }
+        #expect(byDate.contains("items_modified"), "\(byDate)")
+        #expect(!byDate.contains("TEMP B-TREE FOR ORDER BY"), "\(byDate)")
+        #expect(byNameDesc.contains("items_search"), "\(byNameDesc)")
+        #expect(!byNameDesc.contains("TEMP B-TREE FOR ORDER BY"), "\(byNameDesc)")
         #expect(columns.contains("items_children"), "\(columns)")
         #expect(!columns.contains("TEMP B-TREE"), "\(columns)")
         #expect(search.contains("items_search"), "\(search)")

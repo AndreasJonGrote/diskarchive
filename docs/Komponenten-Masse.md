@@ -36,3 +36,6 @@ Schrift **10 (Gewicht 400)**, Zeilenhöhe 15,5, Innenabstand **3 oben/unten, 10 
 ## Einstellungen (Layout 05, gemessen)
 - Überschrift und erste Zeile der Bedienelemente haben **dieselbe Oberkante** (Checkbox-Zeile Höhe 18,6, Kästchen 16 × 16 mit 1,3 Versatz). Nicht vertikal zentrieren.
 - Mitteilungen: Zeilenabstand **27** (Zeilenhöhe 19 + 8), Einrückung der drei Unterpunkte **25**, Beispielkasten **15** unter der letzten Zeile, Höhe 74, gestrichelter Rahmen 1 px 40 % Text.
+
+## Ergänzungen ohne Katalogseite (Host)
+- **Spaltenkopf deaktiviert** (Suche, Pfad/Status über 500 Treffer, `bug.0.4.038`, 17.10.): Deckkraft 0,45 wie `MenuBarGhostButton`, kein Zeigefinger, kein Klick. Beim Layout-Durchgang (`todo.0.4.040`) in den Katalog übernehmen oder korrigieren.

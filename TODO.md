@@ -50,7 +50,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.2**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 17.10. 13:49–14:03: 0 Warnungen, seriell 645/645, parallel 3/3. Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
+**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.8**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 17.10. 15:47–16:03: 0 Warnungen, seriell 698/698, parallel 0/3 (alte Zeitgrenzen unter Last, `bug.0.3.9.004`). Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
@@ -71,8 +71,8 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 5a | **0.3.8** | ~~`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`~~ | Entscheidung, Status, Regeln, Identität, Teil 1 | **abgenommen 17.10.** |
 | 5b | **0.3.8** | ~~`bug.0.3.8.004`, `005`, `bug.0.4.031`~~ | Testaufbau, tote Dateien, Identität | **abgenommen 17.10.** |
 | 5c | **0.3.8** | ~~`bug.0.3.8.006`, `007`~~ | Zeitgrenze Medienprüfung, Parallellauf stabil | **abgenommen 17.10.; 0.3.8 fertig** |
-| 6 | **0.3.9** | `todo.0.3.8.001`, `bug.0.4.034`–`040` | Version 0.3.8, Oberfläche | **freigegeben 17.10.** |
-| 7 | **0.3.9** | `bug.0.4.041`–`042` | Absturzschreiber und Start | B |
+| 6 | **0.3.9** | ~~`todo.0.3.8.001`, `bug.0.4.034`–`040`~~ | Version 0.3.8, Oberfläche | **abgenommen 17.10.** |
+| 7 | **0.3.9** | `bug.0.3.9.004`, `bug.0.4.041`–`042` | Parallellauf unter Last, Absturzschreiber, Start | **freigegeben 17.10.** |
 | 8 | **0.3.9** | `bug.0.4.050`–`062`, `bug.0.3.9.001`–`003` | Fehler niedriger Schwere | B |
 | – | **0.4** | `todo.0.4.020`–`025` | Weitergabe an Beta-Tester | B |
 
@@ -86,76 +86,48 @@ Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. 
 
 **Prüfung Host 17.10. 08:30–08:45 (Commit `58ec44e`):** Debug mit Testziel und Release 0 Warnungen, seriell **639/639** grün, Parallel **2 von 3** grün (Lauf 2 rot: `MainThreadMediumIOTests/directProbeKeepsMainActorResponsive`, Ticker 2 statt ≥ 8, Messaufbau, siehe `bug.0.3.8.004`), keine neuen `.ips`, Regel 23 erfüllt. **Paket 5a abgenommen** (`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`); die neuen Tests gehen über die echten Wege (Regel 18). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5a.md`.
 
-**Prüfung Host 17.10. 13:49–14:03 (Paket 5c, ungecommittet auf `6d13db7`):** Debug mit Testziel und Release 0 Warnungen, seriell **645/645** grün, **Parallel 3 von 3 grün** (13:54–14:02), keine neuen `.ips`, Regel 23 (App 14:03:16, Signatur gültig). **Paket 5c abgenommen** (`bug.0.3.8.006`, `007`, dazu `bug.0.4.070`/`071`). **Damit sind alle Kennungen von 0.3.8 abgenommen und die Kriterien 1–6 und 8 erfüllt: 0.3.8 ist fertig**, die Version setzt der Worker als erste Aufgabe von Paket 6 (`todo.0.3.8.001`). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5c.md`.
+**Prüfung Host 17.10. 15:47–16:03 (Paket 6, ungecommittet auf `35895d5`):** Debug mit Testziel und Release 0 Warnungen, seriell **698/698** grün, Parallel **0 von 3** (rot nur alte, unveränderte Tests unter der neuen Last, siehe `bug.0.3.9.004`; die Tests von Paket 6 waren in allen Läufen grün), keine neuen `.ips`, Regel 23 (App 16:02:42, **Version 0.3.8**, Signatur gültig). **Paket 6 abgenommen** (`todo.0.3.8.001`, `bug.0.4.034`–`040`; Code in Stichproben gelesen: SQL mit Platzhaltern, Sortierung, Cache-Anheften, Favoriten-Menge). Antworten auf die Fragen zu `038`: kein neuer Index jetzt (siehe B, `todo.0.5.002`); deaktivierter Spaltenkopf mit Deckkraft 0,45 und ohne Zeigefinger bleibt (in `docs/Komponenten-Masse.md` vermerkt). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket6.md`.
 
-#### Paket 6 — Oberfläche (0.3.9, freigegeben 17.10.)
+#### Paket 7 — Absturzschreiber und Start (0.3.9, freigegeben 17.10.)
 
-Reihenfolge: zuerst `todo.0.3.8.001`, dann `034`, `035`, `036`, `037`, `038`, `039`, `040`. Für `035` gilt der Textvorschlag der Rückfrage als freigegeben (im Status unter „Neue Texte:“ auflisten). Jede Aufgabe, die Ansichten berührt: Test mit echtem Fenster außerhalb des Bildschirms (Regel 10/19/21), Maße aus dem Komponentenkatalog (Regel 13), `RegressionSmokeTests` erweitern (Regel 11).
+Reihenfolge: `bug.0.3.9.004`, `bug.0.4.041`, `bug.0.4.042`.
 
-**todo.0.3.8.001 — Version 0.3.8 setzen (Abnahme 0.3.8 durch den Host 17.10.).** `MARKETING_VERSION` an allen Stellen in `project.pbxproj` auf `0.3.8` (wie `todo.0.3.2.002`), `BundleVersionTests`/`AboutAndSettingsMenuTests` anpassen. Status: Zahl der geänderten Stellen.
+**bug.0.3.9.004 — Parallellauf unter der Last von Paket 6 (Prüfung Host 17.10. 15:53–16:02).**
+- Befund: Parallel **0 von 3** grün; rot nur alte, unveränderte Tests. Paket 6 brachte rund 50 Tests mit großen Datenmengen (50.000 Zeilen, 10.000 Favoriten, 600 Treffer); unter dieser Last kippen feste Zeitgrenzen.
+- a) `IndexerWriteReproTests/pauseDuringFirstChunkAvoidsReadRetries` (Lauf 2 und 3, 3,3–3,8 s statt < 2 s): Der Test soll zeigen, dass **keine** Wiederholung mit 8 s Pause läuft. Das beweist `access.listed.count == 1`; die 2-s-Grenze misst nur die Last. Grenze aus der Wiederholungspause ableiten (deutlich unter 8 s, z. B. `< readRetryDelays[0] / 2`) oder durch einen Zähler der Wiederholungen ersetzen; kurze Begründung im Test. Sabotage (Wiederholung erzwingen) → rot ✓.
+- b) `VersionLockReadOnlyTests/versionLockCancelClearsIndexingStatus` (Lauf 1, `started` falsch): Rennen im Test, ein Lauf über eine Datei kann fertig sein, bevor der Test „läuft“ sieht. Lauf an einem Tor halten (wie `RunGateAccess`), dann Sperre auslösen. Der Test ruft `cancelAllActiveForVersionLock` von Hand auf; das bleibt bis `bug.0.4.063` so, im Test als Verweis vermerken.
+- c) Die Messtests aus Paket 6 (`ColumnSelectionScaleTests`, `FavoritesTableWindowTests`, `SearchSortPagingTests` u. a.) prüfen: Laufen sie in einer Suite, die parallel mit Fenstertests konkurriert, unter `.serialized` in einer gemeinsamen Gruppe zusammenfassen (wie `WindowTestGroup`), damit sie sich nicht gegenseitig ausbremsen. Grenzen nicht lockern.
+- **Akzeptanz:** Parallellauf dreimal hintereinander grün beim Worker; der Host prüft erneut.
 Status:
 
 
-**bug.0.4.034 — Spaltenansicht: Zustand „wird indiziert“ richtig (REPORT 81, 126).**
-- a) `rowOpacity` übergibt `folderName`, `folderListedAt` und `folderUnreadable` wie `iconColor`. Den Zustand **einmal je Zeile** berechnen und für Farbe und Deckkraft verwenden.
-- b) `ColumnFolderOpenState.resolve`: `folderDepth >= maxDepth` → `.uncaptured(.scanDepth)` (der Indexer öffnet Ordner auf Tiefe = Scan-Tiefe nicht). Den Test `ProtocolAndSelectionTests` Z. ~290 auf `columnIndex: 1` bei Tiefe 2 umstellen.
-- **Akzeptanz (echtes Fenster außerhalb des Bildschirms, Regel 10/19):**
-  - Indizierter Ordner → Deckkraft 1.
-  - Ordner mit `listedAt == nil` bei laufender Indizierung → 0,55.
-  - Bei Scan-Tiefe 2 sind Ordner der Ebene 2 gelb mit „Inhalt wird nicht indiziert“, nicht grün.
-Status:
-
-**bug.0.4.035 — ⌘A in großen Ordnern ohne quadratischen Aufwand (REPORT 65).**
-- `ColumnSelection` führt zusätzlich ein `Set<UUID>` für `contains`.
-- In `folderColumn`, `commit`, `multipleSelectionItems` und `contextTargets` einmal ein Dictionary `id → item` bzw. ein Set je Body/Aufruf.
-- `IgnoreBatch`/`ContextMenuPlan` über Sets.
-- `todo.0.4.031` (Nutzer 16.10.): Ab **500** Zielen auf einmal (Ignorieren über das Kontextmenü) fragt die App vorher nach. **Textvorschlag** (de/en, Nutzer prüft): „{N} Einträge ignorieren?“, Knöpfe „Ignorieren“ und „Abbrechen“ (Standard, Esc). Unter 500 keine Rückfrage. Test: 499 → keine Rückfrage, 500 → Rückfrage, „Abbrechen“ ändert nichts.
-- **Akzeptanz:** 50.000 künstliche Items, `selectAll`, `commit` und `selectedIDs` jeweils < 50 ms (Messung im Status).
-Status:
-
-**bug.0.4.036 — Spalten-Cache verdrängt keine sichtbaren Spalten (REPORT 125, 98).**
-- `IndexRepository.children()` setzt den Schlüssel bei jedem Lesen ans Ende von `cacheOrder`. Schlüssel der sichtbaren Spalten (`pathStack`) werden nie verdrängt.
-- `pruneSelectionToVisibleItems` läuft nur, wenn der Ordner tatsächlich geladen ist (nicht bei fehlendem Cache oder `isLoading`).
-- 98: `replaceStore` erhöht die Generationen (wie `invalidateAll`) statt sie zu löschen. Das `defer` des Loads räumt `loading`/`loadingTotals` nur bei passendem Token ab.
+**bug.0.4.041 — Absturzschreiber signalsicher, Ringzeilen UTF-8-sicher (REPORT 76, 128).**
+- Header-Puffer je Signal, Frame-Puffer und Signalnamen einmalig in `start(installHandlers:)` vorab anlegen (statischer Speicher).
+- `writeRing` öffnet nie selbst (`guard crashFD >= 0 else { return }`).
+- `consumeCrashMarker` öffnet `crash-last.txt` nach dem Verschieben sofort neu (außerhalb des Signalkontexts).
+- SIGTERM-Pfad schreibt nur vorab angelegte Bytes.
+- Hinweis aus `bug.0.4.025`: `write(durable: true)` ruft `diskWriteQueue.sync` auch aus dem Absturzpfad (`writeCrashSnapshot`); stürzt der Schreiber auf dieser Queue selbst ab, trifft der Handler auf ein `sync` auf der eigenen Queue. Absturzpfad ohne `sync` auf diese Queue.
+- 128: `storeCrumb` kürzt auf eine UTF-8-Zeichengrenze. Beim Lesen `String(decoding:as: UTF8.self)`.
 - **Akzeptanz:**
-  - Wurzel offen, Ordner gewählt, danach 35 andere Ordner laden → Wurzel bleibt im Cache, Auswahl und `pathStack` bleiben.
-  - `invalidateAll` während Auswahl → Auswahl bleibt.
+  - Nach `acknowledgeCrashDialog()` existiert `crash-last.txt` (64 KB), Debug-Accessor `crashFD >= 0`.
+  - `writeCrashSnapshot` schreibt `CRASH signal=`.
+  - Aktionszeile mit 300 Bytes Umlauten → Absturzdatei gültig, `CRASH` erkannt.
 Status:
 
-**bug.0.4.037 — Favorit und Online-Status in Listen aktuell (REPORT 80, 82, 103).**
-- `AppState` führt eine Menge der Favoriten-IDs als Quelle für `isFavorite(_:)` bei Dateien. `toggleFavorite`/`toggleFavorites` patchen `favoriteObjects` und `searchMatch.items` lokal.
-- `isOnline` in Suche, Favoriten und `ObjectContextTarget` beim Rendern und Filtern aus einem Dictionary `mediumID → connected` ableiten (einmal je Body), nicht speichern.
-- 103: `ColumnFolderTableView.updateNSView` lädt sichtbare Zeilen neu, wenn `coordinator.items != items`.
+**bug.0.4.042 — Einzelinstanz vor Protokoll; SIGTERM sauber (REPORT 87, 88).**
+- `ensureSingleInstance()` **vor** `DiskIndexLog.shared.start()`.
+- Bei `handedOff` beim Beenden (`applicationShouldTerminate`, seit `bug.0.4.033` mit `.terminateLater`; `applicationWillTerminate` gibt es nicht mehr) nichts protokollieren und nichts abbauen.
+- Protokoll-Handle mit `O_APPEND`.
+- Entfällt (Nutzer 15.10.): Der Anmeldestart zeigt das Hauptfenster ebenfalls (`todo.0.4.013`).
+- SIGTERM: aus der sigaction-Liste nehmen; `signal(SIGTERM, SIG_IGN)` plus `DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)` → `NSApp.terminate(nil)`.
 - **Akzeptanz:**
-  - In Favoriten einen Favoriten abwählen → Zeile verschwindet sofort; zweiter Klick setzt ihn wieder.
-  - Medium per `updateMedium` offline → Filter „Offline“ enthält dessen Favoriten.
-  - Tabelle ab 50k: Favorit umschalten → Zeile zeigt neuen Zustand.
+  - Test der Startreihenfolge: Bei Übergabe schreibt die Zweitinstanz keine Protokollzeile und fasst `crash-last.txt` nicht an.
+  - SIGTERM-Weg über eine injizierbare Signalquelle testen (Auslöser → `terminate` wird aufgerufen, Checkpoint läuft); **kein echtes SIGTERM an den Testprozess** (Regel 20).
+  - Kein Start der echten App (Regel 19).
 Status:
 
-**bug.0.4.038 — Suche: Sortierung und Gruppen nicht nur über die erste Seite (REPORT 83, 130, 131).**
-- `store.search` bekommt Sortierspalte und -richtung für **Name, Datum, Medium** (SQL `ORDER BY`, `items_modified` existiert). Bei Klick wird neu abgefragt.
-- Für **Pfad** und **Status**: Client-Sortierung nur bei `itemCount <= pageLimit`, sonst diesen Spaltenkopf deaktivieren (kein neuer Text).
-- 130: Das Popover holt Ordner und Dateien je mit eigener kleiner Abfrage (`LIMIT 3`).
-- 131: Medien-IDs für die Kacheln per `SELECT DISTINCT storageID` mit denselben Filtern.
-- **Akzeptanz:**
-  - 600 Treffer, neuester heißt „zzz“ → Datum absteigend zeigt ihn zuerst; Name absteigend zeigt den alphabetisch letzten.
-  - „rechnung“ mit 600 Dateien `Rechnung_…` und Ordner „Rechnungen“ → Gruppe „ORDNER“ vorhanden.
-Status:
+**HALT nach Paket 7.**
 
-**bug.0.4.039 — Popover-Suche entprellen und abbrechen (REPORT 85).**
-- Den Task in `AppState` halten und bei neuer Eingabe `cancel()`. 150 ms Entprellung.
-- Die Seite mit `withCount: false` holen, die Zahl getrennt und abbrechbar nachreichen.
-- **Akzeptanz:** 5 Eingaben schnell hintereinander → höchstens eine Zählabfrage (Zähler im Test).
-Status:
-
-**bug.0.4.040 — Favoriten-Tabelle lazy und seitenweise (REPORT 86).**
-- `ObjectResultsTable` mit `LazyVStack`.
-- Favoriten seitenweise wie die Suche (500 + Zählung).
-- Mediennamen und Verbindungsstatus einmal als Dictionary übergeben, nicht je Zeile `appState.medium(with:)`.
-- **Akzeptanz:** 10.000 Favoriten → erste Darstellung < 300 ms; Fortschritts-Tick baut nicht alle Zeilen neu (Zähler im Test).
-Status:
-
-**HALT nach Paket 6.**
 
 
 ---
@@ -195,35 +167,7 @@ Status:
 
 ---
 
-### 0.3.9 — Pakete 7 und 8 (nach Paket 6), danach Stabilitätsprüfung
-
-#### Paket 7 — Absturzschreiber und Start
-
-**bug.0.4.041 — Absturzschreiber signalsicher, Ringzeilen UTF-8-sicher (REPORT 76, 128).**
-- Header-Puffer je Signal, Frame-Puffer und Signalnamen einmalig in `start(installHandlers:)` vorab anlegen (statischer Speicher).
-- `writeRing` öffnet nie selbst (`guard crashFD >= 0 else { return }`).
-- `consumeCrashMarker` öffnet `crash-last.txt` nach dem Verschieben sofort neu (außerhalb des Signalkontexts).
-- SIGTERM-Pfad schreibt nur vorab angelegte Bytes.
-- 128: `storeCrumb` kürzt auf eine UTF-8-Zeichengrenze. Beim Lesen `String(decoding:as: UTF8.self)`.
-- **Akzeptanz:**
-  - Nach `acknowledgeCrashDialog()` existiert `crash-last.txt` (64 KB), Debug-Accessor `crashFD >= 0`.
-  - `writeCrashSnapshot` schreibt `CRASH signal=`.
-  - Aktionszeile mit 300 Bytes Umlauten → Absturzdatei gültig, `CRASH` erkannt.
-Status:
-
-**bug.0.4.042 — Einzelinstanz vor Protokoll; SIGTERM sauber (REPORT 87, 88).**
-- `ensureSingleInstance()` **vor** `DiskIndexLog.shared.start()`.
-- Bei `handedOff` in `applicationWillTerminate` nichts protokollieren und nichts abbauen.
-- Protokoll-Handle mit `O_APPEND`.
-- Entfällt (Nutzer 15.10.): Der Anmeldestart zeigt das Hauptfenster ebenfalls (`todo.0.4.013`).
-- SIGTERM: aus der sigaction-Liste nehmen; `signal(SIGTERM, SIG_IGN)` plus `DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)` → `NSApp.terminate(nil)`.
-- **Akzeptanz:**
-  - Test der Startreihenfolge: Bei Übergabe schreibt die Zweitinstanz keine Protokollzeile und fasst `crash-last.txt` nicht an.
-  - Testprozess mit SIGTERM → normales Beenden (Checkpoint läuft).
-  - Kein Start der echten App (Regel 19).
-Status:
-
-**HALT nach Paket 7.**
+### 0.3.9 — Paket 8 (nach Paket 7), danach Stabilitätsprüfung
 
 #### Paket 8 — Fehler niedriger Schwere (Lösung im Archiv-Report, Nummer nennen)
 
@@ -278,6 +222,7 @@ Status:
 | Kennung | Inhalt |
 |---|---|
 | `todo.0.5.001` | **Metadaten und EXIF** (Video, Foto/RAW, Audio, PDF; zweiter Durchgang nach dem Index, Markierung `_analyzed`), neue Layouts, **Wartescreen der Suche** |
+| `todo.0.5.002` | **Natürliche Namensordnung über die Seitengrenze** (Vorschlag Worker 17.10., `bug.0.4.038`): Index `items_search_natural ON items(slug COLLATE "natural", status)` als eigene Migration (Regel 27). Heute bestimmt bei mehr als 500 Treffern die binäre Ordnung, welche 500 auf die Seite kommen; innerhalb der Seite wird natürlich sortiert. Kosten: größere Datenbank und Migration bei Nutzern (`todo.0.4.025`). Erst entscheiden, wenn es im Alltag stört. |
 | `todo.0.6.001` | **Vorschaubilder** 250 px, Abschalter global und je Medium, Dateien `Thumbnails/<storageID>/<itemID>` |
 | `todo.0.7.001` | **CSV-Export** (Umfang, Spalten, Kodierung offen) |
 | `todo.0.8.001` | **Duplikate** über volle Prüfsumme, nach Größe gruppiert, nur im Hintergrund |

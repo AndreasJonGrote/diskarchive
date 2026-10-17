@@ -205,7 +205,7 @@ nonisolated struct SearchFilters: Equatable, Sendable {
     }
 }
 
-enum SearchSortColumn: String, CaseIterable {
+nonisolated enum SearchSortColumn: String, CaseIterable, Sendable {
     case name
     case date
     case medium
@@ -213,14 +213,26 @@ enum SearchSortColumn: String, CaseIterable {
     case status
 }
 
-enum SortDirection: String {
+nonisolated enum SortDirection: String, Sendable {
     case ascending
     case descending
 }
 
-struct SearchSort: Equatable {
+nonisolated struct SearchSort: Equatable, Sendable {
     var column: SearchSortColumn = .name
     var direction: SortDirection = .ascending
+
+    /// bug.0.4.038: Diese Spalten sortiert die Datenbank (`ORDER BY`), über alle Treffer statt nur die erste Seite.
+    static let serverColumns: Set<SearchSortColumn> = [.name, .date, .medium]
+    /// Davon kommt die Seite schon in der fertigen Reihenfolge. Name wählt die Datenbank binär nach `slug` aus; der
+    /// Client sortiert die Seite natürlich nach („datei 2“ vor „datei 10“, `localizedStandardCompare`).
+    static let pageOrderedColumns: Set<SearchSortColumn> = [.date, .medium]
+
+    /// Reihenfolge für die Abfrage: Pfad und Status sortiert der Client (nur, wenn alle Treffer auf der Seite
+    /// stehen); die Seite selbst kommt dann nach Name aufsteigend.
+    var serverOrder: SearchSort {
+        Self.serverColumns.contains(column) ? self : SearchSort()
+    }
 
     /// Gleiche Spalte → Richtung umkehren, andere Spalte → aufsteigend.
     mutating func toggle(_ column: SearchSortColumn) {

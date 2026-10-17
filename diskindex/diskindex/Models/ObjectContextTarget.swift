@@ -16,8 +16,9 @@ struct ObjectContextTarget: Identifiable, Hashable {
     let name: String
     let kind: Kind
     let mediumID: UUID
-    let isMediumOnline: Bool
     var rowID: Int64?
+    /// Stand beim Bau des Ziels; maßgeblich ist `AppState.isFavorite(_:)` (bug.0.4.037). Ob das Medium angeschlossen
+    /// ist, wird nicht gespeichert, sondern beim Öffnen des Menüs aus `AppState.isMediumOnline(_:)` gelesen.
     var isFavorite: Bool = false
     /// Gespeicherter Pfad ab der Medium-Wurzel, z. B. `/Ordner/Datei.txt`.
     var itemPath: String?
@@ -35,7 +36,6 @@ struct ObjectContextTarget: Identifiable, Hashable {
             name: result.name,
             kind: result.isFolder ? .folder : .file,
             mediumID: result.mediumID,
-            isMediumOnline: result.isOnline,
             rowID: result.item.rowID,
             isFavorite: result.item.isFavorite,
             itemPath: Self.storedPath(parent: result.item.parentPath, name: result.name, isFolder: result.isFolder)
@@ -48,7 +48,7 @@ struct ObjectContextTarget: Identifiable, Hashable {
     }
 
     static func fromIndexedItem(_ item: IndexedItem, medium: Medium) -> ObjectContextTarget {
-        fromSearchResult(SearchResultItem(item: item, mediumID: medium.id, isOnline: medium.connectionStatus == .connected))
+        fromSearchResult(SearchResultItem(item: item, mediumID: medium.id))
     }
 
     static func fromMedium(_ medium: Medium) -> ObjectContextTarget {
@@ -56,8 +56,7 @@ struct ObjectContextTarget: Identifiable, Hashable {
             id: medium.id,
             name: medium.name,
             kind: .medium,
-            mediumID: medium.id,
-            isMediumOnline: medium.connectionStatus == .connected
+            mediumID: medium.id
         )
     }
 }

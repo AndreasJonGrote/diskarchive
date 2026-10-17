@@ -22,6 +22,34 @@ extension AppState {
         appSettings.excludedPatterns = IgnoreBatch.applying(patterns, to: appSettings.excludedPatterns)
     }
 
+    /// Ab so vielen Zielen auf einmal fragt „Ignorieren“ im Kontextmenü vorher nach (todo.0.4.031).
+    static let ignoreConfirmationThreshold = 500
+
+    /// Kontextmenü „Ignorieren“: unter der Schwelle sofort; ab 500 Zielen erst nach Rückfrage. Aufheben (alle schon
+    /// ignoriert) fragt nicht nach.
+    func requestIgnore(_ patterns: [String], targetCount: Int) {
+        let removes = !patterns.isEmpty && Set(patterns).isSubset(of: Set(appSettings.excludedPatterns))
+        guard targetCount >= Self.ignoreConfirmationThreshold, !removes else {
+            toggleIgnoredPatterns(patterns)
+            return
+        }
+        DiskIndexLog.shared.ui("ignore confirm count=\(targetCount)")
+        ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: targetCount, patterns: patterns)
+        if !RuntimeEnvironment.isRunningTests {
+            AppWindowPresenter.openIgnoreConfirmation(appState: self)
+        }
+    }
+
+    /// „Ignorieren“ wendet an, „Abbrechen“/Esc ändert nichts.
+    func resolveIgnoreConfirmation(confirm: Bool) {
+        guard let prompt = ignoreConfirmationPrompt else { return }
+        ignoreConfirmationPrompt = nil
+        DiskIndexLog.shared.ui("ignore confirm ok=\(confirm)")
+        if confirm {
+            toggleIgnoredPatterns(prompt.patterns)
+        }
+    }
+
     /// `.pdf` / `pdf` / `*.pdf` → `*.pdf`
     nonisolated static func ignorePattern(forExtension ext: String) -> String {
         if ext.hasPrefix("*") { return ext }
@@ -191,6 +219,11 @@ extension AppState {
         pendingMediumWrites.removeAll()
         media.removeAll()
         favoriteObjects = []
+        // bug.0.4.040: Zahlen und Menge der Favoriten mit leeren (alle Medien vergessen).
+        favoriteItemCount = 0
+        favoriteUnfilteredCount = 0
+        favoriteRowIDs = []
+        cancelPopoverSearch()
         popoverResults = PopoverSearchResults()
         searchMatch = SearchMatch()
         searchState.submittedQuery = ""

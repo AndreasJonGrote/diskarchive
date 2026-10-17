@@ -15,11 +15,13 @@ struct FavoritesView: View {
         let media = appState.indexedMedia
         let favoriteMedia = media.filter(\.isFavorite)
         let filters = appState.searchState.filters
-        let allFavoriteObjects = appState.favoriteObjects.filter {
-            appState.favoritesConnectionFilter.includes(isOnline: $0.isOnline)
-        }
-        let favoriteObjects = allFavoriteObjects.filter { SearchItemFilter.matches($0.item, filters: filters) }
+        // bug.0.4.037: Verbindung aus dem aktuellen Medienstand (einmal je Body), nicht aus der geladenen Zeile. Die
+        // Abfrage filtert schon nach Verbindung, Dateityp und Alter (bug.0.4.040); hier nur bis zum Nachladen.
+        let online = appState.mediumConnectivity
+        let connection = appState.favoritesConnectionFilter
+        let favoriteObjects = appState.favoriteObjects.filter { connection.includes(isOnline: online[$0.mediumID] ?? false) }
         let selectionEmpty = favoriteMedia.isEmpty && favoriteObjects.isEmpty
+        let itemCount = appState.favoriteItemCount
 
         VStack(spacing: 0) {
             FavoritesConnectionFilterBar()
@@ -47,7 +49,10 @@ struct FavoritesView: View {
                 }
             }
 
-            ObjectCountFooter(filtered: favoriteObjects.count, total: allFavoriteObjects.count)
+            ObjectCountFooter(
+                filtered: itemCount,
+                total: filters.hasActiveObjectFilters ? appState.favoriteUnfilteredCount : itemCount
+            )
         }
         .task(id: favoriteRequest) {
             guard !appState.screenshotFrozenLists else { return }
@@ -55,10 +60,16 @@ struct FavoritesView: View {
         }
     }
 
-    private var favoriteRequest: String {
-        let media = appState.indexedMedia.map(\.id.uuidString).joined(separator: ",")
-        return "\(appState.appSettings.indexedMaxDepth ?? -1)|\(media)|\(appState.indexRepository.generation)"
+    /// Neu laden bei anderer Anfrage (Medien und deren Verbindung, Verbindungsfilter, Dateityp/Alter, Tiefe) oder
+    /// geändertem Index.
+    private var favoriteRequest: FavoritesTaskKey {
+        FavoritesTaskKey(request: appState.currentFavoritesRequest, generation: appState.indexRepository.generation)
     }
+}
+
+private struct FavoritesTaskKey: Equatable {
+    var request: FavoritesRequest
+    var generation: Int
 }
 
 private struct FavoritesConnectionFilterBar: View {

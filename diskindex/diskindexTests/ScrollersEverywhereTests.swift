@@ -21,7 +21,7 @@ struct ScrollersEverywhereTests {
         let app = AppState()
         let mediumID = UUID()
         let items = (0..<300).map { index in
-            SearchResultItem(item: file("bericht-\(index).pdf", mediumID: mediumID, row: index), mediumID: mediumID, isOnline: true)
+            SearchResultItem(item: file("bericht-\(index).pdf", mediumID: mediumID, row: index), mediumID: mediumID)
         }
         app.searchMatch = SearchMatch(media: [], items: items, itemCount: items.count)
         app.searchState.submittedQuery = "bericht"
