@@ -23,6 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let recognitionLogger = Logger(subsystem: "app.diskarchive", category: "MediumRecognition")
     private var launchKind = AppLaunchKind.click
     private var handedOff = false
+    /// Laufende Instanz, an die übergeben wird (aus `resolveSingleInstance`).
+    private var handOffTarget: NSRunningApplication?
+    private let terminationSignal = DispatchTerminationSignalSource()
 
     /// Vor `install`, damit kein zweites Menüleisten-Icon aufblitzt (Aufgabe 30.1).
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -34,7 +37,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         AppDefaults.current.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
         NSWindow.allowsAutomaticWindowTabbing = false
         AppSettingsRuntimeCache.bootstrapBeforeStoreOpen()
-        DiskIndexLog.shared.start()
         launchKind = AppLaunch.kind(
             arguments: CommandLine.arguments,
             environment: ProcessInfo.processInfo.environment
@@ -42,10 +44,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if launchKind == .login {
             NSApp.setActivationPolicy(.accessory)
         }
-        ensureSingleInstance()
-        if !handedOff {
-            DiskIndexLog.shared.record(.app, .info, "app launch kind=\(launchKind.rawValue)")
+        // Einzelinstanz vor dem Protokoll (bug.0.4.042): die Zweitinstanz fasst Protokoll und crash-last.txt nicht an.
+        handedOff = AppStartup.willFinishLaunching(
+            launchKind: launchKind,
+            resolveSingleInstance: { resolveSingleInstance() },
+            log: DiskIndexLog.shared
+        )
+        if handedOff {
+            completeHandOff()
+            return
         }
+        TerminationSignal.install(terminationSignal) { NSApp.terminate(nil) }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -138,18 +147,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard !Self.isRunningUnitTests else { return .terminateNow }
-        MainActor.assumeIsolated {
-            MenuBarController.shared.uninstallFromStatusBar()
-            AppWindowPresenter.prepareForTermination()
-            stopLiveServicesBeforeRewire()
+        return MainActor.assumeIsolated {
+            AppStartup.shouldTerminate(
+                handedOff: handedOff,
+                teardown: {
+                    MenuBarController.shared.uninstallFromStatusBar()
+                    AppWindowPresenter.prepareForTermination()
+                    stopLiveServicesBeforeRewire()
+                },
+                finish: {
+                    await AppStartup.finishTermination(appState: AppDelegateBridge.appState, log: DiskIndexLog.shared)
+                    NSApp.reply(toApplicationShouldTerminate: true)
+                }
+            )
         }
-        Task { @MainActor in
-            await AppDelegateBridge.appState.prepareForTerminationAsync()
-            AppDelegateBridge.appState.indexStore?.checkpoint()
-            DiskIndexLog.shared.record(.app, .info, "app terminate ok")
-            NSApp.reply(toApplicationShouldTerminate: true)
-        }
-        return .terminateLater
     }
 
     /// Coordinator, Watcher und Indexer stoppen (Retry, Integritätsfehler, Beenden).
@@ -168,12 +179,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Mehrere Bundle-Kopien (DerivedData, alte Builds) oder ein Direktstart der Binärdatei umgehen die
     /// macOS-Sperre. Release und login/--background: neue übergibt und beendet sich.
     /// Debug-Klick (Xcode/Finder): neue beendet die alte. Aufgabe 141.
-    private func ensureSingleInstance() {
-        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+    /// Einzelinstanz prüfen, ohne zu protokollieren (das übernimmt `AppStartup` erst danach).
+    private func resolveSingleInstance() -> SingleInstanceResult {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return .alone }
         let ownPID = ProcessInfo.processInfo.processIdentifier
         let others = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
             .filter { $0.processIdentifier != ownPID }
-        guard !others.isEmpty else { return }
+        guard let first = others.first else { return .alone }
 
         #if DEBUG
         let isDebug = true
@@ -184,7 +196,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .quitOlderInstances:
             // Sandbox: terminate fremder Prozesse oft wirkungslos → Signal an alte Instanzen.
             Self.logger.info("Debug: beende \(others.count, privacy: .public) ältere Instanz(en)")
-            DiskIndexLog.shared.record(.app, .info, "instance handoff debug quit older count=\(others.count)")
             DistributedNotificationCenter.default().postNotificationName(
                 Self.quitOlderInstanceNotification,
                 object: String(ownPID),
@@ -199,19 +210,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
             }
+            return .quitOlder(count: others.count)
         case .handOffAndQuitSelf:
-            handedOff = true
-            Self.logger.info("Disk Archive läuft bereits (PID \(others[0].processIdentifier, privacy: .public)) — übergebe und beende")
-            DiskIndexLog.shared.record(.app, .info, "app launch kind=handoff")
-            DistributedNotificationCenter.default().postNotificationName(
-                Self.showMainWindowNotification,
-                object: nil,
-                userInfo: nil,
-                deliverImmediately: true
-            )
-            others[0].activate()
-            NSApp.terminate(nil)
+            handOffTarget = first
+            return .handOff
         }
+    }
+
+    /// Übergabe an die laufende Instanz: Hauptfenster dort zeigen, selbst beenden — ohne Protokollzeile.
+    private func completeHandOff() {
+        if let target = handOffTarget {
+            Self.logger.info("Disk Archive läuft bereits (PID \(target.processIdentifier, privacy: .public)) — übergebe und beende")
+        }
+        DistributedNotificationCenter.default().postNotificationName(
+            Self.showMainWindowNotification,
+            object: nil,
+            userInfo: nil,
+            deliverImmediately: true
+        )
+        handOffTarget?.activate()
+        NSApp.terminate(nil)
     }
 
     private func observeSleep(_ appState: AppState) {

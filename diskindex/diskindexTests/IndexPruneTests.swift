@@ -134,6 +134,10 @@ struct IndexPruneTests {
             (try? await harness.store.storedNames().contains("deep.txt")) == false
         }
         #expect(pruned)
+        // bug.0.3.9.004: Die Zeilen sind weg, sobald `pruneToMatch` schreibt; `clearPruneDeadline` läuft erst danach,
+        // wenn `pruneNow` auf dem Haupt-Actor weiterläuft. Auf den Termin warten statt direkt zu lesen.
+        let cleared = await waitUntil(timeout: 5) { app.pruneAt == nil }
+        #expect(cleared)
         #expect(app.pruneAt == nil)
     }
 

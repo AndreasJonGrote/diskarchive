@@ -354,6 +354,17 @@ struct RegressionSmokeTests {
         #expect(SearchIndex.pageLimit == 500)
     }
 
+    /// bug.0.4.041/042: Ringzeile an UTF-8-Grenze gekürzt; Übergabe startet kein Protokoll; Beenden bei Übergabe sofort.
+    @Test func crashWriterAndStartupOrder() throws {
+        #expect(String(decoding: DiskIndexLog.utf8Prefix(Array("ää".utf8), limit: 3), as: UTF8.self) == "ä")
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("smoke-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let log = DiskIndexLog(directory: folder)
+        #expect(AppStartup.willFinishLaunching(launchKind: .click, resolveSingleInstance: { .handOff }, log: log, installHandlers: false))
+        #expect(!FileManager.default.fileExists(atPath: folder.appendingPathComponent("crash-last.txt").path))
+        #expect(AppStartup.shouldTerminate(handedOff: true, teardown: {}, finish: {}) == .terminateNow)
+    }
+
     private func makeSmokeMedium() -> Medium {
         Medium(
             id: UUID(), name: "Rauch", type: .usb, connectionStatus: .connected, indexStatus: .indexing,

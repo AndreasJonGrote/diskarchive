@@ -132,33 +132,30 @@ struct VersionLockReadOnlyTests {
         #expect(rig.appState.medium(with: existing.uuid)?.name == "LIVE_NAME")
     }
 
+    /// bug.0.3.9.004 b: Der Lauf hält an einem Tor (kein Rennen gegen einen Lauf über eine Datei), dann greift die
+    /// Sperre. `cancelAllActiveForVersionLock` ruft der Test bis `bug.0.4.063` noch von Hand auf (Verdrahtung fehlt).
     @Test @MainActor func versionLockCancelClearsIndexingStatus() async throws {
-        let volume = try MountedTestVolume.make()
-        defer { volume.detach() }
-        let root = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
-        try Data("x".utf8).write(to: root.appendingPathComponent("a.txt"))
+        let harness = try await ScanHarness.make()
+        let mediumID = harness.mediumID
+        let volume = testVolume(path: "/Volumes/SPERRE", name: "TEST")
+        try await harness.store.recordIdentity(mediumUUID: mediumID, volume.identity)
+        let inner = MemoryVolume(mountPath: "/Volumes/SPERRE")
+        inner.file("ordner/a.txt")
+        let access = RunGateAccess([inner]) { $0 == "/Volumes/SPERRE/ordner" }
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: access, app: app)
+        await rig.coordinator.handle(.appeared(volume))
+        let held = await waitUntil { await access.heldCount() >= 1 }
+        try #require(held)
+        #expect(rig.service.isRunActive(mediumID))
+        #expect(app.medium(with: mediumID)?.indexStatus == .indexing)
 
-        let rig = try await LiveWatchRig.make(mountPath: volume.mountPath, volumeName: volume.volumeName)
-        rig.app.globalAutoIndexPaused = true
-        rig.app.startChangeLoop()
-        await rig.coordinator.handle(.appeared(rig.volume))
-        await rig.app.loadStoredMedia()
-        let mediumID = try #require(rig.app.newMediumDialogMediumID)
-        rig.app.onNewMediumChoice?(mediumID, true, true)
-        await rig.coordinator.waitForChoice()
-        rig.app.globalAutoIndexPaused = false
-        rig.app.onAutoIndexPauseChanged?()
-        rig.service.start(mediumUUID: mediumID, volume: rig.volume, fromScratch: true)
-        let started = await waitUntil(timeout: 3) {
-            rig.app.medium(with: mediumID)?.indexStatus == .indexing || rig.service.isRunActive(mediumID)
-        }
-        #expect(started)
-        rig.app.versionLockState = .locked(.buildExpired)
+        app.versionLockState = .locked(.buildExpired)
         await rig.service.cancelAllActiveForVersionLock()
-        let cleared = await waitUntil(timeout: 3) {
-            rig.app.medium(with: mediumID)?.indexStatus != .indexing
-        }
+        let cleared = await waitUntil { app.medium(with: mediumID)?.indexStatus != .indexing }
         #expect(cleared)
+        #expect(!rig.service.isRunActive(mediumID))
+        await access.open()
     }
 
     @Test @MainActor func watcherFlushSkipsWritesWhenLocked() async throws {

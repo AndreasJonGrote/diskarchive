@@ -84,6 +84,8 @@ final class AppState {
     var globalAutoIndexPaused: Bool = false {
         didSet {
             guard oldValue != globalAutoIndexPaused else { return }
+            // Beim Laden im `init` (vor der Einzelinstanz-Prüfung) nichts protokollieren (Review bug.0.4.042).
+            guard settingsReady else { return }
             DiskIndexLog.shared.ui("pause global=\(globalAutoIndexPaused)")
             onAutoIndexPauseChanged?()
         }

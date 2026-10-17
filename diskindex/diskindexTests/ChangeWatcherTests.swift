@@ -669,12 +669,23 @@ extension WindowTestGroup {
         let restored = try await waitFor(timeoutMs: 10_000) {
             try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A"])
         }
+        // bug.0.3.9.004: „A“ entsteht beim Lesen der Wurzel, sein Inhalt erst im nächsten Schritt (Lesen von „A“),
+        // „note.txt“ noch einen Schritt später. Auf den Inhalt warten statt direkt nach „A“ zu lesen.
+        let childNamesArrived = try await waitUntil(timeout: 10) {
+            Set(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: restored).map(\.name)) == ["Inner", "keep.txt"]
+        }
         let childNames = Set(try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: restored).map(\.name))
+        #expect(childNamesArrived)
         #expect(childNames == ["Inner", "keep.txt"])
-        let innerListed = await waitUntil(timeout: 10) { rig.access.listCount(for: "/Volumes/DISK/A/Inner") == 1 }
+        let innerListed = await waitUntil(timeout: 10) { rig.access.listCount(for: "/Volumes/DISK/A/Inner") >= 1 }
         #expect(innerListed)
+        let notesArrived = try await waitUntil(timeout: 10) {
+            guard let noteParent = try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A", "Inner"]) else { return false }
+            return try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: noteParent).map(\.name) == ["note.txt"]
+        }
         let noteParent = try #require(try await rig.store.folderID(mediumUUID: rig.medium.uuid, path: ["A", "Inner"]))
         let notes = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: noteParent).map(\.name)
+        #expect(notesArrived)
         #expect(notes == ["note.txt"])
     }
 

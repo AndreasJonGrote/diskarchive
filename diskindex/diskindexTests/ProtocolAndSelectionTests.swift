@@ -7,6 +7,8 @@ import Foundation
 import Testing
 @testable import diskindex
 
+// bug.0.3.9.004 c: enthält die Laufzeitgrenze `recordOnMainStaysFast` → nacheinander mit den Messtests.
+extension MeasurementTestGroup {
 @Suite struct DiskIndexLogTests {
     @Test func manyRecordsCallRestrictAtMostOncePerLogFile() throws {
         let tracker = FilePrivacy.RestrictCountTracker()
@@ -166,22 +168,15 @@ import Testing
 
     @Test func crashSnapshotWritesWhileTheLockIsHeld() throws {
         let log = try makeLog()
+        // bug.0.4.041: writeRing öffnet nie selbst, die Absturzdatei kommt aus start.
+        log.start(installHandlers: false)
         log.ui("vor-der-sperre")
         log.holdLockForTest()
-        log.writeCrashSnapshot(signal: "SIGSEGV")
+        log.writeCrashSnapshot(signal: SIGSEGV)
         log.releaseLockForTest()
         let crash = try String(contentsOf: log.fileURL.deletingLastPathComponent().appendingPathComponent("crash-last.txt"), encoding: .utf8)
         #expect(crash.contains("CRASH signal=SIGSEGV"))
         #expect(crash.contains("vor-der-sperre"))
-    }
-
-    @Test func sigtermWritesACleanEnd() throws {
-        let log = try makeLog()
-        log.record(.app, .info, "läuft")
-        log.writeCleanTermination()
-        let next = DiskIndexLog(directory: log.fileURL.deletingLastPathComponent())
-        next.start(installHandlers: false)
-        #expect(!next.shouldShowCrashDialog)
     }
 
     @Test func logDirectoryIsPrivate() throws {
@@ -198,6 +193,7 @@ import Testing
         #expect(folder.intValue == 0o700)
         #expect(mode.intValue == 0o600)
     }
+}
 }
 
 @Suite struct FinderRevealTests {

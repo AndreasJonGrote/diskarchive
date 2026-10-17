@@ -10,6 +10,7 @@ import Foundation
 import Testing
 @testable import diskindex
 
+extension MeasurementTestGroup {
 @Suite(.serialized) @MainActor
 struct ColumnSelectionScaleTests {
     private static let count = 50_000
@@ -84,4 +85,5 @@ struct ColumnSelectionScaleTests {
         print("BENCH bug.0.4.035 IgnoreBatch.applying=\(applying) ms (Debug)")
         #expect(applying < 50, "IgnoreBatch \(applying) ms")
     }
+}
 }

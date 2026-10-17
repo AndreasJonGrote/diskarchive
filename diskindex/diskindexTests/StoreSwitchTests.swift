@@ -11,6 +11,8 @@ import GRDB
 import Testing
 @testable import diskindex
 
+// bug.0.3.9.004 c: Laufzeitgrenze `pruningAfterLowerDepth…` → nacheinander mit den Messtests.
+extension MeasurementTestGroup {
 @Suite struct StoreSwitchTests {
     // (1) frischer Ordner → archive.sqlite, genau eine Migration, V3-Schema; eine daneben liegende index.sqlite bleibt unberührt
     @Test func freshFolderGetsArchiveWithOneMigrationAndLeavesTheOldFileAlone() async throws {
@@ -218,6 +220,7 @@ import Testing
         let hits = try await harness.store.search(query: "", filters: filters, limit: 50)
         #expect(Set(hits.map(\.name)) == ["Werkzeug.app", "Installer.dmg", "Paket.pkg"])
     }
+}
 }
 
 @Suite @MainActor struct DetailLastSeenTests {

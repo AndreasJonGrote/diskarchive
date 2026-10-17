@@ -73,6 +73,7 @@ enum ProcessMeter {
     }
 }
 
+extension MeasurementTestGroup {
 @MainActor
 struct ScaleMeasurementTests {
     @Test(.enabled(if: FileManager.default.fileExists(atPath: "/tmp/diskindex-scale.on")))
@@ -271,4 +272,5 @@ struct ScaleMeasurementTests {
     private func size(_ url: URL) -> Int {
         (try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue ?? 0
     }
+}
 }

@@ -18,7 +18,9 @@ struct IndexRepositoryStaleTests {
         let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
         let store = IndexStoreV3(database: database)
         let app = AppState(store: store)
-        app.startChangeLoop()
+        // Kein startChangeLoop (bug.0.3.9.004): die Index-Meldungen der beiden `applyDirectory` invalidieren die Wurzel
+        // nach 450 ms/750 ms Entprellung ein zweites Mal. Trifft das unter Last den Ladevorgang aus `requestLoad`,
+        // verwirft er sein Ergebnis (Generation), und ohne Spaltenansicht (`.task(id: generation)`) lädt niemand nach.
         var medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Baum", decision: .index, indexStatus: .indexed, completedDepth: 3)
         try await store.upsertMedium(medium)
         medium = try #require(try await store.medium(uuid: medium.uuid))

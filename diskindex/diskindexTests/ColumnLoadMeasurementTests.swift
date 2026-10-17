@@ -10,6 +10,7 @@ import Foundation
 import Testing
 @testable import diskindex
 
+extension MeasurementTestGroup {
 @MainActor
 @Suite(.serialized)
 struct ColumnLoadMeasurementTests {
@@ -246,4 +247,5 @@ struct ColumnLoadMeasurementTests {
     private func fmt(_ value: Double) -> String {
         String(format: "%.3f", value)
     }
+}
 }

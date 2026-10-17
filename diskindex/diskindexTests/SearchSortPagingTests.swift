@@ -70,6 +70,7 @@ private func naturalRig() async throws -> AppState {
     return app
 }
 
+extension MeasurementTestGroup {
 @Suite(.serialized) @MainActor
 struct SearchSortPagingTests {
     /// Review 038: Die Abfrage wählt die Seite nach Name (binär), die Tabelle sortiert sie natürlich nach, wie vor
@@ -232,6 +233,7 @@ struct SearchSortPagingTests {
         #expect(app.popoverResults.totalCount == 601)
         #expect(!app.popoverResults.isCountPending)
     }
+}
 }
 
 extension WindowTestGroup {

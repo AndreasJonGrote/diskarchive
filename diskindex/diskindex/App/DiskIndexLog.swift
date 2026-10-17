@@ -31,25 +31,55 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     private let lock = NSLock()
     private var handle: FileHandle?
     private var breadcrumbs: [String] = []
-    private var crashFD: Int32 = -1
-    private var logFD: Int32 = -1
     private var startedAt = Date()
     private(set) var shouldShowCrashDialog = false
     /// Der Lauf davor endete ohne „app terminate ok“ (Aufgabe 219: dann `quick_check`).
     private(set) var previousRunUnclean = false
     /// Fehler aus Speicher, Index, Überwachung und Medien (Aufgabe 61). Nicht im Signal-Handler setzen.
     var onTrackedError: ((String, String) -> Void)?
-    private var crumbs = [UInt8](repeating: 0, count: 50 * 240)
-    private var crumbLength = [UInt16](repeating: 0, count: 50)
-    private var crumbNext = 0
-    private var crumbFilled = 0
+    // bug.0.4.041: Alles, was der Signal-Handler liest, liegt in einmal angelegtem Rohspeicher
+    // (`let`-Zeiger, kein Swift-Array, keine Exklusivitätsprüfung, keine Allokation im Handler).
+    private static let crumbSlots = 50
+    private static let crumbSlotBytes = 240
+    private static let frameCapacity = 64
+    private static let headerSlotBytes = 32
+    private static let crashFileBytes: off_t = 64 * 1024
+    /// Signale mit eigenem Kopf; der letzte Platz ist der Kopf für unbekannte Signale.
+    private static let crashSignalNames: [(Int32, String)] = [
+        (SIGABRT, "SIGABRT"), (SIGILL, "SIGILL"), (SIGTRAP, "SIGTRAP"), (SIGSEGV, "SIGSEGV"), (SIGBUS, "SIGBUS"),
+    ]
+    private let crumbs: UnsafeMutablePointer<UInt8>
+    private let crumbLength: UnsafeMutablePointer<UInt16>
+    /// [0] nächster Platz, [1] gefüllte Plätze.
+    private let crumbCursor: UnsafeMutablePointer<Int>
+    /// [0] `crash-last.txt`, [1] Protokoll (`O_APPEND`).
+    private let descriptors: UnsafeMutablePointer<Int32>
+    private let frames: UnsafeMutablePointer<UnsafeMutableRawPointer?>
+    private let headerSignals: UnsafeMutablePointer<Int32>
+    private let headerBytes: UnsafeMutablePointer<UInt8>
+    private let headerLengths: UnsafeMutablePointer<Int>
+    private let headerCount: Int
     private let altStack = UnsafeMutableRawPointer.allocate(byteCount: 32 * 1024, alignment: 16)
+    private let diskQueueKey = DispatchSpecificKey<UInt8>()
+    private var crashFD: Int32 {
+        get { descriptors[0] }
+        set { descriptors[0] = newValue }
+    }
+    private var logFD: Int32 {
+        get { descriptors[1] }
+        set { descriptors[1] = newValue }
+    }
     private var handlersInstalled = false
     private let formatter: DateFormatter
     private let loggers: [DiskLogCategory: Logger]
     private let diskWriteQueue = DispatchQueue(label: "app.diskarchive.log-disk", qos: .utility)
 
-    init(directory: URL? = nil, byteLimit: Int = DiskIndexLog.defaultByteLimit) {
+    /// Auto-Senden von Absturzberichten beim Start: je Instanz (bug.0.3.9.004/bug.0.4.041). Das gemeinsame Protokoll
+    /// liest die Einstellung; Instanzen mit eigenem Ordner (Tests) senden nie und hängen so nicht am Prozesszustand.
+    let crashAutoSendEnabled: () -> Bool
+
+    init(directory: URL? = nil, byteLimit: Int = DiskIndexLog.defaultByteLimit, crashAutoSend: (() -> Bool)? = nil) {
+        self.crashAutoSendEnabled = crashAutoSend ?? (directory == nil ? { IssueConsent.autoSendEnabled() } : { false })
         self.writesToDisk = directory != nil || !RuntimeEnvironment.isRunningTests
         self.directory = directory ?? Self.defaultDirectory
         self.byteLimit = byteLimit
@@ -60,6 +90,50 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         self.loggers = Dictionary(uniqueKeysWithValues: DiskLogCategory.allCases.map { category in
             (category, Logger(subsystem: "app.diskarchive", category: category.rawValue))
         })
+        let slots = Self.crumbSlots
+        crumbs = .allocate(capacity: slots * Self.crumbSlotBytes)
+        crumbs.initialize(repeating: 0, count: slots * Self.crumbSlotBytes)
+        crumbLength = .allocate(capacity: slots)
+        crumbLength.initialize(repeating: 0, count: slots)
+        crumbCursor = .allocate(capacity: 2)
+        crumbCursor.initialize(repeating: 0, count: 2)
+        descriptors = .allocate(capacity: 2)
+        descriptors.initialize(repeating: -1, count: 2)
+        frames = .allocate(capacity: Self.frameCapacity)
+        frames.initialize(repeating: nil, count: Self.frameCapacity)
+        let names = Self.crashSignalNames.map(\.1) + ["unknown"]
+        headerCount = names.count
+        headerSignals = .allocate(capacity: names.count)
+        headerSignals.initialize(repeating: 0, count: names.count)
+        headerBytes = .allocate(capacity: names.count * Self.headerSlotBytes)
+        headerBytes.initialize(repeating: 0, count: names.count * Self.headerSlotBytes)
+        headerLengths = .allocate(capacity: names.count)
+        headerLengths.initialize(repeating: 0, count: names.count)
+        for (slot, name) in names.enumerated() {
+            if slot < Self.crashSignalNames.count {
+                headerSignals[slot] = Self.crashSignalNames[slot].0
+            }
+            let bytes = Array("CRASH signal=\(name)\n".utf8.prefix(Self.headerSlotBytes))
+            for (offset, byte) in bytes.enumerated() {
+                headerBytes[slot * Self.headerSlotBytes + offset] = byte
+            }
+            headerLengths[slot] = bytes.count
+        }
+        diskWriteQueue.setSpecific(key: diskQueueKey, value: 1)
+    }
+
+    deinit {
+        if descriptors[0] >= 0 { close(descriptors[0]) }
+        if descriptors[1] >= 0 { close(descriptors[1]) }
+        crumbs.deallocate()
+        crumbLength.deallocate()
+        crumbCursor.deallocate()
+        descriptors.deallocate()
+        frames.deallocate()
+        headerSignals.deallocate()
+        headerBytes.deallocate()
+        headerLengths.deallocate()
+        altStack.deallocate()
     }
 
     var fileURL: URL { directory.appendingPathComponent(Self.fileName) }
@@ -70,9 +144,9 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         let existed = FileManager.default.fileExists(atPath: fileURL.path)
         let tail = existed ? lastLineUnlocked() : nil
         lock.unlock()
-        let crashText = (try? String(contentsOf: crashFileURL, encoding: .utf8)) ?? ""
+        let crashText = Self.readText(crashFileURL)
         if crashText.contains("CRASH") {
-            if IssueConsent.autoSendEnabled() {
+            if crashAutoSendEnabled() {
                 IssueReporter.shared.enqueue(kind: "crash")
                 consumeCrashMarker()
             } else {
@@ -95,13 +169,15 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         #endif
         let system = ProcessInfo.processInfo.operatingSystemVersionString
         record(.app, .info, "start version=\(version) build=\(build) config=\(config) macOS=\(system) pid=\(ProcessInfo.processInfo.processIdentifier)")
+        // bug.0.4.041: Deskriptoren hier öffnen (außerhalb des Signalkontexts); der Handler öffnet nie selbst.
+        if crashFD < 0 { openCrashFile() }
+        openLogFDIfNeeded()
         guard installHandlers else { return }
         lock.lock()
         let already = handlersInstalled
         handlersInstalled = true
         lock.unlock()
         guard !already else { return }
-        openCrashFile()
         var stack = stack_t()
         stack.ss_sp = altStack
         stack.ss_size = 32 * 1024
@@ -114,7 +190,8 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         sigemptyset(&action.sa_mask)
         action.sa_flags = SA_ONSTACK
         action.__sigaction_u.__sa_handler = Self.signalHandler
-        for signal in [SIGABRT, SIGILL, SIGTRAP, SIGSEGV, SIGBUS, SIGTERM] {
+        // SIGTERM nicht hier: es läuft über `TerminationSignal` (DispatchSource → normales Beenden, bug.0.4.042).
+        for signal in [SIGABRT, SIGILL, SIGTRAP, SIGSEGV, SIGBUS] {
             sigaction(signal, &action, nil)
         }
     }
@@ -204,10 +281,20 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     /// Schreibt Signal, Stapel und die letzten 50 Aktionen. Tests rufen das ohne echtes Signal auf.
+    /// Läuft im Handler für Ausnahmen; kommt die Ausnahme vom Schreiber selbst, kein `sync` auf dessen Queue
+    /// und kein Warten auf dessen Sperre (bug.0.4.041).
     func recordCrash(signal: String, symbols: [String]) {
-        lock.lock()
-        let trail = breadcrumbs
-        lock.unlock()
+        var trail: [String] = []
+        if isOnDiskWriteQueue {
+            if lock.try() {
+                trail = breadcrumbs
+                lock.unlock()
+            }
+        } else {
+            lock.lock()
+            trail = breadcrumbs
+            lock.unlock()
+        }
         var lines = ["CRASH signal=\(signal)"]
         lines.append(contentsOf: trail)
         lines.append(contentsOf: symbols)
@@ -217,36 +304,40 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     func handleSignal(_ signal: Int32) {
-        if signal == SIGTERM {
-            writeCleanTermination()
-            Darwin.signal(signal, SIG_DFL)
-            Darwin.raise(signal)
-            return
-        }
-        writeCrashSnapshot(signal: Self.name(for: signal))
+        writeCrashSnapshot(signal: signal)
         Darwin.signal(signal, SIG_DFL)
         Darwin.raise(signal)
     }
 
-    /// Signalsicher: nur `write` auf den schon geöffneten Protokoll-Deskriptor.
-    func writeCleanTermination() {
-        if logFD < 0 { reopenLogFD() }
-        guard logFD >= 0 else { return }
-        let bytes = Array("app terminate ok\n".utf8)
-        _ = bytes.withUnsafeBytes { Darwin.write(logFD, $0.baseAddress, bytes.count) }
-        fsync(logFD)
-    }
-
     private func reopenLogFD() {
-        if logFD >= 0 { close(logFD) }
+        let previous = logFD
         logFD = Darwin.open(fileURL.path, O_WRONLY | O_APPEND | O_CREAT, 0o600)
+        if previous >= 0 { close(previous) }
     }
 
-    /// Schreibt die vorbereitete Spur auch dann, wenn `lock` schon gehalten wird.
-    func writeCrashSnapshot(signal: String) {
+    /// Öffnet den Protokoll-Deskriptor (fsync, Absturzpfad) schon beim Start, außerhalb des Signalkontexts.
+    private func openLogFDIfNeeded() {
+        guard writesToDisk else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        guard logFD < 0 else { return }
+        guard WriteGuard.permitsWrite(to: directory), WriteGuard.permitsWrite(to: fileURL) else { return }
+        try? FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
+        )
+        reopenLogFD()
+    }
+
+    /// Schreibt die vorbereitete Spur auch dann, wenn `lock` schon gehalten wird. Signalsicher:
+    /// kein Öffnen, keine Allokation, kein `sync` auf die Schreib-Queue.
+    func writeCrashSnapshot(signal: Int32) {
         let ownsLock = lock.try()
         writeRing(signal: signal)
         if ownsLock { lock.unlock() }
+    }
+
+    private var isOnDiskWriteQueue: Bool {
+        DispatchQueue.getSpecific(key: diskQueueKey) != nil
     }
 
     #if DEBUG
@@ -256,6 +347,17 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     func flushPendingWritesForTesting() {
         diskWriteQueue.sync { }
     }
+
+    var crashFDForTesting: Int32 { crashFD }
+    var logFDForTesting: Int32 { logFD }
+
+    /// Führt `body` auf der Schreib-Queue aus und meldet, ob der Absturzpfad sie dort erkennt.
+    func isOnDiskWriteQueueForTesting(runOnQueue: Bool) -> Bool {
+        guard runOnQueue else { return isOnDiskWriteQueue }
+        var result = false
+        diskWriteQueue.sync { result = isOnDiskWriteQueue }
+        return result
+    }
     #endif
 
     func acknowledgeCrashDialog() {
@@ -264,7 +366,19 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         consumeCrashMarker()
     }
 
+    /// Verschiebt `crash-last.txt` und öffnet sofort eine frische Datei (außerhalb des Signalkontexts,
+    /// bug.0.4.041), damit der nächste Absturz einen offenen Deskriptor vorfindet.
     func consumeCrashMarker() {
+        // Erst vom alten Deskriptor lösen: misslingt das Neu-Öffnen, darf der nächste Absturz nicht in die schon
+        // archivierte Datei schreiben (Review bug.0.4.041). Die kurze Lücke liegt auf dem Hauptthread.
+        let archived = crashFD
+        crashFD = -1
+        moveCrashMarkerAside()
+        openCrashFile()
+        if archived >= 0 { close(archived) }
+    }
+
+    private func moveCrashMarkerAside() {
         shouldShowCrashDialog = false
         let source = crashFileURL
         guard FileManager.default.fileExists(atPath: source.path) else { return }
@@ -281,10 +395,6 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             guard WriteGuard.permitsWrite(to: extra) else { continue }
             try? FileManager.default.removeItem(at: extra)
         }
-        if crashFD >= 0 {
-            close(crashFD)
-            crashFD = -1
-        }
     }
 
     func runtimeSeconds() -> Int {
@@ -293,8 +403,8 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
 
     /// Signal und Stapel aus dem Protokoll, für den Issue-Tracker nach dem Neustart.
     func crashExcerpt() -> (signal: String, stack: [String]) {
-        let text = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
-        let crashFile = (try? String(contentsOf: directory.appendingPathComponent("crash-last.txt"), encoding: .utf8)) ?? ""
+        let text = Self.readText(fileURL)
+        let crashFile = Self.readText(crashFileURL)
         let section = crashSection(in: text, fallback: crashFile) ?? ""
         let lines = section.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         let signal = lines.first.flatMap { line -> String? in
@@ -306,13 +416,13 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     func logTail(_ limit: Int) -> [String] {
-        let text = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
+        let text = Self.readText(fileURL)
         return CrashReportText.tail(text, limit: limit)
     }
 
     func report(includeCrash: Bool, logLineLimit: Int, actionLimit: Int) -> String {
-        let text = (try? String(contentsOf: fileURL, encoding: .utf8)) ?? ""
-        let crashFile = (try? String(contentsOf: directory.appendingPathComponent("crash-last.txt"), encoding: .utf8)) ?? ""
+        let text = Self.readText(fileURL)
+        let crashFile = Self.readText(crashFileURL)
         let crash = includeCrash ? crashSection(in: text, fallback: crashFile) : nil
         let actions = Array(recentBreadcrumbs().suffix(actionLimit))
         #if DEBUG
@@ -351,13 +461,29 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     private func write(_ line: String, durable: Bool) {
-        if durable {
+        if durable, isOnDiskWriteQueue {
+            // Absturz auf der Schreib-Queue selbst (Ausnahme im Schreiber): kein `sync` auf die eigene
+            // Queue und keine Sperre, direkt auf den offenen Deskriptor (bug.0.4.041, Hinweis bug.0.4.025).
+            let fd = logFD
+            guard fd >= 0 else { return }
+            let bytes = Array((line + "\n").utf8)
+            _ = bytes.withUnsafeBufferPointer { Darwin.write(fd, $0.baseAddress, $0.count) }
+            Darwin.fsync(fd)
+        } else if durable {
             diskWriteQueue.sync { writeLineToFile(line, fsync: true) }
         } else {
             diskWriteQueue.async { [self] in
                 self.writeLineToFile(line, fsync: false)
             }
         }
+    }
+
+    /// Schreib-Handle mit `O_APPEND` (bug.0.4.042): jede Zeile landet am Dateiende, auch wenn kurz eine zweite
+    /// Instanz oder der Absturzpfad über `logFD` in dieselbe Datei schreibt.
+    private static func appendingHandle(_ url: URL) throws -> FileHandle {
+        let fd = Darwin.open(url.path, O_WRONLY | O_APPEND | O_CREAT | O_CLOEXEC, 0o600)
+        guard fd >= 0 else { throw CocoaError(.fileWriteUnknown) }
+        return FileHandle(fileDescriptor: fd, closeOnDealloc: true)
     }
 
     private func writeLineToFile(_ line: String, fsync: Bool) {
@@ -372,7 +498,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
                 if !FileManager.default.fileExists(atPath: fileURL.path) {
                     FileManager.default.createFile(atPath: fileURL.path, contents: nil)
                 }
-                handle = try FileHandle(forWritingTo: fileURL)
+                handle = try Self.appendingHandle(fileURL)
                 try handle?.seekToEnd()
                 reopenLogFD()
             }
@@ -383,7 +509,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
                 rotateClosedFileUnlocked()
                 FilePrivacy.restrict(directory)
                 FileManager.default.createFile(atPath: fileURL.path, contents: nil)
-                handle = try FileHandle(forWritingTo: fileURL)
+                handle = try Self.appendingHandle(fileURL)
                 reopenLogFD()
             }
             try handle?.write(contentsOf: data)
@@ -439,57 +565,80 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         DiskIndexLog.shared.handleSignal(signal)
     }
 
-    private func storeCrumb(_ line: String) {
-        let bytes = Array(line.utf8.prefix(239))
-        let slot = crumbNext
-        let start = slot * 240
-        for index in crumbs.indices.dropFirst(start).prefix(240) {
-            crumbs[index] = 0
+    /// Längstes Präfix mit höchstens `limit` Bytes, das auf einer UTF-8-Zeichengrenze endet (REPORT 128).
+    static func utf8Prefix(_ bytes: [UInt8], limit: Int) -> ArraySlice<UInt8> {
+        var cut = min(bytes.count, max(0, limit))
+        if cut < bytes.count {
+            // Folgebytes (10xxxxxx) gehören zum Zeichen davor: bis zu dessen Anfang zurück.
+            while cut > 0, bytes.indices.contains(cut), bytes[cut] & 0xC0 == 0x80 {
+                cut -= 1
+            }
         }
+        return bytes.prefix(cut)
+    }
+
+    private func storeCrumb(_ line: String) {
+        let bytes = Self.utf8Prefix(Array(line.utf8), limit: Self.crumbSlotBytes - 1)
+        let slot = crumbCursor[0]
+        let start = crumbs + slot * Self.crumbSlotBytes
+        start.update(repeating: 0, count: Self.crumbSlotBytes)
         for (offset, byte) in bytes.enumerated() {
-            crumbs[start + offset] = byte
+            start[offset] = byte
         }
         crumbLength[slot] = UInt16(bytes.count)
-        crumbNext = (crumbNext + 1) % 50
-        crumbFilled = min(crumbFilled + 1, 50)
+        crumbCursor[0] = (slot + 1) % Self.crumbSlots
+        crumbCursor[1] = min(crumbCursor[1] + 1, Self.crumbSlots)
     }
 
-    private func writeRing(signal: String) {
-        if crashFD < 0 { openCrashFile() }
-        guard crashFD >= 0 else { return }
-        lseek(crashFD, 0, SEEK_SET)
-        var header = Array("CRASH signal=\(signal)\n".utf8)
-        header.append(0)
-        _ = header.withUnsafeBytes { Darwin.write(crashFD, $0.baseAddress, header.count - 1) }
-        let startSlot = crumbFilled < 50 ? 0 : crumbNext
-        for step in 0..<crumbFilled {
-            let slot = (startSlot + step) % 50
+    /// Signalsicher: liest nur Rohspeicher aus `init`, schreibt per `write` auf den offenen Deskriptor.
+    private func writeRing(signal: Int32) {
+        let fd = crashFD
+        guard fd >= 0 else { return }
+        lseek(fd, 0, SEEK_SET)
+        var header = headerCount - 1
+        for slot in 0..<(headerCount - 1) where headerSignals[slot] == signal {
+            header = slot
+        }
+        _ = Darwin.write(fd, headerBytes + header * Self.headerSlotBytes, headerLengths[header])
+        let filled = min(max(crumbCursor[1], 0), Self.crumbSlots)
+        let startSlot = filled < Self.crumbSlots ? 0 : crumbCursor[0]
+        var newline: UInt8 = 10
+        for step in 0..<filled {
+            let slot = (startSlot + step) % Self.crumbSlots
             let length = Int(crumbLength[slot])
             guard length > 0 else { continue }
-            let offset = slot * 240
-            _ = crumbs.withUnsafeBytes { raw in
-                Darwin.write(crashFD, raw.baseAddress!.advanced(by: offset), length)
-            }
-            var newline: UInt8 = 10
-            _ = Darwin.write(crashFD, &newline, 1)
+            _ = Darwin.write(fd, crumbs + slot * Self.crumbSlotBytes, length)
+            _ = Darwin.write(fd, &newline, 1)
         }
-        var frames = Array(repeating: UnsafeMutableRawPointer?.none, count: 64)
-        let count = backtrace(&frames, 64)
-        backtrace_symbols_fd(&frames, count, crashFD)
-        ftruncate(crashFD, lseek(crashFD, 0, SEEK_CUR))
-        fsync(crashFD)
+        let count = backtrace(frames, Int32(Self.frameCapacity))
+        backtrace_symbols_fd(frames, count, fd)
+        ftruncate(fd, lseek(fd, 0, SEEK_CUR))
+        fsync(fd)
     }
 
+    /// Nur außerhalb des Signalkontexts (start, consumeCrashMarker). Erst neu öffnen, dann den alten
+    /// Deskriptor schließen, damit der Handler nie eine Lücke sieht.
     private func openCrashFile() {
+        guard writesToDisk else { return }
         let url = crashFileURL
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        FilePrivacy.restrict(directory)
-        if crashFD >= 0 { close(crashFD) }
-        crashFD = Darwin.open(url.path, O_RDWR | O_CREAT, 0o600)
-        let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-        if crashFD >= 0, !existing.contains("CRASH") {
-            ftruncate(crashFD, 64 * 1024)
+        guard WriteGuard.permitsWrite(to: directory), WriteGuard.permitsWrite(to: url) else { return }
+        try? FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700]
+        )
+        let fresh = Darwin.open(url.path, O_RDWR | O_CREAT, 0o600)
+        guard fresh >= 0 else { return }
+        if !Self.readText(url).contains("CRASH") {
+            ftruncate(fresh, Self.crashFileBytes)
         }
+        let previous = crashFD
+        crashFD = fresh
+        if previous >= 0 { close(previous) }
+    }
+
+    /// Liest Protokoll und Absturzdatei auch mit kaputten UTF-8-Folgen (REPORT 128).
+    private static func readText(_ url: URL) -> String {
+        guard let data = try? Data(contentsOf: url) else { return "" }
+        return String(decoding: data, as: UTF8.self)
     }
 
     private var crashFileURL: URL {
@@ -497,7 +646,8 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     private func crashSection(in log: String, fallback: String) -> String? {
-        let trimmedFile = fallback.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Die frische Absturzdatei ist 64 KB Nullbytes: die zählen nicht als Inhalt.
+        let trimmedFile = fallback.trimmingCharacters(in: Self.crashFileFiller)
         if !trimmedFile.isEmpty {
             if let range = trimmedFile.range(of: "CRASH signal=") {
                 return String(trimmedFile[range.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -516,20 +666,12 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return nil }
         let match = names.filter { $0.hasPrefix("Disk Archive") && $0.hasSuffix(".ips") }.sorted().last
         guard let match else { return nil }
-        guard let text = try? String(contentsOf: folder.appendingPathComponent(match), encoding: .utf8) else { return nil }
+        let text = Self.readText(folder.appendingPathComponent(match))
+        guard !text.isEmpty else { return nil }
         return CrashReportText.tail(text, limit: 40).joined(separator: "\n")
     }
 
-    private static func name(for signal: Int32) -> String {
-        switch signal {
-        case SIGABRT: "SIGABRT"
-        case SIGILL: "SIGILL"
-        case SIGTRAP: "SIGTRAP"
-        case SIGSEGV: "SIGSEGV"
-        case SIGBUS: "SIGBUS"
-        default: "signal \(signal)"
-        }
-    }
+    private static let crashFileFiller = CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "\u{0}"))
 }
 
 extension DiskLogCategory: CaseIterable {}

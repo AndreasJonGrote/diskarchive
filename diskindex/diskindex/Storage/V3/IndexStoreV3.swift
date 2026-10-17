@@ -164,7 +164,11 @@ actor IndexStoreV3 {
     }
     #endif
 
+    /// Tests: Zahl der Checkpoints je Store (bug.0.4.042, Beenden über SIGTERM).
+    nonisolated let checkpointCalls = NameCheckCounter()
+
     nonisolated func checkpoint() {
+        checkpointCalls.add(1)
         try? pool.writeWithoutTransaction { db in
             try DatabaseMaintenance.truncateWriteAheadLog(db)
         }

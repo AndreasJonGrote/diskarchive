@@ -41,6 +41,7 @@ private struct FavoritesRig {
     }
 }
 
+extension MeasurementTestGroup {
 @Suite(.serialized) @MainActor
 struct FavoritesPagingTests {
     @Test func pageHoldsAtMost500AndTheCountIsComplete() async throws {
@@ -107,6 +108,7 @@ struct FavoritesPagingTests {
         #expect(rig.app.favoriteItemCount == 599)
         await rig.app.waitForFavoriteWrites()
     }
+}
 }
 
 extension WindowTestGroup {

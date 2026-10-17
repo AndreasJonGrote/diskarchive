@@ -50,7 +50,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.8**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 17.10. 15:47–16:03: 0 Warnungen, seriell 698/698, parallel 0/3 (alte Zeitgrenzen unter Last, `bug.0.3.9.004`). Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
+**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.8**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 17.10. 17:21–17:36: 0 Warnungen, seriell 712/712, parallel 3/3. Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
@@ -72,8 +72,9 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 5b | **0.3.8** | ~~`bug.0.3.8.004`, `005`, `bug.0.4.031`~~ | Testaufbau, tote Dateien, Identität | **abgenommen 17.10.** |
 | 5c | **0.3.8** | ~~`bug.0.3.8.006`, `007`~~ | Zeitgrenze Medienprüfung, Parallellauf stabil | **abgenommen 17.10.; 0.3.8 fertig** |
 | 6 | **0.3.9** | ~~`todo.0.3.8.001`, `bug.0.4.034`–`040`~~ | Version 0.3.8, Oberfläche | **abgenommen 17.10.** |
-| 7 | **0.3.9** | `bug.0.3.9.004`, `bug.0.4.041`–`042` | Parallellauf unter Last, Absturzschreiber, Start | **freigegeben 17.10.** |
-| 8 | **0.3.9** | `bug.0.4.050`–`062`, `bug.0.3.9.001`–`003` | Fehler niedriger Schwere | B |
+| 7 | **0.3.9** | ~~`bug.0.3.9.004`, `bug.0.4.041`–`042`~~ | Parallellauf unter Last, Absturzschreiber, Start | **abgenommen 17.10.** |
+| 8a | **0.3.9** | `bug.0.3.9.001`–`003`, `005`–`010` | Befunde aus den Prüfungen | **freigegeben 17.10.** |
+| 8b | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere (Audit) | B |
 | – | **0.4** | `todo.0.4.020`–`025` | Weitergabe an Beta-Tester | B |
 
 Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. Neue sichtbare Texte nur über „Frage:“ oder als freigegebener Textvorschlag in der Aufgabe (Regel 3 bleibt).
@@ -86,47 +87,56 @@ Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. 
 
 **Prüfung Host 17.10. 08:30–08:45 (Commit `58ec44e`):** Debug mit Testziel und Release 0 Warnungen, seriell **639/639** grün, Parallel **2 von 3** grün (Lauf 2 rot: `MainThreadMediumIOTests/directProbeKeepsMainActorResponsive`, Ticker 2 statt ≥ 8, Messaufbau, siehe `bug.0.3.8.004`), keine neuen `.ips`, Regel 23 erfüllt. **Paket 5a abgenommen** (`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`); die neuen Tests gehen über die echten Wege (Regel 18). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5a.md`.
 
-**Prüfung Host 17.10. 15:47–16:03 (Paket 6, ungecommittet auf `35895d5`):** Debug mit Testziel und Release 0 Warnungen, seriell **698/698** grün, Parallel **0 von 3** (rot nur alte, unveränderte Tests unter der neuen Last, siehe `bug.0.3.9.004`; die Tests von Paket 6 waren in allen Läufen grün), keine neuen `.ips`, Regel 23 (App 16:02:42, **Version 0.3.8**, Signatur gültig). **Paket 6 abgenommen** (`todo.0.3.8.001`, `bug.0.4.034`–`040`; Code in Stichproben gelesen: SQL mit Platzhaltern, Sortierung, Cache-Anheften, Favoriten-Menge). Antworten auf die Fragen zu `038`: kein neuer Index jetzt (siehe B, `todo.0.5.002`); deaktivierter Spaltenkopf mit Deckkraft 0,45 und ohne Zeigefinger bleibt (in `docs/Komponenten-Masse.md` vermerkt). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket6.md`.
+**Prüfung Host 17.10. 17:21–17:36 (Paket 7, ungecommittet auf `3d7f1a4`):** Debug mit Testziel und Release 0 Warnungen, seriell **712/712** grün, **Parallel 3 von 3 grün**, keine neuen `.ips`, Regel 23 (App 17:36:20, Signatur gültig). Code je Aufgabe von einem Prüf-Agenten gelesen: kein hoher Befund; zwei mittlere (`bug.0.3.9.008`, `009`) und niedrige (`010`) in Paket 8a. **Paket 7 abgenommen** (`bug.0.3.9.004`, `bug.0.4.041`, `042`). Paket 6 wurde nachträglich ebenfalls von Prüf-Agenten gelesen (Befunde `bug.0.3.9.005`–`007`). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket7.md`.
 
-#### Paket 7 — Absturzschreiber und Start (0.3.9, freigegeben 17.10.)
+#### Paket 8a — Befunde aus den Prüfungen (0.3.9, freigegeben 17.10.)
 
-Reihenfolge: `bug.0.3.9.004`, `bug.0.4.041`, `bug.0.4.042`.
+Reihenfolge: `bug.0.3.9.008`, `009`, `010`, dann `001`, `002`, `003`, `005`, `006`, `007`. Die drei neuen kommen aus den Prüf-Agenten zu Paket 7.
 
-**bug.0.3.9.004 — Parallellauf unter der Last von Paket 6 (Prüfung Host 17.10. 15:53–16:02).**
-- Befund: Parallel **0 von 3** grün; rot nur alte, unveränderte Tests. Paket 6 brachte rund 50 Tests mit großen Datenmengen (50.000 Zeilen, 10.000 Favoriten, 600 Treffer); unter dieser Last kippen feste Zeitgrenzen.
-- a) `IndexerWriteReproTests/pauseDuringFirstChunkAvoidsReadRetries` (Lauf 2 und 3, 3,3–3,8 s statt < 2 s): Der Test soll zeigen, dass **keine** Wiederholung mit 8 s Pause läuft. Das beweist `access.listed.count == 1`; die 2-s-Grenze misst nur die Last. Grenze aus der Wiederholungspause ableiten (deutlich unter 8 s, z. B. `< readRetryDelays[0] / 2`) oder durch einen Zähler der Wiederholungen ersetzen; kurze Begründung im Test. Sabotage (Wiederholung erzwingen) → rot ✓.
-- b) `VersionLockReadOnlyTests/versionLockCancelClearsIndexingStatus` (Lauf 1, `started` falsch): Rennen im Test, ein Lauf über eine Datei kann fertig sein, bevor der Test „läuft“ sieht. Lauf an einem Tor halten (wie `RunGateAccess`), dann Sperre auslösen. Der Test ruft `cancelAllActiveForVersionLock` von Hand auf; das bleibt bis `bug.0.4.063` so, im Test als Verweis vermerken.
-- c) Die Messtests aus Paket 6 (`ColumnSelectionScaleTests`, `FavoritesTableWindowTests`, `SearchSortPagingTests` u. a.) prüfen: Laufen sie in einer Suite, die parallel mit Fenstertests konkurriert, unter `.serialized` in einer gemeinsamen Gruppe zusammenfassen (wie `WindowTestGroup`), damit sie sich nicht gegenseitig ausbremsen. Grenzen nicht lockern.
-- **Akzeptanz:** Parallellauf dreimal hintereinander grün beim Worker; der Host prüft erneut.
+**bug.0.3.9.008 — Wächter-Test: Laufzeitgrenze wieder eng (Prüf-Agent 17.10., mittel).** `IndexerWriteReproTests.hungStreamTriggersDirectoryReadStalled`: In `bug.0.3.9.004` von `< 4 s` auf `< retryPause / 2` (30 s) gelockert, obwohl `DirectoryReadStalled` nie wiederholt wird; die Grenze misst, dass der Wächter nach der Stillstandszeit rechtzeitig auslöst. Grenze aus `directoryStallTimeout` und dem Takt ableiten (Stillstand + 2 Takte + Reserve, etwa 8–10 s) und begründen. Sabotage: Wächter-Takt verzehnfachen → rot ✓. Dazu `BulkDirectoryReaderTests` Z. ~102 (`< 2 s` auf echtem Dateisystem) in `MeasurementTestGroup`.
 Status:
 
-
-**bug.0.4.041 — Absturzschreiber signalsicher, Ringzeilen UTF-8-sicher (REPORT 76, 128).**
-- Header-Puffer je Signal, Frame-Puffer und Signalnamen einmalig in `start(installHandlers:)` vorab anlegen (statischer Speicher).
-- `writeRing` öffnet nie selbst (`guard crashFD >= 0 else { return }`).
-- `consumeCrashMarker` öffnet `crash-last.txt` nach dem Verschieben sofort neu (außerhalb des Signalkontexts).
-- SIGTERM-Pfad schreibt nur vorab angelegte Bytes.
-- Hinweis aus `bug.0.4.025`: `write(durable: true)` ruft `diskWriteQueue.sync` auch aus dem Absturzpfad (`writeCrashSnapshot`); stürzt der Schreiber auf dieser Queue selbst ab, trifft der Handler auf ein `sync` auf der eigenen Queue. Absturzpfad ohne `sync` auf diese Queue.
-- 128: `storeCrumb` kürzt auf eine UTF-8-Zeichengrenze. Beim Lesen `String(decoding:as: UTF8.self)`.
-- **Akzeptanz:**
-  - Nach `acknowledgeCrashDialog()` existiert `crash-last.txt` (64 KB), Debug-Accessor `crashFD >= 0`.
-  - `writeCrashSnapshot` schreibt `CRASH signal=`.
-  - Aktionszeile mit 300 Bytes Umlauten → Absturzdatei gültig, `CRASH` erkannt.
+**bug.0.3.9.009 — Beenden mit Zeitgrenze (Prüf-Agent 17.10., mittel).** `AppStartup` (`shouldTerminate`/`finishTermination`): Hängt `flushPendingWritesForTermination`, hängt das Beenden für immer; seit `bug.0.4.042` gilt das auch für SIGTERM (vorher sofort beendet, jetzt `SIG_IGN`). Zeitgrenze für den Abschluss (Standard 8 s, injizierbar); danach Protokollzeile „beenden zeitgrenze“ und `reply(toApplicationShouldTerminate: true)`. Merker gegen doppelten Abschluss (zweites SIGTERM oder ⌘Q während `.terminateLater`): Abbau und Abschluss genau einmal. Tests: hängender Abschluss → Antwort nach der Zeitgrenze (Notfall-Grenze großzügig); zweiter Aufruf → kein zweiter Abschluss (Zähler je Instanz).
 Status:
 
-**bug.0.4.042 — Einzelinstanz vor Protokoll; SIGTERM sauber (REPORT 87, 88).**
-- `ensureSingleInstance()` **vor** `DiskIndexLog.shared.start()`.
-- Bei `handedOff` beim Beenden (`applicationShouldTerminate`, seit `bug.0.4.033` mit `.terminateLater`; `applicationWillTerminate` gibt es nicht mehr) nichts protokollieren und nichts abbauen.
-- Protokoll-Handle mit `O_APPEND`.
-- Entfällt (Nutzer 15.10.): Der Anmeldestart zeigt das Hauptfenster ebenfalls (`todo.0.4.013`).
-- SIGTERM: aus der sigaction-Liste nehmen; `signal(SIGTERM, SIG_IGN)` plus `DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)` → `NSApp.terminate(nil)`.
-- **Akzeptanz:**
-  - Test der Startreihenfolge: Bei Übergabe schreibt die Zweitinstanz keine Protokollzeile und fasst `crash-last.txt` nicht an.
-  - SIGTERM-Weg über eine injizierbare Signalquelle testen (Auslöser → `terminate` wird aufgerufen, Checkpoint läuft); **kein echtes SIGTERM an den Testprozess** (Regel 20).
-  - Kein Start der echten App (Regel 19).
+**bug.0.3.9.010 — Absturzschreiber härten (Prüf-Agent 17.10., niedrig).** `DiskIndexLog.swift`: `lock.try()`/`unlock()` aus dem Signal-Handler entfernen (Z. ~334/336; nicht signalsicher, schützt nichts); `backtrace` einmal in `start` aufrufen (Initialisierung vorwegnehmen); `O_CLOEXEC` bei beiden `open` (Z. ~314/628); Nullbytes mitten im Ring beim Lesen überspringen (`crashSection`, gleichzeitiges `storeCrumb`). Den ungenutzten Parameter `crashAutoSend:` entfernen oder mit einem Test für Auto-Senden → `enqueue` → `consumeCrashMarker` belegen. Statuszeile von `041` („Ende-Bytes“) ist überholt, nichts tun.
 Status:
 
-**HALT nach Paket 7.**
+**bug.0.3.9.001 — Weitere prozessweite Test-Schalter (Befund Worker 17.10.).** `SystemNotice.center`/`testPostHandler`, `DatabaseMaintenance.incrementalVacuumEnabled`, `LaunchAtLogin.setEnabledForTesting`, `ReportScrubber.pathPatternForTesting` als Parameter, Instanz oder `@TaskLocal` (Regel 20). Akzeptanz: Parallellauf 3× grün; `grep -rn "static var.*Testing\|ForTesting" diskindex/diskindex` im Status begründet.
+Status:
+
+**bug.0.3.9.002 — `VolumeLookup.info` ohne Zeitgrenze (Befund Worker 17.10.).** Serielle Queue: ein hängendes Volume hält alle weiteren Lookups auf (Erkennung, Aufwachen). Zeitgrenze wie `DirectMediumAccess.probe` (einmal fortsetzbare Continuation, injizierbar, Standard 5 s; Ergebnis `nil` = kein Kandidat, Protokollzeile). Test mit hängendem Lookup: zweiter Lookup kehrt zurück. Sabotage rot ✓.
+Status:
+
+**bug.0.3.9.003 — Live-Suche: Nachlauf nach Direktlauf nicht abgebrochen (Befund Worker 17.10.).** `runSearchAfterLiveChange` bricht den ausstehenden Nachlauf nicht ab, wenn eine Suche direkt ausgelöst wird; es läuft eine überflüssige zweite Suche. Abbrechen; Test: Live-Änderung, dann sofort Direktsuche → genau eine Suche (Zähler, nach kurzem Abwarten erneut geprüft).
+Status:
+
+**bug.0.3.9.005 — Nachprüfung Paket 6, Tests (Prüf-Agenten des Hosts 17.10., mittel).**
+- a) Feste Laufzeitgrenzen im normalen Testlauf: `ColumnSelectionScaleTests` Z. ~73–85 (< 50 ms) und `FavoritesPagingTests` Z. ~136–147 (< 300 ms). Gleiche Fehlerklasse wie `bug.0.3.9.004`. Laufzeit nur noch protokollieren (Zahl im Testbericht) oder durch eine Zählung ersetzen (Zugriffe, gebaute Zeilen); die Aussage „ohne quadratischen Aufwand“ über ein Verhältnis prüfen (z. B. 50.000 vs. 5.000 Einträge, Faktor deutlich unter 100), nicht über Wanduhr-Millisekunden.
+- b) `FavoritesPagingTests` (300-ms-Test und Tick-Test) rufen `reloadFavoritePage()` selbst auf und frieren mit `screenshotFrozenLists = true` das Laden der Ansicht ein (Regel 18). Über die echte Kette laden (`FavoritesView` im Fenster → `.task` → Laden), dann zählen.
+- c) Rückfrage beim Ignorieren: Die App überspringt `AppWindowPresenter.openIgnoreConfirmation`, wenn `RuntimeEnvironment.isRunningTests` gilt (`AppState+Media.swift` Z. ~38–40); Panel, `IgnoreConfirmDialogWindowHost` und **Esc** (`onExitCommand`, gefordert) sind ungetestet. Öffnen des Panels injizierbar machen (Instanz statt Prozess-Schalter), Test: Panel außerhalb des Bildschirms, Esc per `sendEvent` → Abbrechen, nichts ignoriert. Gleiches für `openReplaceMediumPrompt` prüfen.
+- d) `ColumnSelectionScaleTests.ignoreBatchAndMenuPlanUseSets` prüft `ContextMenuPlan` nicht; ergänzen oder umbenennen. `PopoverSearchDebounceTests`: eine veraltete **Seite** wird nicht verworfen geprüft; ergänzen. `ColumnCacheVisibleTests`: Nach-hinten-Setzen beim Lesen über `children()` und „alter Load endet nach neuem Load“ ergänzen.
+Status:
+
+**bug.0.3.9.006 — Favoriten: Zahl, Fehler, Aufräumen (Prüf-Agent des Hosts 17.10.).**
+- a) **mittel:** `AppState+IndexChanges.swift` Z. ~293–306: Die Zählabfragen der Favoriten-Seite prüfen `favoriteEditGeneration` nicht. Wird während der Zählung abgewählt, überschreibt das alte Ergebnis die gesenkte Zahl; die Fußzeile bleibt um 1 falsch. Nach der Zählung die Generation prüfen und bei Änderung neu zählen. Test mit Tor in der Zählung.
+- b) niedrig: Schlägt `setFavorites` fehl, bleibt der lokale Stand geändert (`AppState+Favorites.swift` Z. ~146–150). Lokalen Stand zurücknehmen, Protokollzeile. Test mit fehlschlagendem Store.
+- c) niedrig: `favoriteChecksumTasks` wächst je Umschalten um zwei Tasks und wird nur beim Beenden geleert; fertige Tasks entfernen.
+- d) niedrig: Beim Beenden wartet `prepareForTerminationAsync` nicht auf die Favoriten-Schreibkette (`favoriteWriteTail`); die letzten Umschaltungen können verloren gehen. Wie `bug.0.4.033`: vor dem Beenden auf die Kette warten (mit Zeitgrenze).
+- e) niedrig: Auf einer vollen Seite (> 500 Favoriten) fehlt nach dem Abwählen eine Zeile, bis neu geladen wird. Den nächsten Favoriten nachladen oder die Seite neu laden.
+Status:
+
+**bug.0.3.9.007 — Kleinkram aus der Nachprüfung Paket 6 (niedrig).**
+- a) `IgnoreConfirmDialog.swift` Z. ~41/65: 12 pt Abstand plus `padding(.top, 8)` = 20 pt zwischen Text und Knöpfen; Katalog „Dialog: Abstand 12“ (Regel 13). Gleiches in `ReplaceMediumDialog.swift` prüfen. Messtest anpassen.
+- b) `AppWindowPresenter.closeAll` blendet das Ignorier-Panel nur aus; `ignoreConfirmationPrompt` (und `replaceMediumPrompt`) zurücksetzen.
+- c) `IndexRepository`: Nach `invalidateAll` kann der alte Load bis zum nächsten Yield den Fortschritt wieder füllen (kurz veraltete Anzeige). Fortschritt nur mit passender Generation schreiben.
+- d) Suche nach Medium sortiert innerhalb eines Mediums binär („datei 10“ vor „datei 2“); innerhalb der Seite wie bei Name natürlich nachsortieren.
+- e) `PopoverSearch.complete` (`< 3`) startet bei genau 3 Dateien und 0 Ordnern eine unnötige Zählung; Bedingung korrigieren.
+- *Bewusst so (Host 17.10.):* Ein Ordner genau auf der Scan-Tiefe darf offen bleiben (`clampPathToScanDepth` mit `<=`): die Statusspalte zeigt „Inhalt wird nicht indiziert“. Eigene Endungen in Favoriten-/Suchfiltern treffen exakt über `extID` (wie die Suche), mehrteilige Endungen wie „tar.gz“ nicht.
+Status:
+
+**HALT nach Paket 8a.**
+
 
 
 
@@ -167,9 +177,9 @@ Status:
 
 ---
 
-### 0.3.9 — Paket 8 (nach Paket 7), danach Stabilitätsprüfung
+### 0.3.9 — Paket 8b (nach 8a), danach Stabilitätsprüfung
 
-#### Paket 8 — Fehler niedriger Schwere (Lösung im Archiv-Report, Nummer nennen)
+#### Paket 8b — Fehler niedriger Schwere aus dem Audit (nach 8a; Lösung im Archiv-Report, Nummer nennen)
 
 | Kennung | REPORT | Kurz |
 |---|---|---|
@@ -187,16 +197,7 @@ Status:
 | `bug.0.4.061` | 107 | Mindestanzeige (400 ms) des Ladehinweises wirkt nie |
 | `bug.0.4.062` | 132 | Sammelzeile Nebenläufigkeit (Verdacht) |
 
-**bug.0.3.9.001 — Weitere prozessweite Test-Schalter (Befund Worker 17.10.).** `SystemNotice.center`/`testPostHandler`, `DatabaseMaintenance.incrementalVacuumEnabled`, `LaunchAtLogin.setEnabledForTesting`, `ReportScrubber.pathPatternForTesting` als Parameter, Instanz oder `@TaskLocal` (Regel 20). Akzeptanz: Parallellauf 3× grün; `grep -rn "static var.*Testing\|ForTesting" diskindex/diskindex` im Status begründet.
-Status:
-
-**bug.0.3.9.002 — `VolumeLookup.info` ohne Zeitgrenze (Befund Worker 17.10.).** Serielle Queue: ein hängendes Volume hält alle weiteren Lookups auf (Erkennung, Aufwachen). Zeitgrenze wie `DirectMediumAccess.probe` (einmal fortsetzbare Continuation, injizierbar, Standard 5 s; Ergebnis `nil` = kein Kandidat, Protokollzeile). Test mit hängendem Lookup: zweiter Lookup kehrt zurück. Sabotage rot ✓.
-Status:
-
-**bug.0.3.9.003 — Live-Suche: Nachlauf nach Direktlauf nicht abgebrochen (Befund Worker 17.10.).** `runSearchAfterLiveChange` bricht den ausstehenden Nachlauf nicht ab, wenn eine Suche direkt ausgelöst wird; es läuft eine überflüssige zweite Suche. Abbrechen; Test: Live-Änderung, dann sofort Direktsuche → genau eine Suche (Zähler, nach kurzem Abwarten erneut geprüft).
-Status:
-
-**HALT nach Paket 8 = Ende von 0.3.9** — Abnahmekriterien 1–6 und 8, `todo.0.3.9.001` (`MARKETING_VERSION` auf `0.3.9`), Stabilitätsprüfung; erst dann 0.4.
+**HALT nach Paket 8b = Ende von 0.3.9** — Abnahmekriterien 1–6 und 8, `todo.0.3.9.001` (`MARKETING_VERSION` auf `0.3.9`), Stabilitätsprüfung; erst dann 0.4.
 
 ---
 

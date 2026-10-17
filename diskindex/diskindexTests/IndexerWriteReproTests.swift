@@ -16,13 +16,16 @@ import Testing
         access.file("a/b.txt")
         await harness.store.setDirectoryWritesFailing(true)
         var limits = IndexingRunLimits.standard
-        limits.readRetryDelays = [.seconds(5), .seconds(5)]
+        // bug.0.3.9.004 a: Ein Schreibfehler endet ohne Lese-Wiederholung. Grenze aus der Wiederholungspause (jede
+        // Wiederholung kostet mindestens 60 s) statt der Last (vorher < 2 s bei 5 s Pause).
+        let retryPause: Duration = .seconds(60)
+        limits.readRetryDelays = [retryPause, retryPause]
         let started = ContinuousClock.now
         let outcome = try await harness.run(access: access, maxDepth: nil, limits: limits)
         let elapsed = started.duration(to: .now)
         #expect(outcome.status == .error)
         #expect(outcome.failureReason == .database)
-        #expect(elapsed < .seconds(2))
+        #expect(elapsed < retryPause / 2)
     }
 
     @Test func pauseDuringFirstChunkAvoidsReadRetries() async throws {
@@ -30,7 +33,10 @@ import Testing
         let access = PauseAfterFirstListVolume(mountPath: "/Volumes/T")
         access.file("a.txt")
         var limits = IndexingRunLimits.standard
-        limits.readRetryDelays = [.seconds(8), .seconds(8)]
+        // bug.0.3.9.004 a: Beweis ist `listed.count == 1` (keine Wiederholung). Die Zeitgrenze leitet sich aus der
+        // Wiederholungspause ab (jede Wiederholung kostet mindestens 60 s) statt die Last zu messen (vorher < 2 s).
+        let retryPause: Duration = .seconds(60)
+        limits.readRetryDelays = [retryPause, retryPause]
         let started = ContinuousClock.now
         let outcome = try await harness.run(
             access: access,
@@ -43,7 +49,7 @@ import Testing
         let elapsed = started.duration(to: .now)
         #expect(outcome.status == .pending)
         #expect(access.listed.count == 1)
-        #expect(elapsed < .seconds(2))
+        #expect(elapsed < retryPause / 2)
     }
 
     @Test func hungStreamTriggersDirectoryReadStalled() async throws {
@@ -53,14 +59,17 @@ import Testing
         var limits = IndexingRunLimits.standard
         limits.directoryStallTimeout = 1
         limits.consecutiveTimeoutLimit = 1
-        limits.readRetryDelays = [.seconds(5)]
+        // bug.0.3.9.004 a: Obergrenze aus der Wiederholungspause (keine Wiederholung nach dem Stillstand), nicht aus
+        // der Last; Untergrenze = Stillstandsgrenze 1 s.
+        let retryPause: Duration = .seconds(60)
+        limits.readRetryDelays = [retryPause]
         let started = ContinuousClock.now
         let outcome = try await harness.run(access: access, maxDepth: nil, limits: limits)
         let elapsed = started.duration(to: .now)
         #expect(outcome.status == .pending)
         #expect(outcome.failureReason == .timeout)
         #expect(elapsed >= .seconds(1))
-        #expect(elapsed < .seconds(4))
+        #expect(elapsed < retryPause / 2)
     }
 }
 
