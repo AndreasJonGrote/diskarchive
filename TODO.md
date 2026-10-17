@@ -69,7 +69,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 0–3, 2a | 0.4 (vorab) | ~~`bug.0.4.010`–`020`, `043`, `044`, `todo.0.4.010`–`014`~~ | Testbasis, Datenschutz, Inventar, Live, Nur-Lesen | **abgenommen 15./16.10.** |
 | 4 | **0.3.8** | ~~`bug.0.3.8.001`–`002`, `bug.0.4.045`, `021`–`025`~~ | Medien-I/O und Datenbank nicht auf dem Haupt-Thread | **abgenommen 16./17.10.** |
 | 5a | **0.3.8** | ~~`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`~~ | Entscheidung, Status, Regeln, Identität, Teil 1 | **abgenommen 17.10.** |
-| 5b | **0.3.8** | `bug.0.3.8.004`, `005`, `bug.0.4.031` | Testaufbau, tote Dateien, Identität | **freigegeben 17.10.** |
+| 5b | **0.3.8** | `bug.0.3.8.004`, `005`, `bug.0.4.031` | Testaufbau, tote Dateien, Identität | **Nacharbeit** (Prüfung 17.10. 10:15) |
 | 6 | **0.3.9** | `bug.0.4.034`–`040` | Oberfläche | B |
 | 7 | **0.3.9** | `bug.0.4.041`–`042` | Absturzschreiber und Start | B |
 | 8 | **0.3.9** | `bug.0.4.050`–`062` | Fehler niedriger Schwere | B |
@@ -85,7 +85,9 @@ Reihenfolge in 0.3.8 (verbindlich): Pakete 4 und 5a abgenommen; jetzt Paket 5b, 
 
 **Prüfung Host 17.10. 08:30–08:45 (Commit `58ec44e`):** Debug mit Testziel und Release 0 Warnungen, seriell **639/639** grün, Parallel **2 von 3** grün (Lauf 2 rot: `MainThreadMediumIOTests/directProbeKeepsMainActorResponsive`, Ticker 2 statt ≥ 8, Messaufbau, siehe `bug.0.3.8.004`), keine neuen `.ips`, Regel 23 erfüllt. **Paket 5a abgenommen** (`bug.0.4.026`–`030`, `032`, `033`, `bug.0.3.8.003`); die neuen Tests gehen über die echten Wege (Regel 18). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket5a.md`.
 
-#### Paket 5b — Abschluss 0.3.8 (freigegeben 17.10.)
+**Prüfung Host 17.10. 09:59–10:15 (Commit `91b90a6`):** Debug mit Testziel und Release 0 Warnungen, seriell **642/642** grün, Parallel **2 von 3** (Lauf 2 rot: `StartupSequenceTests/slowOpen…`, siehe `bug.0.3.8.004`), keine neuen `.ips`, Regel 23 erfüllt. Code von `005` und `031` richtig; Nacharbeit: Testaufbau ohne Zeitvergleich (`004`), Screenshot-Reste (`005`), Klon „zuletzt gesehen“ und `rootChanged` beim Abziehen (`031`).
+
+#### Paket 5b — Abschluss 0.3.8 (freigegeben 17.10.; Nacharbeit)
 
 Reihenfolge: `bug.0.3.8.004`, `bug.0.3.8.005`, `bug.0.4.031`. Für `031` c) gelten die Textvorschläge in der Aufgabe als freigegeben; im Status unter „Neue Texte:“ auflisten, der Nutzer prüft sie beim Stick-Test.
 
@@ -99,6 +101,11 @@ bug.0.3.8.004: `directProbeKeepsMainActorResponsive` ohne Ticks: neuer DEBUG-`@T
 Gleiche Bauart: `StartupSequenceTests.slowOpenKeepsTheMainThreadFreeAndStillRecognisesMedia` (`ticks >= 3`) ebenso umgebaut. `AllowIndexingStabilityTests` nennt „ticks“ nur im Kommentar. Bestehend, nicht geändert: `dispatchPrecondition` in `probe` beendet bei echtem Rückfall den Prozess statt „rot“.
 Sabotage rot ✓ 09:03:31 (Prüfung per `DispatchQueue.main.sync`, Öffnen ohne `Task.detached` → je „onMain true“ und Sprung nach Pausenende), zurückgenommen. Suites seriell grün 09:03:02. Bereit zur Prüfung.
 Paketende 5b: clean build-for-testing Debug 0 / Release 0 Warnungen (09:14–09:16); seriell 642/642 grün (09:16:03–09:21:28); parallel 3× grün, je 680 Testfälle, 0 rot (09:21:28–23:54, –26:21, –28:57); keine neuen `.ips`; Regel 23: App 09:29:15, letzte `.swift` 09:13:37, `find -newer` leer, Signatur gültig. `MARKETING_VERSION` unverändert.
+
+**Nacharbeit (Host 17.10. 10:15):**
+- Parallellauf des Hosts 10:04–10:12: **2 von 3** grün. Lauf 2 rot: `StartupSequenceTests/slowOpenKeepsTheMainThreadFreeAndStillRecognisesMedia` (Z. ~64: der MainActor-Sprung kam erst nach 3 s, erwartet < 2 s). Die neue Fassung misst weiter eine Zeit, die unter Parallellast schwankt.
+- Beide Tests (`directProbeKeepsMainActorResponsive` und `slowOpen…`) **ohne Zeitvergleich** bauen: Die Prüfung bzw. das Öffnen meldet den Beginn (Thread) und wartet dann auf ein **Tor, das der Test erst nach einem gelungenen MainActor-Sprung öffnet** (`await MainActor.run {}` bzw. `Task { @MainActor in }`, danach Tor auf). Läuft die Arbeit fälschlich auf main, kommt der Sprung nie an: Das Tor hat eine großzügige Notfall-Zeitgrenze (z. B. 10 s), danach meldet es „Zeitgrenze“, der Test ist rot. Im grünen Fall gibt es keine Uhrzeit-Erwartung mehr.
+- Sabotage wie gehabt (Arbeit auf main) → rot ✓. Akzeptanz: Parallellauf dreimal hintereinander grün.
 
 **bug.0.3.8.005 — Tote Dateien entfernen (Host 17.10., Nutzer: „damit auch diese mal weg kommen“).**
 - a) `diskindex/DebugTools/ScreenshotRunner.swift` und `ScreenshotPlan.swift` löschen (Regel 19 verbietet den Lauf; Entscheidung `todo.0.4.038`). Dazu den Aufruf in `AppDelegate` (Z. ~74–75, `ScreenshotPlan.folder`/`ScreenshotRunner.run`) und den Hinweis in `SystemNotice` (Z. ~323) entfernen bzw. anpassen. `DebugTools/PreviewData.swift` **bleibt** (genutzt von `DashboardView`, `MediumDashboardCard` und neun Test-Suiten).
@@ -116,6 +123,10 @@ In Tests entfernt: `ToolbarFillTests.comparisonSheets` + `IconFillComparison`; `
 Frage: `ScreenshotPlan.swift` hat weitere Bezüge (`RestCoverageTests.databaseHealthAndScreenshotArgument` Z. 95–96, `LayoutCopyTests` Z. 27–29 und `aFlatImageCountsAsEmptyAndAMarkedOneDoesNot` Z. 56–61), daher nach c) stehen gelassen, ebenso der Hinweis in `SystemNotice` (`--screenshots` prüft `RestCoverageTests` Z. 99). Ohne Aufrufer, nicht in der Liste: `ScreenshotContextMenu` (`ObjectFileContextMenu.swift` Z. 489). Mitlöschen samt dieser Testteile?
 Suites seriell grün 09:03:02 (25 Tests). Bereit zur Prüfung bis auf die Frage.
 
+**Nacharbeit (Host 17.10. 10:15):**
+- Antwort auf die Frage: **ja, mitlöschen.** `DebugTools/ScreenshotPlan.swift`, die Testteile, die nur das Screenshot-Werkzeug prüfen (`RestCoverageTests.databaseHealthAndScreenshotArgument` Z. ~95–99 nur der Screenshot-Teil, `LayoutCopyTests` Z. ~27–29 und `aFlatImageCountsAsEmptyAndAMarkedOneDoesNot`, falls sie nur `ScreenshotPlan` prüfen), den Schalter `--screenshots` in `SystemNotice` (Z. ~323–327; `AppLaunch.backgroundArgument` bleibt) und das ungenutzte `ScreenshotContextMenu` (`ObjectFileContextMenu.swift` Z. ~489). Prüft ein Testteil auch Anderes, nur den Screenshot-Teil entfernen.
+- Akzeptanz: `grep -rn "ScreenshotPlan\|ScreenshotRunner\|ScreenshotContextMenu\|--screenshots" diskindex/` leer; 0 Warnungen; betroffene Suites grün.
+
 **bug.0.4.031 — Identität: Klone und Volume-Umbenennung (REPORT 116, 78).**
 - a) 116: `volumeAppeared` verwirft einen Treffer, dessen Medium-ID schon unter einem **anderen, noch eingehängten** Pfad steht, und behandelt ihn wie mehrdeutig (neues Medium mit Dialog). Nie zwei Pfade für ein Medium.
 - b) 78: `NSWorkspace.didRenameVolumeNotification` (`NSWorkspaceVolumeOldURLKey`/`NSWorkspaceVolumeURLKey`) als eigenes `MediumEvent`. Den Pfadschlüssel im Coordinator umbiegen, den Watcher mit neuem `VolumeInfo` stoppen und neu starten. Zusätzlich `kFSEventStreamCreateFlagWatchRoot` setzen.
@@ -130,6 +141,10 @@ bug.0.4.031: a) `volumeAppeared` verwirft Treffer, die unter anderem Pfad eingeh
 Tests: `MediumIdentityTests` (6: Klon, Rename, Rename im Lauf, Rückfrage/Behalten/Vergessen, zwei Offline-„USB“), `ReplaceMediumDialogWindowTests` (Fenster außerhalb, 340 / 149 × 38,8 hell+dunkel, Klick beide Knöpfe). Sabotage rot ✓ 09:10:22 (Klon-Schutz, Watcher-Neustart, Auslöser aus), 09:11:46 (Knöpfe 154/95,5 statt 149), 09:12:55 (Aktionen vertauscht); zurückgenommen. Seriell grün 09:13:50.
 Neue Texte: `copy.replace_medium.title` „Ersetzt dieses Medium „%1$@“?“ / “Does this medium replace “%1$@”?”; `.body` (Textvorschlag) / “A medium with this name is known but not connected. If it was reformatted, the old one can be forgotten along with its index and favorites.”; `.forget_old` „Altes vergessen“ / “Forget old”; `.keep` „Behalten“ / “Keep”.
 Frage: Steckt nach einem Klon nur eine der beiden Platten, passen zwei Zeilen mit gleicher UUID → „mehrdeutig“, jede weitere Steckung legt eine neue Zeile an. Klon-Zeile ohne `volumeUUID` speichern oder bei Mehrdeutigkeit nachfragen? Außerdem offen für den Stick-Test: `rootChanged` (WatchRoot) beim Abziehen/Umbenennen kann einen Abgleich auf dem alten Pfad anstoßen. Bereit zur Prüfung bis auf die Frage.
+
+**Nacharbeit (Host 17.10. 10:15):**
+- Antwort Klon (Nutzer 17.10.): **Bei Mehrdeutigkeit zwischen bekannten Medien das zuletzt gesehene nehmen** (`lastSeenAt` am größten) und **kein** neues Medium anlegen. Gilt nur, wenn alle Treffer dieselbe starke Kennung haben und keiner unter einem anderen Pfad eingehängt ist; sonst bleibt das heutige Verhalten. Kein neuer Text. Test: Klon angelegt (beide gesteckt) → beide ab → nur der Klon steckt → genau das zuletzt gesehene Medium verbindet sich, Zahl der Medien bleibt gleich; zweimal wiederholt bleibt sie gleich.
+- **Abziehen mit `WatchRoot` absichern (vor dem Stick-Test Pflicht):** `rootChanged` kann beim Abziehen kommen, bevor bzw. ohne dass `unmounted` gesetzt ist. `onFullReconcile` (`LiveWiring`) nimmt heute `coordinator?.volume(for: id) ?? volume`, also den alten Pfad, wenn das Medium schon weg ist → Abgleich ins Leere, womöglich Status „Fehler“. Ist das Medium nicht mehr eingehängt (`coordinator.volume(for:) == nil`), nichts starten; nur Protokollzeile. Test: Medium verbunden → `.disappeared` → `rootChanged` aus der Change-Quelle → kein Start, Status nicht „Fehler“; und Umbenennung → `rootChanged` → genau ein Abgleich unter dem **neuen** Pfad.
 
 **HALT nach Paket 5b = Ende von 0.3.8** — Abnahmekriterien 1–8, dann Version setzen (`todo.0.3.8.001`, `MARKETING_VERSION` auf `0.3.8`, nur nach Abnahmekriterien 1–8), danach 0.3.9.
 
