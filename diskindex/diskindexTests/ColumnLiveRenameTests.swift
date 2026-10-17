@@ -108,20 +108,6 @@ struct ColumnLiveRenameTests {
         }
         #expect(sawNewName)
         #expect(!tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: []).map(\.name).contains("readme.txt"))
-        for _ in 0..<8 {
-            session.window.contentView?.layoutSubtreeIfNeeded()
-            session.window.display()
-            try await Task.sleep(for: .milliseconds(50))
-        }
-        saveScreenshot(session.bitmap())
-    }
-
-    private func saveScreenshot(_ bitmap: NSBitmapImageRep) {
-        let directory = URL(fileURLWithPath: "/Users/jon/Projekte/Disk Index/Werkzeuge/screenshots/2026-10-09-176", isDirectory: true)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let url = directory.appendingPathComponent("spalten-nach-umbenennung.png")
-        guard let data = bitmap.representation(using: .png, properties: [:]) else { return }
-        try? data.write(to: url)
     }
 
     private func firstRowHasInk(_ bitmap: NSBitmapImageRep) -> Bool {

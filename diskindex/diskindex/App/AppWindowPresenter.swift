@@ -19,6 +19,7 @@ enum AppWindowPresenter {
     private static var mainWindow: NSWindow?
     private static var newMediumPanels: [UUID: NSPanel] = [:]
     private static var crashReportWindow: NSPanel?
+    private static var replaceMediumPanel: NSPanel?
     private static var windowDelegates: [ObjectIdentifier: PresenterWindowDelegate] = [:]
 
     /// Anzahl offener Erkennungs-Panels (Tests).
@@ -147,6 +148,47 @@ enum AppWindowPresenter {
             panel.orderOut(nil)
         }
         crashReportWindow?.orderOut(nil)
+        replaceMediumPanel?.orderOut(nil)
+    }
+
+    /// Rückfrage „Ersetzt dieses Medium?“ als schwebendes Panel wie der Erkennungs-Dialog (bug.0.4.031 c).
+    static func openReplaceMediumPrompt(appState: AppState) {
+        guard appState.replaceMediumPrompt != nil else { return }
+        if let panel = replaceMediumPanel {
+            panel.orderFrontRegardless()
+            panel.makeKey()
+            return
+        }
+        let hosting = NSHostingView(
+            rootView: ReplaceMediumDialogWindowHost(onDone: { closeReplaceMediumPrompt() })
+                .environment(appState)
+        )
+        let size = hosting.fittingSize
+        let panel = KeyablePanel(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.hidesOnDeactivate = false
+        panel.isMovableByWindowBackground = true
+        panel.contentView = hosting
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        panel.center()
+        register(panel) { replaceMediumPanel = nil }
+        replaceMediumPanel = panel
+        panel.orderFrontRegardless()
+        panel.makeKey()
+    }
+
+    static func closeReplaceMediumPrompt() {
+        replaceMediumPanel?.close()
     }
 
     static func openCrashReport() {

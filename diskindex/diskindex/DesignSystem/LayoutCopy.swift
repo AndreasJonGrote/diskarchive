@@ -183,6 +183,13 @@ nonisolated enum LayoutCopy {
         L10n.format("copy.new_medium.body", name, type, size)
     }
 
+    static func replaceMediumTitle(name: String) -> String {
+        L10n.format("copy.replace_medium.title", name)
+    }
+    static var replaceMediumBody: String { L10n.string("copy.replace_medium.body") }
+    static var replaceMediumForgetOld: String { L10n.string("copy.replace_medium.forget_old") }
+    static var replaceMediumKeep: String { L10n.string("copy.replace_medium.keep") }
+
     static func indexFailedTitle(name: String) -> String {
         L10n.format("copy.index.failed.title", name)
     }

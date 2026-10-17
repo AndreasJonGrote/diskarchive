@@ -96,10 +96,10 @@ func connectedTestMedium(from stored: StoredMedium) -> Medium {
 
 /// Testvolume mit eigener Volume-UUID: der Coordinator erkennt es nach `recordIdentity` eindeutig wieder
 /// (ohne UUID und Erstellungsdatum gibt es nur einen schwachen Treffer → Erkennungs-Dialog).
-func testVolume(path: String, name: String, fsType: String = "apfs") -> VolumeInfo {
+func testVolume(path: String, name: String, fsType: String = "apfs", uuid: String = UUID().uuidString) -> VolumeInfo {
     VolumeInfo(
         mountPath: path, name: name, fsType: fsType,
-        volumeTotalBytes: 1_000, volumeFreeBytes: nil, diskSizeBytes: nil, volumeUUID: UUID().uuidString,
+        volumeTotalBytes: 1_000, volumeFreeBytes: nil, diskSizeBytes: nil, volumeUUID: uuid,
         createdAt: nil, isRemovable: true, isEjectable: true, isInternal: false, isLocal: true,
         deviceProtocol: "USB", model: nil, isTimeMachineSnapshot: false
     )
@@ -112,7 +112,12 @@ struct WiredRig {
     let service: IndexingService
     let coordinator: MediumCoordinator
 
-    init(store: IndexStoreV3, access: any MediumAccess, app: AppState) {
+    init(
+        store: IndexStoreV3,
+        access: any MediumAccess,
+        app: AppState,
+        startWatching: @escaping (UUID, VolumeInfo) async -> Void = { _, _ in }
+    ) {
         self.app = app
         service = IndexingService(store: store, access: access, appState: app)
         coordinator = MediumCoordinator(store: store, access: access, appState: app)
@@ -121,7 +126,7 @@ struct WiredRig {
             service: service,
             watcher: ChangeWatcher(store: store, access: access, appState: app),
             appState: app,
-            startWatching: { _, _ in }
+            startWatching: startWatching
         )
     }
 

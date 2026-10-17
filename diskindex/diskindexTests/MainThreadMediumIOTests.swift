@@ -11,13 +11,8 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct MainThreadMediumIOTests {
+    /// bug.0.3.8.004: prüft „Probe nicht auf main“ und „main nicht blockiert“ statt Ticks zu zählen.
     @Test func directProbeKeepsMainActorResponsive() async throws {
-        try await DirectMediumAccess.$probeDelayForTesting.withValue(2.0) {
-            try await directProbeKeepsMainActorResponsiveBody()
-        }
-    }
-
-    private func directProbeKeepsMainActorResponsiveBody() async throws {
         let mount = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-probe-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: mount, withIntermediateDirectories: true)
@@ -39,18 +34,26 @@ struct MainThreadMediumIOTests {
             model: nil,
             isTimeMachineSnapshot: false
         )
-        let ticker = MainActorTickCounter()
-        let tickerTask = Task { @MainActor in
-            while !Task.isCancelled {
-                ticker.bump()
-                try? await Task.sleep(for: .milliseconds(50))
+        let (threads, report) = AsyncStream.makeStream(of: (onMain: Bool, at: ContinuousClock.Instant).self)
+        let probing = DirectMediumAccess.$probeThreadObserverForTesting.withValue({ report.yield(($0, .now)) }) {
+            DirectMediumAccess.$probeDelayForTesting.withValue(2.0) {
+                Task { @MainActor in await DirectMediumAccess().probe(volume) }
             }
         }
-        let access = DirectMediumAccess()
-        let result = await access.probe(volume)
-        tickerTask.cancel()
+        // Meldet die Prüfung nie ihren Beginn, endet der Strom mit ihr (rot statt Hängen).
+        Task { _ = await probing.value; report.finish() }
+        var reports = threads.makeAsyncIterator()
+        let began = try #require(await reports.next())
+        #expect(began.onMain == false)
+
+        // Die Prüfung schläft ab `began.at` 2 s im Hintergrund; der MainActor-Sprung muss vor dem Ende dieser
+        // Pause ankommen (Reihenfolge statt knapper Zeitgrenze). Auf main ausgeführt wäre er erst danach frei.
+        await Task { @MainActor in }.value
+        #expect(ContinuousClock.now < began.at + .seconds(2))
+
+        let result = await probing.value
         #expect(result == .granted)
-        #expect(ticker.count >= 8)
+        report.finish()
     }
 
     @Test func networkStyleMountPathSkipsVolumeLookup() async {
@@ -63,10 +66,4 @@ struct MainThreadMediumIOTests {
         let paths = LocalVolumeMounts.candidateMountPaths()
         #expect(!paths.contains { $0.hasPrefix("/Network/") })
     }
-}
-
-@MainActor
-private final class MainActorTickCounter {
-    private(set) var count = 0
-    func bump() { count += 1 }
 }

@@ -138,6 +138,30 @@ extension AppState {
         pendingNewMediumDecisionIDs.removeAll()
     }
 
+    /// Neues Medium nach der Entscheidung im Erkennungs-Dialog: genau ein Offline-Medium gleichen Namens → Rückfrage.
+    /// Mehrere Treffer: keine Rückfrage. Nie automatisch vergessen.
+    @discardableResult
+    func offerReplaceMediumPrompt(newID: UUID) -> Bool {
+        guard let newMedium = medium(with: newID) else { return false }
+        let offlineNamesakes = media.filter {
+            $0.id != newID && !$0.isForgotten && $0.connectionStatus == .offline && $0.name == newMedium.name
+        }
+        guard offlineNamesakes.count == 1, let old = offlineNamesakes.first else { return false }
+        DiskIndexLog.shared.ui("replace prompt new=\(newID) old=\(old.id)")
+        replaceMediumPrompt = ReplaceMediumPrompt(newID: newID, oldID: old.id, name: newMedium.name)
+        return true
+    }
+
+    /// „Altes vergessen“ geht über den bestehenden Vergessen-Weg; „Behalten“ ändert nichts.
+    func resolveReplaceMediumPrompt(forgetOld: Bool) {
+        guard let prompt = replaceMediumPrompt else { return }
+        replaceMediumPrompt = nil
+        DiskIndexLog.shared.ui("replace prompt forgetOld=\(forgetOld)")
+        if forgetOld {
+            forgetMedium(id: prompt.oldID)
+        }
+    }
+
     func forgetMedium(id: UUID) {
         guard featureAccess.canWriteIndex else { return }
         DiskIndexLog.shared.ui("forget id=\(id)")

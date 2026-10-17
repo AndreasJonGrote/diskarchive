@@ -70,12 +70,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppDefaults.current.set(true, forKey: NoticePermission.askedKey)
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         }
-        #if DEBUG
-        if let folder = ScreenshotPlan.folder(arguments: CommandLine.arguments) {
-            ScreenshotRunner.run(folder: folder, appState: appState)
-            return
-        }
-        #endif
         observeSleep(appState)
         MenuBarController.shared.install(appState: appState)
         appState.onRetryIndexStoreOpen = { [weak self] in

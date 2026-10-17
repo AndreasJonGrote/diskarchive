@@ -122,6 +122,14 @@ nonisolated struct FailureCount: Codable {
     var hourStart: Date
 }
 
+/// Rückfrage „Ersetzt dieses Medium?“ (bug.0.4.031 c, todo.0.4.032): neues Medium und ein Offline-Medium gleichen Namens.
+nonisolated struct ReplaceMediumPrompt: Equatable, Identifiable {
+    var newID: UUID
+    var oldID: UUID
+    var name: String
+    var id: UUID { newID }
+}
+
 nonisolated struct IndexingFailureNotice: Equatable, Identifiable {
     var id: UUID
     var name: String

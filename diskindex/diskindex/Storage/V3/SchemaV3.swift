@@ -3,7 +3,7 @@
 //  diskindex
 //
 //  Schema 0.3 eingefroren (238) — Basis-Migration `0.3.0-schema`; ab 0.4 nur Erweiterung (neue Tabellen/Keys),
-//  keine Umbauten bestehender Spalten. Mess-/Abnahmebericht: `Werkzeuge/messung/*-nachher-bericht.md`.
+//  keine Umbauten bestehender Spalten. Mess-/Abnahmebericht: `archiv/messung/*-nachher-bericht.md`.
 //  Schema 0.3 (Aufgaben 230/233), Grundlage `datenbank-konzeption.md` → „Schema-Skizze“. Speichert in `archive.sqlite`.
 //  Kennungen `AUTOINCREMENT` (nie wiederverwendet), Verweise `ON DELETE CASCADE` (Ausnahme: `extID`/`keyID` zeigen auf
 //  Nachschlagetabellen, Löschen ist verboten, solange benutzt), Zeiten als Sekunden seit 1970.

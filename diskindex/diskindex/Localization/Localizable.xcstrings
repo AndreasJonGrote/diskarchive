@@ -1720,6 +1720,74 @@
         }
       }
     },
+    "copy.replace_medium.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ersetzt dieses Medium „%1$@“?"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Does this medium replace “%1$@”?"
+          }
+        }
+      }
+    },
+    "copy.replace_medium.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Medium mit diesem Namen ist bekannt, aber nicht angeschlossen. Wurde es neu formatiert, kann das alte mit Index und Favoriten vergessen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A medium with this name is known but not connected. If it was reformatted, the old one can be forgotten along with its index and favorites."
+          }
+        }
+      }
+    },
+    "copy.replace_medium.forget_old" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Altes vergessen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Forget old"
+          }
+        }
+      }
+    },
+    "copy.replace_medium.keep" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Behalten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep"
+          }
+        }
+      }
+    },
     "copy.index.failed.title" : {
       "extractionState" : "stale",
       "localizations" : {

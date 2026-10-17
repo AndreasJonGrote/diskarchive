@@ -33,19 +33,15 @@ struct StartupSequenceTests {
         let (events, continuation) = AsyncStream.makeStream(of: MediumEvent.self)
         continuation.yield(.appeared(rig.volume(name: "Spät", path: "/Volumes/SPAET", uuid: "UUID-SPAET")))
 
-        var ticks = 0
-        let ticker = Task { @MainActor in
-            while !Task.isCancelled {
-                ticks += 1
-                try? await Task.sleep(for: .milliseconds(100))
-            }
-        }
+        // bug.0.3.8.004: statt Ticks zu zählen: Öffnen läuft nicht auf main, und ein MainActor-Sprung kommt
+        // an, solange das Öffnen noch 2 s schläft.
+        let (opens, report) = AsyncStream.makeStream(of: (onMain: Bool, at: ContinuousClock.Instant).self)
         app.storeOpening = true
         let task = StartupSequence.run(
             previousRunUnclean: false,
             defaults: defaults,
             open: {
-                // 2 s: unter Parallel-Last braucht der MainActor mehr Zeit für ≥5 Ticks.
+                report.yield((Thread.isMainThread, .now))
                 Thread.sleep(forTimeInterval: 2.0)
                 return store
             },
@@ -58,10 +54,16 @@ struct StartupSequenceTests {
         )
         #expect(!app.storeReady)
         #expect(app.isStoreLoading)
+        // Ruft der Start `open` nie auf, endet der Strom mit ihm (rot statt Hängen).
+        Task { await task.value; report.finish() }
+        var reports = opens.makeAsyncIterator()
+        let began = try #require(await reports.next())
+        #expect(began.onMain == false)
+        // Der Sprung muss vor dem Ende der 2-s-Pause in `open` ankommen.
+        await Task { @MainActor in }.value
+        #expect(ContinuousClock.now < began.at + .seconds(2))
         await task.value
-        ticker.cancel()
-        // Unter Parallel-Last weniger MainActor-Ticks; ≥3 zeigt weiter freien Hauptfaden.
-        #expect(ticks >= 3)
+        report.finish()
         #expect(app.storeReady)
         #expect(!app.isStoreLoading)
         let recognised = try await waitUntil { try await store.media().count == 1 }

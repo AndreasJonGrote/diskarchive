@@ -17,6 +17,8 @@ final class MediumCoordinator {
     var onReconcileRequested: ((UUID, VolumeInfo) -> Void)?
     var onWillUnmount: ((UUID) async -> Void)?
     var onMediumDisappeared: ((UUID) async -> Void)?
+    /// Verbundenes Medium unter neuem Pfad (Umbenennung): Watcher bzw. Lauf mit neuem Volume neu starten.
+    var onMediumRenamed: ((UUID, VolumeInfo) async -> Void)?
     /// Laufender Index für `connectKnown` (bug.0.4.028).
     var isIndexingActive: ((UUID) -> Bool)?
     private var requestedIndex: Set<UUID> = []
@@ -83,6 +85,9 @@ final class MediumCoordinator {
         case .disappeared(let path):
             DiskIndexLog.shared.record(.medium, .info, "event disappeared pathLen=\(path.count)")
             await volumeDisappeared(path)
+        case .renamed(let oldPath, let volume):
+            DiskIndexLog.shared.record(.medium, .info, "event renamed pathLen=\(volume.mountPath.count)")
+            await volumeRenamed(from: oldPath, to: volume)
         }
     }
 
@@ -103,7 +108,13 @@ final class MediumCoordinator {
             return
         }
         do {
-            let matches = try await store.candidates(for: volume.identity)
+            let allMatches = try await store.candidates(for: volume.identity)
+            // Klon (gleiche Volume-UUID): ein Medium, das schon unter einem anderen eingehängten Pfad steht, scheidet aus.
+            // Nie zwei Pfade für ein Medium (bug.0.4.031 a).
+            let matches = allMatches.filter { !isMountedElsewhere($0.medium.uuid, than: volume.mountPath) }
+            if matches.count < allMatches.count {
+                DiskIndexLog.shared.record(.medium, .info, "candidate=ja klon belegt=\(allMatches.count - matches.count) pathLen=\(volume.mountPath.count)")
+            }
             if let known = singleStrongMatch(matches) {
                 DiskIndexLog.shared.record(.medium, .info, "candidate=ja eingehängt id=\(known.medium.uuid) stärke=\(known.strength) entscheidung=\(known.medium.decision.rawValue)")
                 try await connectKnown(known.medium, volume: volume)
@@ -119,6 +130,34 @@ final class MediumCoordinator {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
             DiskIndexLog.shared.record(.medium, .error, "erkennen \(error) pathLen=\(volume.mountPath.count)")
         }
+    }
+
+    private func isMountedElsewhere(_ mediumID: UUID, than path: String) -> Bool {
+        mediumByPath.contains { $0.value == mediumID && $0.key != path && mounted[$0.key] != nil }
+    }
+
+    private func volumeRenamed(from oldPath: String, to volume: VolumeInfo) async {
+        mounted[oldPath] = nil
+        guard let id = mediumByPath.removeValue(forKey: oldPath) else {
+            await volumeAppeared(volume)
+            return
+        }
+        mounted[volume.mountPath] = volume
+        mediumByPath[volume.mountPath] = id
+        DiskIndexLog.shared.record(.medium, .info, "umbenannt id=\(id)", privateDetail: volume.mountPath)
+        do {
+            if var stored = try await store.medium(uuid: id) {
+                stored.name = volume.name
+                stored.lastSeenAt = Date()
+                try await store.updateMediumRecognition(uuid: id, stored)
+                publish(stored, connection: .connected)
+            }
+        } catch {
+            if DiskIndexLog.isOperationalFailure(error) {
+                DiskIndexLog.shared.record(.store, .error, "umbenennen \(error)")
+            }
+        }
+        await onMediumRenamed?(id, volume)
     }
 
     /// Mehrere gleich starke Treffer werden nicht automatisch vermischt.
@@ -378,6 +417,9 @@ final class MediumCoordinator {
             }
             let connection: ConnectionStatus = volume(for: mediumID) != nil ? .connected : .offline
             publish(stored, connection: connection)
+            if appState.offerReplaceMediumPrompt(newID: mediumID), !Self.isRunningUnitTests {
+                AppWindowPresenter.openReplaceMediumPrompt(appState: appState)
+            }
             guard allowIndexing, let volume = volume(for: mediumID) else { return }
             requestIndex(mediumID: mediumID, volume: volume)
         }

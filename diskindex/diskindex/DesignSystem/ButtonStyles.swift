@@ -81,3 +81,20 @@ struct SecondaryButtonStyle: ButtonStyle {
             .contentShape(RoundedRectangle(cornerRadius: DesignRadius.sm))
     }
 }
+
+/// Katalog „Destruktiv“: Rand und Schrift Rot (`#e04830`), Fläche leer; Maße wie die übrigen großen Knöpfe.
+struct DestructiveButtonStyle: ButtonStyle {
+    var size: DesignButtonSize = .standard
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: size.fontSize, weight: .semibold))
+            .padding(.horizontal, size.horizontalPadding)
+            .padding(.vertical, size.verticalPadding)
+            .frame(height: size.height)
+            .foregroundStyle(DesignColor.stateError)
+            .background(configuration.isPressed ? DesignColor.stateError.opacity(0.08) : Color.clear)
+            .designControlBorder(DesignColor.stateError)
+            .contentShape(RoundedRectangle(cornerRadius: DesignRadius.sm))
+    }
+}

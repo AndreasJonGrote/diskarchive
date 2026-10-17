@@ -59,6 +59,7 @@ final class AppState {
     var settingsScrollTarget: SettingsScrollTarget?
     var heldForSleep = false
     var indexingFailure: IndexingFailureNotice?
+    var replaceMediumPrompt: ReplaceMediumPrompt?
     var versionLockState: VersionLockState = .unlocked
     var versionLockBannerVisible = false
     var updateNotice: UpdateNotice?

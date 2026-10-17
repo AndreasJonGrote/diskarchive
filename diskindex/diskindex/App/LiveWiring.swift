@@ -82,14 +82,16 @@ enum LiveWiring {
         watcher.isIndexingActive = { [weak service] id in
             service?.isRunActive(id) ?? false
         }
-        watcher.onFullReconcile = { [weak service, weak watcher] id, volume in
+        watcher.onFullReconcile = { [weak service, weak watcher, weak coordinator] id, volume in
             guard appState.featureAccess.canWriteIndex else { return }
+            // Nach einer Umbenennung kennt der Coordinator schon den neuen Pfad (bug.0.4.031 b).
+            let current = coordinator?.volume(for: id) ?? volume
             Task {
                 await stopWatcherAndStartIndex(
                     watcher: watcher,
                     service: service,
                     id: id,
-                    volume: volume,
+                    volume: current,
                     fromScratch: false
                 )
             }
@@ -106,6 +108,17 @@ enum LiveWiring {
         }
         coordinator.onMediumDisappeared = { [weak watcher] id in
             await watcher?.stop(mediumID: id)
+        }
+        coordinator.onMediumRenamed = { [weak service, weak watcher] id, volume in
+            guard appState.featureAccess.canWriteIndex else { return }
+            if service?.isRunActive(id) == true {
+                // Der Lauf liest noch unter dem alten Pfad: abbrechen und als Abgleich neu starten.
+                await service?.cancel(mediumUUID: id)
+                await stopWatcherAndStartIndex(watcher: watcher, service: service, id: id, volume: volume, fromScratch: false)
+                return
+            }
+            await watcher?.stop(mediumID: id)
+            await startWatching(id, volume)
         }
         coordinator.setIndexHandler { [weak service, weak watcher] id, volume in
             guard appState.featureAccess.canWriteIndex else { return }

@@ -55,6 +55,8 @@ nonisolated enum MediumEvent: Sendable, Equatable {
     case appeared(VolumeInfo)
     case willDisappear(path: String)
     case disappeared(path: String)
+    /// Volume umbenannt (bug.0.4.031 b): alter Einhängepfad, Volume unter dem neuen Pfad.
+    case renamed(oldPath: String, volume: VolumeInfo)
 }
 
 nonisolated struct MountEventDebouncer {

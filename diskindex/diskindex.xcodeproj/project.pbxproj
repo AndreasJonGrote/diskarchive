@@ -19,13 +19,6 @@
 			remoteGlobalIDString = FCE034DA306047A600C9FEEB;
 			remoteInfo = diskindex;
 		};
-		FCE034F5306047A800C9FEEB /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = FCE034D3306047A600C9FEEB /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = FCE034DA306047A600C9FEEB;
-			remoteInfo = diskindex;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -45,7 +38,6 @@
 /* Begin PBXFileReference section */
 		FCE034DB306047A600C9FEEB /* Disk Index.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = "Disk Index.app"; path = "Disk Archive.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCE034EA306047A800C9FEEB /* diskindexTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = diskindexTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		FCE034F4306047A800C9FEEB /* diskindexUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = diskindexUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FCE03510306047A800C9FEEB /* app.diskarchive.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = app.diskarchive.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -58,11 +50,6 @@
 		FCE034ED306047A800C9FEEB /* diskindexTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = diskindexTests;
-			sourceTree = "<group>";
-		};
-		FCE034F7306047A800C9FEEB /* diskindexUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = diskindexUITests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -83,13 +70,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		FCE034F1306047A800C9FEEB /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -99,7 +79,6 @@
 				FCE034DD306047A600C9FEEB /* diskindex */,
 				FCE03513306047A800C9FEEB /* LaunchAgent */,
 				FCE034ED306047A800C9FEEB /* diskindexTests */,
-				FCE034F7306047A800C9FEEB /* diskindexUITests */,
 				FCE034DC306047A600C9FEEB /* Products */,
 			);
 			sourceTree = "<group>";
@@ -109,7 +88,6 @@
 			children = (
 				FCE034DB306047A600C9FEEB /* Disk Index.app */,
 				FCE034EA306047A800C9FEEB /* diskindexTests.xctest */,
-				FCE034F4306047A800C9FEEB /* diskindexUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -173,29 +151,6 @@
 			productReference = FCE034EA306047A800C9FEEB /* diskindexTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		FCE034F3306047A800C9FEEB /* diskindexUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = FCE03504306047A800C9FEEB /* Build configuration list for PBXNativeTarget "diskindexUITests" */;
-			buildPhases = (
-				FCE034F0306047A800C9FEEB /* Sources */,
-				FCE034F1306047A800C9FEEB /* Frameworks */,
-				FCE034F2306047A800C9FEEB /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				FCE034F6306047A800C9FEEB /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				FCE034F7306047A800C9FEEB /* diskindexUITests */,
-			);
-			name = diskindexUITests;
-			packageProductDependencies = (
-			);
-			productName = diskindexUITests;
-			productReference = FCE034F4306047A800C9FEEB /* diskindexUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -210,10 +165,6 @@
 						CreatedOnToolsVersion = 26.3;
 					};
 					FCE034E9306047A800C9FEEB = {
-						CreatedOnToolsVersion = 26.3;
-						TestTargetID = FCE034DA306047A600C9FEEB;
-					};
-					FCE034F3306047A800C9FEEB = {
 						CreatedOnToolsVersion = 26.3;
 						TestTargetID = FCE034DA306047A600C9FEEB;
 					};
@@ -239,7 +190,6 @@
 			targets = (
 				FCE034DA306047A600C9FEEB /* diskindex */,
 				FCE034E9306047A800C9FEEB /* diskindexTests */,
-				FCE034F3306047A800C9FEEB /* diskindexUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -253,13 +203,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		FCE034E8306047A800C9FEEB /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		FCE034F2306047A800C9FEEB /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -303,13 +246,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		FCE034F0306047A800C9FEEB /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -317,11 +253,6 @@
 			isa = PBXTargetDependency;
 			target = FCE034DA306047A600C9FEEB /* diskindex */;
 			targetProxy = FCE034EB306047A800C9FEEB /* PBXContainerItemProxy */;
-		};
-		FCE034F6306047A800C9FEEB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = FCE034DA306047A600C9FEEB /* diskindex */;
-			targetProxy = FCE034F5306047A800C9FEEB /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -566,44 +497,6 @@
 			};
 			name = Release;
 		};
-		FCE03505306047A800C9FEEB /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = KATFD9R38G;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.3.2;
-				PRODUCT_BUNDLE_IDENTIFIER = xjonx.diskindexUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = diskindex;
-			};
-			name = Debug;
-		};
-		FCE03506306047A800C9FEEB /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = KATFD9R38G;
-				GENERATE_INFOPLIST_FILE = YES;
-				MARKETING_VERSION = 0.3.2;
-				PRODUCT_BUNDLE_IDENTIFIER = xjonx.diskindexUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				STRING_CATALOG_GENERATE_SYMBOLS = NO;
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 5.0;
-				TEST_TARGET_NAME = diskindex;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -630,15 +523,6 @@
 			buildConfigurations = (
 				FCE03502306047A800C9FEEB /* Debug */,
 				FCE03503306047A800C9FEEB /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		FCE03504306047A800C9FEEB /* Build configuration list for PBXNativeTarget "diskindexUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				FCE03505306047A800C9FEEB /* Debug */,
-				FCE03506306047A800C9FEEB /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

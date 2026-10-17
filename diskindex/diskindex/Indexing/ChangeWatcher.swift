@@ -480,7 +480,10 @@ nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked S
             copyDescription: nil
         )
         let paths = [mountPath] as CFArray
-        let flags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseCFTypes)
+        // `WatchRoot`: Umbenennen oder Verschieben des Einhängepunkts meldet `rootChanged` (bug.0.4.031 b).
+        let flags = FSEventStreamCreateFlags(
+            kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagWatchRoot
+        )
         let start = FSEventsResume.streamStart(
             resumeVolumeUUID: resumeVolumeUUID,
             resumeLastEventID: resumeLastEventID,

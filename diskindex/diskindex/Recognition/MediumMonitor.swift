@@ -64,6 +64,11 @@ final class MediumMonitor {
                         self.emitPath(note, kind: "did", event: { .disappeared(path: $0) }, continuation: continuation)
                     }
                 },
+                center.addObserver(forName: NSWorkspace.didRenameVolumeNotification, object: nil, queue: .main) { note in
+                    MainActor.assumeIsolated {
+                        self.emitRename(note, continuation: continuation)
+                    }
+                },
             ]
             let wakes = self.wakeEvents()
             let wakeTask = Task { @MainActor in
@@ -106,6 +111,19 @@ final class MediumMonitor {
             await MainActor.run {
                 guard self.debouncer.shouldEmit(path: info.mountPath, kind: "appeared") else { return }
                 continuation.yield(.appeared(info))
+            }
+        }
+    }
+
+    private func emitRename(_ note: Notification, continuation: AsyncStream<MediumEvent>.Continuation) {
+        guard let newURL = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL,
+              let oldURL = note.userInfo?[NSWorkspace.oldVolumeURLUserInfoKey] as? URL else { return }
+        let oldPath = oldURL.standardizedFileURL.path
+        Task {
+            guard let info = await VolumeLookup.info(at: newURL) else { return }
+            await MainActor.run {
+                guard self.debouncer.shouldEmit(path: info.mountPath, kind: "renamed") else { return }
+                continuation.yield(.renamed(oldPath: oldPath, volume: info))
             }
         }
     }

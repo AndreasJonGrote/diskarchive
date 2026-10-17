@@ -2,7 +2,7 @@
 //  ToolbarFillTests.swift
 //  diskindexTests
 //
-//  Aufgabe 163: Füllung der aktiven Nicht-Home-Icons ist 50 %. Vergleichsbogen für die Auswahl.
+//  Aufgabe 163: Füllung der aktiven Nicht-Home-Icons ist 50 %.
 //
 
 import AppKit
@@ -23,18 +23,6 @@ struct ToolbarFillTests {
         let half = await render(icon(opacity: 0.50), scheme: .light, size: CGSize(width: 80, height: 80))
         let solid = await render(icon(opacity: 0.95), scheme: .light, size: CGSize(width: 80, height: 80))
         #expect(distance(production, half) < distance(production, solid))
-    }
-
-    @Test func comparisonSheets() async {
-        let folder = URL(fileURLWithPath: "/Users/jon/Projekte/Disk Index/Werkzeuge/screenshots/2026-10-08-163", isDirectory: true)
-        try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let sheet = CGSize(width: 520, height: 360)
-        let light = await render(IconFillComparison(), scheme: .light, size: sheet)
-        let dark = await render(IconFillComparison(), scheme: .dark, size: sheet)
-        try? light.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("icons-vergleich-hell.png"))
-        try? dark.representation(using: .png, properties: [:])?.write(to: folder.appendingPathComponent("icons-vergleich-dunkel.png"))
-        #expect(FileManager.default.fileExists(atPath: folder.appendingPathComponent("icons-vergleich-hell.png").path))
-        #expect(FileManager.default.fileExists(atPath: folder.appendingPathComponent("icons-vergleich-dunkel.png").path))
     }
 
     private func icon(opacity: Double) -> some View {
@@ -75,44 +63,6 @@ struct ToolbarFillTests {
 
     private func srgb(_ color: NSColor) -> NSColor {
         color.usingColorSpace(.sRGB) ?? color
-    }
-}
-
-private struct IconFillComparison: View {
-    private let rows: [(String, String, String, ToolbarNavIconRole)] = [
-        ("Einstellungen", "NavGearFill", "NavGearStroke", .settings),
-        ("Filter", "IconFunnelFill", "IconFunnelStroke", .filter),
-        ("Suche", "IconMagnifyingGlassFill", "IconMagnifyingGlassStroke", .search),
-        ("Favoriten", "NavBookmarksFill", "NavBookmarksStroke", .favorites),
-    ]
-    private let fills: [Double] = [0.30, 0.50, 0.70, 0.95]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Text(" ").frame(width: 110, alignment: .leading)
-                ForEach(fills, id: \.self) { value in
-                    Text("\(Int(value * 100)) %")
-                        .font(.system(size: 12, weight: .semibold))
-                        .frame(width: 88)
-                }
-            }
-            ForEach(rows, id: \.0) { row in
-                HStack(spacing: 8) {
-                    Text(row.0)
-                        .font(.system(size: 12))
-                        .frame(width: 110, alignment: .leading)
-                    ForEach(fills, id: \.self) { value in
-                        ComparisonIcon(fill: row.1, stroke: row.2, role: row.3, opacity: value, scale: 4)
-                            .frame(width: 88, height: 72)
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .frame(width: 520, height: 360, alignment: .topLeading)
-        .background(DesignColor.bg)
-        .foregroundStyle(DesignColor.text)
     }
 }
 
