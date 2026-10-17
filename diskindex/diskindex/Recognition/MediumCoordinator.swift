@@ -120,6 +120,12 @@ final class MediumCoordinator {
                 try await connectKnown(known.medium, volume: volume)
                 return
             }
+            // Klon allein gesteckt (Nutzer 17.10.): gleich starke Treffer, keiner anderswo eingehängt → zuletzt gesehenes.
+            if matches.count == allMatches.count, let recent = mostRecentlySeen(matches) {
+                DiskIndexLog.shared.record(.medium, .info, "candidate=ja mehrdeutig zuletzt gesehen id=\(recent.medium.uuid) treffer=\(matches.count)")
+                try await connectKnown(recent.medium, volume: volume)
+                return
+            }
             if matches.isEmpty {
                 DiskIndexLog.shared.record(.medium, .info, "candidate=ja unbekannt pathLen=\(volume.mountPath.count)")
             } else {
@@ -158,6 +164,19 @@ final class MediumCoordinator {
             }
         }
         await onMediumRenamed?(id, volume)
+    }
+
+    /// Alle Treffer haben dieselbe starke Kennung: das Medium mit dem jüngsten `lastSeenAt` (Gleichstand: `uuid`, fest).
+    private func mostRecentlySeen(_ matches: [MediumCandidate]) -> MediumCandidate? {
+        guard matches.count >= 2, let first = matches.first,
+              first.strength == .uuid || first.strength == .fingerprint,
+              matches.allSatisfy({ $0.strength == first.strength }) else { return nil }
+        return matches.max { lhs, rhs in
+            let left = lhs.medium.lastSeenAt ?? .distantPast
+            let right = rhs.medium.lastSeenAt ?? .distantPast
+            if left != right { return left < right }
+            return lhs.medium.uuid.uuidString < rhs.medium.uuid.uuidString
+        }
     }
 
     /// Mehrere gleich starke Treffer werden nicht automatisch vermischt.

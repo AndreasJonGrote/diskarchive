@@ -485,12 +485,3 @@ private struct RightClickCatcher: NSViewRepresentable {
         }
     }
 }
-
-struct ScreenshotContextMenu: View {
-    var targets: [ObjectContextTarget]
-
-    var body: some View {
-        ObjectContextMenuView(targets: targets, onClose: {})
-            .padding(ObjectContextMenuView.shadowInset)
-    }
-}

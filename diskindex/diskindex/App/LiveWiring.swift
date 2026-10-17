@@ -82,10 +82,13 @@ enum LiveWiring {
         watcher.isIndexingActive = { [weak service] id in
             service?.isRunActive(id) ?? false
         }
-        watcher.onFullReconcile = { [weak service, weak watcher, weak coordinator] id, volume in
+        watcher.onFullReconcile = { [weak service, weak watcher, weak coordinator] id, _ in
             guard appState.featureAccess.canWriteIndex else { return }
-            // Nach einer Umbenennung kennt der Coordinator schon den neuen Pfad (bug.0.4.031 b).
-            let current = coordinator?.volume(for: id) ?? volume
+            // Nicht mehr eingehängt → nichts starten (bug.0.4.031). Sonst gilt der aktuelle Pfad des Coordinators.
+            guard let current = coordinator?.volume(for: id) else {
+                DiskIndexLog.shared.record(.watcher, .info, "abgleich übersprungen nicht eingehängt medium=\(id)")
+                return
+            }
             Task {
                 await stopWatcherAndStartIndex(
                     watcher: watcher,
@@ -111,14 +114,16 @@ enum LiveWiring {
         }
         coordinator.onMediumRenamed = { [weak service, weak watcher] id, volume in
             guard appState.featureAccess.canWriteIndex else { return }
+            // Genau ein Abgleich unter dem neuen Pfad; ein laufender Lauf liest noch den alten und wird ersetzt.
+            // Nach dem Lauf startet `onRunIndexed` den Watcher mit dem neuen Volume.
             if service?.isRunActive(id) == true {
-                // Der Lauf liest noch unter dem alten Pfad: abbrechen und als Abgleich neu starten.
                 await service?.cancel(mediumUUID: id)
-                await stopWatcherAndStartIndex(watcher: watcher, service: service, id: id, volume: volume, fromScratch: false)
-                return
             }
-            await watcher?.stop(mediumID: id)
-            await startWatching(id, volume)
+            await stopWatcherAndStartIndex(watcher: watcher, service: service, id: id, volume: volume, fromScratch: false)
+            // Kein Lauf (z. B. Medium pausiert): Überwachung trotzdem unter dem neuen Pfad weiterführen.
+            if service?.isRunActive(id) != true {
+                await startWatching(id, volume)
+            }
         }
         coordinator.setIndexHandler { [weak service, weak watcher] id, volume in
             guard appState.featureAccess.canWriteIndex else { return }

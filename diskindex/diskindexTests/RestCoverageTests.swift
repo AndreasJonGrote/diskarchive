@@ -89,13 +89,11 @@ struct RestCoverageTests {
         #expect(MediumChip.presentation(medium).text == "Online")
     }
 
-    @Test func databaseHealthAndScreenshotArgument() {
+    @Test func databaseHealthAndNoticePermission() {
         #expect(DatabaseCare.isHealthy("ok"))
         #expect(!DatabaseCare.isHealthy("*** in database main ***"))
-        #expect(ScreenshotPlan.folder(arguments: ["app", "--screenshots", "/tmp/shots"]) == "/tmp/shots")
-        #expect(ScreenshotPlan.folder(arguments: ["app"]) == nil)
         let defaults = UserDefaults(suiteName: "diskindex-notice-\(UUID().uuidString)")!
         #expect(NoticePermission.shouldRequest(arguments: ["app"], defaults: defaults))
-        #expect(!NoticePermission.shouldRequest(arguments: ["app", "--screenshots", "/tmp"], defaults: defaults))
+        #expect(!NoticePermission.shouldRequest(arguments: ["app", AppLaunch.backgroundArgument], defaults: defaults))
     }
 }

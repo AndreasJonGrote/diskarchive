@@ -57,17 +57,14 @@ enum MediumAccessResult: Sendable, Equatable {
 
 nonisolated struct DirectMediumAccess: MediumAccess {
     #if DEBUG
-    @TaskLocal static var probeDelayForTesting: TimeInterval?
-    /// Tests: meldet beim Beginn der Prüfung, ob sie auf dem Haupt-Thread läuft (bug.0.3.8.004).
+    /// Tests: wird zu Beginn der Prüfung mit „läuft auf dem Haupt-Thread?“ aufgerufen und darf dort warten
+    /// (Tor des Tests, bug.0.3.8.004), bevor die Prüfung weiterläuft.
     @TaskLocal static var probeThreadObserverForTesting: (@Sendable (Bool) -> Void)?
     #endif
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult {
         #if DEBUG
-        let testDelay = Self.probeDelayForTesting
         let threadObserver = Self.probeThreadObserverForTesting
-        #else
-        let testDelay: TimeInterval? = nil
         #endif
         return await withTaskGroup(of: MediumAccessResult?.self) { group in
             group.addTask {
@@ -76,9 +73,6 @@ nonisolated struct DirectMediumAccess: MediumAccess {
                         #if DEBUG
                         threadObserver?(Thread.isMainThread)
                         dispatchPrecondition(condition: .notOnQueue(.main))
-                        if let delay = testDelay {
-                            Thread.sleep(forTimeInterval: delay)
-                        }
                         #endif
                         let url = URL(fileURLWithPath: volume.mountPath, isDirectory: true)
                         do {

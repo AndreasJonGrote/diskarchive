@@ -111,6 +111,7 @@ struct WiredRig {
     let app: AppState
     let service: IndexingService
     let coordinator: MediumCoordinator
+    let watcher: ChangeWatcher
 
     init(
         store: IndexStoreV3,
@@ -121,10 +122,11 @@ struct WiredRig {
         self.app = app
         service = IndexingService(store: store, access: access, appState: app)
         coordinator = MediumCoordinator(store: store, access: access, appState: app)
+        watcher = ChangeWatcher(store: store, access: access, appState: app)
         LiveWiring.connect(
             coordinator: coordinator,
             service: service,
-            watcher: ChangeWatcher(store: store, access: access, appState: app),
+            watcher: watcher,
             appState: app,
             startWatching: startWatching
         )

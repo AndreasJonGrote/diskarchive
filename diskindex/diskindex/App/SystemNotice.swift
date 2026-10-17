@@ -320,11 +320,9 @@ nonisolated enum FailureModalThrottle {
 
 nonisolated enum NoticePermission {
     static let askedKey = "diskindex.noticePermissionAsked"
-    /// Gleicher Schalter wie `ScreenshotPlan.argument` (DebugTools); hier als Literal für Release.
-    private static let screenshotsArgument = "--screenshots"
 
     static func shouldRequest(arguments: [String], defaults: UserDefaults) -> Bool {
-        if arguments.contains(screenshotsArgument) || arguments.contains(AppLaunch.backgroundArgument) {
+        if arguments.contains(AppLaunch.backgroundArgument) {
             return false
         }
         return !defaults.bool(forKey: askedKey)

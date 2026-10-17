@@ -33,16 +33,15 @@ struct StartupSequenceTests {
         let (events, continuation) = AsyncStream.makeStream(of: MediumEvent.self)
         continuation.yield(.appeared(rig.volume(name: "Spät", path: "/Volumes/SPAET", uuid: "UUID-SPAET")))
 
-        // bug.0.3.8.004: statt Ticks zu zählen: Öffnen läuft nicht auf main, und ein MainActor-Sprung kommt
-        // an, solange das Öffnen noch 2 s schläft.
-        let (opens, report) = AsyncStream.makeStream(of: (onMain: Bool, at: ContinuousClock.Instant).self)
+        // bug.0.3.8.004: ohne Zeitvergleich. `open` meldet den Thread und wartet auf das Tor, das der Test erst nach
+        // einem gelungenen MainActor-Sprung öffnet (Notfall-Zeitgrenze 10 s nur für den roten Fall).
+        let gate = MainHopGate()
         app.storeOpening = true
         let task = StartupSequence.run(
             previousRunUnclean: false,
             defaults: defaults,
             open: {
-                report.yield((Thread.isMainThread, .now))
-                Thread.sleep(forTimeInterval: 2.0)
+                gate.arrive(onMain: Thread.isMainThread)
                 return store
             },
             wire: { opened in
@@ -54,16 +53,14 @@ struct StartupSequenceTests {
         )
         #expect(!app.storeReady)
         #expect(app.isStoreLoading)
-        // Ruft der Start `open` nie auf, endet der Strom mit ihm (rot statt Hängen).
-        Task { await task.value; report.finish() }
-        var reports = opens.makeAsyncIterator()
-        let began = try #require(await reports.next())
-        #expect(began.onMain == false)
-        // Der Sprung muss vor dem Ende der 2-s-Pause in `open` ankommen.
+        Task { await task.value; gate.finish() }
+        let report = await gate.arrived()
+        try #require(report != nil, "Arbeit endete ohne Meldung")
+        #expect(report == false)
         await Task { @MainActor in }.value
-        #expect(ContinuousClock.now < began.at + .seconds(2))
+        gate.open()
         await task.value
-        report.finish()
+        #expect(gate.timedOut == false, "Öffnen blockierte den MainActor bis zur Notfall-Zeitgrenze")
         #expect(app.storeReady)
         #expect(!app.isStoreLoading)
         let recognised = try await waitUntil { try await store.media().count == 1 }

@@ -11,7 +11,9 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct MainThreadMediumIOTests {
-    /// bug.0.3.8.004: prüft „Probe nicht auf main“ und „main nicht blockiert“ statt Ticks zu zählen.
+    /// bug.0.3.8.004: ohne Zeitvergleich. Die Prüfung meldet ihren Thread und wartet auf ein Tor, das der Test erst
+    /// nach einem gelungenen MainActor-Sprung öffnet. Liefe sie auf main, käme der Sprung nie an: Notfall-Zeitgrenze
+    /// des Tors (10 s) → „Zeitgrenze“ → rot.
     @Test func directProbeKeepsMainActorResponsive() async throws {
         let mount = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-probe-\(UUID().uuidString)", isDirectory: true)
@@ -34,26 +36,22 @@ struct MainThreadMediumIOTests {
             model: nil,
             isTimeMachineSnapshot: false
         )
-        let (threads, report) = AsyncStream.makeStream(of: (onMain: Bool, at: ContinuousClock.Instant).self)
-        let probing = DirectMediumAccess.$probeThreadObserverForTesting.withValue({ report.yield(($0, .now)) }) {
-            DirectMediumAccess.$probeDelayForTesting.withValue(2.0) {
-                Task { @MainActor in await DirectMediumAccess().probe(volume) }
-            }
+        let gate = MainHopGate()
+        let probing = DirectMediumAccess.$probeThreadObserverForTesting.withValue({ gate.arrive(onMain: $0) }) {
+            Task { @MainActor in await DirectMediumAccess().probe(volume) }
         }
-        // Meldet die Prüfung nie ihren Beginn, endet der Strom mit ihr (rot statt Hängen).
-        Task { _ = await probing.value; report.finish() }
-        var reports = threads.makeAsyncIterator()
-        let began = try #require(await reports.next())
-        #expect(began.onMain == false)
+        // Endet die Prüfung, ohne das Tor zu erreichen, endet auch das Warten (rot statt Hängen).
+        Task { _ = await probing.value; gate.finish() }
+        let report = await gate.arrived()
+        try #require(report != nil, "Arbeit endete ohne Meldung")
+        #expect(report == false)
 
-        // Die Prüfung schläft ab `began.at` 2 s im Hintergrund; der MainActor-Sprung muss vor dem Ende dieser
-        // Pause ankommen (Reihenfolge statt knapper Zeitgrenze). Auf main ausgeführt wäre er erst danach frei.
         await Task { @MainActor in }.value
-        #expect(ContinuousClock.now < began.at + .seconds(2))
+        gate.open()
 
         let result = await probing.value
         #expect(result == .granted)
-        report.finish()
+        #expect(gate.timedOut == false, "Prüfung blockierte den MainActor bis zur Notfall-Zeitgrenze")
     }
 
     @Test func networkStyleMountPathSkipsVolumeLookup() async {
@@ -65,5 +63,45 @@ struct MainThreadMediumIOTests {
         #expect(before == VolumeLookupTestHooks.infoCallCount)
         let paths = LocalVolumeMounts.candidateMountPaths()
         #expect(!paths.contains { $0.hasPrefix("/Network/") })
+    }
+}
+
+/// Tor für „läuft nicht auf main“ (bug.0.3.8.004): die Arbeit meldet sich an und wartet, bis der Test öffnet.
+/// Notfall-Zeitgrenze nur für den roten Fall; im grünen Fall gibt es keine Uhrzeit-Erwartung.
+final class MainHopGate: @unchecked Sendable {
+    private let semaphore = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private var didTimeOut = false
+    private let stream: AsyncStream<Bool>
+    private let continuation: AsyncStream<Bool>.Continuation
+
+    init() {
+        (stream, continuation) = AsyncStream.makeStream(of: Bool.self)
+    }
+
+    /// Von der Arbeit aufgerufen (Hintergrund-Thread, im Fehlerfall main): melden, dann warten.
+    func arrive(onMain: Bool) {
+        continuation.yield(onMain)
+        if semaphore.wait(timeout: .now() + 10) == .timedOut {
+            lock.withLock { didTimeOut = true }
+        }
+    }
+
+    /// Erste Meldung der Arbeit; `nil`, wenn sie ohne Meldung endete.
+    func arrived() async -> Bool? {
+        var iterator = stream.makeAsyncIterator()
+        return await iterator.next()
+    }
+
+    func open() {
+        semaphore.signal()
+    }
+
+    func finish() {
+        continuation.finish()
+    }
+
+    var timedOut: Bool {
+        lock.withLock { didTimeOut }
     }
 }

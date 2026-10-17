@@ -24,9 +24,6 @@ struct LayoutCopyTests {
         let wanted = windowLines(from: html)
         let missing = wanted.filter { !source.contains($0) }
         #expect(missing.isEmpty, "fehlt in LayoutCopy: \(missing.joined(separator: " | "))")
-        #expect(ScreenshotPlan.names.count == ScreenshotPlan.bases.count * 2)
-        #expect(ScreenshotPlan.names.contains("02-erkennung-hell"))
-        #expect(ScreenshotPlan.names.contains("14-mitteilung-dunkel"))
     }
 
     @Test func columnAndFilterAuditStringsFromLayoutAreInLayoutCopy() throws {
@@ -53,13 +50,6 @@ struct LayoutCopyTests {
         #expect(LayoutCopy.filterToolbarButton == "Filter")
     }
 
-    @Test func aFlatImageCountsAsEmptyAndAMarkedOneDoesNot() throws {
-        let flat = try bitmap(mark: false)
-        let marked = try bitmap(mark: true)
-        #expect(ScreenshotPixels.isUniform(flat))
-        #expect(!ScreenshotPixels.isUniform(marked))
-    }
-
     @Test func unlimitedDepthShowsTwoCrumbs() {
         let crumbs = ScanDepthExampleFormatting.crumbs(depth: 5, unlimited: true)
         #expect(crumbs.map(\.text) == [LayoutCopy.diskCrumb, LayoutCopy.maxDepthCrumb])
@@ -67,30 +57,6 @@ struct LayoutCopyTests {
 
     @Test func theMediaFilterSaysOffline() {
         #expect(RegistryFilter.offline.label == LayoutCopy.filterOffline)
-    }
-
-    private func bitmap(mark: Bool) throws -> NSBitmapImageRep {
-        let rep = try #require(NSBitmapImageRep(
-            bitmapDataPlanes: nil,
-            pixelsWide: 8,
-            pixelsHigh: 8,
-            bitsPerSample: 8,
-            samplesPerPixel: 4,
-            hasAlpha: true,
-            isPlanar: false,
-            colorSpaceName: .deviceRGB,
-            bytesPerRow: 32,
-            bitsPerPixel: 32
-        ))
-        guard let data = rep.bitmapData else { return rep }
-        let row = rep.bytesPerRow
-        let samples = rep.samplesPerPixel
-        for index in 0..<(8 * row) { data[index] = 240 }
-        if mark {
-            let offset = 2 * row + 2 * samples
-            data[offset] = 10
-        }
-        return rep
     }
 
     private func windowLines(from html: String) -> [String] {

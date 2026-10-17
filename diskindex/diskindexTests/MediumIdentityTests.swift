@@ -51,38 +51,147 @@ struct MediumIdentityTests {
         #expect(try await store.media().count == 2)
     }
 
-    /// b) Rename-Event → `volume(for:)` liefert den neuen Pfad, Watcher startet mit dem neuen Volume;
-    /// Unmount unter dem neuen Pfad setzt offline.
-    @Test func renameRekeysPathRestartsWatcherAndUnmountSetsOffline() async throws {
+    /// b) Rename-Event → `volume(for:)` liefert den neuen Pfad, genau ein Abgleich unter dem neuen Pfad, danach Watcher
+    /// mit dem neuen Volume; ein `rootChanged` aus der neuen Quelle startet nichts mehr; Unmount unter dem neuen Pfad
+    /// setzt offline.
+    @Test func renameRekeysPathReconcilesOnceAndUnmountSetsOffline() async throws {
         let harness = try await ScanHarness.make()
         let id = harness.mediumID
         let shared = UUID().uuidString
         let before = testVolume(path: "/Volumes/OLD", name: "TEST", uuid: shared)
-        let inner = MemoryVolume(mountPath: "/Volumes/OLD")
-        inner.file("a.txt")
-        _ = try await harness.run(access: inner, maxDepth: nil, fromScratch: true, volume: before)
+        let oldMount = MemoryVolume(mountPath: "/Volumes/OLD")
+        oldMount.file("a.txt")
+        let newMount = MemoryVolume(mountPath: "/Volumes/NEU")
+        newMount.file("a.txt")
+        _ = try await harness.run(access: oldMount, maxDepth: nil, fromScratch: true, volume: before)
         try await harness.store.recordIdentity(mediumUUID: id, before.identity)
 
-        let watched = WatchLog()
+        let sources = WatchSources()
         let app = AppState(store: harness.store)
-        let rig = WiredRig(store: harness.store, access: inner, app: app) { mediumID, volume in
-            watched.add(mediumID, volume.mountPath)
+        var rigRef: WiredRig?
+        let rig = WiredRig(store: harness.store, access: RunGateAccess([oldMount, newMount]) { _ in false }, app: app) { mediumID, volume in
+            rigRef?.startScripted(mediumID, volume, sources: sources)
         }
+        rigRef = rig
         await rig.coordinator.handle(.appeared(before))
-        let settled = await waitUntil { watched.paths(for: id).contains("/Volumes/OLD") && !rig.service.isRunActive(id) }
+        let settled = await waitUntil { sources.paths(for: id) == ["/Volumes/OLD"] && !rig.service.isRunActive(id) }
         #expect(settled)
+        #expect(rig.starts(id) == [false])
 
         let after = testVolume(path: "/Volumes/NEU", name: "NEU", uuid: shared)
         await rig.coordinator.handle(.renamed(oldPath: "/Volumes/OLD", volume: after))
         #expect(rig.coordinator.volume(for: id)?.mountPath == "/Volumes/NEU")
         #expect(rig.coordinator.connectedVolumes().count == 1)
-        #expect(watched.paths(for: id) == ["/Volumes/OLD", "/Volumes/NEU"])
         #expect(app.medium(with: id)?.name == "NEU")
         #expect(try await harness.store.medium(uuid: id)?.name == "NEU")
+        let rewatched = await waitUntil { sources.paths(for: id) == ["/Volumes/OLD", "/Volumes/NEU"] && !rig.service.isRunActive(id) }
+        #expect(rewatched)
+        #expect(rig.starts(id) == [false, false])
+        #expect(newMount.listed.contains("/Volumes/NEU"))
+
+        let source = try #require(sources.latest(for: id))
+        source.emit(VolumeChange(path: "/Volumes/NEU", eventID: 50, rootChanged: true))
+        // Positives Signal: der Watcher hat das Ereignis verarbeitet (Ereignisstand 50 gespeichert).
+        let ingested = await waitUntil {
+            await rig.watcher.saveCursor(mediumID: id)
+            return (try? await harness.store.medium(uuid: id))?.lastEventID == 50
+        }
+        #expect(ingested)
+        try await Task.sleep(for: .milliseconds(200))
+        await rig.service.waitUntilIdle(id)
+        #expect(rig.starts(id) == [false, false])
 
         await rig.coordinator.handle(.disappeared(path: "/Volumes/NEU"))
         #expect(app.medium(with: id)?.connectionStatus == .offline)
         #expect(rig.coordinator.volume(for: id) == nil)
+        await rig.watcher.stop(mediumID: id)
+    }
+
+    /// Abziehen: `rootChanged` kommt, solange das Medium noch eingehängt ist (vor dem Aushängen) → kein Abgleich,
+    /// Status nicht „Fehler“; danach `.disappeared` → offline.
+    @Test func rootChangedWhilePullingStartsNoReconcile() async throws {
+        let harness = try await ScanHarness.make()
+        let id = harness.mediumID
+        let volume = testVolume(path: "/Volumes/ZIEH", name: "TEST")
+        let mount = MemoryVolume(mountPath: "/Volumes/ZIEH")
+        mount.file("a.txt")
+        _ = try await harness.run(access: mount, maxDepth: nil, fromScratch: true, volume: volume)
+        try await harness.store.recordIdentity(mediumUUID: id, volume.identity)
+
+        let sources = WatchSources()
+        let app = AppState(store: harness.store)
+        var rigRef: WiredRig?
+        let rig = WiredRig(store: harness.store, access: mount, app: app) { mediumID, volume in
+            rigRef?.startScripted(mediumID, volume, sources: sources)
+        }
+        rigRef = rig
+        await rig.coordinator.handle(.appeared(volume))
+        let settled = await waitUntil { sources.paths(for: id) == ["/Volumes/ZIEH"] && !rig.service.isRunActive(id) }
+        #expect(settled)
+        #expect(rig.starts(id) == [false])
+
+        // Stick ist weg: Lesen schlägt fehl; FSEvents meldet die Wurzel, bevor macOS das Aushängen meldet.
+        mount.failRoot(with: CocoaError(.fileReadNoSuchFile))
+        let source = try #require(sources.latest(for: id))
+        source.emit(VolumeChange(path: "/Volumes/ZIEH", eventID: 60, rootChanged: true))
+        let ingested = await waitUntil {
+            await rig.watcher.saveCursor(mediumID: id)
+            return (try? await harness.store.medium(uuid: id))?.lastEventID == 60
+        }
+        #expect(ingested)
+        try await Task.sleep(for: .milliseconds(200))
+        await rig.service.waitUntilIdle(id)
+        #expect(rig.starts(id) == [false])
+        #expect(try await harness.store.medium(uuid: id)?.indexStatus == .indexed)
+
+        await rig.coordinator.handle(.disappeared(path: "/Volumes/ZIEH"))
+        #expect(app.medium(with: id)?.connectionStatus == .offline)
+        #expect(app.medium(with: id)?.indexStatus != .error)
+        #expect(rig.starts(id) == [false])
+    }
+
+    /// a) Klon allein gesteckt (Nutzer 17.10.): beide Medien bekannt, keiner eingehängt → das zuletzt gesehene verbindet
+    /// sich, kein neues Medium; zweimal wiederholt bleibt die Zahl gleich.
+    @Test func cloneAloneConnectsTheMostRecentlySeenMedium() async throws {
+        let store = try freshStore()
+        let shared = UUID().uuidString
+        let original = testVolume(path: "/Volumes/USB", name: "USB", uuid: shared)
+        let clone = testVolume(path: "/Volumes/USB 1", name: "USB", uuid: shared)
+        let app = AppState(store: store)
+        let rig = WiredRig(store: store, access: GrantedAccess(), app: app)
+
+        await rig.coordinator.handle(.appeared(original))
+        let originalID = try #require(app.newMediumDialogMediumID)
+        app.onNewMediumChoice?(originalID, false, true)
+        await rig.coordinator.waitForChoice()
+        app.completeNewMediumDecision(originalID)
+        await rig.coordinator.handle(.appeared(clone))
+        let cloneID = try #require(app.newMediumDialogMediumID)
+        app.onNewMediumChoice?(cloneID, false, true)
+        await rig.coordinator.waitForChoice()
+        app.completeNewMediumDecision(cloneID)
+        #expect(try await store.media().count == 2)
+
+        // Erst das Original ab, in der nächsten Sekunde der Klon: der Klon ist zuletzt gesehen (`lastSeenAt` in s).
+        await rig.coordinator.handle(.disappeared(path: "/Volumes/USB"))
+        try await sleepIntoNextSecond()
+        await rig.coordinator.handle(.disappeared(path: "/Volumes/USB 1"))
+        #expect(rig.coordinator.connectedVolumes().isEmpty)
+
+        for _ in 0..<2 {
+            await rig.coordinator.handle(.appeared(clone))
+            #expect(rig.coordinator.volume(for: cloneID)?.mountPath == "/Volumes/USB 1")
+            #expect(rig.coordinator.volume(for: originalID) == nil)
+            #expect(app.newMediumDialogMediumID == nil)
+            #expect(try await store.media().count == 2)
+            #expect(app.media.count == 2)
+            await rig.coordinator.handle(.disappeared(path: "/Volumes/USB 1"))
+        }
+    }
+
+    private func sleepIntoNextSecond() async throws {
+        let now = Date().timeIntervalSince1970
+        try await Task.sleep(for: .milliseconds(Int((1 - (now - now.rounded(.down))) * 1_000) + 50))
     }
 
     /// b) Umbenennung während eines laufenden Laufs → Lauf abgebrochen, als Abgleich unter dem neuen Pfad neu gestartet.
@@ -202,15 +311,29 @@ struct MediumIdentityTests {
     }
 }
 
-private final class WatchLog: @unchecked Sendable {
-    private let lock = NSLock()
-    private var calls: [(UUID, String)] = []
+/// Watcher-Starts mit skriptbarer Quelle je Start (statt FSEvents), Reihenfolge der Pfade.
+@MainActor
+private final class WatchSources {
+    private var starts: [(id: UUID, path: String, source: ScriptedChangeSource)] = []
 
-    func add(_ id: UUID, _ path: String) {
-        lock.withLock { calls.append((id, path)) }
+    func add(_ id: UUID, _ path: String, _ source: ScriptedChangeSource) {
+        starts.append((id, path, source))
     }
 
     func paths(for id: UUID) -> [String] {
-        lock.withLock { calls.filter { $0.0 == id }.map(\.1) }
+        starts.filter { $0.id == id }.map(\.path)
+    }
+
+    func latest(for id: UUID) -> ScriptedChangeSource? {
+        starts.last { $0.id == id }?.source
+    }
+}
+
+private extension WiredRig {
+    /// Wie `LiveWiring.startWatching`, nur mit Testquelle.
+    func startScripted(_ id: UUID, _ volume: VolumeInfo, sources: WatchSources) {
+        let source = ScriptedChangeSource()
+        sources.add(id, volume.mountPath, source)
+        watcher.start(mediumID: id, volume: volume, source: source)
     }
 }

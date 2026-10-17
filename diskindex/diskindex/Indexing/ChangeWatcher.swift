@@ -247,9 +247,9 @@ final class ChangeWatcher {
             return
         }
         if change.rootChanged {
-            if let volume = volumes[mediumID] {
-                onFullReconcile?(mediumID, volume)
-            }
+            // `WatchRoot` (bug.0.4.031): kommt beim Abziehen oft vor dem Aushängen, nach einer Umbenennung noch vom
+            // alten Strom. Beides melden eigene Ereignisse (`.disappeared`, `.renamed`); hier kein Abgleich ins Leere.
+            DiskIndexLog.shared.record(.watcher, .info, "wurzel geändert medium=\(mediumID), warte auf aushängen/umbenennen")
             return
         }
         if change.mustScanSubDirs, let mount = mounts[mediumID] {
@@ -480,7 +480,8 @@ nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked S
             copyDescription: nil
         )
         let paths = [mountPath] as CFArray
-        // `WatchRoot`: Umbenennen oder Verschieben des Einhängepunkts meldet `rootChanged` (bug.0.4.031 b).
+        // `WatchRoot` (bug.0.4.031 b): Umbenennen/Abziehen meldet `rootChanged`; das wird nur protokolliert, den Abgleich
+        // bzw. das Offline-Setzen übernehmen `.renamed` und `.disappeared`.
         let flags = FSEventStreamCreateFlags(
             kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagWatchRoot
         )
