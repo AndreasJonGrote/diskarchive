@@ -22,11 +22,14 @@ extension AppState {
     private static let maintenanceWaitRounds = 30
 
     private func startDatabaseMaintenanceWorker() {
-        databaseMaintenanceTask = Task(priority: .utility) { [weak self] in
+        let own = WorkerTaskHandle()
+        let task = Task(priority: .utility) { [weak self] in
             guard let self else { return }
             var ranCompaction = false
             defer {
                 Task { @MainActor in
+                    // bug.0.4.062 (REPORT 132): abgebrochen und schon ersetzt → den Handle des neuen nicht löschen.
+                    guard own.isCurrent(self.databaseMaintenanceTask) else { return }
                     self.databaseMaintenanceTask = nil
                     if !ranCompaction, let store = self.indexStore {
                         Task {
@@ -60,6 +63,8 @@ extension AppState {
                 return
             }
         }
+        own.task = task
+        databaseMaintenanceTask = task
     }
 
     func canRunDatabaseMaintenance() -> Bool {

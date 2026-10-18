@@ -39,27 +39,41 @@ enum AppStartup {
     }
 
     /// Letzter Schritt vor dem Prozessende: ausstehende Schreibvorgänge, Checkpoint, Protokollzeile.
+    /// Der Checkpoint läuft im Hintergrund (bug.0.3.9.011): eine gehaltene Schreibsperre blockiert nicht den Hauptthread.
     static func finishTermination(appState: AppState, log: DiskIndexLog) async {
         await appState.prepareForTerminationAsync()
-        appState.indexStore?.checkpoint()
+        await appState.indexStore?.checkpointInBackground()
         log.record(.app, .info, "app terminate ok")
     }
 }
 
-/// Beenden (bug.0.4.042, bug.0.3.9.009): bei Übergabe sofort ohne Abbau; sonst Abbau und Abschluss genau einmal
-/// (zweites SIGTERM oder ⌘Q während `.terminateLater` startet nichts neu) und Antwort spätestens nach der Zeitgrenze.
+/// Beenden (bug.0.4.042, bug.0.3.9.009, bug.0.3.9.011): bei Übergabe sofort ohne Abbau; sonst Abbau und Abschluss
+/// genau einmal (zweites SIGTERM oder ⌘Q während `.terminateLater` startet nichts neu) und Antwort spätestens nach
+/// der Zeitgrenze. Der Zeitgeber läuft auf einer GCD-Queue, nicht auf dem MainActor; die Antwort an AppKit wird auf
+/// main eingereiht. Kommt sie auch nach `exitGrace` nicht an (Hauptthread blockiert), endet der Prozess mit Protokollzeile.
 @MainActor
 final class TerminationFlow {
     nonisolated static let standardTimeout: Duration = .seconds(8)
+    nonisolated static let standardExitGrace: Duration = .seconds(4)
 
     private let timeout: Duration
+    private let exitGrace: Duration
     private let log: DiskIndexLog
+    private let forceExit: @Sendable () -> Void
+    private let state = TerminationReplyState()
     private var started = false
-    private var replied = false
+    private var pendingReply: (@MainActor () -> Void)?
 
-    init(timeout: Duration = TerminationFlow.standardTimeout, log: DiskIndexLog) {
+    init(
+        timeout: Duration = TerminationFlow.standardTimeout,
+        exitGrace: Duration = TerminationFlow.standardExitGrace,
+        log: DiskIndexLog,
+        forceExit: @escaping @Sendable () -> Void = { _exit(0) }
+    ) {
         self.timeout = timeout
+        self.exitGrace = exitGrace
         self.log = log
+        self.forceExit = forceExit
     }
 
     /// `reply` ist in der App `NSApp.reply(toApplicationShouldTerminate: true)` und wird genau einmal aufgerufen.
@@ -72,25 +86,64 @@ final class TerminationFlow {
         if handedOff { return .terminateNow }
         guard !started else { return .terminateLater }
         started = true
+        pendingReply = reply
+        // Zeitgeber vor dem Abbau: auch ein hängender synchroner Abbau wird abgefangen.
+        scheduleDeadline()
         teardown()
-        let deadline = Task { @MainActor [weak self, timeout] in
-            try? await Task.sleep(for: timeout)
-            guard !Task.isCancelled, let self, !self.replied else { return }
-            self.log.record(.app, .error, "app terminate timeout after=\(timeout)")
-            self.answer(reply)
-        }
-        Task { @MainActor [weak self] in
+        Task { @MainActor [self] in
             await finish()
-            deadline.cancel()
-            self?.answer(reply)
+            answer()
         }
         return .terminateLater
     }
 
-    private func answer(_ reply: @MainActor () -> Void) {
-        guard !replied else { return }
-        replied = true
+    /// Unabhängig vom MainActor: feuert auch, wenn der Hauptthread hängt.
+    private func scheduleDeadline() {
+        let state = state
+        let log = log
+        let timeout = timeout
+        let exitGrace = exitGrace
+        let forceExit = forceExit
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Self.seconds(timeout)) { [self] in
+            guard !state.isAnswered else { return }
+            log.record(.app, .error, "app terminate timeout after=\(timeout)")
+            DispatchQueue.main.async {
+                MainActor.assumeIsolated { self.answer() }
+            }
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Self.seconds(exitGrace)) {
+                guard !state.isAnswered else { return }
+                log.record(.app, .error, "app terminate force exit after=\(exitGrace)")
+                forceExit()
+            }
+        }
+    }
+
+    private func answer() {
+        guard state.claim(), let reply = pendingReply else { return }
+        pendingReply = nil
         reply()
+    }
+
+    nonisolated private static func seconds(_ duration: Duration) -> TimeInterval {
+        let parts = duration.components
+        return TimeInterval(parts.seconds) + TimeInterval(parts.attoseconds) / 1e18
+    }
+}
+
+/// „Schon geantwortet“ für Hauptthread und Zeitgeber-Queue (bug.0.3.9.011).
+nonisolated final class TerminationReplyState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var answered = false
+
+    var isAnswered: Bool { lock.withLock { answered } }
+
+    /// `true` genau beim ersten Aufruf.
+    func claim() -> Bool {
+        lock.withLock {
+            guard !answered else { return false }
+            answered = true
+            return true
+        }
     }
 }
 

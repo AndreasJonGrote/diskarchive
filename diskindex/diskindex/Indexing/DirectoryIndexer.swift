@@ -86,6 +86,11 @@ nonisolated struct DirectoryIndexer: Sendable {
         var foldersProcessed = 0
         var needsCounting = false
         let preludeEnd = min(2, configuration.maxDepth ?? 2)
+        // bug.0.4.054 (REPORT 95): eine angehaltene Zählung hat keine Gesamtzahl gespeichert → beim Fortsetzen neu zählen.
+        var countingIncomplete = false
+        if !fromScratch, let flagged = try? await store.scanTotalIsIncomplete(mediumUUID: mediumUUID) {
+            countingIncomplete = flagged
+        }
 
         func countWholeTree() async {
             needsCounting = false
@@ -98,7 +103,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 token: token,
                 shouldHalt: shouldHalt,
                 onProgress: onProgress
-            )
+            ).total
         }
 
         func noteIndexing(finished: Bool) async {
@@ -154,13 +159,15 @@ nonisolated struct DirectoryIndexer: Sendable {
                         configuration: configuration,
                         token: token,
                         shouldHalt: shouldHalt,
+                        // Die alte Gesamtzahl bleibt gültig, eine abgebrochene Nachzählung braucht keinen Merker.
+                        marksIncomplete: false,
                         // Nur `scanTotal` aktualisieren; Phase und Fortschritt meldet allein die Ebenen-Schleife.
                         onProgress: { _ in }
                     )
                     guard await store.indexingIsActive(mediumUUID: mediumUUID, token: token) else { return }
-                    if recount > 0 {
+                    if recount.complete, recount.total > 0 {
                         do {
-                            try await store.setScanTotal(mediumUUID: mediumUUID, total: recount)
+                            try await store.setScanTotal(mediumUUID: mediumUUID, total: recount.total)
                         } catch {
                             if DiskIndexLog.isOperationalFailure(error) {
                                 DiskIndexLog.shared.record(.store, .error, "store error setScanTotal \(error)")
@@ -184,6 +191,21 @@ nonisolated struct DirectoryIndexer: Sendable {
                     finished: false
                 ))
             }
+        } else if countingIncomplete || (scanTotal <= 0 && startDepth <= preludeEnd) {
+            // Fortsetzen nach einer angehaltenen Zählung oder mitten im Vorlauf (noch keine Gesamtzahl):
+            // wie beim ersten Lauf zählen, nicht die Teilsumme bzw. die gespeicherten Einträge nehmen.
+            needsCounting = true
+            await onProgress(IndexProgress(
+                phase: .counting,
+                ratio: 0,
+                filesStored: 0,
+                filesDiscovered: 0,
+                entriesTotal: 0,
+                entriesCompleted: 0,
+                countingCount: 0,
+                finished: false
+            ))
+            if startDepth > preludeEnd { await countWholeTree() }
         } else if scanTotal <= 0 {
             scanTotal = max(entriesCompleted, 1)
         }
@@ -249,13 +271,14 @@ nonisolated struct DirectoryIndexer: Sendable {
                         return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths)
                     }
                     let url = directoryURL(mountPath: volume.mountPath, itemPath: parent.path)
+                    // bug.0.4.056 (REPORT 97): Pfad je Ordner, nicht je Block/Eintrag.
+                    let parentPath = IgnoreMatcher.storedPathSegments(parent.path)
                     do {
                         var folderEntries: [ScannedEntry] = []
                         try await readFolderWithRetry(
                             access: access, url: url, limits: limits,
                             onAttemptBegin: { folderEntries.removeAll(keepingCapacity: true) }
                         ) { chunk in
-                            let parentPath = IgnoreMatcher.storedPathSegments(parent.path)
                             let entries = scannedEntries(from: chunk, matcher: matcher, parentPath: parentPath)
                             if !entries.isEmpty {
                                 do {
@@ -420,14 +443,26 @@ nonisolated struct DirectoryIndexer: Sendable {
         configuration: ScanConfiguration,
         token: UUID,
         shouldHalt: @Sendable () async -> ScanHalt,
+        marksIncomplete: Bool = true,
         onProgress: @escaping @Sendable (IndexProgress) async -> Void
-    ) async -> Int {
+    ) async -> (total: Int, complete: Bool) {
         var total = 0
         var lastNote: ContinuousClock.Instant?
         let matcher = configuration.matcher
         let root = directoryURL(mountPath: volume.mountPath, itemPath: nil)
         var queue: [(url: URL, depth: Int)] = [(root, 1)]
         var queueHead = 0
+        // bug.0.4.054: Merker vor dem Zählen; nur eine vollständige Zählung speichert die Gesamtzahl und löscht ihn.
+        var complete = true
+        if marksIncomplete {
+            do {
+                try await store.markScanTotalIncomplete(mediumUUID: mediumUUID)
+            } catch {
+                if DiskIndexLog.isOperationalFailure(error) {
+                    DiskIndexLog.shared.record(.store, .error, "store error markScanTotalIncomplete \(error)")
+                }
+            }
+        }
 
         func noteCount() async {
             let now = ContinuousClock.now
@@ -446,16 +481,18 @@ nonisolated struct DirectoryIndexer: Sendable {
         }
 
         while queueHead < queue.count {
-            if let halt = await stopped(shouldHalt), halt != .none { break }
+            if Task.isCancelled { complete = false; break }
+            if let halt = await stopped(shouldHalt), halt != .none { complete = false; break }
             let item = queue[queueHead]
             queueHead += 1
             if let maxDepth = configuration.maxDepth, item.depth > maxDepth { continue }
-            if await store.indexingIsActive(mediumUUID: mediumUUID, token: token) == false { break }
+            if await store.indexingIsActive(mediumUUID: mediumUUID, token: token) == false { complete = false; break }
+            // bug.0.4.056 (REPORT 97): Pfad je Ordner statt zwei URL-Standardisierungen je Eintrag.
+            let scanPath = relativePathSegments(from: root, to: item.url)
             do {
                 try await readFolderWithRetry(access: access, url: item.url, limits: configuration.limits, counting: true) { chunk in
                     for entry in chunk {
                         if BulkDirectoryReader.shouldIgnoreName(entry.name) { continue }
-                        let scanPath = relativePathSegments(from: root, to: item.url)
                         if matcher.shouldSkip(name: entry.name, isHidden: entry.isHidden, parentPath: scanPath) { continue }
                         total += 1
                         if entry.isDirectory, !entry.isPackage, !entry.isSymbolicLink {
@@ -473,10 +510,10 @@ nonisolated struct DirectoryIndexer: Sendable {
                 }
             }
         }
-        if total > 0, await store.indexingIsActive(mediumUUID: mediumUUID, token: token) {
+        if complete, total > 0, await store.indexingIsActive(mediumUUID: mediumUUID, token: token) {
             try? await store.setScanTotal(mediumUUID: mediumUUID, total: total)
         }
-        return max(total, 1)
+        return (max(total, 1), complete)
     }
 
     private func readFolderWithRetry(
@@ -582,6 +619,9 @@ nonisolated struct DirectoryIndexer: Sendable {
         return halt == .none ? nil : halt
     }
 
+    /// Takt, in dem der Wächter des Lesestroms den Stillstand prüft (`directoryChunks`; Tests leiten ihre Grenze ab).
+    static let stallWatchdogTick: Duration = .seconds(1)
+
     private static func directoryChunks(
         access: any MediumAccess,
         at url: URL,
@@ -612,7 +652,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 var lastLifeSign = ContinuousClock.now
                 let watchdog = Task {
                     while !cancelled.value {
-                        try await Task.sleep(for: .seconds(1))
+                        try await Task.sleep(for: DirectoryIndexer.stallWatchdogTick)
                         let now = ContinuousClock.now
                         if lastLifeSign.duration(to: now) > .seconds(limits.directoryStallTimeout) {
                             continuation.finish(throwing: DirectoryReadStalled())

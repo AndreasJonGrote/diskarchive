@@ -97,7 +97,6 @@ struct ReadOnlyMediaGuardTests {
     }
 
     @Test func permitsBlocksVolumeAndDocuments() throws {
-        defer { WriteGuard.clearTestingOverrides() }
         #expect(!WriteGuard.permits(URL(fileURLWithPath: "/Volumes/X/foo.txt")))
         let docs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Documents/x.txt")
         #expect(!WriteGuard.permits(docs))
@@ -107,25 +106,30 @@ struct ReadOnlyMediaGuardTests {
         #expect(WriteGuard.permits(tmp))
     }
 
-    @Test func permitsAllowsDataFolderWhenHomeOnExternalVolume() throws {
-        defer { WriteGuard.clearTestingOverrides() }
-        let externalHome = FileManager.default.temporaryDirectory
-            .appendingPathComponent("diskindex-ext-home-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: externalHome, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: externalHome) }
+    @Test func permitsAllowsDataFolderWhenHomeOnExternalVolume() async {
+        // Simuliertes Home auf einem externen Volume: außerhalb aller erlaubten Wurzeln (nicht im Temp-Ordner,
+        // sonst wäre der Pfad ohnehin erlaubt). Nur Pfadprüfung, es wird nichts angelegt.
+        let externalHome = URL(fileURLWithPath: "/Volumes/ExtHome-\(UUID().uuidString)/Users/test", isDirectory: true)
         let dataRoot = externalHome.appendingPathComponent("Library/Application Support/Disk Archive", isDirectory: true)
-        WriteGuard.setExtraAllowedRootsForTesting([dataRoot.path])
-        #expect(WriteGuard.permits(dataRoot.appendingPathComponent("archive.sqlite")))
+        let file = dataRoot.appendingPathComponent("archive.sqlite")
+        // bug.0.3.9.013: Override nur in diesem Task (@TaskLocal), außerhalb wirkungslos.
+        await WriteGuard.$extraAllowedRootsForTesting.withValue([dataRoot.path]) {
+            #expect(WriteGuard.permits(file))
+            // Ein gleichzeitig laufender fremder Task (wie ein paralleler Test) sieht den Override nicht.
+            let elsewhere = await Task.detached { WriteGuard.permits(file) }.value
+            #expect(!elsewhere, "Override wirkt prozessweit")
+        }
+        #expect(!WriteGuard.permits(file), "Override wirkt über den Task hinaus")
     }
 
     @Test func diskIndexLogSkipsWriteWhenDirectoryBlocked() {
-        WriteGuard.clearTestingOverrides()
-        let blocked = URL(fileURLWithPath: "/Volumes/BLOCKEDLOG/diskindex.log")
+        // bug.0.3.9.013: eindeutiger Pfad, Zähler je Pfad statt globalem Zurücksetzen (Regel 20).
+        let blocked = URL(fileURLWithPath: "/Volumes/BLOCKEDLOG-\(UUID().uuidString)/diskindex.log")
         let log = DiskIndexLog(directory: blocked.deletingLastPathComponent())
         log.record(.app, .info, "blocked test line")
         log.flushPendingWritesForTesting()
         #expect(!FileManager.default.fileExists(atPath: blocked.path))
-        #expect(WriteGuard.blockedWriteCount >= 1)
+        #expect(WriteGuard.blockedWriteCount(under: blocked.deletingLastPathComponent()) >= 1)
     }
 
     @Test func partialChecksumReadsWriteProtectedFile() async throws {

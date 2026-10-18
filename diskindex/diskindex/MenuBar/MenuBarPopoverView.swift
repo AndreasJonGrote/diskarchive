@@ -104,7 +104,7 @@ struct MenuBarPopoverView: View {
 
     private var idleContent: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionHeader("ANGESCHLOSSEN")
+            sectionHeader(LayoutCopy.menuConnectedHeader)
                 .padding(.horizontal, MenuBarPopoverLayout.idleContentHorizontalInset)
                 .frame(height: MenuBarPopoverLayout.sectionLabelHeight, alignment: .leading)
                 .padding(.top, MenuBarPopoverLayout.contentTopPadding)

@@ -36,7 +36,13 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     /// Der Lauf davor endete ohne „app terminate ok“ (Aufgabe 219: dann `quick_check`).
     private(set) var previousRunUnclean = false
     /// Fehler aus Speicher, Index, Überwachung und Medien (Aufgabe 61). Nicht im Signal-Handler setzen.
-    var onTrackedError: ((String, String) -> Void)?
+    /// Gesetzt auf main, gelesen von allen Threads (bug.0.4.062, REPORT 132): eigene Sperre, Aufruf außerhalb davon.
+    var onTrackedError: ((String, String) -> Void)? {
+        get { trackedErrorLock.withLock { trackedErrorHandler } }
+        set { trackedErrorLock.withLock { trackedErrorHandler = newValue } }
+    }
+    private let trackedErrorLock = NSLock()
+    private var trackedErrorHandler: ((String, String) -> Void)?
     // bug.0.4.041: Alles, was der Signal-Handler liest, liegt in einmal angelegtem Rohspeicher
     // (`let`-Zeiger, kein Swift-Array, keine Exklusivitätsprüfung, keine Allokation im Handler).
     private static let crumbSlots = 50

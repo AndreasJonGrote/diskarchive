@@ -80,23 +80,34 @@ struct SearchBehaviorTests {
         app.prepareForTermination()
     }
 
-    /// bug.0.3.9.003: Eine direkte Suche bricht den ausstehenden Nachlauf der Live-Suche ab (keine zweite Suche).
+    /// bug.0.3.9.003: Eine direkte Suche bricht den ausstehenden Nachlauf der Live-Suche ab (keine zweite Suche),
+    /// bug.0.3.9.014 b: schon beim Start, nicht erst nach den Ergebnissen. Der Abstand (3 s) misst keine Laufzeit,
+    /// er ist nur das Fenster, in dem der Nachlauf aussteht; groß gewählt, damit eine Suche unter Last ihn nicht
+    /// überholt.
     @Test func directSearchCancelsThePendingLiveSearch() async throws {
         let (app, medium) = try await appWithResults()
         app.updateMedium(id: medium.uuid) { $0.indexStatus = .indexing }
         try #require(app.media.contains { $0.indexStatus == .indexing })
-        let interval = Duration.seconds(1)
+        let interval = Duration.seconds(3)
         try await AppState.$liveSearchIntervalForTesting.withValue(interval) {
             // Letzte Live-Suche „eben“: die nächste Live-Meldung plant den Nachlauf (unabhängig von der Suchdauer).
             app.lastLiveSearchAt = .now
             await app.runSearchAfterLiveChange()
             try #require(app.trailingLiveSearch != nil, "Live-Meldung innerhalb des Abstands plant den Nachlauf")
             let before = app.searchGeneration
-            await app.runSearch()
+            // Langsame Abfrage: solange die Direktsuche läuft, ist der Nachlauf schon abgebrochen.
+            await app.indexStore?.setSearchQueryDelay(.seconds(1))
+            let direct = Task { await app.runSearch() }
+            let running = await waitUntil(timeout: 3) { app.searchState.isSearchInProgress }
+            #expect(running, "Direktsuche lief nicht an")
+            #expect(app.trailingLiveSearch == nil, "Direktsuche bricht den Nachlauf erst nach den Ergebnissen ab")
+            await direct.value
+            await app.indexStore?.setSearchQueryDelay(nil)
             #expect(app.searchGeneration == before + 1)
             #expect(app.trailingLiveSearch == nil, "Direktsuche bricht den Nachlauf ab")
-            // Über die Nachlaufzeit hinaus warten (2,5 × Abstand) und erneut zählen.
-            try await Task.sleep(for: interval * 2.5)
+            // Über die Nachlaufzeit hinaus warten (Abstand + 1 s; die Suche selbst lief schon 1 s davon) und erneut
+            // zählen.
+            try await Task.sleep(for: interval + .seconds(1))
             #expect(app.searchGeneration == before + 1, "Nachlauf lief trotzdem: \(app.searchGeneration - before) Suchen")
         }
         app.prepareForTermination()

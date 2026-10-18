@@ -61,10 +61,11 @@ import Testing
         limits.consecutiveTimeoutLimit = 1
         // Eine Wiederholung nach dem Stillstand würde 60 s warten (gibt es nicht; sonst rot über die Obergrenze).
         limits.readRetryDelays = [.seconds(60)]
-        // bug.0.3.9.008: Die Grenze misst, dass der Wächter rechtzeitig auslöst: Stillstand 1 s + höchstens 2 Takte
-        // des Wächters (1 s, `DirectoryIndexer` Lesestrom) + 5 s Reserve für Last = 8 s. Kein Bezug zur Wiederholungspause.
-        let stall: Duration = .seconds(1)
-        let watchdogTick: Duration = .seconds(1)
+        // bug.0.3.9.008: Die Grenze misst, dass der Wächter rechtzeitig auslöst: Stillstand + höchstens 2 Takte des
+        // Wächters (`DirectoryIndexer.stallWatchdogTick`) + 5 s Reserve für Last. Kein Bezug zur Wiederholungspause.
+        // bug.0.3.9.014 c: beide Werte aus `limits` bzw. dem Produktcode, nicht fest eingetragen.
+        let stall: Duration = .seconds(limits.directoryStallTimeout)
+        let watchdogTick = DirectoryIndexer.stallWatchdogTick
         let bound = stall + watchdogTick * 2 + .seconds(5)
         let started = ContinuousClock.now
         let outcome = try await harness.run(access: access, maxDepth: nil, limits: limits)

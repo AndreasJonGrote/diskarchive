@@ -120,9 +120,9 @@ enum PopoverSearch {
                 }
         }
         let groups = [
-            PopoverSearchGroup(title: "SPEICHERMEDIEN", hits: Array(mediumHits)),
-            PopoverSearchGroup(title: "DATEIEN", hits: objectHits(files, folders: false)),
-            PopoverSearchGroup(title: "ORDNER", hits: objectHits(folders, folders: true)),
+            PopoverSearchGroup(title: LayoutCopy.popoverGroupMedia, hits: Array(mediumHits)),
+            PopoverSearchGroup(title: LayoutCopy.popoverGroupFiles, hits: objectHits(files, folders: false)),
+            PopoverSearchGroup(title: LayoutCopy.popoverGroupFolders, hits: objectHits(folders, folders: true)),
         ].filter { !$0.hits.isEmpty }
         return PopoverSearchResults(groups: groups, totalCount: totalCount)
     }

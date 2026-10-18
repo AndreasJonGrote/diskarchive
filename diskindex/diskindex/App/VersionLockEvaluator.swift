@@ -13,6 +13,24 @@ nonisolated struct VersionLockSettingsMutations: Equatable, Sendable {
     var setApiLastSeen: Date?
     var setLockedVersion: String?
     var clearSkippedUpdateVersion: Bool = false
+    /// bug.0.4.053 (a): erster Start (Bezug der 30-Tage-Sperre, solange die API nie antwortete).
+    var setFirstRunAt: Date? = nil
+    var firstRunFresh: Bool = false
+    /// bug.0.4.053 (b): höchster je gesehener Zeitpunkt.
+    var setHighestSeenAt: Date? = nil
+    /// `true` nach einer API-Antwort: `highestSeenAt` wird überschrieben (eine einmal vorgestellte Uhr sperrt nicht dauerhaft).
+    var overwriteHighestSeenAt: Bool = false
+
+    /// Nur die Uhr-Werte (dürfen auch ohne API-Antwort gespeichert werden).
+    var clockOnly: VersionLockSettingsMutations {
+        VersionLockSettingsMutations(
+            setFirstRunAt: setFirstRunAt,
+            firstRunFresh: firstRunFresh,
+            setHighestSeenAt: setHighestSeenAt
+        )
+    }
+
+    var hasClockChanges: Bool { setFirstRunAt != nil || setHighestSeenAt != nil }
 }
 
 nonisolated struct VersionLockEvaluation: Equatable, Sendable {
@@ -47,13 +65,29 @@ nonisolated enum VersionLockEvaluator {
         var mutations = VersionLockSettingsMutations()
         var lockReason: VersionLockReason?
 
+        // bug.0.4.053 (b): Eine zurückgestellte Uhr darf die Fristen nicht aufheben. Antwortet die API, gilt die
+        // aktuelle Uhr und überschreibt den gespeicherten Höchstwert (Korrektur: vorgestellte Uhr sperrt nicht dauerhaft).
+        let now = apiVersion != nil ? now : Self.effectiveNow(now, settings: settings)
+        if apiVersion != nil {
+            mutations.setHighestSeenAt = now
+            mutations.overwriteHighestSeenAt = true
+        } else if settings.highestSeenAt.map({ now > $0 }) ?? true {
+            mutations.setHighestSeenAt = now
+        }
+        // bug.0.4.053 (a): ersten Start festhalten, falls noch nicht gespeichert.
+        if settings.firstRunAt == nil {
+            mutations.setFirstRunAt = now
+            mutations.firstRunFresh = isFreshInstall
+        }
+
         if let buildDate,
            let expiry = Self.buildExpiryCalendar.date(byAdding: .day, value: buildExpiryDays, to: buildDate),
            now >= expiry {
             lockReason = .buildExpired
         }
 
-        let effectiveApiLastSeen = apiVersion != nil ? now : settings.apiLastSeen
+        // bug.0.4.053 (a): API nie erreicht → Frist ab dem ersten Start.
+        let effectiveApiLastSeen = apiVersion != nil ? now : (settings.apiLastSeen ?? settings.firstRunAt)
         if lockReason == nil, let lastSeen = effectiveApiLastSeen,
            let cutoff = calendar.date(byAdding: .day, value: -apiOfflineDays, to: now),
            lastSeen < cutoff {
@@ -137,6 +171,20 @@ nonisolated enum VersionLockEvaluator {
         )
     }
 
+    /// `max(Uhr, höchster je gesehener Zeitpunkt)` (bug.0.4.053 b).
+    static func effectiveNow(_ now: Date, settings: SystemSettingsSnapshot) -> Date {
+        guard let highest = settings.highestSeenAt else { return now }
+        return max(now, highest)
+    }
+
+    /// Frische Installation (README: „keine Datenbank“) über den gespeicherten ersten Start, nicht über die
+    /// Zahl der Medien (bug.0.4.053 c). Gilt bis zur ersten Antwort der API.
+    static func isFreshInstall(settings: SystemSettingsSnapshot, databaseWasNewThisLaunch: Bool) -> Bool {
+        guard settings.apiLastSeen == nil else { return false }
+        if settings.firstRunAt != nil { return settings.firstRunFresh }
+        return databaseWasNewThisLaunch
+    }
+
     static func applyMutations(_ mutations: VersionLockSettingsMutations, pool: DatabasePool) throws {
         try pool.write { db in
             if let at = mutations.setBetaExpiryNoticedAt {
@@ -150,6 +198,16 @@ nonisolated enum VersionLockEvaluator {
             }
             if mutations.clearSkippedUpdateVersion {
                 try SystemSettingsPersistence.writeSkippedUpdateVersion(db, version: nil)
+            }
+            if let at = mutations.setFirstRunAt {
+                try SystemSettingsPersistence.writeFirstRunIfMissing(db, at: at, fresh: mutations.firstRunFresh)
+            }
+            if let at = mutations.setHighestSeenAt {
+                if mutations.overwriteHighestSeenAt {
+                    try SystemSettingsPersistence.writeHighestSeenAt(db, at: at)
+                } else {
+                    try SystemSettingsPersistence.raiseHighestSeenAt(db, to: at)
+                }
             }
         }
     }

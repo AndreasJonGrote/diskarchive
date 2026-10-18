@@ -11,15 +11,14 @@ import Testing
 
 @Suite struct WriteGuardDeadlockTests {
     @Test func blockedLogDirectoryDoesNotHangWithinTwoSeconds() async throws {
-        WriteGuard.clearTestingOverrides()
-        let blockedDir = URL(fileURLWithPath: "/Volumes/BLOCKEDWRITEGUARD/deep", isDirectory: true)
+        // bug.0.3.9.013: eindeutiger Pfad, Zähler je Pfad statt globalem Zurücksetzen (Regel 20).
+        let blockedDir = URL(fileURLWithPath: "/Volumes/BLOCKEDWRITEGUARD-\(UUID().uuidString)/deep", isDirectory: true)
         let log = DiskIndexLog(directory: blockedDir)
         log.record(.app, .info, "probe line")
         let finished = await waitUntil(timeout: 2) {
-            WriteGuard.blockedWriteCount >= 1
+            WriteGuard.blockedWriteCount(under: blockedDir) >= 1
         }
         #expect(finished)
-        #expect(WriteGuard.blockedWriteCount >= 1)
         #expect(!FileManager.default.fileExists(atPath: blockedDir.appendingPathComponent("diskindex.log").path))
     }
 }

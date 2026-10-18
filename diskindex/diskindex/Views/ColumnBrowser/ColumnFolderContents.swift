@@ -28,9 +28,15 @@ struct ColumnFolderContents<Row: View>: View {
     var tableViewMinimum: Int = ColumnFolderListThreshold.tableViewMinimum
     /// Sichtbarkeit des Ladehinweises nach oben (Spaltenbreite, Aufgabe 156).
     var onLoadingHintVisible: (Bool) -> Void = { _ in }
+    /// Abstand nur um den Ladehinweis (vorher eigenes Exemplar mit Innenabstand in der Spalte, bug.0.4.061).
+    var hintInsets = EdgeInsets()
     @ViewBuilder var row: (IndexedItem) -> Row
 
     @State private var delayed = DelayedLoadingState()
+    /// Zeitvorgabe von `delayed`; eine neue Vorgabe gilt erst, wenn kein Ladevorgang und keine Mindestanzeige läuft.
+    @State private var stateTiming: DelayedLoadingTiming = .standard
+    /// Beginn des laufenden Ladevorgangs, für das Nachziehen der Verzögerung ohne Schreiben beim Zeichnen.
+    @State private var loadStartedAt: ContinuousClock.Instant?
 
     private var pathKey: String {
         ([mediumID.uuidString] + path).joined(separator: "\u{0}")
@@ -40,21 +46,27 @@ struct ColumnFolderContents<Row: View>: View {
         filteredItems.count >= tableViewMinimum
     }
 
+    /// Rein lesend (bug.0.4.061): Der Zustand wird in `.task`/`onChange` nachgeführt, nicht beim Zeichnen.
+    /// Nach dem Ladeende bleibt der Hinweis bis zum Ablauf der Mindestanzeige stehen.
     private var hintVisible: Bool {
-        if isLoading, !delayed.isActive {
-            syncDelayedState()
-        }
-        delayed.catchUpToClock()
-        return isLoading && (delayed.showsHint || loadingTiming.delayBeforeHint == .zero)
+        delayed.showsHint || (isLoading && loadingTiming.delayBeforeHint == .zero)
+    }
+
+    /// Rein lesend: Die Verzögerung ist abgelaufen, der Hinweis aber noch nicht gesetzt (Takt lief nicht,
+    /// z. B. weil der Hauptthread eine verschachtelte RunLoop dreht). Nachgezogen wird in `onChange`.
+    private var catchUpDue: Bool {
+        guard isLoading, !delayed.showsHint, let loadStartedAt else { return false }
+        return loadStartedAt.duration(to: .now) >= stateTiming.delayBeforeHint
     }
 
     var body: some View {
         Group {
-            if isLoading {
-                if hintVisible {
-                    FolderContentsLoadingHint(loaded: loaded, total: total)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                }
+            if hintVisible {
+                FolderContentsLoadingHint(loaded: loaded, total: total)
+                    .padding(hintInsets)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            } else if isLoading {
+                Color.clear
             } else if usesTableView {
                 ColumnFolderTableView(items: filteredItems, selectedIDs: selectedIDs, row: row)
                     .padding(.horizontal, 8)
@@ -72,33 +84,49 @@ struct ColumnFolderContents<Row: View>: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .onAppear {
+        // `onChange(initial:)` statt `.task`: läuft im selben Durchgang wie das Erscheinen, auch wenn der
+        // Hauptthread gerade eine verschachtelte RunLoop dreht (Fenstertests).
+        .onChange(of: isLoading, initial: true) { _, _ in
             syncDelayedState()
             onLoadingHintVisible(hintVisible)
+        }
+        .onChange(of: catchUpDue) { _, due in
+            if due { delayed.catchUpToClock() }
         }
         .onChange(of: pathKey) { _, _ in
             delayed.reset()
             syncDelayedState()
         }
-        .onChange(of: isLoading) { _, _ in syncDelayedState() }
         .onChange(of: hintVisible) { _, visible in
             onLoadingHintVisible(visible)
         }
         .onChange(of: loaded) { _, _ in delayed.updateProgress(loaded: loaded, total: total) }
         .onChange(of: total) { _, _ in delayed.updateProgress(loaded: loaded, total: total) }
-        .onChange(of: loadingTiming) { _, timing in
-            delayed = DelayedLoadingState(timing: timing)
-            syncDelayedState()
+        .onChange(of: loadingTiming) { _, _ in
+            if !delayed.isActive { syncDelayedState() }
+        }
+        // Ende der Mindestanzeige: neue Zeitvorgabe übernehmen bzw. einen inzwischen neu begonnenen Ladevorgang starten.
+        .onChange(of: delayed.isActive) { _, active in
+            if !active { syncDelayedState() }
         }
     }
 
     private func syncDelayedState() {
+        if !delayed.isActive, stateTiming != loadingTiming {
+            delayed = DelayedLoadingState(timing: loadingTiming)
+            stateTiming = loadingTiming
+        }
         delayed.updateProgress(loaded: loaded, total: total)
         if isLoading {
             if !delayed.isActive {
                 delayed.beginLoading(total: total)
+                loadStartedAt = .now
+            } else if delayed.isFinishPending {
+                // Neues Laden während der Mindestanzeige: Hinweis ohne Lücke weiter zeigen.
+                delayed.resumeLoading()
             }
-        } else {
+        } else if delayed.isActive, !delayed.isFinishPending {
+            loadStartedAt = nil
             delayed.finishLoading()
         }
     }

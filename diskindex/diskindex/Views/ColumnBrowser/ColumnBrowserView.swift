@@ -463,36 +463,24 @@ struct ColumnBrowserView: View {
                     FolderContentsLoadErrorHint(message: loadError)
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
-                } else if loadingContents {
+                } else {
+                    // Ein Exemplar für Laden und Liste (bug.0.4.061): sonst verwirft das Ladeende den
+                    // Zustand samt Mindestanzeige (400 ms) des Hinweises.
+                    // Einmal je Body statt je Zeile (bug.0.4.035).
+                    let selectedIDs = loadingContents ? [] : selectedIDs(in: items, column: column)
                     ColumnFolderContents(
                         mediumID: medium.id,
                         path: column.path,
                         filteredItems: listItems,
-                        selectedIDs: [],
-                        isLoading: true,
+                        selectedIDs: selectedIDs,
+                        isLoading: loadingContents,
                         loaded: ruleReconcileLoading ? 0 : progress.loaded,
                         total: ruleReconcileLoading ? 0 : progress.total,
                         loadingTiming: ruleReconcileLoading ? ruleReconcileHintTiming : .standard,
                         onLoadingHintVisible: { visible in
                             publishLoadingHint(visible, medium: medium, path: column.path)
-                        }
-                    ) { _ in EmptyView() }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                } else {
-                    // Einmal je Body statt je Zeile (bug.0.4.035).
-                    let selectedIDs = selectedIDs(in: items, column: column)
-                    ColumnFolderContents(
-                        mediumID: medium.id,
-                        path: column.path,
-                        filteredItems: items,
-                        selectedIDs: selectedIDs,
-                        isLoading: false,
-                        loaded: progress.loaded,
-                        total: progress.total,
-                        onLoadingHintVisible: { visible in
-                            publishLoadingHint(visible, medium: medium, path: column.path)
-                        }
+                        },
+                        hintInsets: EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16)
                     ) { item in
                         let openState = rowOpenState(item: item, columnIndex: column.columnIndex, medium: medium)
                         ColumnBrowserRow(
@@ -631,7 +619,7 @@ struct ColumnBrowserView: View {
         }
         if press.key == .downArrow || press.key == .upArrow {
             var selection = appState.columnBrowserState.selection
-            selection.move(step: press.key == .downArrow ? 1 : -1, extend: press.modifiers.contains(.shift), visible: visible.map(\.id))
+            selection.move(step: press.key == .downArrow ? 1 : -1, extend: press.modifiers.contains(.shift), visible: visible.map(\.id), column: column.columnIndex)
             commit(selection, column: column)
             return .handled
         }
@@ -710,7 +698,7 @@ struct ColumnBrowserView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         if let modified = file.modifiedAt {
                             Text(LayoutCopy.columnDetailModified(
-                                modified.formatted(date: .abbreviated, time: .omitted)
+                                IndexedDateFormatting.abbreviatedDay(modified)
                             ))
                         }
                         if let size = file.sizeBytes {
@@ -923,6 +911,6 @@ enum ColumnBrowserFiltering {
 enum ColumnDetailText {
     /// „Zuletzt gesehen: …“ mit dem Datum, an dem das Medium zuletzt gesehen wurde.
     static func lastSeen(medium: Medium) -> String? {
-        medium.lastSeenAt.map { LayoutCopy.columnDetailLastSeen($0.formatted(date: .abbreviated, time: .omitted)) }
+        medium.lastSeenAt.map { LayoutCopy.columnDetailLastSeen(IndexedDateFormatting.abbreviatedDay($0)) }
     }
 }

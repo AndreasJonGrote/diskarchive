@@ -22,7 +22,9 @@ struct NewMediumDialogWindowHost: View {
             }
         }
         .fixedSize()
-        .onExitCommand {
+        // bug.0.3.9.014 a: `onExitCommand` löst im Panel ohne fokussiertes Element nicht aus; Esc wie bei den
+        // Rückfragen über die Tastenkürzel dieses Fensters (`onPanelEscape`).
+        .onPanelEscape {
             AppWindowPresenter.closeNewMediumPanel(mediumID: mediumID, appState: appState, userDismissed: true)
         }
     }

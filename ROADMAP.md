@@ -164,23 +164,56 @@ Sichere Erkennung über mehrere Medien hinweg per vollständiger Prüfsumme (BLA
 
 ## 0.9 — Lizenz
 
-**Lizenzmodell (Nutzer, README):** Stufen nach Medienzahl — **max. 1 / max. 50 / max. 250 Medien**. Technisch trägt die Datenbank 250 Medien (Messung in 0.3 mit 300 als Reserve). In der Beta (0.1 bis 0.8) gibt es keine Grenze.
+**Lizenzmodell (Nutzer 18.10., README):**
+
+| Stufe | Medien | Verschlagwortung auf dem Gerät |
+|---|---|---|
+| **Basic** | max. 1 | – |
+| **Pro** | max. 50 | ✓ |
+| **Max** | max. 250 | ✓ |
+ Technisch trägt die Datenbank 250 Medien (Messung in 0.3 mit 300 als Reserve). In der Beta (0.1 bis 0.8) gibt es keine Grenze.
 
 - Signierter Schlüssel (Ed25519), lokal prüfbar, kein Server nötig zum Prüfen. Online-Rückfrage nur optional mit Schonfrist; die App sperrt nie ohne Netz.
 - Der Index bleibt ohne Lizenz immer nutzbar und durchsuchbar. Die Grenze betrifft, wie viele Medien **aktualisiert** werden.
 - Schlüsselaufbau: 16 Byte Nutzdaten (Version, Schlüssel-ID, Edition/Stufe, Hauptversion, Ausstellungs- und Ablaufdatum, Lizenz-ID) plus 64 Byte Signatur, Base32 in Gruppen, zusätzlich Lizenzdatei zum Herunterladen.
-- `FeatureAccess` (ab 0.4 vorbereitet) liefert „Medienlimit“ statt „Funktion gesperrt“.
+- `FeatureAccess` (ab 0.4 vorbereitet) liefert „Medienlimit“ statt „Funktion gesperrt“ und zusätzlich „Verschlagwortung erlaubt“ (Pro, Max).
 - Testzeitraum. Beta-Tester bekommen eine Anerkennung (Schlüssel oder Rabatt) **[Vorschlag]**.
 
-**Offene Fragen (vor 0.9 zu klären):** Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert beim Erreichen der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar, wird aber nicht indiziert)? Was passiert bei Herabstufung mit mehr Medien als erlaubt? Prüfung online über diskarchive.app oder offline per Schlüssel?
+**Offene Fragen (vor 0.9 zu klären):** Preise der Stufen; ist Basic kostenlos? Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert beim Erreichen der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar, wird aber nicht indiziert)? Was passiert bei Herabstufung mit mehr Medien als erlaubt? Prüfung online über diskarchive.app oder offline per Schlüssel?
 
 ---
+
+### 0.9 zusätzlich: Verschlagwortung auf dem Gerät (ab Pro, also Pro und Max; Nutzer 18.10.)
+
+- **Entscheidung:** **Keine** Cloud-Dienste, **kein** API-Schlüssel. Verschlagwortet wird ausschließlich mit Apples Bordmitteln auf dem Mac; nichts verlässt das Gerät. Funktion der Stufen Pro und Max, eingeführt zusammen mit dem Lizenzmodell; Basic hat sie nicht.
+- **Ablauf:** als Nebenaufgabe im Hintergrund, **nur wenn das System gerade nichts zu tun hat** (macOS-Leerlaufplanung, z. B. `NSBackgroundActivityScheduler`), nach dem Indizieren, mit Rücksicht auf Pause, Akku und Ruhezustand; nur für angeschlossene Medien, sonst beim nächsten Anschließen. Der Nutzer legt fest, welche Dateien (Ordner, Dateitypen).
+- **Bausteine [Vorschlag, zu prüfen]:** Bilder über das Vision-Framework (Bildinhalte als Schlagwörter, ab macOS 14 vorhanden); Text über NaturalLanguage (Schlüsselwörter); auf Macs mit Apple Intelligence zusätzlich das Sprachmodell auf dem Gerät (Foundation Models) für bessere Schlagwörter. Das braucht ein neueres macOS und Apple Silicon und ist darum nur ein Zusatz, die Grundfunktion muss ohne laufen (die App unterstützt macOS 14).
+- **Systemvoraussetzungen (Recherche Host 18.10., vor 0.9 gegen Apples Dokumentation prüfen):**
+  | Baustein | Mindestens | Auf den Entwicklungs-Macs (macOS 15)? |
+  |---|---|---|
+  | Bildinhalte (Vision, `VNClassifyImageRequest`) | macOS 10.15 (verbesserte Revision ab 14, neue Swift-API `ClassifyImageRequest` ab 15) | ja |
+  | Text-Schlüsselwörter (NaturalLanguage) | ältere macOS-Versionen, sicher ab 14 | ja |
+  | Sprachmodell auf dem Gerät (Foundation Models) | **macOS 26 (Tahoe)**, eine Quelle nennt für den neuesten Stand macOS 27; **Apple-Chip (M1 oder neuer)**; Apple Intelligence eingeschaltet, Modell geladen, unterstützte Sprache/Region | **nein** |
+- **Pflicht für die Lizenzbeschreibung (Nutzer 18.10.):** Die Beschreibung der Stufen Pro und Max (App, Download-Seite, Kaufseite) nennt ausdrücklich, ab welcher macOS-Version und auf welcher Hardware die Verschlagwortung funktioniert, getrennt nach Grundfunktion (Bilder/Text, ab macOS 14) und besserer Verschlagwortung mit dem Sprachmodell (ab macOS 26 mit Apple-Chip und Apple Intelligence). Die App zeigt im Reiter an, welche Stufe auf diesem Mac verfügbar ist, und kauft niemand etwas, das auf seinem Mac nicht läuft.
+- **Testrechner:** Für das Sprachmodell braucht es einen Mac mit Apple-Chip auf macOS 26 oder neuer. Vorschlag: einen der beiden Entwicklungs-Macs (falls Apple-Chip) auf das aktuelle macOS heben, den zweiten auf macOS 15 lassen, um den Rückfall ohne Sprachmodell zu testen. Der Test auf macOS 14 (`todo.0.4.022`, Mindestversion der App) bleibt davon getrennt.
+- **Daten:** Schlagwörter in einer neuen Tabelle (nur Erweiterung, Regel 27), durchsuchbar wie Namen; Synergie mit 0.5 (Metadaten/Text) und 0.6 (Vorschaubilder).
+- **Offen:** Welche Dateitypen zuerst (Fotos, PDF, HTML)? Schlagwörter nur zum Suchen oder auch sichtbar und bearbeitbar? Sprache der Schlagwörter (Deutsch, Englisch, nach Systemsprache)? Haben die beiden Entwicklungs-Macs einen Apple-Chip (Voraussetzung für den Testrechner)?
 
 ## 1.0 — Erste fertige Version
 
 Alle Funktionen von 0.5 bis 0.9 sind drin, der Nutzer hat 1.0 selbst mehrere Wochen benutzt.
 
 ---
+
+## Nach 1.0 — Ideensammlung (Nutzer 18.10.)
+
+Hier landen Funktionen für Versionen nach 1.0. **Nichts davon ist geplant oder freigegeben**: Eine Idee wird erst zur Aufgabe (`todo.<Version>.<Nr>` in TODO.md), wenn der Nutzer Version und Umfang bestätigt. Je Idee: Kurzbeschreibung, Zielversion (vorläufig), Nutzen, offene Fragen. Ergänzungen des Hosts sind mit **[Vorschlag]** markiert.
+
+| Idee | Zielversion (vorläufig) | Kurz | Stand |
+|---|---|---|---|
+| *(frei)* | | | |
+
+*Die KI-Verschlagwortung ist entschieden und nach 0.9 verschoben (siehe dort).*
 
 ## Offene Entscheidungen
 

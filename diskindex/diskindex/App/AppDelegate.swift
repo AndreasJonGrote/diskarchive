@@ -64,6 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.setActivationPolicy(.accessory)
         }
         let appState = AppDelegateBridge.appState
+        appState.configureForApp()
         appState.appSettings.appearance.apply()
         appState.refreshGlobalPause()
         appState.refreshLaunchAtLoginState()
@@ -239,7 +240,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated {
                 appState.heldForSleep = true
                 appState.onAutoIndexPauseChanged?()
-                Task { appState.indexStore?.checkpoint() }
+                // bug.0.3.9.011: Checkpoint nicht auf dem Hauptthread (gehaltene Schreibsperre, langsame Platte).
+                if let store = appState.indexStore {
+                    Task { await store.checkpointInBackground() }
+                }
             }
         }
         workspace.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
@@ -301,8 +305,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         recognitionLogger.error("Index konnte nicht geöffnet werden: \(error.localizedDescription, privacy: .public)")
         if appState.storeReady || appState.indexStore != nil {
             stopLiveServicesBeforeRewire()
-            appState.prepareForTermination()
-            appState.detachFromIndexStore()
+            appState.detachAfterStoreFailure()
         } else {
             mediumCoordinator?.stop()
             mediumCoordinator = nil

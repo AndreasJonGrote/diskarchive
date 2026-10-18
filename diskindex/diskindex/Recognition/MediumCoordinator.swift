@@ -202,6 +202,8 @@ final class MediumCoordinator {
                 var denied = stored
                 denied.lastSeenAt = Date()
                 try await store.updateMediumRecognition(uuid: denied.uuid, denied)
+                // bug.0.4.062: während des Schreibens ausgehängt → nicht „verbunden“ melden.
+                guard isPathStill(for: denied.uuid, at: volume.mountPath) else { return }
                 mediumByPath[volume.mountPath] = denied.uuid
                 publish(denied, connection: .connected)
                 DiskIndexLog.shared.record(.medium, .info, "abbruch kein Zugriff id=\(stored.uuid)")
@@ -230,6 +232,11 @@ final class MediumCoordinator {
         try await store.updateMediumRecognition(uuid: fresh.uuid, fresh)
         if recoveredFromError {
             try await store.updateMediumIndexStatus(uuid: fresh.uuid, fresh.indexStatus)
+        }
+        // bug.0.4.062: während der Store-Schritte ausgehängt → nicht wieder eintragen, nicht „verbunden“ melden.
+        guard isPathStill(for: fresh.uuid, at: volume.mountPath) else {
+            DiskIndexLog.shared.record(.medium, .info, "abbruch ausgehängt id=\(fresh.uuid)")
+            return
         }
         mediumByPath[volume.mountPath] = fresh.uuid
         let wasOffline = appState.medium(with: fresh.uuid)?.connectionStatus != .connected
@@ -295,9 +302,18 @@ final class MediumCoordinator {
         }
     }
 
-    private func storeAndPresent(_ volume: VolumeInfo, status: StoredIndexStatus, openDialog: Bool) async {
+    /// `reprobedID` (Reprobe, bug.0.4.062): nur dieses Medium aktualisieren, nie ein neues anlegen, und abbrechen,
+    /// sobald es nach einem `await` nicht mehr unter dem Pfad eingehängt ist.
+    private func storeAndPresent(
+        _ volume: VolumeInfo,
+        status: StoredIndexStatus,
+        openDialog: Bool,
+        reprobedID: UUID? = nil
+    ) async {
         guard appState.featureAccess.canWriteIndex else { return }
-        if let existingID = mediumByPath[volume.mountPath], var existing = try? await store.medium(uuid: existingID) {
+        if let existingID = reprobedID ?? mediumByPath[volume.mountPath],
+           var existing = try? await store.medium(uuid: existingID) {
+            if let reprobedID, !isStillMounted(reprobedID, at: volume.mountPath) { return }
             existing.indexStatus = status
             existing.lastSeenAt = Date()
             existing.name = volume.name
@@ -308,10 +324,12 @@ final class MediumCoordinator {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
                 DiskIndexLog.shared.record(.medium, .error, "updateMedium \(error)")
             }
+            if let reprobedID, !isStillMounted(reprobedID, at: volume.mountPath) { return }
             publish(existing, connection: .connected)
             if openDialog { requestDialog(existing.uuid) }
             return
         }
+        guard reprobedID == nil else { return }
         let stored = StoredMedium(
             volumeUUID: volume.identity.volumeUUID,
             volumeCreatedAt: volume.identity.createdAt,
@@ -337,16 +355,26 @@ final class MediumCoordinator {
         }
     }
 
+    private func isStillMounted(_ id: UUID, at path: String) -> Bool {
+        mounted[path] != nil && mediumByPath[path] == id
+    }
+
+    /// Wie `isStillMounted`, erlaubt aber einen noch nicht eingetragenen Pfad (erstes Anschließen in `connectKnown`).
+    private func isPathStill(for id: UUID, at path: String) -> Bool {
+        mounted[path] != nil && (mediumByPath[path] ?? id) == id
+    }
+
     private func reprobeDeniedVolumes() async {
         for (path, volume) in mounted {
             guard let id = mediumByPath[path],
                   let stored = try? await store.medium(uuid: id),
                   stored.indexStatus == .error else { continue }
             guard case .granted = await access.probe(volume) else { continue }
-            guard mounted[path] != nil else { continue }
+            // bug.0.4.062 (REPORT 132): während der Probe ausgehängt oder ein anderes Medium unter dem Pfad → nichts tun.
+            guard isStillMounted(id, at: path) else { continue }
             switch stored.decision {
             case .undecided:
-                await storeAndPresent(volume, status: .pending, openDialog: true)
+                await storeAndPresent(volume, status: .pending, openDialog: true, reprobedID: id)
             case .dontIndex, .ignore:
                 var updated = stored
                 updated.indexStatus = .pending
@@ -354,7 +382,8 @@ final class MediumCoordinator {
                 updated.name = volume.name
                 do {
                     try await store.updateMediumRecognition(uuid: updated.uuid, updated)
-                    mediumByPath[path] = updated.uuid
+                    // Während des Schreibens ausgehängt: den Pfad nicht wieder eintragen, nicht „verbunden“ melden.
+                    guard isStillMounted(id, at: path) else { continue }
                     publish(updated, connection: .connected)
                 } catch {
                     guard DiskIndexLog.isOperationalFailure(error) else { continue }

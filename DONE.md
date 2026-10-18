@@ -180,9 +180,28 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | bug.0.3.9.008 | – | Wächter-Test eng: Grenze aus Stillstand + 2 Takte + Reserve (8 s); Verzeichnis-Messung in `MeasurementTestGroup` | 17.10. Host (seriell 741/741, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
 | bug.0.3.9.009 | – | Beenden mit Zeitgrenze (8 s) und Merker gegen doppelten Abschluss; genau eine Antwort an AppKit (Hauptthread-Fall: `bug.0.3.9.011`) | 17.10. Host (seriell 741/741, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
 | bug.0.3.9.010 | – | Absturzschreiber gehärtet: keine Sperre im Handler, `backtrace` vorab, `O_CLOEXEC`, Nullbytes im Ring übersprungen, Auto-Senden über die echte Kette getestet | 17.10. Host (seriell 741/741, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.3.9.011 | – | Beenden: Checkpoint im Hintergrund, Notfall-Zeitgeber unabhängig vom Hauptthread, genau eine Antwort, Ausstieg nach weiterer Frist (Protokoll vor dem Ausstieg: `bug.0.4.064`) | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.3.9.012 | – | Langsames Volume: Wiederholung nach 5/15/30 s, höchstens ein Lookup je Pfad (`VolumeLookupFlights`), Aushängen bricht ab, Umbenennen beachtet, genau ein `.appeared` | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.3.9.013 | – | `WriteGuard` ohne prozessweiten Test-Zustand (`@TaskLocal`, nur DEBUG), `blockedWriteCount` bleibt | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.3.9.014 | – | Esc im Erkennungs-Panel, Live-Suche bricht beim Start ab, Wächter-Konstanten aus dem Produktcode, Panel-Platzierung ohne `isRunningTests` | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.050 | – | REPORT 84: Pfeiltasten in anderer Spalte beginnen dort eine neue Auswahl | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.051 | – | REPORT 89: höchstens eine offene Versions-Check-Zeile, Kürzen der Warteschlange löscht zuerst Nicht-Berichte | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.052 | – | REPORT 92: Pausentimer nach Store-Fehler neu geplant | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.053 | – | REPORT 93: Versions-Sperre mit `firstRunAt`/`highestSeenAt` (API nie erreicht, Uhr zurückgestellt, frisch nur über gespeicherten ersten Start); Feinschliff „frisch“: `bug.0.4.065` | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.054 | – | REPORT 95: Pause in der Zählphase speichert keine Teilsumme, Merker `scanTotalIncomplete` (Halt vor Zählbeginn: `bug.0.4.066`) | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.055 | – | REPORT 96: `getattrlistbulk`-Leser richtig (Linkzahl/Dateigröße waren seit Anfang vertauscht, Symlinks falsch erkannt); Tests gegen echte `stat`-Werte. Bestehende Indizes einmal neu indizieren | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.056 | – | REPORT 97: Matcher und Artefakt-Regeln im Hot Path vorab geparst, Gleichwertigkeitstest | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.057 | – | REPORT 100: Folgeseiten sortieren wie Seite 1 (binär) | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.058 | – | REPORT 104: feste deutsche Texte über `L10n`, Datum/Zahlen nach App-Sprache (Größenformat: `bug.0.4.067`) | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.059 | – | REPORT 105: Pausentimer speichert die gewählte Spanne, alte Pausen lesbar | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.060 | – | REPORT 106: Popover-Höhe bei „Keine Treffer“ mit langer Eingabe einzeilig | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.061 | – | REPORT 107: Mindestanzeige des Ladehinweises wirkt (gemeinsamer Zustand, Untergrenzen-Test) | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.062 | – | REPORT 132: fünf Nebenläufigkeits-Punkte im Code behoben (FSEvents-Schließen, Worker-Handle, Pfadprüfung nach `await`, Sperre für Fehler-Handler, `fileExists` abseits von main) | 18.10. Host (seriell 805/805, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 
 **0.3.8 abgenommen (Host 17.10.):** alle Kennungen der Pakete 4, 5a, 5b, 5c; Kriterien 1–6 und 8 erfüllt (seriell 645/645, parallel 3/3, 0 Warnungen, keine neuen `.ips`, Regel 23). Kriterium 7 (Stick-Test) folgt gesammelt in `todo.0.4.040`. Version setzt `todo.0.3.8.001`.
+
+**0.3.9 abgenommen (Host 18.10.):** alle Kennungen der Pakete 6, 7, 8a, 8b; Kriterien 1–6 und 8 erfüllt (seriell 805/805, parallel 3/3 in drei Prüfungen hintereinander, 0 Warnungen, keine neuen `.ips`, Regel 23). Version setzt `todo.0.3.9.001`.
 
 **Offen:** siehe [TODO.md](TODO.md).

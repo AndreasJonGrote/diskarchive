@@ -11,29 +11,34 @@ import OSLog
 nonisolated enum WriteGuard {
     private static let logger = Logger(subsystem: "app.diskarchive", category: "WriteGuard")
     private static let lock = NSLock()
-    private static var extraAllowedRoots: [String] = []
+    /// Produktionszähler (Diagnose); Tests setzen ihn nie zurück (bug.0.3.9.013).
     private static var blockedWriteCountStorage = 0
 
-    /// Anzahl blockierter Schreibversuche (Tests).
+    /// Anzahl blockierter Schreibversuche seit dem Start (prozessweit, wird nie zurückgesetzt).
     static var blockedWriteCount: Int {
         lock.lock()
         defer { lock.unlock() }
         return blockedWriteCountStorage
     }
 
-    /// Nur für Tests: zusätzliche erlaubte Wurzeln (z. B. simuliertes externes Home).
-    static func setExtraAllowedRootsForTesting(_ paths: [String]) {
-        lock.lock()
-        defer { lock.unlock() }
-        extraAllowedRoots = paths.map(normalizeRoot)
-    }
+    #if DEBUG
+    /// Nur Tests (bug.0.3.9.013): zusätzliche erlaubte Wurzeln je Task statt prozessweit (Regel 20). Wirkt nur für
+    /// Aufrufe im selben Task (z. B. `permits` direkt im Test), nicht auf Dispatch-Queues oder GRDB-Queues.
+    @TaskLocal static var extraAllowedRootsForTesting: [String] = []
 
-    static func clearTestingOverrides() {
+    /// Nur Tests: blockierte Pfade (zuletzt höchstens 1.000), damit ein Test nur seine eigenen, eindeutigen Pfade
+    /// zählt — auch wenn das Schreiben auf einer Queue lief, die den Task-Wert nicht sieht. Wird nie zurückgesetzt.
+    private static var blockedPathsForTesting: [String] = []
+
+    /// Anzahl blockierter Schreibversuche auf `url` oder darunter (Tests mit eindeutigem Pfad).
+    static func blockedWriteCount(under url: URL) -> Int {
+        let root = normalizeRoot(url.path)
+        let prefix = root.hasSuffix("/") ? root : root + "/"
         lock.lock()
         defer { lock.unlock() }
-        extraAllowedRoots = []
-        blockedWriteCountStorage = 0
+        return blockedPathsForTesting.filter { $0 == root || $0.hasPrefix(prefix) }.count
     }
+    #endif
 
     /// `true`, wenn die App an diesem Pfad schreiben darf.
     static func permits(_ url: URL) -> Bool {
@@ -51,6 +56,12 @@ nonisolated enum WriteGuard {
         guard permits(url) else {
             lock.lock()
             blockedWriteCountStorage += 1
+            #if DEBUG
+            blockedPathsForTesting.append(url.standardizedFileURL.path)
+            if blockedPathsForTesting.count > 1_000 {
+                blockedPathsForTesting.removeFirst(blockedPathsForTesting.count - 1_000)
+            }
+            #endif
             lock.unlock()
             logger.info("write blocked")
             return false
@@ -59,10 +70,10 @@ nonisolated enum WriteGuard {
     }
 
     private static func allowedRoots() -> [String] {
-        lock.lock()
-        let injected = extraAllowedRoots
-        lock.unlock()
-        var roots: [String] = injected
+        var roots: [String] = []
+        #if DEBUG
+        roots.append(contentsOf: extraAllowedRootsForTesting.map(normalizeRoot))
+        #endif
         if let data = try? IndexStoreV3.storeFileURL().deletingLastPathComponent() {
             roots.append(normalizeRoot(data.path))
         }

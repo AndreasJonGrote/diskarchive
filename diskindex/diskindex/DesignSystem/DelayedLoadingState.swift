@@ -25,6 +25,8 @@ final class DelayedLoadingState {
 
     private let timing: DelayedLoadingTiming
     private(set) var isActive = false
+    /// `finishLoading` wartet noch auf das Ende der Mindestanzeige (bug.0.4.061).
+    private(set) var isFinishPending = false
     private var loadGeneration = 0
     private var hintShownAt: ContinuousClock.Instant?
     private var loadingStartedAt: ContinuousClock.Instant?
@@ -104,13 +106,24 @@ final class DelayedLoadingState {
         }
         let wait = timing.minimumHintVisible - visible
         let generation = loadGeneration
+        isFinishPending = true
         minimumVisibleTask = Task {
             try? await Task.sleep(for: wait)
             guard !Task.isCancelled, generation == loadGeneration else { return }
+            isFinishPending = false
             showsHint = false
             hintShownAt = nil
             isActive = false
         }
+    }
+
+    /// Neuer Ladevorgang während der Mindestanzeige (bug.0.4.061, REPORT 107): Der Hinweis bleibt stehen,
+    /// das ausstehende Ausblenden entfällt; `showsHint`, `isActive` und `hintShownAt` bleiben erhalten.
+    func resumeLoading() {
+        guard isFinishPending else { return }
+        minimumVisibleTask?.cancel()
+        minimumVisibleTask = nil
+        isFinishPending = false
     }
 
     func reset() {
@@ -123,6 +136,7 @@ final class DelayedLoadingState {
         minimumVisibleTask?.cancel()
         delayTask = nil
         minimumVisibleTask = nil
+        isFinishPending = false
         showsHint = false
         hintShownAt = nil
         loadingStartedAt = nil

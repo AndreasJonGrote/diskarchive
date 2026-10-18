@@ -27,7 +27,11 @@ nonisolated enum NamePattern: Equatable, Sendable {
     }
 
     func matches(_ name: String) -> Bool {
-        let lower = name.lowercased()
+        matches(lowercased: name.lowercased())
+    }
+
+    /// bug.0.4.056 (REPORT 97): Name schon kleingeschrieben (einmal je Eintrag statt je Muster).
+    func matches(lowercased lower: String) -> Bool {
         switch self {
         case .exact(let value):
             return lower == value
@@ -50,8 +54,31 @@ nonisolated enum ArtifactCategory: String, CaseIterable, Sendable {
 nonisolated enum ArtifactRules {
     static let patterns: [NamePattern] = ArtifactCategory.allCases.flatMap { categoryPatterns($0) }
 
+    /// bug.0.4.056 (REPORT 97): Muster einmal zerlegt in genaue Namen (Set), Präfixe und Suffixe.
+    private static let compiled: (exact: Set<String>, prefixes: [String], suffixes: [String]) = {
+        var exact: Set<String> = []
+        var prefixes: [String] = []
+        var suffixes: [String] = []
+        for pattern in patterns {
+            switch pattern {
+            case .exact(let value): exact.insert(value)
+            case .prefix(let value): prefixes.append(value)
+            case .suffix(let value): suffixes.append(value)
+            }
+        }
+        return (exact, prefixes, suffixes)
+    }()
+
     static func matches(_ name: String) -> Bool {
-        patterns.contains { $0.matches(name) }
+        matches(lowercased: name.lowercased())
+    }
+
+    static func matches(lowercased lower: String) -> Bool {
+        let rules = compiled
+        if rules.exact.contains(lower) { return true }
+        for prefix in rules.prefixes where lower.hasPrefix(prefix) { return true }
+        for suffix in rules.suffixes where lower.hasSuffix(suffix) { return true }
+        return false
     }
 
     static func categoryPatterns(_ category: ArtifactCategory) -> [NamePattern] {

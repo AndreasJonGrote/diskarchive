@@ -47,7 +47,10 @@ enum VersionCheckCoordinator {
             appVersion: appVersion,
             apiVersion: nil,
             settings: settings,
-            isFreshInstall: false,
+            isFreshInstall: VersionLockEvaluator.isFreshInstall(
+                settings: settings,
+                databaseWasNewThisLaunch: freshInstallForVersionCheck
+            ),
             buildDate: AppVersion.currentBuildDate()
         )
         applyEvaluation(evaluation, appState: appState, pool: pool, persist: false)
@@ -67,10 +70,11 @@ enum VersionCheckCoordinator {
         } catch {
             return
         }
-        let storageCount = (try? pool.read { db in
-            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0
-        }) ?? 0
-        let fresh = freshInstallForVersionCheck || storageCount == 0
+        // bug.0.4.053 (c): „frisch“ nur über den gespeicherten ersten Start, nicht über 0 Medien.
+        let fresh = VersionLockEvaluator.isFreshInstall(
+            settings: settings,
+            databaseWasNewThisLaunch: freshInstallForVersionCheck
+        )
         let evaluation = VersionLockEvaluator.evaluate(
             now: now,
             appVersion: appVersion,
@@ -92,6 +96,12 @@ enum VersionCheckCoordinator {
         let wasLocked = appState.versionLockState.isLocked
         if persist {
             try? VersionLockEvaluator.applyMutations(evaluation.mutations, pool: pool)
+        } else if evaluation.mutations.hasClockChanges {
+            // bug.0.4.053 (a)/(b): erster Start und höchste Uhrzeit auch ohne API-Antwort sichern (im Hintergrund).
+            let clock = evaluation.mutations.clockOnly
+            Task.detached(priority: .utility) {
+                try? VersionLockEvaluator.applyMutations(clock, pool: pool)
+            }
         }
         appState.applyVersionLockEvaluation(evaluation)
         if !wasLocked, evaluation.lockState.isLocked {

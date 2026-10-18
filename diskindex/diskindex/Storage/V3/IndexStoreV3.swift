@@ -176,11 +176,72 @@ actor IndexStoreV3 {
 
     /// Tests: Zahl der Checkpoints je Store (bug.0.4.042, Beenden über SIGTERM).
     nonisolated let checkpointCalls = NameCheckCounter()
+    #if DEBUG
+    /// Tests (bug.0.3.9.011): läuft synchron vor dem Checkpoint, z. B. als hängende Platte. Je Store, kein Schalter.
+    nonisolated let checkpointHookForTesting = CheckpointHook()
+    /// Tests (bug.0.4.062): läuft einmal vor dem `skip + 1`-ten Aufruf von `medium(uuid:)` nach dem Setzen, z. B. um
+    /// genau während eines `await` des Koordinators auszuhängen. Je Store.
+    nonisolated let mediumReadHookForTesting = MediumReadHook()
+
+    nonisolated final class MediumReadHook: @unchecked Sendable {
+        private let lock = NSLock()
+        private var action: (@Sendable () async -> Void)?
+        private var remainingSkips = 0
+
+        func set(skip: Int, _ action: (@Sendable () async -> Void)?) {
+            lock.withLock {
+                remainingSkips = skip
+                self.action = action
+            }
+        }
+
+        func run() async {
+            let due = lock.withLock { () -> (@Sendable () async -> Void)? in
+                guard let action else { return nil }
+                if remainingSkips > 0 {
+                    remainingSkips -= 1
+                    return nil
+                }
+                self.action = nil
+                return action
+            }
+            await due?()
+        }
+    }
+
+    nonisolated final class CheckpointHook: @unchecked Sendable {
+        private let lock = NSLock()
+        private var action: (@Sendable () -> Void)?
+
+        func set(_ action: (@Sendable () -> Void)?) {
+            lock.withLock { self.action = action }
+        }
+
+        func run() {
+            let action = lock.withLock { self.action }
+            action?()
+        }
+    }
+    #endif
 
     nonisolated func checkpoint() {
         checkpointCalls.add(1)
+        #if DEBUG
+        checkpointHookForTesting.run()
+        #endif
         try? pool.writeWithoutTransaction { db in
             try DatabaseMaintenance.truncateWriteAheadLog(db)
+        }
+    }
+
+    /// Checkpoint auf einer Hintergrund-Queue (bug.0.3.9.011): hält ein Indexer die Schreibsperre oder hängt die
+    /// Platte, wartet nur der Aufrufer, nicht der Hauptthread (Beenden, Ruhezustand).
+    nonisolated func checkpointInBackground() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            DispatchQueue.global(qos: .userInitiated).async { [self] in
+                checkpoint()
+                continuation.resume()
+            }
         }
     }
 
@@ -255,7 +316,10 @@ actor IndexStoreV3 {
     }
 
     func medium(uuid: UUID) async throws -> StoredMedium? {
-        try await pool.read { db in try MediumCodecV3.fetch(db, uuid: uuid) }
+        #if DEBUG
+        await mediumReadHookForTesting.run()
+        #endif
+        return try await pool.read { db in try MediumCodecV3.fetch(db, uuid: uuid) }
     }
 
     func updateMedium(uuid: UUID, _ medium: StoredMedium) async throws {
@@ -544,8 +608,54 @@ actor IndexStoreV3 {
         try await pool.write { db in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
             try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
+            try Self.setScanTotalIncomplete(db, storageID, false)
         }
         emit(.medium(mediumUUID))
+    }
+
+    /// bug.0.4.054 (REPORT 95): Merker „Zählung unvollständig“ in `storage_meta` (neuer Schlüssel, Schema unverändert).
+    /// Gesetzt beim Beginn einer Zählphase, gelöscht mit der vollständigen Gesamtzahl (`setScanTotal`, `finishIndexing`).
+    nonisolated static let scanTotalIncompleteKey = "scanTotalIncomplete"
+
+    func markScanTotalIncomplete(mediumUUID: UUID) async throws {
+        try await pool.write { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
+            try Self.setScanTotalIncomplete(db, storageID, true)
+        }
+    }
+
+    func scanTotalIsIncomplete(mediumUUID: UUID) async throws -> Bool {
+        try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return false }
+            let value = try String.fetchOne(
+                db,
+                sql: """
+                    SELECT m.value FROM storage_meta m JOIN meta_keys k ON k.id = m.keyID
+                    WHERE m.storageID = ? AND k.key = ?
+                    """,
+                arguments: [storageID, Self.scanTotalIncompleteKey]
+            )
+            return value == "1"
+        }
+    }
+
+    private nonisolated static func setScanTotalIncomplete(_ db: Database, _ storageID: Int64, _ incomplete: Bool) throws {
+        let key = scanTotalIncompleteKey
+        if !incomplete {
+            try db.execute(
+                sql: "DELETE FROM storage_meta WHERE storageID = ? AND keyID IN (SELECT id FROM meta_keys WHERE key = ?)",
+                arguments: [storageID, key]
+            )
+            return
+        }
+        try db.execute(sql: "INSERT OR IGNORE INTO meta_keys (key) VALUES (?)", arguments: [key])
+        try db.execute(
+            sql: """
+                INSERT OR REPLACE INTO storage_meta (storageID, keyID, value, date)
+                SELECT ?, id, '1', NULL FROM meta_keys WHERE key = ?
+                """,
+            arguments: [storageID, key]
+        )
     }
 
     func markFolderUnreadable(mediumUUID: UUID, folderID: Int64) async throws {
@@ -631,6 +741,7 @@ actor IndexStoreV3 {
             if status == .indexed, !interrupted {
                 let total = try Int.fetchOne(db, sql: "SELECT fileCount + folderCount FROM storages WHERE id = ?", arguments: [storageID]) ?? 0
                 try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
+                try Self.setScanTotalIncomplete(db, storageID, false)
             }
             if status == .indexed, !interrupted {
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)

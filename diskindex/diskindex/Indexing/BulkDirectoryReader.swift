@@ -248,8 +248,7 @@ nonisolated enum BulkDirectoryReader {
                     let recordLength = Int(recordLengthU32)
                     guard recordLength >= 4, offset + recordLength <= raw.count else { break }
                     if let entry = parseBulkRecord(
-                        base: base.advanced(by: offset),
-                        length: recordLength,
+                        UnsafeRawBufferPointer(start: base.advanced(by: offset), count: recordLength),
                         directoryURL: directoryURL,
                         mode: mode
                     ) {
@@ -261,89 +260,90 @@ nonisolated enum BulkDirectoryReader {
         }
     }
 
-    private static func parseBulkRecord(
-        base: UnsafeRawPointer,
-        length: Int,
+    /// Ein Datensatz von `getattrlistbulk` (ohne den Rest des Puffers). bug.0.4.055 (REPORT 96): Mit
+    /// `FSOPT_PACK_INVAL_ATTRS` steht jedes angeforderte Attribut im Puffer, auch ein ungültiges (Platzhalter).
+    /// Der Offset rückt deshalb immer um die Attributgröße vor; der Wert zählt nur bei gesetztem Bit in
+    /// `ATTR_CMN_RETURNED_ATTRS`. Reihenfolge = Reihenfolge der Bits (man getattrlist): NAME, OBJTYPE, MODTIME,
+    /// FILEID, dann LINKCOUNT vor DATALENGTH. Ordner (und andere Nicht-Dateien) kommen ohne Dateiattribute:
+    /// `fileReturned` ist 0 und der Datensatz endet nach FILEID (danach folgt nur noch der Name), er ist also kürzer.
+    /// Intern statt privat, damit Tests synthetische Puffer prüfen.
+    static func parseBulkRecord(
+        _ record: UnsafeRawBufferPointer,
         directoryURL: URL,
         mode: BulkDirectoryReadMode
     ) -> ListedDirectoryEntry? {
-        guard length >= 4 + returnedSetByteCount else { return nil }
+        let length = record.count
+        guard length >= 4 + returnedSetByteCount, let base = record.baseAddress else { return nil }
+        func load<T>(_ type: T.Type, at offset: Int) -> T? {
+            guard offset >= 0, offset + MemoryLayout<T>.size <= length else { return nil }
+            return base.advanced(by: offset).loadUnaligned(as: T.self)
+        }
         var offset = 4
 
         guard
-            let commonReturned = loadUnaligned(UInt32.self, from: base, at: offset),
-            let volReturned = loadUnaligned(UInt32.self, from: base, at: offset + 4),
-            let dirReturned = loadUnaligned(UInt32.self, from: base, at: offset + 8),
-            let fileReturned = loadUnaligned(UInt32.self, from: base, at: offset + 12)
+            let commonReturned = load(UInt32.self, at: offset),
+            let fileReturned = load(UInt32.self, at: offset + 12)
         else { return nil }
-        _ = loadUnaligned(UInt32.self, from: base, at: offset + 16) // forkattr
         offset += returnedSetByteCount
-        _ = volReturned
-        _ = dirReturned
 
-        var name: String?
-        if commonReturned & attrgroupBit(ATTR_CMN_NAME) != 0 {
-            let nameRefOffset = offset
-            guard
-                let nameRef = loadUnaligned(attrreference.self, from: base, at: nameRefOffset)
-            else { return nil }
-            offset += MemoryLayout<attrreference>.size
-            name = readNameInRecord(
-                recordBase: base,
-                recordLength: length,
-                nameRefFieldOffset: nameRefOffset,
-                nameRef: nameRef
-            )
-        }
+        // ATTR_CMN_NAME ist immer gültig (man getattrlistbulk); fehlt das Bit, ist der Datensatz unbrauchbar.
+        guard commonReturned & attrgroupBit(ATTR_CMN_NAME) != 0,
+              let nameRef = load(attrreference.self, at: offset)
+        else { return nil }
+        let name = readNameInRecord(
+            recordBase: base,
+            recordLength: length,
+            nameRefFieldOffset: offset,
+            nameRef: nameRef
+        )
+        offset += MemoryLayout<attrreference>.size
 
-        var objType: UInt32 = 0
-        if commonReturned & attrgroupBit(ATTR_CMN_OBJTYPE) != 0 {
-            guard let raw = loadUnaligned(UInt32.self, from: base, at: offset) else { return nil }
-            objType = raw
-            offset += MemoryLayout<UInt32>.size
-        }
+        guard let objTypeRaw = load(UInt32.self, at: offset) else { return nil }
+        let objType = commonReturned & attrgroupBit(ATTR_CMN_OBJTYPE) != 0 ? objTypeRaw : 0
+        offset += MemoryLayout<UInt32>.size
 
         var modifiedAt: Date?
-        if mode == .fullMetadata {
-            if commonReturned & attrgroupBit(ATTR_CMN_MODTIME) != 0 {
-                guard
-                    let sec = loadUnaligned(Int64.self, from: base, at: offset),
-                    let nsec = loadUnaligned(Int64.self, from: base, at: offset + 8)
-                else { return nil }
-                modifiedAt = Date(timeIntervalSince1970: TimeInterval(sec) + TimeInterval(nsec) / 1_000_000_000)
-            }
-            offset += 16
-        }
-
         var fileID: Int64?
-        if mode == .fullMetadata {
-            if commonReturned & attrgroupBit(ATTR_CMN_FILEID) != 0 {
-                guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
-                fileID = Int64(bitPattern: raw)
-            }
-            offset += MemoryLayout<UInt64>.size
-        }
-
         var dataLength: UInt64 = 0
         var linkCount: Int?
         if mode == .fullMetadata {
-            if fileReturned & attrgroupBit(ATTR_FILE_DATALENGTH) != 0 {
-                guard let raw = loadUnaligned(UInt64.self, from: base, at: offset) else { return nil }
-                dataLength = raw
+            guard
+                let sec = load(Int64.self, at: offset),
+                let nsec = load(Int64.self, at: offset + 8)
+            else { return nil }
+            if commonReturned & attrgroupBit(ATTR_CMN_MODTIME) != 0 {
+                modifiedAt = Date(timeIntervalSince1970: TimeInterval(sec) + TimeInterval(nsec) / 1_000_000_000)
+            }
+            offset += 16
+
+            guard let rawID = load(UInt64.self, at: offset) else { return nil }
+            if commonReturned & attrgroupBit(ATTR_CMN_FILEID) != 0 {
+                fileID = Int64(bitPattern: rawID)
             }
             offset += MemoryLayout<UInt64>.size
-            if fileReturned & attrgroupBit(ATTR_FILE_LINKCOUNT) != 0 {
-                guard let raw = loadUnaligned(UInt32.self, from: base, at: offset) else { return nil }
-                linkCount = Int(raw)
+
+            // Dateiattribute nur bei Dateien (`fileReturned` ≠ 0); dann stehen beide Felder im Puffer (ggf. Platzhalter).
+            let fileAttributes = attrgroupBit(ATTR_FILE_LINKCOUNT) | attrgroupBit(ATTR_FILE_DATALENGTH)
+            if fileReturned & fileAttributes != 0 {
+                guard
+                    let rawLinks = load(UInt32.self, at: offset),
+                    let rawLength = load(UInt64.self, at: offset + MemoryLayout<UInt32>.size)
+                else { return nil }
+                if fileReturned & attrgroupBit(ATTR_FILE_LINKCOUNT) != 0 {
+                    linkCount = Int(rawLinks)
+                }
+                if fileReturned & attrgroupBit(ATTR_FILE_DATALENGTH) != 0 {
+                    dataLength = rawLength
+                }
             }
-            offset += MemoryLayout<UInt32>.size
         }
 
         guard let name else { return nil }
         if shouldIgnoreName(name) { return nil }
 
-        let isSymlink = objType == 3 // VLNK
-        let isDir = objType == 2 // VDIR
+        // fsobj_type_t aus sys/vnode.h (VDIR = 2, VLNK = 5; 3 wäre VBLK).
+        let isSymlink = objType == VLNK.rawValue
+        let isDir = objType == VDIR.rawValue
         let isHidden = name.hasPrefix(".")
         var isPackage = false
         if isDir && !isSymlink {

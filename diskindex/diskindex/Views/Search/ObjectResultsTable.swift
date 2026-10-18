@@ -273,7 +273,7 @@ private struct ObjectResultRow: View, Equatable {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(result.date?.formatted(date: .abbreviated, time: .omitted) ?? "—")
+                Text(result.date.map(IndexedDateFormatting.abbreviatedDay) ?? "—")
                     .foregroundStyle(DesignColor.text.opacity(0.55))
                     .lineLimit(1)
                     .frame(width: ObjectTableColumns.date, alignment: .leading)

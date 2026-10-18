@@ -147,6 +147,16 @@ extension AppState {
             searchState.isSearchInProgress = false
             return
         }
+        let sort = searchState.sort.serverOrder
+        // Gleiche Anfrage (z. B. Neustart durch Live-Meldung): bisherige Zahl bleibt stehen; neue Anfrage: „–“.
+        let request = SearchCountRequest(query: query, filters: filters, sort: sort)
+        let sameHits = request.hasSameHits(as: lastCountedSearch)
+        // Nur die Reihenfolge geändert (Klick auf einen Spaltenkopf): die gezählte Zahl gilt weiter, keine neue Zählung.
+        let sortOnly = sameHits && lastCountedSearch?.sort != sort && searchMatch.itemCount != nil
+        // bug.0.3.9.003/014 b: Diese Suche deckt den ausstehenden Nachlauf der Live-Suche ab, schon ab ihrem Start
+        // (sonst feuert er während einer langsamen Suche als zweite Suche), außer ein reiner Sortierklick (zählt nicht
+        // neu; der Nachlauf bringt dann die Zahl auf den neuen Stand).
+        if !sortOnly { cancelTrailingLiveSearch() }
         // Alte Ergebnisse bleiben sichtbar, bis die neuen da sind (kein Flackern).
         searchState.isSearchInProgress = true
         defer {
@@ -157,7 +167,6 @@ extension AppState {
         await waitForRuleReconcileIdle()
         guard generation == searchGeneration else { return }
         let scope = indexScope
-        let sort = searchState.sort.serverOrder
         var match = await SearchIndex.matching(
             store: indexStore,
             query: query,
@@ -169,12 +178,7 @@ extension AppState {
             sort: sort
         )
         guard generation == searchGeneration else { return }
-        // Gleiche Anfrage (z. B. Neustart durch Live-Meldung): bisherige Zahl bleibt stehen; neue Anfrage: „–“.
-        let request = SearchCountRequest(query: query, filters: filters, sort: sort)
         let countPending = match.itemCount == nil
-        let sameHits = request.hasSameHits(as: lastCountedSearch)
-        // Nur die Reihenfolge geändert (Klick auf einen Spaltenkopf): die gezählte Zahl gilt weiter, keine neue Zählung.
-        let sortOnly = sameHits && lastCountedSearch?.sort != sort && searchMatch.itemCount != nil
         if match.itemCount == nil, sameHits {
             match.itemCount = searchMatch.itemCount
             match.unfilteredItemCount = searchMatch.unfilteredItemCount
@@ -185,9 +189,6 @@ extension AppState {
         }
         searchMatch = match
         searchState.isSearchInProgress = false
-        // bug.0.3.9.003: Diese Suche deckt den ausstehenden Nachlauf der Live-Suche ab, außer ein reiner Sortierklick
-        // (zählt nicht neu; der Nachlauf bringt dann die Zahl auf den neuen Stand).
-        if !sortOnly { cancelTrailingLiveSearch() }
         clampSearchSortToAvailableColumns()
         // Ergebnisse stehen; die Zahl(en) kommen in einer eigenen Aufgabe nach.
         let needsCount = !sortOnly && (countPending || filters.hasActiveFilters)

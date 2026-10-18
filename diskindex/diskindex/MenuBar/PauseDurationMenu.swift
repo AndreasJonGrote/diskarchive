@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-enum PauseSpan: Equatable {
+nonisolated enum PauseSpan: String, Equatable, Codable, Sendable {
     case halfHour
     case hour
     case tomorrow
@@ -22,8 +22,10 @@ enum PauseSpan: Equatable {
         }
     }
 
+    /// bug.0.4.059: die gespeicherte gewählte Dauer; nur alte Pausen ohne Spanne werden aus der Restzeit abgeleitet.
     static func matching(_ pause: GlobalPause, now: Date) -> PauseSpan? {
         guard pause.active else { return nil }
+        if let span = pause.span { return span }
         if pause.forever || pause.until == nil { return .forever }
         guard let until = pause.until else { return .forever }
         if abs(until.timeIntervalSince(GlobalPause.untilTomorrow(from: now))) < 90 { return .tomorrow }
@@ -51,9 +53,18 @@ struct MenuBarPauseDropdownRoot: View {
             active: appState.globalAutoIndexPaused ? PauseSpan.matching(appState.pauseSnapshot, now: Date()) : nil,
             until: appState.globalAutoIndexPaused ? appState.pauseSnapshot.until : nil
         ) { span in
-            appState.pauseIndexing(until: span.endDate(from: Date()))
+            appState.pauseIndexing(span: span)
             appState.popoverPauseMenuOpen = false
         }
+    }
+}
+
+extension AppState {
+    /// bug.0.4.059: Pause aus dem Menü mit gewählter Dauer; die Spanne wird mit der Pause gespeichert.
+    func pauseIndexing(span: PauseSpan, defaults: UserDefaults = AppDefaults.current, now: Date = Date()) {
+        pauseIndexing(until: span.endDate(from: now), defaults: defaults, now: now)
+        storedPause.pause(span: span, now: now)
+        savePause(defaults)
     }
 }
 

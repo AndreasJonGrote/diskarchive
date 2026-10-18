@@ -6,6 +6,11 @@
 import Foundation
 
 enum IndexedDateFormatting {
+    /// „13. Okt. 2026“ / „Oct 13, 2026“ nach App-Sprache statt Systemsprache (bug.0.4.058).
+    nonisolated static func abbreviatedDay(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted).locale(L10n.locale()))
+    }
+
     /// Popover/Dashboard: „Zuletzt indiziert: heute, 09:14" (Sprache und Zeitformat nach App-Sprache)
     static func lastIndexedLine(date: Date?) -> String {
         guard let date else { return LayoutCopy.indexedNever }

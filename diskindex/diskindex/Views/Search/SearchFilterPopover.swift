@@ -33,7 +33,7 @@ struct SearchFilterPopover: View {
 
     private func fileTypeGroup(filters: Binding<SearchFilters>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            groupHeader("DATEITYP")
+            groupHeader(LayoutCopy.searchFilterGroupFileType)
 
             FlowLayout(spacing: 6) {
                 ForEach(SearchFileTypeFilter.allCases) { option in
@@ -65,7 +65,7 @@ struct SearchFilterPopover: View {
     /// Eigene Dateiendungen (Layout Sektion 09, Aufgabe 32): Enter übernimmt, Chip per ✕ entfernbar.
     private func extensionBlock(filters: Binding<SearchFilters>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            groupHeader("DATEIENDUNG")
+            groupHeader(LayoutCopy.searchFilterGroupExtension)
 
             MediumSidebarSearchField(text: $extensionInput, placeholder: LayoutCopy.searchPlaceholderExtension, icon: "FileTypeGeneric") {
                 if filters.wrappedValue.addCustomExtension(extensionInput) {
@@ -105,7 +105,7 @@ struct SearchFilterPopover: View {
             : allMedia.filter { $0.name.localizedCaseInsensitiveContains(mediumFilterQuery) }
 
         return VStack(alignment: .leading, spacing: 8) {
-            groupHeader("MEDIUM")
+            groupHeader(LayoutCopy.searchFilterGroupMedium)
 
             MediumSidebarSearchField(text: $mediumFilterQuery, placeholder: LayoutCopy.searchPlaceholderMedium)
 
@@ -187,7 +187,7 @@ struct SearchFilterPopover: View {
 
     private func ageGroup(filters: Binding<SearchFilters>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            groupHeader("ALTER")
+            groupHeader(LayoutCopy.searchFilterGroupAge)
 
             ForEach(SearchAgeFilter.allCases) { option in
                 Button(option.label) {

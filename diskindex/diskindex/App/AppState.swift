@@ -71,9 +71,15 @@ final class AppState {
     var indexingFailure: IndexingFailureNotice?
     var replaceMediumPrompt: ReplaceMediumPrompt?
     var ignoreConfirmationPrompt: IgnoreConfirmationPrompt?
-    /// Wo die Rückfrage-Panels erscheinen; `nil` = kein Panel (Standard im Testprozess, ein Test setzt `.offscreen`
-    /// je Instanz). bug.0.3.9.005 c.
-    @ObservationIgnored var promptPanelPlacement: PromptPanelPlacement? = RuntimeEnvironment.isRunningTests ? nil : .centered
+    /// Wo die Rückfrage-Panels erscheinen; `nil` = kein Panel. Die App setzt `.centered` beim Start
+    /// (`configureForApp`, aus `applicationDidFinishLaunching`), ein Test setzt `.offscreen` je Instanz
+    /// (bug.0.3.9.005 c, bug.0.3.9.014 d: kein Prozess-Schalter).
+    @ObservationIgnored var promptPanelPlacement: PromptPanelPlacement?
+
+    /// Einstellungen, die nur die App-Instanz bekommt (bug.0.3.9.014 d): Rückfragen mittig.
+    func configureForApp() {
+        promptPanelPlacement = .centered
+    }
     var versionLockState: VersionLockState = .unlocked
     var versionLockBannerVisible = false
     var updateNotice: UpdateNotice?
@@ -392,25 +398,38 @@ final class AppState {
         mainWindowDestination = .search
     }
 
-    /// „Im Finder anzeigen“ (Detail-Spalte + Kontextmenü). Ohne Wirkung bis zum Backend (echte Pfade),
-    /// dann `NSWorkspace.shared.activateFileViewerSelecting(_:)`.
-    func revealInFinder(_ target: ObjectContextTarget) {
+    /// Existenzprüfung auf dem Medium für „Im Finder anzeigen“; läuft im Hintergrund (bug.0.4.062). Tests ersetzen sie.
+    @ObservationIgnored var finderRevealFileExists: @Sendable (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+    /// Öffnet den Finder (main). Tests ersetzen es, damit kein Finder-Fenster aufgeht.
+    @ObservationIgnored var finderRevealOpen: (URL) -> Void = { NSWorkspace.shared.activateFileViewerSelecting([$0]) }
+
+    /// „Im Finder anzeigen“ (Detail-Spalte + Kontextmenü): `NSWorkspace.shared.activateFileViewerSelecting(_:)`.
+    /// bug.0.4.062 (REPORT 132): `fileExists` auf dem Medium nicht synchron auf main (langsame oder hängende Platte).
+    @discardableResult
+    func revealInFinder(_ target: ObjectContextTarget) -> Task<Void, Never>? {
         DiskIndexLog.shared.ui("revealInFinder kind=\(target.kind) id=\(target.id)")
-        guard isMediumOnline(target.mediumID) else { return }
+        guard isMediumOnline(target.mediumID) else { return nil }
         guard let url = FinderReveal.url(
             mountPath: mountPath?(target.mediumID),
             itemPath: target.itemPath,
             kindIsMedium: target.kind == .medium
-        ) else { return }
-        let chosen: URL
-        if FileManager.default.fileExists(atPath: url.path) {
-            chosen = url
-        } else {
-            let parent = url.deletingLastPathComponent()
-            guard parent.path != url.path, FileManager.default.fileExists(atPath: parent.path) else { return }
-            chosen = parent
+        ) else { return nil }
+        let exists = finderRevealFileExists
+        return Task { [weak self] in
+            let chosen = await Task.detached(priority: .userInitiated) {
+                Self.finderRevealTarget(for: url, exists: exists)
+            }.value
+            guard let chosen, let self else { return }
+            self.finderRevealOpen(chosen)
         }
-        NSWorkspace.shared.activateFileViewerSelecting([chosen])
+    }
+
+    /// Ziel selbst, sonst der Elternordner (falls vorhanden).
+    nonisolated static func finderRevealTarget(for url: URL, exists: (String) -> Bool) -> URL? {
+        if exists(url.path) { return url }
+        let parent = url.deletingLastPathComponent()
+        guard parent.path != url.path, exists(parent.path) else { return nil }
+        return parent
     }
 
     /// „Index jetzt bereinigen“: löscht sofort, was nicht mehr zu den Einstellungen passt.

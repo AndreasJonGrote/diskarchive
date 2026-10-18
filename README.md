@@ -29,8 +29,9 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 | **0.6** | Vorschaubilder |
 | **0.7** | Export von CSV-Listen |
 | **0.8** | Duplikate erkennen |
-| **0.9** | Lizenz |
+| **0.9** | Lizenz mit den Stufen **Basic / Pro / Max**; ab Pro **Verschlagwortung auf dem Gerät** mit Apples Bordmitteln, im Hintergrund bei Leerlauf, ohne Cloud und ohne API-Schlüssel (Nutzer 18.10.; ROADMAP 0.9) |
 | **1.0** | erste fertige Version |
+| **nach 1.0** | Ideensammlung, nichts freigegeben: [ROADMAP.md](ROADMAP.md), Abschnitt „Nach 1.0“ |
 
 - **Layout-Reminder (0.3.2):** Der Code für den Erkennungs-Stapel und die Dashboard-Meta-Zeile ist gebaut (`todo.0.3.2.003`). Die Mockups in [layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html) müssen nachgezogen werden: **02** (Erkennungs-Dialog: mehrere Medien, Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts in einer unteren Zeile). Aufgabe `todo.0.3.2.001` (Nutzer). Künftig gilt wieder: erst Layout, dann Aufgabe in `TODO.md`.
 - **Startreihenfolge (Nutzer 16.10., feste Regel):** Die Einstellungen (Tabelle `settings`) sind geladen, **bevor** der erste Lauf oder die Medien-Erkennung etwas indiziert oder löscht. Sonst liefe ein Lauf mit Voreinstellungen (z. B. „Unsichtbare Dateien ignorieren“ an) und könnte Favoriten verwerfen.
@@ -48,7 +49,7 @@ Ausführliche Fassung mit Abnahmekriterien: [ROADMAP.md](ROADMAP.md). **Maßgebl
 - **0.6 Vorschaubilder [offen, zu besprechen]:** mit **Abschalter** (global und je Medium), eigene Datei mit Obergrenze. **Größe: 250 px lange Seite** (Nutzer 10.10.; 400 px wären problematisch: etwa 20 KB je Bild, 5.000 Fotos ca. 100 MB). Bei 250 px etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB, 100.000 Fotos ca. 1 GB (Überschlag, nicht gemessen). Zu klären: Schärfe auf Retina-Anzeige in der Detailspalte.
 - **0.7 CSV-Export:** noch nicht ausgearbeitet **[offen]** (Was wird exportiert, welche Spalten, Trennzeichen und Kodierung für deutsches Excel, Metadaten dabei?).
 - **0.8 Duplikate:** über alle Medien, stufenweise (Größe → Anfang/Ende → volle Prüfsumme nur bei Treffern), nur im Hintergrund.
-- **0.9 Lizenz:** Stufen nach Medienzahl — **max. 1 / max. 50 / max. 250 Medien**. Die 250 ist **nur eine Lizenzgrenze**, keine Systemgrenze (Nutzer 11.10.): die App muss mehr Medien tragen (Messung 0.3 mit 300 und 1.000). In der Beta (0.1 bis 0.8) gibt es keine Grenze.
+- **0.9 Lizenz (Nutzer 18.10.: drei Stufen mit Namen):** **Basic** (max. 1 Medium), **Pro** (max. 50 Medien, dazu Verschlagwortung auf dem Gerät), **Max** (max. 250 Medien, dazu Verschlagwortung auf dem Gerät). Die 250 ist **nur eine Lizenzgrenze**, keine Systemgrenze (Nutzer 11.10.): die App muss mehr Medien tragen (Messung 0.3 mit 300 und 1.000). In der Beta (0.1 bis 0.8) gibt es keine Grenze.
 
 **Offene Fragen Lizenz (vor 0.9 zu klären):** Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert beim Erreichen der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar aber wird nicht indiziert)? Was passiert bei Herabstufung mit mehr Medien als erlaubt (Index bleibt durchsuchbar, keine Aktualisierung)? Prüfung der Lizenz online über diskarchive.app oder offline per Schlüssel?
 
@@ -449,6 +450,7 @@ Kurzfassung der früheren `datenbank-konzeption.md` (Volltext: [archiv/datenbank
 - App älter als API → Update-Modal (mit „Dieses Update überspringen“).
 - **Beta (0.x) und API ≥ 1.0** → Hinweis und **7 Tage** Frist (`betaExpiryNoticedAt`); auf einer **frischen Installation (keine Datenbank) sofort gesperrt**. Eine gesperrte Version bleibt gesperrt (`lockedVersion`); heraus kommt man nur mit einer neueren App.
 - API 1 Monat nicht erreicht → gesperrt; Beta-Verfallsdatum 60 Tage nach dem Build → gesperrt.
+- **Präzisierung (Host 18.10., `bug.0.4.053`/`065`):** „Frisch installiert“ = bei der ersten API-Antwort ist noch kein Medium registriert (sonst gilt die 7-Tage-Frist). Wurde die API nie erreicht, zählen 30 Tage ab dem ersten Start. Offline zählt für Fristen `max(Uhr, höchste bisher gesehene Zeit)`; steht die Uhr offline weit vorgestellt, bleibt die App bis zur nächsten API-Antwort gesperrt.
 - **Gesperrt = 100 % nur ansehen:** kein Indizieren, keine Überwachung, keine neuen Medien, keine Schreibzugriffe (`FeatureAccess`). Uhr des Macs genügt.
 - Zählen aktiver Installationen: erst mit der Lizenz (0.9).
 

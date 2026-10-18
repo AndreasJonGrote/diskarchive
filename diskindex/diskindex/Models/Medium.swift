@@ -102,7 +102,7 @@ struct Medium: Identifiable, Equatable, Hashable {
     }
 
     var specLine: String {
-        let files = fileCount.formatted(.number.grouping(.automatic))
+        let files = DisplayNumberFormat.groupedInteger(fileCount)
         return "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumFilesCount(files))"
     }
 }

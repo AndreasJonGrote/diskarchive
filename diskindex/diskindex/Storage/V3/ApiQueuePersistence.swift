@@ -47,6 +47,7 @@ nonisolated enum ApiQueuePersistence {
     static func enqueue(_ pool: DatabasePool, kind: ApiQueueKind, payload: Data, createdAt: Int) throws {
         guard let text = String(data: payload, encoding: .utf8) else { return }
         try pool.write { db in
+            if kind == .versionCheck, try coalesceVersionCheck(db) { return }
             try db.execute(
                 sql: """
                     INSERT INTO api_queue (kind, payload, createdAt, attempts, lastTryAt, info)
@@ -67,10 +68,29 @@ nonisolated enum ApiQueuePersistence {
                     sql: "SELECT COALESCE(SUM(length(payload)), 0) FROM api_queue"
                 ) ?? 0
                 if count <= maxRows, total <= maxPayloadBytes { break }
-                guard let oldest = try Int64.fetchOne(db, sql: "SELECT id FROM api_queue ORDER BY id ASC LIMIT 1") else { break }
+                // bug.0.4.051: zuerst Nicht-Berichte (z. B. Versions-Check) entfernen, Absturzberichte zuletzt.
+                guard let oldest = try Int64.fetchOne(
+                    db,
+                    sql: "SELECT id FROM api_queue ORDER BY (kind = ?) ASC, id ASC LIMIT 1",
+                    arguments: [ApiQueueKind.issueReport.rawValue]
+                ) else { break }
                 try db.execute(sql: "DELETE FROM api_queue WHERE id = ?", arguments: [oldest])
             }
         }
+    }
+
+    /// bug.0.4.051: höchstens eine offene `versionCheck`-Zeile. Gibt es schon eine, wird sie wieder fällig
+    /// gemacht (kein neuer Eintrag); ältere Doppel werden entfernt. `true` = nichts einzufügen.
+    private static func coalesceVersionCheck(_ db: Database) throws -> Bool {
+        let kind = ApiQueueKind.versionCheck.rawValue
+        guard let keep = try Int64.fetchOne(
+            db,
+            sql: "SELECT id FROM api_queue WHERE kind = ? ORDER BY id ASC LIMIT 1",
+            arguments: [kind]
+        ) else { return false }
+        try db.execute(sql: "DELETE FROM api_queue WHERE kind = ? AND id <> ?", arguments: [kind, keep])
+        try db.execute(sql: "UPDATE api_queue SET lastTryAt = NULL WHERE id = ?", arguments: [keep])
+        return true
     }
 
     static func fetchAllOrdered(_ pool: DatabasePool) throws -> [ApiQueueRow] {

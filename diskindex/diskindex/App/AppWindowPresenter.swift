@@ -324,24 +324,7 @@ enum AppWindowPresenter {
                         .environment(appState)
                 )
             )
-            let size = hosting.fittingSize
-            let panel = KeyablePanel(
-                contentRect: NSRect(origin: .zero, size: size),
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
-            panel.isFloatingPanel = true
-            panel.level = .floating
-            panel.backgroundColor = .clear
-            panel.isOpaque = false
-            panel.hasShadow = false
-            panel.hidesOnDeactivate = false
-            panel.isMovableByWindowBackground = true
-            panel.becomesKeyOnlyIfNeeded = false
-            panel.contentView = hosting
-            hosting.wantsLayer = true
-            hosting.layer?.backgroundColor = NSColor.clear.cgColor
+            let panel = makeNewMediumPanel(hosting: hosting)
             register(panel) {
                 newMediumPanels.removeValue(forKey: mediumID)
             }
@@ -352,6 +335,28 @@ enum AppWindowPresenter {
 
         guard let panel = newMediumPanels[mediumID] else { return }
         panel.orderFrontRegardless()
+    }
+
+    /// Erkennungs-Panel ohne Lage und ohne Anzeige (bug.0.3.9.014 a: dieselbe Erzeugung in App und Test).
+    static func makeNewMediumPanel(hosting: NSHostingView<AnyView>) -> KeyablePanel {
+        let panel = KeyablePanel(
+            contentRect: NSRect(origin: .zero, size: hosting.fittingSize),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        panel.isFloatingPanel = true
+        panel.level = .floating
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.hidesOnDeactivate = false
+        panel.isMovableByWindowBackground = true
+        panel.becomesKeyOnlyIfNeeded = false
+        panel.contentView = hosting
+        hosting.wantsLayer = true
+        hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        return panel
     }
 
     /// Reine Lage-Rechnung (todo.0.4.012); Tests ohne AppKit-Fenster.

@@ -194,6 +194,100 @@ struct AppStartupTests {
         #expect(teardowns == 1)
     }
 
+    /// bug.0.3.9.011: Der Checkpoint hängt synchron (Hook am Store, wie eine gehaltene Schreibsperre). Der Hauptthread
+    /// bleibt frei, die Antwort kommt nach der Zeitgrenze, solange der Checkpoint noch hängt, und genau einmal.
+    @Test func blockingCheckpointRepliesAfterTheTimeout() async throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let log = DiskIndexLog(directory: folder)
+        log.start(installHandlers: false)
+        let harness = try StoreHarness.make()
+        let app = AppState(store: harness.store)
+        let hook = BlockingHook()
+        // Löst sich spätestens nach 5 s selbst (sonst hinge der Testprozess); der Test öffnet ihn vorher.
+        harness.store.checkpointHookForTesting.set { hook.block(atMost: 5) }
+        defer { hook.release() }
+        let exits = ExitCounter()
+        let timeout: Duration = .milliseconds(300)
+        let flow = TerminationFlow(timeout: timeout, exitGrace: .seconds(30), log: log, forceExit: { exits.add() })
+        let counts = FinishFlag()
+        var blockedAtReply: Bool?
+        let started = ContinuousClock.now
+        let reply = flow.shouldTerminate(
+            handedOff: false,
+            teardown: {},
+            finish: {
+                await AppStartup.finishTermination(appState: app, log: log)
+                counts.finishes += 1
+            },
+            reply: {
+                counts.replies += 1
+                blockedAtReply = hook.isBlocking
+            }
+        )
+        #expect(reply == .terminateLater)
+        let replied = await waitUntil(timeout: 20) { counts.replies > 0 }
+        #expect(replied)
+        #expect(started.duration(to: .now) >= timeout)
+        // Die Antwort kam, während der Checkpoint noch hing (vorher: Hauptthread blockiert bis zum Lösen).
+        #expect(blockedAtReply == true)
+        #expect(hook.entered)
+        hook.release()
+        #expect(await waitUntil(timeout: 20) { counts.finishes > 0 })
+        #expect(counts.replies == 1)
+        #expect(exits.value == 0)
+        log.flushPendingWritesForTesting()
+        let text = String(decoding: try Data(contentsOf: log.fileURL), as: UTF8.self)
+        #expect(text.contains("app terminate timeout"))
+    }
+
+    /// bug.0.3.9.011: Hängt der Hauptthread selbst, feuert der Zeitgeber trotzdem (GCD, nicht MainActor); kommt die
+    /// eingereihte Antwort nicht an, endet der Prozess nach der weiteren Frist (hier: eingesetzter Ausstieg).
+    @Test func blockedMainThreadForcesExitAfterTheGrace() async throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let log = DiskIndexLog(directory: folder)
+        log.start(installHandlers: false)
+        let exited = DispatchSemaphore(value: 0)
+        let exits = ExitCounter()
+        let flow = TerminationFlow(
+            timeout: .milliseconds(200),
+            exitGrace: .milliseconds(300),
+            log: log,
+            forceExit: {
+                exits.add()
+                exited.signal()
+            }
+        )
+        let gate = FinishGate()
+        let counts = FinishFlag()
+        let reply = flow.shouldTerminate(
+            handedOff: false,
+            teardown: {},
+            finish: { await gate.wait() },
+            reply: { counts.replies += 1 }
+        )
+        #expect(reply == .terminateLater)
+        // Hauptthread synchron blockieren, bis der Ausstieg kommt (höchstens 5 s).
+        let result = Self.blockMainThread(until: exited, seconds: 5)
+        #expect(result == .success)
+        #expect(exits.value == 1)
+        log.flushPendingWritesForTesting()
+        let text = String(decoding: try Data(contentsOf: log.fileURL), as: UTF8.self)
+        #expect(text.contains("app terminate timeout"))
+        #expect(text.contains("app terminate force exit"))
+        // Danach: die eingereihte Antwort läuft einmal, der spätere Abschluss antwortet nicht noch einmal.
+        #expect(await waitUntil(timeout: 20) { counts.replies > 0 })
+        gate.open()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(counts.replies == 1)
+        #expect(exits.value == 1)
+    }
+
+    private static func blockMainThread(until semaphore: DispatchSemaphore, seconds: Double) -> DispatchTimeoutResult {
+        semaphore.wait(timeout: .now() + seconds)
+    }
+
     /// `O_APPEND`: zwei Schreiber auf dieselbe Datei überschreiben sich nicht (vorher: Handle sprang einmal ans Ende).
     @Test func twoWritersBothKeepTheirLines() throws {
         let folder = try directory()
@@ -253,4 +347,41 @@ private final class FinishGate {
         waiters = []
         pending.forEach { $0.resume() }
     }
+}
+
+/// Synchron blockierender Checkpoint-Hook (bug.0.3.9.011), Zustand je Test.
+nonisolated private final class BlockingHook: @unchecked Sendable {
+    private let lock = NSLock()
+    private let gate = DispatchSemaphore(value: 0)
+    private var blocking = false
+    private var didEnter = false
+    private var released = false
+
+    var isBlocking: Bool { lock.withLock { blocking } }
+    var entered: Bool { lock.withLock { didEnter } }
+
+    func block(atMost seconds: Double) {
+        lock.withLock {
+            didEnter = true
+            blocking = !released
+        }
+        guard isBlocking else { return }
+        _ = gate.wait(timeout: .now() + seconds)
+        lock.withLock { blocking = false }
+    }
+
+    func release() {
+        let wasReleased = lock.withLock { () -> Bool in
+            defer { released = true }
+            return released
+        }
+        if !wasReleased { gate.signal() }
+    }
+}
+
+nonisolated private final class ExitCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var value: Int { lock.withLock { count } }
+    func add() { lock.withLock { count += 1 } }
 }

@@ -90,13 +90,16 @@ struct ColumnSelection: Equatable {
         lastClickedID = kept
     }
 
-    mutating func move(step: Int, extend: Bool, visible: [UUID]) {
-        guard let column = focusColumnIndex, !visible.isEmpty else { return }
-        let current = lastClickedID ?? ids.last
+    /// Pfeiltaste in der Spalte `column` (bug.0.4.050): Steht die bisherige Auswahl in einer anderen Spalte,
+    /// beginnt in `column` eine neue Auswahl, damit `focusColumnIndex` zur gewählten ID passt.
+    mutating func move(step: Int, extend: Bool, visible: [UUID], column: Int) {
+        guard focusColumnIndex != nil, !visible.isEmpty else { return }
+        let sameColumn = focusColumnIndex == column
+        let current = sameColumn ? (lastClickedID ?? ids.last) : nil
         let index = current.flatMap { visible.firstIndex(of: $0) } ?? (step > 0 ? -1 : visible.count)
         let next = min(max(index + step, 0), visible.count - 1)
         let id = visible[next]
-        if extend {
+        if extend, sameColumn {
             shiftClick(id: id, column: column, visible: visible)
         } else {
             replace(id: id, column: column)
@@ -187,7 +190,7 @@ enum ColumnSizeSummary {
     }
 
     static func objectLine(count: Int) -> String {
-        count == 1 ? LayoutCopy.objectOne : LayoutCopy.objectMany(String(count))
+        count == 1 ? LayoutCopy.objectOne : LayoutCopy.objectMany(DisplayNumberFormat.groupedInteger(count))
     }
 }
 

@@ -2315,6 +2315,23 @@
         }
       }
     },
+    "copy.menu.connected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ANGESCHLOSSEN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "CONNECTED"
+          }
+        }
+      }
+    },
     "copy.menu.forever" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2860,6 +2877,57 @@
         }
       }
     },
+    "copy.popover_search.group.files" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DATEIEN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FILES"
+          }
+        }
+      }
+    },
+    "copy.popover_search.group.folders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ORDNER"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FOLDERS"
+          }
+        }
+      }
+    },
+    "copy.popover_search.group.media" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SPEICHERMEDIEN"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "STORAGE MEDIA"
+          }
+        }
+      }
+    },
     "copy.registry.filter.all" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2975,6 +3043,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "All"
+          }
+        }
+      }
+    },
+    "copy.search.filter.group.age" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ALTER"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AGE"
+          }
+        }
+      }
+    },
+    "copy.search.filter.group.extension" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DATEIENDUNG"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FILE EXTENSION"
+          }
+        }
+      }
+    },
+    "copy.search.filter.group.file_type" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DATEITYP"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FILE TYPE"
+          }
+        }
+      }
+    },
+    "copy.search.filter.group.medium" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MEDIUM"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MEDIUM"
           }
         }
       }

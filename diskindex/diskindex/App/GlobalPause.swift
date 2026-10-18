@@ -9,6 +9,8 @@ nonisolated struct GlobalPause: Equatable, Codable {
     var active = false
     var until: Date?
     var forever = false
+    /// bug.0.4.059: gewählte Dauer; fehlt bei alten gespeicherten Pausen (dann aus `until` abgeleitet).
+    var span: PauseSpan? = nil
 
     static func untilTomorrow(from now: Date, calendar: Calendar = .current) -> Date {
         let next = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now
@@ -19,12 +21,20 @@ nonisolated struct GlobalPause: Equatable, Codable {
         active = true
         forever = date == nil
         until = date
+        span = nil
+    }
+
+    /// bug.0.4.059: Pause mit gewählter Dauer; die Spanne wird mitgespeichert.
+    mutating func pause(span chosen: PauseSpan, now: Date) {
+        pause(until: chosen.endDate(from: now))
+        span = chosen
     }
 
     mutating func resume() {
         active = false
         forever = false
         until = nil
+        span = nil
     }
 
     mutating func refresh(now: Date) -> Bool {

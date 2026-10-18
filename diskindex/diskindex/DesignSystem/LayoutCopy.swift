@@ -77,6 +77,17 @@ nonisolated enum LayoutCopy {
     static var searchIdleTitle: String { L10n.string("copy.search.idle.title") }
     static var searchIdleSubtitle: String { L10n.string("copy.search.idle.subtitle") }
     static var searchFilterAllMedia: String { L10n.string("copy.search.filter_all_media") }
+    /// Popover-Suche: Gruppenüberschriften (bug.0.4.058).
+    static var popoverGroupMedia: String { L10n.string("copy.popover_search.group.media") }
+    static var popoverGroupFiles: String { L10n.string("copy.popover_search.group.files") }
+    static var popoverGroupFolders: String { L10n.string("copy.popover_search.group.folders") }
+    /// Menüleiste, Ruhezustand: Abschnittsüberschrift (bug.0.4.058).
+    static var menuConnectedHeader: String { L10n.string("copy.menu.connected") }
+    /// Suchfilter: Gruppenüberschriften (bug.0.4.058).
+    static var searchFilterGroupFileType: String { L10n.string("copy.search.filter.group.file_type") }
+    static var searchFilterGroupExtension: String { L10n.string("copy.search.filter.group.extension") }
+    static var searchFilterGroupMedium: String { L10n.string("copy.search.filter.group.medium") }
+    static var searchFilterGroupAge: String { L10n.string("copy.search.filter.group.age") }
     static var filterToolbarButton: String { L10n.string("copy.filter.toolbar") }
     static var revealInFinder: String { L10n.string("copy.reveal_in_finder") }
 

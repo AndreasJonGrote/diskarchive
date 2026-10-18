@@ -77,6 +77,14 @@ extension AppState {
         }
     }
 
+    /// Store-Fehler bei geöffnetem Store (bug.0.4.052, REPORT 92): Abbau wie beim Beenden, danach Store lösen; die
+    /// befristete Pause läuft trotzdem ab (der Abbau bricht `pauseExpiryTask` ab, hier wird er neu geplant).
+    func detachAfterStoreFailure(now: Date = Date()) {
+        prepareForTermination()
+        detachFromIndexStore()
+        schedulePauseExpiryCheck(now: now)
+    }
+
     func savePause(_ defaults: UserDefaults) {
         if let data = try? JSONEncoder().encode(storedPause) {
             defaults.set(data, forKey: Self.pauseKey)

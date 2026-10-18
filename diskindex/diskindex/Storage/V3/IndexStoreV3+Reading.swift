@@ -567,22 +567,23 @@ extension IndexStoreV3 {
         var id: Int64
     }
 
-    /// SQL-Seite der Suche; Cursor auf `(slug, id)` wie in der Spalten-Pagination.
+    /// SQL-Seite der Suche; Cursor auf `(slug, id)`, binär wie `searchHitsSQL`.
     private func searchHitPage(
         plan: SearchPlanV3,
         after: SearchHitCursor?,
         limit: Int
     ) async throws -> [(id: Int64, slug: String)] {
         try await pool.read { db in
-            let natural = "\"\(NaturalOrder.collationName)\""
+            // bug.0.4.057 (REPORT 100): Folgeseiten in derselben (binären) Sortierfolge wie Seite 1
+            // (`searchHitsSQL`), sonst Doppelte/Lücken bei „img9“/„img10“. Natürlich sortiert erst die Anzeige.
             if let after {
                 var hits: [(Int64, String)] = []
                 let sameSlug = try Row.fetchAll(
                     db,
                     sql: """
                         SELECT i.id, i.slug FROM items i
-                        WHERE \(plan.whereClause) AND i.slug COLLATE \(natural) = ? AND i.id > ?
-                        ORDER BY i.slug COLLATE \(natural), i.id LIMIT ?
+                        WHERE \(plan.whereClause) AND i.slug = ? AND i.id > ?
+                        ORDER BY i.slug, i.id LIMIT ?
                         """,
                     arguments: plan.statementArguments(extra: [after.slug.databaseValue, after.id.databaseValue, limit.databaseValue])
                 )
@@ -592,8 +593,8 @@ extension IndexStoreV3 {
                         db,
                         sql: """
                             SELECT i.id, i.slug FROM items i
-                            WHERE \(plan.whereClause) AND i.slug COLLATE \(natural) > ?
-                            ORDER BY i.slug COLLATE \(natural), i.id LIMIT ?
+                            WHERE \(plan.whereClause) AND i.slug > ?
+                            ORDER BY i.slug, i.id LIMIT ?
                             """,
                         arguments: plan.statementArguments(extra: [after.slug.databaseValue, (limit - hits.count).databaseValue])
                     )

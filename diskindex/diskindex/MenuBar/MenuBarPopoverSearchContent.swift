@@ -42,9 +42,14 @@ struct MenuBarPopoverSearchContent: View {
             }
 
             if results.totalCount == 0 {
-                Text(LayoutCopy.popoverNoHits(query.trimmingCharacters(in: .whitespacesAndNewlines)))
-                .font(.system(size: 12.5))
-                .foregroundStyle(DesignColor.text.opacity(0.55))
+                // bug.0.4.060: eine Zeile mit Verlauf statt „…“ (zentraler Baustein), passt in die feste Höhe
+                // aus `MenuBarPopoverLayout.searchContentHeight`.
+                FadeMaskText(
+                    text: LayoutCopy.popoverNoHits(query.trimmingCharacters(in: .whitespacesAndNewlines)),
+                    applyFadeMask: true,
+                    font: .system(size: 12.5),
+                    foreground: DesignColor.text.opacity(0.55)
+                )
             }
         }
         .padding(.horizontal, MenuBarPopoverLayout.searchHorizontalPadding)

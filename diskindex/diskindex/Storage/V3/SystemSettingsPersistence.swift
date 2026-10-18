@@ -13,6 +13,15 @@ nonisolated enum SystemSettingsKey {
     static let apiLastSeen = "apiLastSeen"
     static let lockedVersion = "lockedVersion"
     static let skippedUpdateVersion = "skippedUpdateVersion"
+    /// bug.0.4.053: erster Start mit dieser Datenbank (`date`); `value` = „fresh“, wenn die Datenbank dabei neu war.
+    static let firstRunAt = "firstRunAt"
+    /// bug.0.4.053: höchster je gesehener Zeitpunkt der Mac-Uhr (gegen zurückgestellte Uhr).
+    static let highestSeenAt = "highestSeenAt"
+}
+
+nonisolated enum FirstRunMarker {
+    static let fresh = "fresh"
+    static let existing = "existing"
 }
 
 nonisolated struct SystemSettingsSnapshot: Equatable, Sendable {
@@ -20,6 +29,10 @@ nonisolated struct SystemSettingsSnapshot: Equatable, Sendable {
     var apiLastSeen: Date?
     var lockedVersion: String?
     var skippedUpdateVersion: String?
+    var firstRunAt: Date? = nil
+    /// `true`, wenn beim ersten Start keine Datenbank da war (README: frische Installation).
+    var firstRunFresh: Bool = false
+    var highestSeenAt: Date? = nil
 }
 
 nonisolated enum SystemSettingsPersistence {
@@ -28,7 +41,38 @@ nonisolated enum SystemSettingsPersistence {
             betaExpiryNoticedAt: try readDate(db, key: SystemSettingsKey.betaExpiryNoticedAt),
             apiLastSeen: try readDate(db, key: SystemSettingsKey.apiLastSeen),
             lockedVersion: try readValue(db, key: SystemSettingsKey.lockedVersion),
-            skippedUpdateVersion: try readValue(db, key: SystemSettingsKey.skippedUpdateVersion)
+            skippedUpdateVersion: try readValue(db, key: SystemSettingsKey.skippedUpdateVersion),
+            firstRunAt: try readDate(db, key: SystemSettingsKey.firstRunAt),
+            firstRunFresh: try readValue(db, key: SystemSettingsKey.firstRunAt) == FirstRunMarker.fresh,
+            highestSeenAt: try readDate(db, key: SystemSettingsKey.highestSeenAt)
+        )
+    }
+
+    /// Schreibt den ersten Start nur, wenn noch keiner gespeichert ist.
+    static func writeFirstRunIfMissing(_ db: Database, at: Date, fresh: Bool) throws {
+        try db.execute(
+            sql: "INSERT OR IGNORE INTO settings (key, value, date) VALUES (?, ?, ?)",
+            arguments: [
+                SystemSettingsKey.firstRunAt,
+                fresh ? FirstRunMarker.fresh : FirstRunMarker.existing,
+                Int64(at.timeIntervalSince1970)
+            ]
+        )
+    }
+
+    /// Nach einer API-Antwort: Höchstwert auf die aktuelle Uhr setzen (auch nach unten).
+    static func writeHighestSeenAt(_ db: Database, at: Date) throws {
+        try writeDate(db, key: SystemSettingsKey.highestSeenAt, date: at)
+    }
+
+    /// Hebt den gespeicherten höchsten Zeitpunkt nur an, nie ab.
+    static func raiseHighestSeenAt(_ db: Database, to at: Date) throws {
+        try db.execute(
+            sql: """
+                INSERT INTO settings (key, value, date) VALUES (?, NULL, ?)
+                ON CONFLICT(key) DO UPDATE SET date = MAX(COALESCE(date, 0), excluded.date)
+                """,
+            arguments: [SystemSettingsKey.highestSeenAt, Int64(at.timeIntervalSince1970)]
         )
     }
 

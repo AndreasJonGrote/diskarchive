@@ -474,7 +474,10 @@ extension MeasurementTestGroup {
     @Test func sizeSummarySkipsFolders() {
         let items = [item("dir", .folder), item("a.mp3", .file, size: 100), item("b.mp3", .file, size: 50)]
         #expect(ColumnSizeSummary.totalBytes(items) == 150)
-        #expect(ColumnSizeSummary.objectLine(count: 3) == "3 Objekte")
+        // bug.0.4.058: Text und Zahl folgen der App-Sprache; Erwartung für Deutsch fest.
+        L10n.$languageOverride.withValue(.german) {
+            #expect(ColumnSizeSummary.objectLine(count: 3) == "3 Objekte")
+        }
     }
 
     @Test func footerPrefersTheSelectionCount() {

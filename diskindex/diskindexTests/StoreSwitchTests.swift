@@ -231,21 +231,27 @@ extension MeasurementTestGroup {
             return
         }
         var medium = first
-        let seen = Date(timeIntervalSince1970: 1_700_000_000)
-        medium.lastSeenAt = seen
-        let formatted = seen.formatted(date: .abbreviated, time: .omitted)
-        for language in [AppDisplayLanguage.german, .english] {
+        // bug.0.4.058: Datum nach App-Sprache, nicht nach Systemsprache — feste Erwartung je Sprache.
+        // Mittags lokal gebaut, damit keine Zeitzone den Tag verschiebt.
+        func noon(_ year: Int, _ month: Int, _ day: Int) throws -> Date {
+            try #require(Calendar.current.date(from: DateComponents(year: year, month: month, day: day, hour: 12)))
+        }
+        medium.lastSeenAt = try noon(2023, 11, 14)
+        let expected: [AppDisplayLanguage: String] = [
+            .german: "Zuletzt gesehen: 14. Nov. 2023",
+            .english: "Last seen: Nov 14, 2023",
+        ]
+        for (language, text) in expected {
             L10n.$languageOverride.withValue(language) {
-                let text = ColumnDetailText.lastSeen(medium: medium)
-                let prefix = language == .german ? "Zuletzt gesehen: " : "Last seen: "
-                #expect(text == prefix + formatted)
+                #expect(ColumnDetailText.lastSeen(medium: medium) == text)
             }
         }
         medium.lastSeenAt = nil
         #expect(ColumnDetailText.lastSeen(medium: medium) == nil)
-        let later = seen.addingTimeInterval(86_400 * 40)
-        medium.lastSeenAt = later
-        #expect(ColumnDetailText.lastSeen(medium: medium)?.contains(later.formatted(date: .abbreviated, time: .omitted)) == true)
+        medium.lastSeenAt = try noon(2023, 12, 24)
+        L10n.$languageOverride.withValue(.german) {
+            #expect(ColumnDetailText.lastSeen(medium: medium)?.contains("24. Dez. 2023") == true)
+        }
     }
 }
 

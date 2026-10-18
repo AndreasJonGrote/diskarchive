@@ -54,10 +54,13 @@ extension AppState {
             finishRuleReconcileWorker(emitIdle: true)
             return
         }
-        ruleReconcileTask = Task { [weak self] in
+        let own = WorkerTaskHandle()
+        let task = Task { [weak self] in
             guard let self else { return }
             defer {
                 Task { @MainActor in
+                    // bug.0.4.062 (REPORT 132): abgebrochen und schon ersetzt → den Handle des neuen nicht anfassen.
+                    guard own.isCurrent(self.ruleReconcileTask) else { return }
                     self.finishRuleReconcileWorker(emitIdle: true)
                 }
             }
@@ -75,6 +78,8 @@ extension AppState {
                 }
             } while await MainActor.run(body: { self.ruleReconcileNeedsRerun }) && !Task.isCancelled
         }
+        own.task = task
+        ruleReconcileTask = task
     }
 
     private func finishRuleReconcileWorker(emitIdle: Bool) {
@@ -110,5 +115,16 @@ extension AppState {
             pendingSearchAfterRuleReconcile = false
             await runSearch()
         }
+    }
+}
+
+/// Eigener Handle eines Worker-Tasks (bug.0.4.062, REPORT 132): Das `defer` des alten Tasks läuft erst nach dem
+/// Abbruch, oft nachdem schon ein neuer gestartet ist. Nur wer noch der aktuelle Task ist, räumt auf.
+final class WorkerTaskHandle {
+    var task: Task<Void, Never>?
+
+    func isCurrent(_ current: Task<Void, Never>?) -> Bool {
+        guard let task, let current else { return false }
+        return task == current
     }
 }

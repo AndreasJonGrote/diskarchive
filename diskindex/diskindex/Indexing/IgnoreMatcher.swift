@@ -7,7 +7,11 @@ import Foundation
 
 nonisolated struct IgnoreMatcher: Sendable, Equatable {
     var ignoreHiddenFiles: Bool
-    var excludedPatterns: [String]
+    var excludedPatterns: [String] {
+        didSet { parsedPatterns = Self.parse(excludedPatterns) }
+    }
+    /// bug.0.4.056 (REPORT 97): Muster einmal beim Anlegen zerlegt, nicht je Eintrag.
+    private var parsedPatterns: [NamePattern]
 
     static let alwaysSkipped: Set<String> = [
         ".Spotlight-V100",
@@ -20,18 +24,29 @@ nonisolated struct IgnoreMatcher: Sendable, Equatable {
 
     var artifactsIgnored: Bool = true
 
+    init(ignoreHiddenFiles: Bool, excludedPatterns: [String], artifactsIgnored: Bool = true) {
+        self.ignoreHiddenFiles = ignoreHiddenFiles
+        self.excludedPatterns = excludedPatterns
+        self.artifactsIgnored = artifactsIgnored
+        self.parsedPatterns = Self.parse(excludedPatterns)
+    }
+
+    private static func parse(_ patterns: [String]) -> [NamePattern] {
+        patterns.compactMap(NamePattern.parse)
+    }
+
     func shouldSkip(name: String, isHidden: Bool, parentPath: [String] = []) -> Bool {
         _ = parentPath
         if name.hasPrefix("._") { return true }
         if Self.alwaysSkipped.contains(name) { return true }
         if ignoreHiddenFiles, isHidden || name.hasPrefix(".") { return true }
-        if artifactsIgnored, ArtifactRules.matches(name) {
+        guard artifactsIgnored || !parsedPatterns.isEmpty else { return false }
+        // Einmal kleinschreiben für Artefakte und eigene Muster.
+        let lower = name.lowercased()
+        if artifactsIgnored, ArtifactRules.matches(lowercased: lower) {
             return true
         }
-        for pattern in excludedPatterns {
-            guard let rule = NamePattern.parse(pattern) else { continue }
-            if rule.matches(name) { return true }
-        }
+        for rule in parsedPatterns where rule.matches(lowercased: lower) { return true }
         return false
     }
 

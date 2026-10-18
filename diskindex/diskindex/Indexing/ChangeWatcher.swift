@@ -445,11 +445,25 @@ private extension AppSettings {
     }
 }
 
-nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked Sendable {
+nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable {
     let mountPath: String
     private let resumeVolumeUUID: String?
     private let resumeLastEventID: FSEventStreamEventId?
     private let queue = DispatchQueue(label: "diskindex.fsevents")
+    /// Erkennt, ob `close` schon auf `queue` läuft (kein `sync` auf die eigene Queue).
+    private let queueKey = DispatchSpecificKey<UInt8>()
+    #if DEBUG
+    /// Tests (bug.0.4.062): das letzte `close` lief auf der Callback-Queue (gelesen über die Queue).
+    private var lastCloseRanOnQueue: Bool?
+    var lastCloseRanOnQueueForTesting: Bool? { queue.sync { lastCloseRanOnQueue } }
+    private let testingLock = NSLock()
+    private var receiveHook: (@Sendable () -> Void)?
+    private var closeFinished = false
+    /// Läuft synchron in jedem Callback auf `queue` (vor dem Weiterreichen). Je Instanz.
+    func setReceiveHookForTesting(_ hook: (@Sendable () -> Void)?) { testingLock.withLock { receiveHook = hook } }
+    /// Der Stream ist geschlossen (ohne `queue.sync` lesbar).
+    var closeFinishedForTesting: Bool { testingLock.withLock { closeFinished } }
+    #endif
     private var stream: FSEventStreamRef?
     private var continuation: AsyncStream<VolumeChange>.Continuation?
     private var fileSystemUUID: String?
@@ -458,6 +472,7 @@ nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked S
         self.mountPath = mountPath
         self.resumeVolumeUUID = resumeVolumeUUID
         self.resumeLastEventID = resumeLastEventID
+        queue.setSpecific(key: queueKey, value: 1)
     }
 
     deinit {
@@ -469,7 +484,8 @@ nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked S
             self.continuation = continuation
             self.open()
             continuation.onTermination = { [weak self] _ in
-                self?.close()
+                // Nicht `sync`: ein Callback, der gerade `yield` ruft, wartete sonst auf diesen Abbruch (Verklemmung).
+                self?.closeAsync()
             }
         }
     }
@@ -514,15 +530,40 @@ nonisolated private final class FSEventsChangeSource: ChangeSource, @unchecked S
         }
     }
 
+    /// bug.0.4.062 (REPORT 132): Der Kontext hält `self` unretained. Geschlossen wird immer auf der Callback-Queue:
+    /// dort läuft kein Callback gleichzeitig, und nach `Invalidate` auf dieser Queue wird keiner mehr zugestellt.
+    /// `deinit` und `open` warten (`sync`); `onTermination` reiht ein und hält `self` bis dahin (`closeAsync`).
     private func close() {
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            closeOnQueue()
+        } else {
+            queue.sync { closeOnQueue() }
+        }
+    }
+
+    private func closeAsync() {
+        queue.async { [self] in closeOnQueue() }
+    }
+
+    private func closeOnQueue() {
         guard let stream else { return }
+        #if DEBUG
+        lastCloseRanOnQueue = DispatchQueue.getSpecific(key: queueKey) != nil
+        #endif
         FSEventStreamStop(stream)
         FSEventStreamInvalidate(stream)
         FSEventStreamRelease(stream)
         self.stream = nil
+        #if DEBUG
+        testingLock.withLock { closeFinished = true }
+        #endif
     }
 
     private func receive(paths: [String], flags: [FSEventStreamEventFlags], ids: [FSEventStreamEventId]) {
+        #if DEBUG
+        let hook = testingLock.withLock { receiveHook }
+        hook?()
+        #endif
         for index in paths.indices {
             let flag = flags[index]
             continuation?.yield(VolumeChange(
