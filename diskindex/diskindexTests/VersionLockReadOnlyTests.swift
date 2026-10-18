@@ -296,8 +296,16 @@ struct VersionLockReadOnlyTests {
         try #require(!app.versionLockState.isLocked)
         #expect(await waitUntil { rig.starts(id).count >= 2 })
         #expect(await waitUntil { await access.heldCount() >= 2 })
+        // bug.0.4.080 b): Solange der nachgeholte Abgleich läuft, startet die Überwachung nicht daneben aus
+        // `pauseChanged` (erst nach dem Lauf über `onRunIndexed`; in diesem Aufbau ohne Überwachung).
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(!rig.watcher.isWatching(mediumID: id))
         await access.open()
         #expect(await waitUntil { !rig.service.isRunActive(id) })
+        #expect(rig.starts(id) == [false, false])
+        // bug.0.4.080 a): Nachwarten; ein später dritter Start (doppelter Abgleich) fiele hier auf.
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(!rig.service.isRunActive(id))
         #expect(rig.starts(id) == [false, false])
         await rig.watcher.stop(mediumID: id)
     }
@@ -357,7 +365,59 @@ struct VersionLockReadOnlyTests {
         #expect(await waitUntil { !rig.service.isRunActive(id) })
         #expect(rig.starts(id) == [false, false])
         #expect(await waitUntil { rig.watcher.isWatching(mediumID: id) })
+        // bug.0.4.080 a): Nachwarten; ein später dritter Start (doppelter Abgleich) fiele hier auf.
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(!rig.service.isRunActive(id))
+        #expect(rig.starts(id) == [false, false])
         await rig.watcher.stop(mediumID: id)
+    }
+
+    /// bug.0.4.080 a): Zwei Starts während desselben Abbruchs (Nachholer aus LiveWiring und ein Start wie vom
+    /// Koordinator) werden zu einem Neustart zusammengefasst: nach dem Abbruch genau ein Abgleich, kein dritter.
+    @Test @MainActor func twoStartsDuringPendingCancelRunOnce() async throws {
+        let harness = try await ScanHarness.make()
+        let version = try #require(AppVersion.currentApp())
+        let indexed = StoredMedium(
+            fsType: "apfs", volumeTotalBytes: 1_000, name: "DOPPEL", type: .usb,
+            decision: .index, indexStatus: .indexed, completedDepth: 1
+        )
+        try await harness.store.upsertMedium(indexed)
+        let volume = testVolume(path: "/Volumes/DOPPEL", name: "DOPPEL")
+        try await harness.store.recordIdentity(mediumUUID: indexed.uuid, volume.identity)
+        let inner = MemoryVolume(mountPath: "/Volumes/DOPPEL")
+        inner.file("ordner/a.txt")
+        let access = RunGateAccess([inner]) { $0 == "/Volumes/DOPPEL" }
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: access, app: app)
+        let probe = CancelHookProbe()
+        rig.service.cancelBeforeAwaitHookForTesting = { [probe] _ in await probe.gate.wait() }
+        let id = indexed.uuid
+
+        await rig.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { await access.heldCount() >= 1 })
+        try VersionLockEvaluator.applyMutations(
+            VersionLockSettingsMutations(setFirstRunAt: Date().addingTimeInterval(-100 * 24 * 60 * 60), firstRunFresh: false),
+            pool: harness.store.pool
+        )
+        VersionCheckCoordinator.reevaluateLocal(appState: app, store: harness.store, databaseWasNewThisLaunch: false)
+        try #require(app.versionLockState.isLocked)
+        try #require(await waitUntil { rig.service.isCancellingForTesting(id) })
+        VersionCheckCoordinator.handleAPIResult(
+            VersionCheckResponse(version: version), appState: app, store: harness.store,
+            databaseWasNewThisLaunch: false
+        )
+        try #require(!app.versionLockState.isLocked)
+        // Zweiter Start in derselben Abbruchphase (wie der Koordinator nach dem Entsperren).
+        rig.service.start(mediumUUID: id, volume: volume, fromScratch: false)
+        await access.open()
+        try #require(rig.service.isCancellingForTesting(id))
+        await probe.gate.signal()
+
+        #expect(await waitUntil { rig.starts(id).count >= 2 })
+        #expect(await waitUntil { !rig.service.isRunActive(id) })
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(!rig.service.isRunActive(id))
+        #expect(rig.starts(id) == [false, false])
     }
 
     @Test @MainActor func watcherFlushSkipsWritesWhenLocked() async throws {

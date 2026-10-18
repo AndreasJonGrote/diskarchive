@@ -16,6 +16,15 @@ private final class FlushHookProbe {
     var returned = false
 }
 
+/// Zwei Flushes nacheinander am selben Hook: der erste und der zweite halten je an einem eigenen Tor.
+@MainActor
+private final class TwoFlushProbe {
+    let firstGate = SurfaceAsyncSignal()
+    let secondGate = SurfaceAsyncSignal()
+    var entries = 0
+    var firstReturned = false
+}
+
 @Suite(.serialized) @MainActor
 struct VersionLockWatcherTests {
     /// `stopAllForVersionLock`: Generationen erhöht, Ereignisstand und gepufferte Pfade verworfen, Überwachung aus.
@@ -124,5 +133,46 @@ struct VersionLockWatcherTests {
         let children = try await rig.store.children(mediumUUID: id, parentID: parent).map(\.name)
         #expect(!children.contains("neu.txt"))
         #expect((try await rig.store.medium(uuid: id)?.lastEventID ?? 0) == 0)
+    }
+    /// bug.0.4.080 c): Flush A hält am Hook; Sperre, `stopAllForVersionLock`, schnelles Entsperren, Überwachung neu,
+    /// Flush B hält ebenfalls. Endet A danach, bleibt die `flushInFlight`-Marke von B stehen.
+    @Test func oldFlushDoesNotClearMarkOfNewFlushAfterQuickUnlock() async throws {
+        let rig = try await watchRig()
+        let id = rig.medium.uuid
+        let probe = TwoFlushProbe()
+        rig.watcher.flushAfterPrepareHookForTesting = { [probe] in
+            probe.entries += 1
+            if probe.entries == 1 {
+                await probe.firstGate.wait()
+                probe.firstReturned = true
+            } else {
+                await probe.secondGate.wait()
+            }
+        }
+        rig.watcher.cursorSaveInterval = nil
+        rig.watcher.quietInterval = .milliseconds(40)
+        rig.watcher.start(mediumID: id, volume: rig.volume, source: rig.source)
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/eins.txt", eventID: 7, itemCreated: true))
+        try #require(await waitUntil { probe.entries >= 1 })
+
+        rig.app.versionLockState = .locked(.betaExpired)
+        rig.watcher.stopAllForVersionLock()
+        rig.app.versionLockState = .unlocked
+        // Neue Überwachung mit neuer Quelle (ein AsyncStream endet mit dem Stopp seines Lesers).
+        let second = ScriptedChangeSource()
+        rig.watcher.start(mediumID: id, volume: rig.volume, source: second)
+        second.emit(VolumeChange(path: "/Volumes/DISK/A/zwei.txt", eventID: 8, itemCreated: true))
+        try #require(await waitUntil { probe.entries >= 2 })
+        #expect(rig.watcher.isFlushInFlightForTesting(id))
+
+        await probe.firstGate.signal()
+        try #require(await waitUntil { probe.firstReturned })
+        // A läuft nach dem Hook ohne weitere Unterbrechung bis zum `defer`; kurz Luft lassen.
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(rig.watcher.isFlushInFlightForTesting(id), "Marke des neuen Flushes entfernt")
+
+        await probe.secondGate.signal()
+        #expect(await waitUntil { !rig.watcher.isFlushInFlightForTesting(id) })
+        await rig.watcher.stop(mediumID: id)
     }
 }

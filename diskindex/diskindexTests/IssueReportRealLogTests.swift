@@ -74,6 +74,7 @@ private struct RealLogHarness {
     let logDirectory: URL
     let pool: DatabasePool
     let host: String
+    let defaultsSuite: String
     let sink = LineSink()
 
     init() throws {
@@ -83,6 +84,13 @@ private struct RealLogHarness {
         try FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
         pool = try ApiQueuePersistence.openQueuePool(at: root.appendingPathComponent("archive.sqlite"))
         host = "r\(UUID().uuidString.prefix(8).lowercased()).real-log.test"
+        defaultsSuite = "diskindex-real-log-\(UUID().uuidString)"
+    }
+
+    /// bug.0.4.080 e): Testordner und UserDefaults-Suite nach dem Test entfernen.
+    func cleanUp() {
+        UserDefaults(suiteName: defaultsSuite)?.removePersistentDomain(forName: defaultsSuite)
+        try? FileManager.default.removeItem(at: root)
     }
 
     /// Erster Lauf: schreibt über das echte Protokoll, `body` erzeugt die Zeilen.
@@ -105,7 +113,7 @@ private struct RealLogHarness {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [RealLogReportStubURL.self]
         let endpoint = try #require(URL(string: "https://\(host)/api/issues/"))
-        let defaults = try #require(UserDefaults(suiteName: "diskindex-real-log-\(UUID().uuidString)"))
+        let defaults = try #require(UserDefaults(suiteName: defaultsSuite))
         let sink = self.sink
         let reporter = IssueReporter(
             endpoint: endpoint,
@@ -154,6 +162,7 @@ struct IssueReportRealLogTests {
     /// Bestandteile sind geschwärzt, der Absturzteil kommt aus `crash-last.txt` mit Signal und letzten Aktionen.
     @Test func reportFromRealLogKeepsOrderLimitAndHidesNames() throws {
         let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
         harness.firstRun { log in
             for step in 1...130 {
                 log.record(.index, .info, "scan step=\(step)")
@@ -221,6 +230,7 @@ struct IssueReportRealLogTests {
     /// Der echte Bericht passiert den Leak-Wächter und kommt unverändert beim Server an.
     @Test func realLogReportIsSentUnchanged() async throws {
         let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
         harness.firstRun { log in
             log.record(.medium, .error, "mount failed /Volumes/Urlaubsfotos")
             log.ui("search query=Geheimprojekt")
@@ -248,6 +258,7 @@ struct IssueReportRealLogTests {
     /// Senden nach `start()` schon und sperrt den Bericht.
     @Test func leakGuardBlocksMediumNameFromRealLogAtStart() async throws {
         let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
         let store = IndexStoreV3(pool: harness.pool)
         try await store.upsertMedium(
             StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "Urlaubsfotos", type: .usb, decision: .index)
@@ -279,6 +290,7 @@ struct IssueReportRealLogTests {
     /// Profil (mit U+0024), der Fehlerort `$s9diskindex…writeCrashSnapshot` bleibt im Stapel lesbar.
     @Test func dollarNameInLogIsHiddenButSwiftSymbolsInStackStayReadable() throws {
         let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
         harness.firstRun { log in
             log.record(.watcher, .info, "skipped Gehalt$Anna")
             log.writeCrashSnapshot(signal: SIGSEGV)
@@ -299,9 +311,43 @@ struct IssueReportRealLogTests {
         #expect(stack.contains { $0.contains("$s9diskindex") && $0.contains("writeCrashSnapshot") }, "Stapel: \(stack)")
     }
 
+    /// bug.0.4.078: Ohne `crash-last.txt` besteht der Stapel aus allen Protokollzeilen nach „CRASH signal=“. Eine
+    /// Protokollzeile mit „$S…“ im Dateinamen wird geschwärzt; nur echte Stapelrahmen behalten ihre Swift-Symbole.
+    @Test func dollarSInLogLineAfterCrashIsScrubbedButFramesStayReadable() throws {
+        let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
+        let realFrames = Thread.callStackSymbols
+        try #require(realFrames.contains { $0.contains("$s") })
+        harness.firstRun { log in
+            let frames = ["0   Disk Archive                        0x0000000100a1b2c3 $s9diskindex3FooV3baryyF + 12"] + realFrames
+            log.recordCrash(signal: "exception NSRangeException", symbols: frames)
+            // Nach der CRASH-Zeile: gehören über den Rückfallweg zum Stapel.
+            log.record(.watcher, .info, "skipped Konto$Sparbuch.pdf")
+            log.record(.medium, .error, "open failed /Volumes/Privat/Konto$Sparbuch.pdf")
+        }
+        let log = harness.secondRun()
+        log.flushPendingWritesForTesting()
+        let reporter = try harness.reporter(log: log)
+
+        reporter.enqueue(kind: "crash")
+        let (raw, object) = try queuedObject(reporter)
+
+        #expect(!raw.contains("Sparbuch"), "Bericht enthält den Dateinamen")
+        #expect(!raw.contains("Konto"), "Bericht enthält den Dateinamen")
+        #expect(!raw.contains("/Volumes/"))
+        let stack = try #require(crash(object)["stack"] as? [String])
+        // Die Zeile mit „$“ wird wie im Protokoll ganz zum Namensprofil (mit U+0024).
+        #expect(stack.contains { $0.hasPrefix("‹name ") && $0.contains("U+0024") }, "Stapel: \(stack)")
+        #expect(stack.contains { $0.contains("medium error open failed ‹path depth=") }, "Stapel: \(stack)")
+        #expect(stack.contains { $0.hasSuffix("0x0000000100a1b2c3 $s9diskindex3FooV3baryyF + 12") }, "Stapel: \(stack)")
+        // Echte Rahmen aus diesem Prozess: mindestens ein Swift-Symbol bleibt lesbar.
+        #expect(stack.contains { $0.contains("$s") && $0.contains("diskindexTests") }, "Stapel: \(stack)")
+    }
+
     /// Größenkürzung von `logTail`: die ältesten Zeilen fallen zuerst weg, die neueste bleibt.
     @Test func sizeTrimDropsOldestLogLinesFirst() throws {
         let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
         let filler = String(repeating: "y", count: 480)
         harness.firstRun { log in
             let symbols = (0..<440).map { "\($0) diskindex 0x0000000100000000 frame\($0) \(filler)" }
@@ -317,7 +363,7 @@ struct IssueReportRealLogTests {
 
         #expect(raw.utf8.count <= IssuePayload.bodyLimit, "Körper \(raw.utf8.count) Bytes")
         let tail = try #require(object["logTail"] as? [String])
-        #expect(!tail.isEmpty)
+        #expect(tail.count >= IssuePayload.keptLogLines, "logTail: \(tail.count) Zeilen")
         #expect(tail.count < 100, "logTail wurde nicht gekürzt: \(tail.count)")
         let newest = try #require(tail.last)
         #expect(newest.contains("app info newest line marker"))
@@ -343,9 +389,11 @@ struct IssueReportRealLogTests {
     }
 
     /// Größenbegrenzung: auch ein sehr langer Absturzteil aus dem Protokoll (Ausnahme ohne `crash-last.txt`)
-    /// bleibt unter 256 KB; Signal und Kopf des Stapels bleiben erhalten.
+    /// bleibt unter 256 KB; Signal und Kopf des Stapels bleiben erhalten. bug.0.4.079: Der Stapel wird gekürzt, bevor
+    /// das Protokoll unter `keptLogLines` (20) Zeilen fällt; die neueste Zeile bleibt.
     @Test func hugeCrashSectionFromRealLogStaysUnderBodyLimit() throws {
         let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
         let filler = String(repeating: "x", count: 480)
         harness.firstRun { log in
             for step in 1...150 {
@@ -355,6 +403,7 @@ struct IssueReportRealLogTests {
             log.recordCrash(signal: "exception NSRangeException", symbols: symbols)
         }
         let log = harness.secondRun()
+        log.record(.app, .info, "newest line marker")
         log.flushPendingWritesForTesting()
         let reporter = try harness.reporter(log: log)
 
@@ -368,5 +417,11 @@ struct IssueReportRealLogTests {
         let head = try #require(stack.first)
         #expect(head.hasPrefix("0 diskindex 0x0000000100000000 frame0 "))
         #expect(stack.allSatisfy { $0.count <= IssuePayload.lineLimit })
+        // Der Stapel war zu groß und wurde von hinten gekürzt (älteste Rahmen weg), das Protokoll behält 20 Zeilen.
+        #expect(stack.count < 700, "Stapel nicht gekürzt: \(stack.count)")
+        let tail = try #require(object["logTail"] as? [String])
+        #expect(tail.count >= IssuePayload.keptLogLines, "logTail: \(tail.count) Zeilen")
+        let newest = try #require(tail.last)
+        #expect(newest.contains("app info newest line marker"))
     }
 }

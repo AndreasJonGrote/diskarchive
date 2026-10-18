@@ -25,6 +25,8 @@ final class IndexingService {
     private var runStartedAt: [UUID: Date] = [:]
     private var runVolumes: [UUID: VolumeInfo] = [:]
     private var rerunAfterFinish: Set<UUID> = []
+    /// Starts während eines laufenden Abbruchs, je Medium zusammengefasst (bug.0.4.080 a).
+    private var startsWaitingForCancel: [UUID: (volume: VolumeInfo, fromScratch: Bool)] = [:]
     /// Abgleich-Lauf (bug.0.4.014), damit `cancel` wie `DirectoryIndexer.stop` endet.
     private var runFullReconcile: [UUID: Bool] = [:]
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
@@ -98,12 +100,20 @@ final class IndexingService {
             coordinator?.clearIndexRequest(mediumID: mediumUUID)
             return
         }
-        if tasks[mediumUUID] != nil, runs[mediumUUID] == nil {
+        if startsWaitingForCancel[mediumUUID] != nil || (tasks[mediumUUID] != nil && runs[mediumUUID] == nil) {
             // Abbruch läuft noch (`cancel` wartet auf den Task): `finish` dieses Laufs löst kein `rerunAfterFinish`
-            // mehr ein, also auf das Ende warten und dann neu starten (bug.0.4.073).
+            // mehr ein, also auf das Ende warten und dann neu starten (bug.0.4.073). bug.0.4.080 a): Weitere Starts
+            // in dieser Zeit (LiveWiring und Koordinator) warten nicht einzeln, sondern gehen in denselben Neustart,
+            // auch in der Lücke zwischen Ende des Abbruchs und Neustart (`waitUntilIdle` fragt alle 20 ms ab).
+            if let waiting = startsWaitingForCancel[mediumUUID] {
+                startsWaitingForCancel[mediumUUID] = (volume, waiting.fromScratch || fromScratch)
+                return
+            }
+            startsWaitingForCancel[mediumUUID] = (volume, fromScratch)
             Task {
                 await waitUntilIdle(mediumUUID)
-                start(mediumUUID: mediumUUID, volume: volume, fromScratch: fromScratch)
+                guard let waiting = startsWaitingForCancel.removeValue(forKey: mediumUUID) else { return }
+                start(mediumUUID: mediumUUID, volume: waiting.volume, fromScratch: waiting.fromScratch)
             }
             return
         }

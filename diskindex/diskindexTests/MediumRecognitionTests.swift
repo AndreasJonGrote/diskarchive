@@ -684,6 +684,31 @@ struct MediumCoordinatorTests {
         #expect(!rig.appState.needsNewMediumDialog(id))
     }
 
+    /// bug.0.4.080 d): Medium in 05/06 entschieden, aber nicht (mehr) in der Datenbank → `writeMedium` kehrt früh
+    /// zurück und entfernt die Marke `userDecisionIDs`. Ebenso, wenn die Oberfläche das Medium nicht kennt.
+    @Test func writeMediumForUnknownMediumDropsDecisionMark() async throws {
+        let rig = try await RecognitionRig.make(attachStore: true)
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        try await rig.store.deleteMedium(uuid: id)
+        try #require(try await rig.store.medium(uuid: id) == nil)
+
+        rig.appState.updateMedium(id: id, persist: true) {
+            $0.decision = .dontIndex
+            $0.allowIndexing = false
+        }
+        let dropped = await waitUntil(timeout: 5) {
+            rig.appState.pendingMediumWrites[id] == nil && rig.appState.userDecisionIDs[id] == nil
+        }
+        #expect(dropped, "Marke bleibt nach Write ohne Datenbankeintrag: \(String(describing: rig.appState.userDecisionIDs[id]))")
+
+        let unknown = UUID()
+        rig.appState.userDecisionIDs[unknown] = 1
+        await rig.appState.writeMedium(unknown)
+        #expect(rig.appState.userDecisionIDs[unknown] == nil, "Marke bleibt für ein unbekanntes Medium")
+    }
+
     /// Neues Medium, Dialog offen; der Nutzer entscheidet in 05/06 statt im Dialog → gemerkt; der Dialog ist
     /// beantwortet und kommt beim nächsten Anschließen nicht wieder.
     @Test func settingsDecisionForUndecidedMediumIsRemembered() async throws {

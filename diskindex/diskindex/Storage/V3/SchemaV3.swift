@@ -59,7 +59,7 @@ nonisolated enum SchemaV3 {
         // Die parallele Suche braucht mehrere Lese-Verbindungen (WAL erlaubt gleichzeitiges Lesen).
         configuration.maximumReaderCount = 16
         configuration.prepareDatabase { db in
-            db.add(collation: NaturalOrder.collation)
+            try NaturalOrder.register(on: db)
             try db.execute(sql: "PRAGMA foreign_keys = ON")
             guard !db.configuration.readonly else { return }
             // Wirkt nur auf eine neue Datei (vor WAL und vor der ersten Tabelle): Platz mit `incremental_vacuum`.

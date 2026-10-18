@@ -59,6 +59,8 @@ nonisolated struct IssueDraft: Equatable {
 nonisolated enum IssuePayload {
     static let bodyLimit = 256 * 1024
     static let lineLimit = 500
+    /// So viele letzte Protokollzeilen bleiben beim Kürzen mindestens erhalten (bug.0.4.079).
+    static let keptLogLines = 20
 
     static func json(
         draft: IssueDraft,
@@ -74,7 +76,7 @@ nonisolated enum IssuePayload {
         var actions = clipped(draft.actions, limit: 50)
         var logTail = clipped(draft.logTail, limit: 100)
         // todo.0.4.023: Der Stapel kommt aus dem Protokoll ab der letzten „CRASH“-Zeile und hat keine feste Länge;
-        // er wird zuletzt gekürzt (vom Ende her), damit der Bericht nie über `bodyLimit` liegt.
+        // er wird vom Ende her gekürzt, damit der Bericht nie über `bodyLimit` liegt (Reihenfolge unten, bug.0.4.079).
         var stack = draft.crashStack.map { String($0.prefix(lineLimit)) }
         var signature = String(draft.signature.prefix(lineLimit))
         var signal = String((draft.crashSignal ?? "unknown").prefix(lineLimit))
@@ -87,19 +89,29 @@ nonisolated enum IssuePayload {
             )
         }
         var data = make()
-        // Älteste Zeilen zuerst verwerfen, die neuesten liegen am nächsten am Fehler (todo.0.4.023).
-        while data.count > bodyLimit, !logTail.isEmpty {
+        // bug.0.4.079: Reihenfolge der Kürzung. (1) Protokoll bis auf die letzten `keptLogLines` Zeilen (älteste zuerst,
+        // die neuesten liegen am nächsten am Fehler); (2) Stapel von hinten (älteste Rahmen zuerst), der Kopf bleibt;
+        // (3) Aktionen; erst danach, nur als Sicherung, der Rest von Protokoll und Stapel.
+        while data.count > bodyLimit, logTail.count > keptLogLines {
             logTail.removeFirst()
             data = make()
         }
+        func trimStack(keeping minimum: Int) {
+            while data.count > bodyLimit, stack.count > minimum {
+                stack.removeLast(max(1, min(stack.count - minimum, (data.count - bodyLimit) / (lineLimit * 4))))
+                data = make()
+            }
+        }
+        trimStack(keeping: 1)
         while data.count > bodyLimit, !actions.isEmpty {
             actions.removeLast()
             data = make()
         }
-        while data.count > bodyLimit, !stack.isEmpty {
-            stack.removeLast(max(1, min(stack.count, (data.count - bodyLimit) / (lineLimit * 4))))
+        while data.count > bodyLimit, !logTail.isEmpty {
+            logTail.removeFirst()
             data = make()
         }
+        trimStack(keeping: 0)
         // Letzte Sicherung: Signatur und Signal sind schon auf `lineLimit` gekürzt; reicht das nicht, kürzer.
         if data.count > bodyLimit {
             signature = String(signature.prefix(64))

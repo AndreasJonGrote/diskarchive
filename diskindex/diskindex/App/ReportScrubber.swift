@@ -30,12 +30,19 @@ nonisolated enum ReportScrubber {
 
     /// Stapelzeile (todo.0.4.023): Swift-Symbole („$s9diskindex…“, „$S…“) bleiben lesbar, alles andere wie `text`.
     /// Nur für `crash.stack`; in Protokoll, Aktionen und Signatur bleibt „$“ ungewöhnlich (Name → Profil).
+    /// bug.0.4.078: Nur echte Stapelrahmen (`backtrace_symbols`: Nummer, Modul, Adresse) behalten ihre Symbole;
+    /// jede andere Zeile im Stapel (Protokollzeilen nach „CRASH signal=“) geht über die normale Schwärzung.
     static func stackLine(_ input: String) -> String {
         stackLine(input, pathPattern: defaultPathPattern)
     }
 
+    /// Rahmen aus `backtrace_symbols`/`callStackSymbols`: „3   Disk Archive   0x0000000100a1b2c3 $s9diskindex… + 12“.
+    /// Protokollzeilen beginnen mit dem Datum („2026-10-18 …“) und passen nicht.
+    static let stackFramePattern = #"^[0-9]+ +[^\n]+? +0x[0-9a-fA-F]+ "#
+
     static func stackLine(_ input: String, pathPattern: String) -> String {
-        guard let expression = try? NSRegularExpression(pattern: #"\$[sS][0-9A-Za-z_]+"#) else {
+        guard input.range(of: stackFramePattern, options: .regularExpression) != nil,
+              let expression = try? NSRegularExpression(pattern: #"\$[sS][0-9A-Za-z_]+"#) else {
             return text(input, pathPattern: pathPattern)
         }
         // Platzhalter aus gewöhnlichen Zeichen; steht er in einem Pfad oder Namen, verschwindet er mit dessen Profil.

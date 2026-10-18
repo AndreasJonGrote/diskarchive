@@ -644,14 +644,23 @@ extension AppState {
 
     func writeMedium(_ id: UUID) async {
         guard featureAccess.canWriteIndex else { return }
-        guard let indexStore, let current = medium(with: id) else { return }
+        guard let indexStore else { return }
+        guard let current = medium(with: id) else {
+            // bug.0.4.080 d): Medium unbekannt (vergessen, entfernt): die Marke bliebe sonst für immer stehen.
+            userDecisionIDs[id] = nil
+            return
+        }
         // bug.0.4.075: nur eine Änderung in 05/06 schreibt die Entscheidung und gilt als gemerkt (auch wenn ihr eigener
         // Write abgelöst wurde: Debounce, Beenden). Ein fremder Write (Favorit, Kapazität) lässt die Entscheidung der DB
         // stehen, sonst schriebe er eine veraltete Entscheidung der Oberfläche zurück (Bereich bug.0.4.043).
         let userChange = userDecisionIDs[id]
         let decisionByUser = userChange != nil
         do {
-            guard var stored = try await indexStore.medium(uuid: id) else { return }
+            guard var stored = try await indexStore.medium(uuid: id) else {
+                // bug.0.4.080 d): nicht in der Datenbank – nichts zu schreiben, Marke dieser Änderung entfernen.
+                if let userChange, userDecisionIDs[id] == userChange { userDecisionIDs[id] = nil }
+                return
+            }
             if decisionByUser {
                 stored.rememberDecision = true
                 stored.allowIndexing = current.decision == .index

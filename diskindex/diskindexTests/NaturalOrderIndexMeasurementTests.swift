@@ -7,6 +7,10 @@
 //  Läuft nur mit DISKINDEX_MEASURE=1 (Regel 8: Leistung nur im Release-Build), z. B.
 //  `TEST_RUNNER_DISKINDEX_MEASURE=1 xcodebuild test -configuration Release … -only-testing:diskindexTests/MeasurementTestGroup/NaturalOrderIndexMeasurementTests`.
 //  Ergebnis als Zeile `MESSUNG …` im Protokoll und, mit DISKINDEX_MEASURE_OUT, angehängt an diese Datei.
+//  DISKINDEX_MEASURE_VARIANT (Nacharbeit 18.10., beide Fassungen aus demselben Build im Wechsel):
+//  `vorher` = Stand vor bug.0.4.077 (ohne `items_search_natural`, alter Vergleich über GRDB-Strings),
+//  `ohne-index` = neuer Vergleich ohne `items_search_natural`, `nachher-alt` = alter Vergleich mit dem Index (Stand der
+//  ersten Messung), sonst (`nachher`) der heutige Stand.
 //
 
 import Foundation
@@ -34,6 +38,14 @@ struct NaturalOrderIndexMeasurementTests {
         let fileURL = directory.appendingPathComponent("archive.sqlite")
         let database = try TestDatabase(fileURL: fileURL)
         defer { try? database.close() }
+        let variant = ProcessInfo.processInfo.environment["DISKINDEX_MEASURE_VARIANT"] ?? "nachher"
+        if variant != "nachher" {
+            // Nur der Schreiber pflegt die Indizes beim Indizieren; dort zählt der Vergleich.
+            try await database.pool.writeWithoutTransaction { db in
+                if variant == "vorher" || variant == "ohne-index" { try db.execute(sql: "DROP INDEX items_search_natural") }
+                if variant == "vorher" || variant == "nachher-alt" { db.add(collation: LegacyNaturalOrder.collation) }
+            }
+        }
         let store = IndexStoreV3(database: database)
         let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000_000_000_000, name: "MESSUNG", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
@@ -102,8 +114,8 @@ struct NaturalOrderIndexMeasurementTests {
         }) ?? "dbstat-nicht-verfuegbar"
         let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
         let line = String(
-            format: "MESSUNG bug.0.4.077 eintraege=%d dauer=%.3f s groesse=%lld bytes indizes=%@ %@",
-            total, seconds, bytes, indexes.joined(separator: ","), perIndex
+            format: "MESSUNG bug.0.4.077 variante=%@ eintraege=%d dauer=%.3f s groesse=%lld bytes indizes=%@ %@",
+            variant, total, seconds, bytes, indexes.joined(separator: ","), perIndex
         )
         print(line)
         if let out = ProcessInfo.processInfo.environment["DISKINDEX_MEASURE_OUT"] {

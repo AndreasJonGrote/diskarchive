@@ -55,7 +55,10 @@ final class ChangeWatcher {
     private var volumes: [UUID: VolumeInfo] = [:]
     private var cursorTimer: Task<Void, Never>?
     private var watchGenerations: [UUID: Int] = [:]
-    private var flushInFlight: Set<UUID> = []
+    /// Laufender Flush je Medium mit eigener Nummer (bug.0.4.080 c): Das `defer` eines alten Flushes entfernt nur seine
+    /// eigene Marke, nicht die eines neuen Flushes nach `stopAllForVersionLock` und schnellem Entsperren.
+    private var flushInFlight: [UUID: Int] = [:]
+    private var flushSerial = 0
     private var flushAgain: Set<UUID> = []
     private var pauseGeneration = 0
     /// Nur `stopAllForVersionLock` erhöht sie (bug.0.4.076 d): ein laufender Flush aus der Zeit davor legt keine
@@ -70,6 +73,7 @@ final class ChangeWatcher {
     func watchGenerationForTesting(_ mediumID: UUID) -> Int { watchGenerations[mediumID, default: 0] }
     var versionLockGenerationForTesting: Int { versionLockGeneration }
     func hasEventCursorForTesting(_ mediumID: UUID) -> Bool { cursors[mediumID] != nil || savedCursors[mediumID] != nil }
+    func isFlushInFlightForTesting(_ mediumID: UUID) -> Bool { flushInFlight[mediumID] != nil }
     #endif
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
@@ -188,7 +192,7 @@ final class ChangeWatcher {
         pendingSince[mediumID] = nil
         mounts[mediumID] = nil
         volumes[mediumID] = nil
-        flushInFlight.remove(mediumID)
+        flushInFlight[mediumID] = nil
         flushAgain.remove(mediumID)
         if let cursor, appState.featureAccess.canWriteIndex {
             do {
@@ -204,13 +208,15 @@ final class ChangeWatcher {
         }
     }
 
-    func pauseChanged() {
+    /// `skipping`: Medien, deren Überwachung erst nach einem gerade gestarteten Abgleich beginnt (über `onRunIndexed`,
+    /// bug.0.4.080 b).
+    func pauseChanged(skipping: Set<UUID> = []) {
         pauseGeneration += 1
         let generation = pauseGeneration
-        Task { await applyPause(generation: generation) }
+        Task { await applyPause(generation: generation, skipping: skipping) }
     }
 
-    private func applyPause(generation: Int) async {
+    private func applyPause(generation: Int, skipping: Set<UUID>) async {
         if appState.globalAutoIndexPaused {
             for id in Array(tasks.keys) {
                 guard generation == pauseGeneration else { return }
@@ -221,7 +227,7 @@ final class ChangeWatcher {
         for pair in connectedVolumes() {
             guard generation == pauseGeneration, !appState.globalAutoIndexPaused else { return }
             let id = pair.id
-            guard tasks[id] == nil else { continue }
+            guard tasks[id] == nil, !skipping.contains(id) else { continue }
             let stored: StoredMedium?
             do {
                 stored = try await store.medium(uuid: id)
@@ -322,7 +328,7 @@ final class ChangeWatcher {
         let mountPrefix = mountPath.hasSuffix("/") ? mountPath : mountPath + "/"
         guard eventPath == mountPath || eventPath.hasPrefix(mountPrefix) else { return }
         pending[mediumID, default: []].insert(change.path)
-        if flushInFlight.contains(mediumID) {
+        if flushInFlight[mediumID] != nil {
             flushAgain.insert(mediumID)
             return
         }
@@ -349,15 +355,20 @@ final class ChangeWatcher {
     }
 
     private func flush(_ mediumID: UUID) async {
-        if flushInFlight.contains(mediumID) {
+        if flushInFlight[mediumID] != nil {
             flushAgain.insert(mediumID)
             return
         }
-        flushInFlight.insert(mediumID)
+        flushSerial += 1
+        let token = flushSerial
+        flushInFlight[mediumID] = token
         defer {
-            flushInFlight.remove(mediumID)
-            if flushAgain.remove(mediumID) != nil {
-                Task { await self.flush(mediumID) }
+            // Inzwischen gestoppt und neu gestartet: Marke und `flushAgain` gehören dem neuen Flush.
+            if flushInFlight[mediumID] == token {
+                flushInFlight[mediumID] = nil
+                if flushAgain.remove(mediumID) != nil {
+                    Task { await self.flush(mediumID) }
+                }
             }
         }
         guard let mount = mounts[mediumID] else { return }

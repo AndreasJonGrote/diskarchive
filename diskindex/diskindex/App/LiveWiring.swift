@@ -233,12 +233,19 @@ enum LiveWiring {
             // bug.0.4.073: Von der Sperre abgebrochene Abgleiche (Medium blieb `.indexed`) nachholen. Bei globaler
             // Pause verworfen: das Pausenende gleicht verbundene indizierte Medien ohnehin ab (`resumePausedRuns`).
             let interruptedReconciles = service?.takeReconcilesInterruptedByVersionLock() ?? []
-            watcher?.pauseChanged()
-            guard !appState.globalAutoIndexPaused else { return }
-            for id in interruptedReconciles {
+            // bug.0.4.080 b): Erst die Abgleiche bestimmen; ihre Überwachung startet nach dem Lauf über `onRunIndexed`,
+            // nicht ungeordnet daneben aus `pauseChanged`. Pausierte Medien laufen nicht an und werden gleich überwacht.
+            let paused = appState.globalAutoIndexPaused
+            let reconciles: [(id: UUID, volume: VolumeInfo)] = paused ? [] : interruptedReconciles.compactMap { id in
                 guard let medium = appState.medium(with: id), medium.connectionStatus == .connected,
                       medium.decision == .index, medium.allowIndexing, medium.indexStatus == .indexed,
-                      let volume = coordinator?.volume(for: id) else { continue }
+                      !medium.autoIndexPaused, !appState.heldForSleep,
+                      let volume = coordinator?.volume(for: id) else { return nil }
+                return (id, volume)
+            }
+            watcher?.pauseChanged(skipping: Set(reconciles.map(\.id)))
+            guard !paused else { return }
+            for (id, volume) in reconciles {
                 DiskIndexLog.shared.record(.app, .info, "entsperrt holt abgleich nach medium=\(id)")
                 Task {
                     await stopWatcherAndStartIndex(
