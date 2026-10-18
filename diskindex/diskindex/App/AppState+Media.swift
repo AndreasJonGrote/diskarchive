@@ -86,6 +86,8 @@ extension AppState {
                     await self.writeMedium(id)
                     self.pendingMediumWrites[id] = nil
                 }
+                // todo.0.4.026: in 05/06 entschieden → ein noch offener Erkennungs-Dialog ist beantwortet.
+                completeNewMediumDecision(id)
                 onMediumDecisionChanged?(id, after.decision, after.allowIndexing)
             } else {
                 scheduleMediumWrite(id)
@@ -156,6 +158,14 @@ extension AppState {
         guard !pendingNewMediumDecisionIDs.contains(id) else { return }
         pendingNewMediumDecisionIDs.append(id)
         dismissedNewMediumPanelIDs.remove(id)
+    }
+
+    /// Erkennungs-Dialog für dieses Medium zeigen: in der Warteschlange und verbunden. Die Warteschlange enthält
+    /// unentschiedene Medien und entschiedene ohne „Für dieses Medium merken“ (todo.0.4.026, erneut gefragt); eine
+    /// Änderung in 05/06 nimmt das Medium heraus (`updateMedium(persist:)`).
+    func needsNewMediumDialog(_ id: UUID) -> Bool {
+        guard pendingNewMediumDecisionIDs.contains(id), let medium = medium(with: id) else { return false }
+        return medium.connectionStatus == .connected && medium.decision != .ignore
     }
 
     func completeNewMediumDecision(_ id: UUID) {

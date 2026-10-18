@@ -66,7 +66,7 @@ struct AppLaunchTests {
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
             }
             #expect(countBefore == 0)
-            let scheduler = VersionCheckScheduler()
+            let scheduler = VersionCheckScheduler(flush: {}, databaseWasNewThisLaunch: false)
             let appState = AppState()
             scheduler.start(appState: appState, store: testStore.store)
             defer { scheduler.stop() }

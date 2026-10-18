@@ -51,7 +51,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.8** (0.3.9 setzt Paket 9). Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 18.10. 03:07–03:23: 0 Warnungen, seriell 805/805, parallel 3/3. Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
+**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.9**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 18.10. 09:20–09:37: 0 Warnungen, seriell 840/840, parallel 3/3. Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
@@ -76,8 +76,10 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 7 | **0.3.9** | ~~`bug.0.3.9.004`, `bug.0.4.041`–`042`~~ | Parallellauf unter Last, Absturzschreiber, Start | **abgenommen 17.10.** |
 | 8a | **0.3.9** | ~~`bug.0.3.9.001`–`003`, `005`–`010`~~ | Befunde aus den Prüfungen | **abgenommen 17.10.** |
 | 8b | **0.3.9** | ~~`bug.0.3.9.011`–`014`, `bug.0.4.050`–`062`~~ | Prüfbefunde 8a, Fehler niedriger Schwere (Audit) | **abgenommen 18.10.; 0.3.9 fertig** |
-| 9 | **0.4** | `todo.0.3.9.001`, `bug.0.4.063`–`068`, `todo.0.4.026`–`029` | Version 0.3.9, Prüfbefunde, Code ohne Nutzerschritte | **freigegeben 18.10.** |
-| 10 | **0.4** | `todo.0.4.023`–`025`; mit dem Nutzer `020`–`022`; zuletzt `040` | Weitergabe an Beta-Tester | B |
+| 9 | **0.4** | ~~`todo.0.3.9.001`, `bug.0.4.063`–`068`, `todo.0.4.026`–`029`~~ | Version 0.3.9, Prüfbefunde, Code ohne Nutzerschritte | **abgenommen 18.10.** |
+| 10 | **0.4.0** | `bug.0.4.072`–`077`, `todo.0.4.023` | Prüfbefunde 9, natürliche Namensordnung, Fehlerbericht | **freigegeben 18.10.** |
+| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: 2-Mio-Platte, Stick, Layout → Release-Kandidat | nach Paket 10 |
+| – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `todo.0.4.1.002` (Tester-Prüfung mit Quarantäne) | Release der Open Beta (Auslieferung) | B |
 
 Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. Neue sichtbare Texte nur über „Frage:“ oder als freigegebener Textvorschlag in der Aufgabe (Regel 3 bleibt).
 
@@ -91,54 +93,44 @@ Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. 
 
 **Prüfung Host 17.10. 19:37–19:53 (Paket 8a, ungecommittet auf `151ea0f`):** Debug mit Testziel und Release 0 Warnungen, seriell **741/741** grün, **Parallel 3 von 3 grün**, keine neuen `.ips`, Regel 23 (App 19:52:52, Signatur gültig). Drei Prüf-Agenten: kein hoher Befund; zwei mittlere (`bug.0.3.9.011` Beenden hängt am Hauptthread, `012` langsames Volume) und niedrige (`013`, `014`) in Paket 8b. **Paket 8a abgenommen** (`bug.0.3.9.001`–`003`, `005`–`010`). Volltexte: `archiv/todo-stand-2026-10-17-vor-abnahme-paket8a.md`.
 
-**Prüfung Host 18.10. 03:07–03:23 (Paket 8b, ungecommittet auf `cab4d46`):** Debug mit Testziel und Release 0 Warnungen, seriell **805/805** grün, **Parallel 3 von 3 grün**, keine neuen `.ips`, Regel 23 (App 03:23:25, Signatur gültig). Drei Prüf-Agenten: kein Codefehler der Schwere hoch; mittlere und niedrige Befunde in Paket 9 (`bug.0.4.064`–`068`). **Paket 8b abgenommen** (`bug.0.3.9.011`–`014`, `bug.0.4.050`–`062`). **Damit sind alle Kennungen von 0.3.9 abgenommen und die Kriterien 1–6 und 8 erfüllt; die Stabilitätsprüfung gilt als erfüllt (drei Paketprüfungen in Folge parallel 3/3 grün). 0.3.9 ist fertig**, die Version setzt der Worker als erste Aufgabe von Paket 9. Volltexte: `archiv/todo-stand-2026-10-18-vor-abnahme-paket8b.md`.
+**Prüfung Host 18.10. 09:20–09:37 (Paket 9, ungecommittet auf `eaf6f20`):** Debug mit Testziel und Release 0 Warnungen, seriell **840/840** grün, **Parallel 3 von 3 grün**, keine neuen `.ips`, Regel 23 (App 09:37:22, **Version 0.3.9**, Signatur gültig). Drei Prüf-Agenten: kein hoher Befund; mittlere und niedrige in Paket 10 (`bug.0.4.072`–`076`). **Paket 9 abgenommen** (`todo.0.3.9.001`, `bug.0.4.063`–`068`, `todo.0.4.026`–`029`). Als Host abgenommen: `064` schreibt die Fehlerzeile weiter dauerhaft, aber außerhalb des Zeitgebers und mit höchstens 250 ms Wartezeit vor dem Ausstieg; `063` schreibt beim Abbruch durch die Sperre noch den Status „ausstehend“ (Aufräumen, kein Indexinhalt). Volltexte: `archiv/todo-stand-2026-10-18-vor-abnahme-paket9.md`.
 
-**Folge von `bug.0.4.055` (Nutzer, Host 18.10.):** Der schnelle Ordner-Leser hatte seit Anfang Dateigröße und Linkzahl vertauscht und Symlinks falsch erkannt. Alle bisherigen Indizes haben falsche Größen. Keine automatische Umstellung (bis 1.0 darf die Datenbank des Nutzers geändert werden, Beta-Tester starten leer); der Nutzer indiziert seine Medien einmal neu.
+#### Paket 10 — 0.4.0 (Release-Kandidat): Prüfbefunde 9, natürliche Namensordnung, Fehlerbericht (freigegeben 18.10.)
 
-#### Paket 9 — Beginn 0.4: Version, Prüfbefunde, Code ohne Nutzerschritte (freigegeben 18.10.)
+Reihenfolge: `bug.0.4.072`, `073`, `074`, `075`, `076`, `077`, dann `todo.0.4.023`. **Ziel 0.4.0 = Release-Kandidat der Open Beta (Nutzer 18.10.):** nur, was die App fehlerfrei macht. Auslieferung (`todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002`) gehört zu 0.4.1, Signatur (`020`) zu 1.0.
 
-Reihenfolge: `todo.0.3.9.001`, `bug.0.4.064`, `065`, `066`, `067`, `068`, dann `bug.0.4.063`, `todo.0.4.026`, `027`, `028`, `029`. Nicht in diesem Paket (brauchen den Nutzer bzw. kommen danach): `todo.0.4.020`–`025`, `040`.
-
-**todo.0.3.9.001 — Version 0.3.9 setzen (Abnahme 0.3.9 durch den Host 18.10.).** `MARKETING_VERSION` an allen Stellen in `project.pbxproj` auf `0.3.9`, Versions-Tests anpassen. Status: Zahl der geänderten Stellen.
+**bug.0.4.072 — „Frisch installiert“: nur indizierte Medien zählen (Prüf-Agent 18.10., mittel; Fehler in der Vorgabe des Hosts zu `bug.0.4.065`).** `VersionLockEvaluator` zählt heute jede Zeile in `storages` (`SELECT COUNT(*) FROM storages`); beim bloßen Anstecken legt `upsertMedium` sofort eine Zeile an. Gemeint war „schon indiziert“: zählen nur Medien mit Index (`firstIndexedAt IS NOT NULL`). Tests: frische Installation mit nur angestecktem, unentschiedenem Stick → sofortige Sperre; mit indiziertem Medium → 7 Tage. Das Medium über den echten Weg anlegen (Erkennung bzw. `upsertMedium`), nicht per rohem SQL (`VersionQueueLockPauseTests` Z. ~277).
 Status:
 
-**bug.0.4.064 — Beenden: Notfall-Zeitgeber darf nicht am Protokoll hängen (Prüf-Agent 18.10., mittel).** `AppStartup.swift` Z. ~107–117 (`scheduleDeadline`): Der GCD-Zeitgeber schreibt zuerst eine Fehlerzeile **dauerhaft** (`diskWriteQueue.sync` + `fsync`), erst dann reiht er die Antwort ein und plant `forceExit`; vor `forceExit` steht noch einmal so ein Aufruf. Hängt die Platte mit dem Datenordner (Protokoll und DB liegen dort), hängt auch der Zeitgeber. Reihenfolge umdrehen: zuerst Antwort einreihen und Ausstiegs-Zeitgeber planen, dann protokollieren, und zwar nicht dauerhaft (ohne `sync`/`fsync`). Test: Protokoll-Schreiben blockiert (Hook je Instanz) → Antwort bzw. Ausstieg kommt trotzdem.
+**bug.0.4.073 — Nach dem Entsperren abgebrochenen Abgleich nachholen (Prüf-Agent 18.10., mittel).** Bricht die Nur-Lesen-Sperre einen vollständigen Abgleich ab, bleibt das Medium auf `.indexed` mit `interrupted`; `onVersionLockReleased` fordert aber nur Medien mit `indexStatus != .indexed` neu an (`IndexingService.swift` Z. ~171–188, `LiveWiring.swift` Z. ~235). Unterbrochene Abgleiche merken und nach dem Entsperren nachholen (ohne globale Pause). Test über die echte Kette: Abgleich am Tor, Sperre, Entsperren → genau ein neuer Abgleich. Dazu ein eigener Test für `stopAllForVersionLock`.
 Status:
 
-**bug.0.4.065 — Versions-Sperre: „frisch installiert“ enger fassen (Host-Entscheidung 18.10., korrigiert die Antwort auf die Frage zu `bug.0.4.053`).** „Frisch“ gilt nur, wenn bei der **ersten API-Antwort noch kein Medium registriert** ist (README: frische Installation = keine Datenbank). Wer offline installiert und schon indiziert hat, bekommt bei der ersten Antwort die normale 7-Tage-Frist statt der sofortigen Sperre. Test für beide Fälle. Zusätzlich: Den prozessweiten Schalter `freshInstallForVersionCheck` im Test `VersionQueueLockPauseTests` Z. ~217/218 nicht zurückschreiben (Regel 20). Der Host ergänzt die README um „Uhr offline weit vorgestellt → Sperre bis zur nächsten API-Antwort“.
+**bug.0.4.074 — Versions-Sperre beim Start sofort auswerten (Prüf-Agent 18.10., mittel).** Seit `todo.0.4.028` wird die Sperre beim Start erst über die Hintergrund-Queue ausgewertet (`VersionCheckScheduler.swift` Z. ~80–96, `AppDelegate.swift` Z. ~340–356); bis dahin ist `canWriteIndex` offen, und die parallel startende Erkennung kann bei gesperrter Version schreiben. Die **lokale** Auswertung (`reevaluateLocal`) beim Start wieder synchron vor dem Start der Erkennung, nur das Einreihen der Abfrage asynchron. Test: gesperrter Zustand in der DB → Start → kein Lauf und kein Schreibvorgang. Dazu toter Code: das alte `enqueueCheckIfNeeded` mit `enqueueCooldown` und der prozessweiten Variablen `globalLastVersionCheckEnqueue` entfernen und die Tests (`IssueTrackerTests` Z. ~406, `AppLaunchTests` Z. ~63) auf `enqueueCheckIfDue` umstellen.
 Status:
 
-**bug.0.4.066 — Zählphase: Merker zu Beginn des Vorlaufs (Prüf-Agent 18.10., Antwort auf die Frage zu `bug.0.4.054`).** Hält der Lauf nach Ebene 2, aber vor Zählbeginn, fehlt beim Fortsetzen der Merker, `scanTotal = max(entriesCompleted, 1)` springt auf 99 %. Den Merker `scanTotalIncomplete` schon zu Beginn des Vorlaufs setzen. Den Test `resumeAfterDepthTwoDoesNotListTheRootAgain` von „Wurzel nicht listen“ auf „kein erneutes **Indizieren**“ umstellen (Zählen darf die Wurzel lesen, schreiben darf es nichts doppelt). Test für den Halt vor Zählbeginn: Anzeige nach dem Fortsetzen nicht 99 %.
+**bug.0.4.075 — „Für dieses Medium merken“: Änderung in Einstellungen/Details gilt als gemerkt (Host-Entscheidung 18.10., Antwort auf die Frage zu `todo.0.4.026`).** Ändert der Nutzer die Entscheidung in 05 (Einstellungen → Speichermedien) oder 06 (Medium-Details), wird `rememberDecision = true` gesetzt; der Erkennungs-Dialog fragt danach nicht mehr. Der App-Start zählt weiter als Anschließen (ungemerkte Medien werden beim Start erneut gefragt, bis zur Antwort gilt die letzte Entscheidung). Tests ohne Handaufruf von `completeNewMediumDecision` (Regel 18; der Koordinator erledigt das selbst): Entscheidung in 05 → nächstes Anschließen ohne Dialog; Dialog ohne Haken → nächstes Anschließen mit Dialog. README Abschnitt 2 Punkt 3 ergänzt der Host.
 Status:
 
-**bug.0.4.067 — Größenformat wie im Finder (Prüf-Agent 18.10., korrigiert die Antwort auf die Frage zu `bug.0.4.058`).** Gemessen: Dateien unter 1.000 Byte erscheinen als „1 kB“ (vorher „999 Byte“), Englisch zeigt „Zero kB“. Neu: unter 1.000 Byte die Bytes zeigen („999 Byte“ / „999 bytes“), Null als Ziffer („0 Byte“ / „0 bytes“, `spellsOutZero: false`), darüber das bisherige FormatStyle („kB“ klein bleibt). Test für 0, 999, 1.500 und 1,5 GB in de und en. Dazu: Tests, die Gruppentitel fest als „DATEIEN“/„ORDNER“ vergleichen (`PopoverSearchDebounceTests` Z. ~52/89/145/166/171, `SearchSortPagingTests` Z. ~254–256, `ColumnAndSearchTests` Z. ~127), mit fester Testsprache (`languageOverride`) oder gegen `LayoutCopy` vergleichen, damit sie auf einem englischen System nicht rot werden.
+**bug.0.4.076 — Kleinkram aus der Prüfung 9 (niedrig).**
+- a) Größenformat-Test: Einzahl „1 Byte“/„1 byte“ mitprüfen.
+- b) `SlowVolumeMountTests` (`expectRemountAfterUnmount`): `startedLookups == 2`/`script.calls == 2` als `>= 2` bzw. Bedingung prüfen (Regel 20).
+- c) `PauseExpiredAtLaunchTests` Z. ~46–52: den Startablauf in der Reihenfolge des Produkts prüfen (Pause-Auswertung vor der Erkennung), nicht von Hand in anderer Reihenfolge.
+- d) `ChangeWatcher` Z. ~370–380: Ein beim Einrasten laufender Flush legt seine Pfade nicht mehr nach `pending` zurück, wenn `stopAllForVersionLock` die Liste geleert hat (Generation prüfen).
 Status:
 
-**bug.0.4.068 — Kleinkram aus der Prüfung 8b (niedrig).**
-- a) `PauseSpan`: ein unbekannter Rohwert (spätere Version) lässt das Dekodieren der ganzen Pause scheitern; unbekannte Spanne als `nil` lesen.
-- b) `ColumnLoadingHintMinimumTests` Z. ~126–133: belegen, dass `isLoading == false` wirklich ankam (Zähler), sonst ist der Test grün ohne `resumeLoading` zu prüfen.
-- c) `MediumMonitor` Z. ~293–295: beim Aushängen für `cancelPendingMount` und `abandon` denselben (standardisierten) Pfad nutzen.
-- d) `BulkDirectoryReader.loadUnaligned` Z. ~402: wirkungslose Grenzprüfung entfernen oder richtig machen.
-- e) `LifecycleConcurrencyTests.trackedErrorHandlerIsSetAndReadConcurrently`: im Test als Rauchtest kennzeichnen (ohne TSan kein Beleg).
-- f) Hinweis des Workers: Der FileManager-Rückfallweg erkennt Symlinks auf **Dateien** nicht; angleichen an den Bulk-Weg, Test mit echtem Symlink.
+**bug.0.4.077 — Natürliche Namensordnung über die Seitengrenze, mit Index von Anfang an (Nutzer 18.10.; vorher Vorschlag `todo.0.5.002` aus `bug.0.4.038`).** Bei mehr als 500 Treffern wählt die Datenbank die erste Seite heute binär aus (`i.slug`), erst innerhalb der Seite wird natürlich sortiert; an der Seitengrenze fehlen dadurch natürlich benachbarte Namen („Rechnung 2“ bei „Rechnung 10/100“). Gleiches gilt für die Sortierung nach Medium (innerhalb eines Mediums).
+- Neuer Index `items_search_natural ON items(slug COLLATE "natural", status)` (bzw. passend zur bestehenden Such-Bedingung) als **eigene neue GRDB-Migration** (nur Erweiterung, Regel 27). Weil es außer dem Nutzer noch keine Datenbanken gibt, entsteht der Index bei allen Testern von Anfang an und wächst beim Indizieren mit (kein nachträglicher Aufbau, Regel „Erweitern statt aktualisieren“). Auf der Datenbank des Nutzers baut die Migration ihn einmal beim Öffnen; das ist vor 1.0 zulässig.
+- `searchSortedHitsSQL` (Name, auf/ab) und die Sortierung nach Medium (`s.slug, i.slug`) sortieren in SQL natürlich (`COLLATE "natural"`); das Nachsortieren innerhalb der Seite (`naturalWithinMedium` u. ä.) entfällt, wo SQL es jetzt liefert. `EXPLAIN QUERY PLAN` im Test: Index wird benutzt, kein `USE TEMP B-TREE FOR ORDER BY` bei Name.
+- **Messung (Abnahmebedingung, Release-Build, gleiche Maschine, vorher/nachher):** Indizieren von mindestens 1 Mio. Einträgen (synthetisch über den Store, nicht über das Dateisystem) – Dauer und Dateigröße der Datenbank. Liegt der Mehraufwand beim Indizieren über **10 %** oder die Größe über **15 %**, Status „Blockiert: Messung“ und Rückfrage an den Host statt Abnahme. Zahlen in den Status.
+- Tests: 600 Treffer `Rechnung 1`…`Rechnung 600` → erste Seite Name aufsteigend beginnt mit `Rechnung 1, 2, 3 …` (nicht `1, 10, 100`), absteigend mit `600, 599 …`; Sortierung nach Medium über die Seitengrenze natürlich. Sabotage (binäre Ordnung zurück) → rot ✓.
+- Hinweis für Prüf-Skripte: Abfragen über diesen Index brauchen die Sortierregel „natural“; `sqlite3` im Terminal kennt sie nicht. Prüfungen per `sqlite3` nur auf Abfragen ohne diesen Index; im Status vermerken.
 Status:
 
-**bug.0.4.063 —** **Nur-Lesen-Sperre stoppt laufende Arbeit nicht (Befund Host 17.10.):** `AppState.onVersionLockEngaged` wird in `VersionCheckCoordinator` aufgerufen, aber im Produkt nirgends gesetzt. Beim Einrasten der Sperre laufen Indexlauf, Regel-Abgleich und Überwachung weiter (README: gesperrt = 100 % nur ansehen, auch Überwachung aus). `IndexingService.cancelAllActiveForVersionLock` und `AppState.cancelRuleReconcileForVersionLock` rufen nur Tests auf (`VersionLockReadOnlyTests`, von Hand, Regel 18). In `LiveWiring` verdrahten (Läufe abbrechen, Abgleich abbrechen, Watcher stoppen); Test: Lauf aktiv → Auswertung mit Sperre → Lauf endet, keine Schreibvorgänge mehr, ohne die Abbruch-Funktionen von Hand aufzurufen.
+**todo.0.4.023 —** **Fehlerbericht mit echten Protokollzeilen** testen (erst nach `bug.0.4.011` und `bug.0.4.012`).
 Status:
 
-**todo.0.4.026 —** **„Für dieses Medium merken“ auswerten** (`todo.0.4.034`): `rememberDecision` beim Anschließen lesen; ohne Haken erscheint der Erkennungs-Dialog beim nächsten Anschließen wieder (Vorbelegung = letzte Entscheidung), mit Haken nicht. Test für beide Fälle.
-Status:
+**HALT nach Paket 10.** Danach für 0.4.0 nur noch die Abnahmerunde des Nutzers (`todo.0.4.040`: 2-Mio-Platte, Stick, Layout). Alles zur Auslieferung folgt in 0.4.1.
 
-**todo.0.4.027 —** **Pause beim Start abgelaufen** (`todo.0.4.035`): Mitteilung „Medien werden wieder indiziert.“ wie beim Ablauf im Betrieb (gleiche Schalter); danach Abgleich wie nach Pausenende. Test.
-Status:
-
-**todo.0.4.028 —** **Versions-Check nach Kalenderzeit** (`todo.0.4.036`): Zeitpunkt des letzten Checks speichern; beim Start, beim Aufwachen und stündlich prüfen, ob 24 h vergangen sind. Test mit injizierbarer Uhr.
-Status:
-
-**todo.0.4.029 —** **Kleinkram Fehlerbericht und Altcode** (`todo.0.4.037`, `038`): jedes 201 gilt als Erfolg, `id` optional (Test: 201 ohne Körper → Zeile gelöscht, kein erneutes Senden); Screenshot-Werkzeug: nach `bug.0.3.8.005` verschoben (17.10.).
-Status:
-
-**HALT nach Paket 9.** Danach Paket 10 (`todo.0.4.023`–`025`) und die Schritte mit dem Nutzer (`020`–`022`), zuletzt `todo.0.4.040`.
 
 
 
@@ -183,29 +175,39 @@ Status:
 
 ---
 
-### 0.4 — Beta für Beta-Tester (nach 0.3.9) (Voraussetzungen der Weitergabe, ROADMAP)
+### 0.4.0 / 0.4.1 — Open Beta (Nutzer 18.10.: 0.4.0 Release-Kandidat, 0.4.1 Release)
 
 | Kennung | Inhalt |
 |---|---|
-| `todo.0.4.020` | **Signatur und Notarisierung:** Developer ID Application, `notarytool`, Stapeln (heute „Apple Development“). Merkhilfe eigene Kopie ohne Notarisierung: Xcode Archive → Distribute → Copy App; ggf. `xattr -dr com.apple.quarantine "…"`. |
-| `todo.0.4.021` | **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (Nutzer). |
-| `todo.0.4.022` | **Laufzeittest auf macOS 14** (z. B. VM); `pointerStyle` und `CGSize: Hashable` brauchen einen Ausweichweg. |
-| `todo.0.4.023` | **Fehlerbericht mit echten Protokollzeilen** testen (erst nach `bug.0.4.011` und `bug.0.4.012`). |
-| `todo.0.4.024` | **Update durch Ersetzen der App:** Bundle-ID und Datenordner gleich, Einzelinstanz-Übergabe bei neuerer Version, Launch-Agent neu registrieren; Schema-Erweiterungen mit Sicherung davor (nach `bug.0.4.013`). |
-| `todo.0.4.040` | **Große Abnahmerunde = letzter Schritt vor den Nutzern (Nutzer 17.10.):** erst, wenn **alles andere von 0.4 abgenommen** ist; nicht vorziehen. Inhalt: (1) Lauf über die große Platte des Nutzers (rund 2 Mio. HTML-Dateien): vollständig indizieren, suchen, Spaltenansicht in großen Ordnern, ab- und anstecken, Live-Änderung; Zeiten (Release-Build) und Protokoll festhalten. (2) Test am echten Stick (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung, Rückfrage „Ersetzt dieses Medium?“ samt Texten, Umbenennen eines Volumes). (3) Layout-Durchgang aller Ansichten gegen `layout/` (einschließlich `todo.0.3.2.001`). Funde als `bug.0.4.xxx`; nach ihrer Behebung und Abnahme geht die App an die Nutzer. Ersetzt das Kriterium 7 der Sprünge 0.3.8 und 0.3.9. |
-| `todo.0.4.025` | **Fenster „Datenbank wird aktualisiert“** (einmalig, mit Fortschritt) bei der ersten Schema-Erweiterung durch ein Update. |
+| `todo.0.4.020` | **verschoben nach 1.0 (Nutzer 18.10.):** Signatur mit Developer ID und Notarisierung erst zu 1.0. Alle Beta-Versionen gehen ohne Notarisierung (mit Quarantäne-Merkmal) an den kleinen Kreis der Tester; siehe `todo.0.4.021` (Anleitung) und `todo.0.4.040` (Prüfung). |
+| `todo.0.4.021` | **Zielversion 0.4.1.** **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (Nutzer). **Pflicht (Nutzer/Host 18.10.):** kurze Anleitung für die nicht notarisierte Beta: (1) App aus dem Download in „Programme“ ziehen (sonst startet macOS sie von einem zufälligen Pfad, App-Translocation), (2) öffnen, (3) unter Systemeinstellungen → Datenschutz & Sicherheit „Trotzdem öffnen“ (seit macOS 15 reicht Rechtsklick → Öffnen nicht mehr). |
+| `todo.0.4.022` | **Zielversion 0.4.1.** **Laufzeittest auf macOS 14** (z. B. VM); `pointerStyle` und `CGSize: Hashable` brauchen einen Ausweichweg. |
+| `todo.0.4.023` | → Paket 10 (Abschnitt A, freigegeben 18.10.) |
+| `todo.0.4.024` | **Zielversion 0.4.1 (aus Paket 10 genommen, Nutzer 18.10.).** → Paket 10 (Abschnitt A, freigegeben 18.10.) |
+| `todo.0.4.040` | **Abnahmerunde des Release-Kandidaten 0.4.0 (Nutzer 17./18.10.):** erst, wenn **alles andere von 0.4.0 abgenommen** ist; nicht vorziehen. Inhalt: (1) Lauf über die große Platte des Nutzers (rund 2 Mio. HTML-Dateien): vollständig indizieren, suchen, Spaltenansicht in großen Ordnern, ab- und anstecken, Live-Änderung; Zeiten (Release-Build) und Protokoll festhalten. (2) Test am echten Stick (großer Ordner, Pfeiltasten, Mehrfachauswahl, Rechtsklick, Medium ab- und anstecken, Live-Änderung, Rückfrage „Ersetzt dieses Medium?“ samt Texten, Umbenennen eines Volumes). (3) Layout-Durchgang aller Ansichten gegen `layout/` (einschließlich `todo.0.3.2.001`).  Funde als `bug.0.4.xxx`; nach ihrer Behebung und Abnahme ist 0.4.0 der Release-Kandidat. An die Tester geht die App mit 0.4.1. Ersetzt das Kriterium 7 der Sprünge 0.3.8 und 0.3.9. |
+| `todo.0.4.025` | **entfällt (Nutzer/Host 18.10.):** Ein Fenster „Datenbank wird aktualisiert“ braucht es nicht. Nach dem Datenbank-Konzept wird nur erweitert (neue Schlüssel oder neue Tabellen, angelegt in Millisekunden), nie umgebaut (README, Abschnitt „Datenbank“, „Erweitern statt aktualisieren“). |
 | `todo.0.4.026` | → Paket 9 (Abschnitt A, freigegeben 18.10.) |
 | `todo.0.4.027` | → Paket 9 (Abschnitt A, freigegeben 18.10.) |
 | `todo.0.4.028` | → Paket 9 (Abschnitt A, freigegeben 18.10.) |
 | `bug.0.4.063` | → Paket 9 (Abschnitt A, freigegeben 18.10.) |
 | `todo.0.4.029` | → Paket 9 (Abschnitt A, freigegeben 18.10.) |
 
+### 0.4.1 — Release der Open Beta: Auslieferung (Nutzer 18.10.)
+
+| Kennung | Inhalt |
+|---|---|
+| `todo.0.4.1.001` | **DMG zum Herunterladen mit Hintergrundbild, ein Befehl (Nutzer 18.10.; verschoben auf 0.4.1, vorher `todo.0.4.041`).** **Auftrag „Erstelle nun das Ausgabe-DMG“** = ein Agent führt `Werkzeuge/dmg-erstellen.sh` aus, sonst nichts. Das Skript: (1) baut die Release-App selbst in einen festen Ordner (kein Suchen in DerivedData), (2) liest die Version aus `CFBundleShortVersionString`, (3) erzeugt das DMG mit **dmgbuild** (schreibt die Fenster-Einstellungen direkt, steuert den Finder nicht, Regel 19/21): App, symbolischer Link auf `/Applications`, Hintergrundbild @1x/@2x, feste Fenstergröße und Symbolpositionen aus `Werkzeuge/dmg/dmg-einstellungen.json`, (4) legt `Disk-Archive-<Version>.dmg` ins Git-Hauptverzeichnis (gleiche Version wird ersetzt), (5) prüft ohne Finder (`hdiutil attach -nobrowse`, Inhalt auflisten, aushängen) und meldet Pfad und Größe. Kein automatischer Lauf nach jedem Build. `*.dmg` in `.gitignore`. **Voraussetzung:** Layout-Seite `layout/DMG.dc.html` vom Nutzer mit Hintergrund (`dmg-background`, z. B. 660 × 400 pt) und zwei markierten Platzhaltern `dmg-app` und `dmg-applications`; der **Host** liest die Mittelpunkte aus und schreibt `dmg-einstellungen.json` (bei Layout-Änderung nachziehen), exportiert das Hintergrundbild als PNG @1x/@2x. Hinweis im Bild: Pfeil „in Programme ziehen“ und „Beim ersten Öffnen: Systemeinstellungen → Datenschutz & Sicherheit → Trotzdem öffnen“ (Beta ohne Notarisierung). Ansicht prüft der Nutzer. Freigabe durch den Host, sobald die Layout-Seite vorliegt. |
+
+| `todo.0.4.1.002` | **Tester-Prüfung mit Quarantäne (aus `todo.0.4.040` gelöst, Nutzer 18.10.):** die nicht notarisierte App mit Quarantäne-Merkmal auf einen Mac bringen, der sie noch nie gesehen hat (oder Benutzerkonto ohne Vorgeschichte); prüfen: Gatekeeper-Freigabe nach Anleitung, Start aus „Programme“ (keine App-Translocation), Einzelinstanz, Start beim Anmelden (`SMAppService`), Update durch Ersetzen (`todo.0.4.024`), Fehlerbericht senden. |
+
+Zu 0.4.1 gehören außerdem `todo.0.4.021` (Download-Seite mit Anleitung), `022` (macOS 14) und `024` (Update durch Ersetzen). Mit 0.4.1 geht die App an die Tester.
+
 ### 0.5 bis 1.0 (Entwürfe, jede Funktion vor dem Start einzeln besprechen; Details ROADMAP)
 
 | Kennung | Inhalt |
 |---|---|
 | `todo.0.5.001` | **Metadaten und EXIF** (Video, Foto/RAW, Audio, PDF; zweiter Durchgang nach dem Index, Markierung `_analyzed`), neue Layouts, **Wartescreen der Suche** |
-| `todo.0.5.002` | **Natürliche Namensordnung über die Seitengrenze** (Vorschlag Worker 17.10., `bug.0.4.038`): Index `items_search_natural ON items(slug COLLATE "natural", status)` als eigene Migration (Regel 27). Heute bestimmt bei mehr als 500 Treffern die binäre Ordnung, welche 500 auf die Seite kommen; innerhalb der Seite wird natürlich sortiert. Kosten: größere Datenbank und Migration bei Nutzern (`todo.0.4.025`). Gleiches gilt für die Sortierung nach Medium (heute innerhalb der Seite natürlich nachsortiert, `bug.0.3.9.007`). Erst entscheiden, wenn es im Alltag stört. |
+| `todo.0.5.002` | **vorgezogen als `bug.0.4.077` (Paket 10, Nutzer 18.10.).** |
 | `todo.0.6.001` | **Vorschaubilder** 250 px, Abschalter global und je Medium, Dateien `Thumbnails/<storageID>/<itemID>` |
 | `todo.0.7.001` | **CSV-Export** (Umfang, Spalten, Kodierung offen) |
 | `todo.0.8.001` | **Duplikate** über volle Prüfsumme, nach Größe gruppiert, nur im Hintergrund |

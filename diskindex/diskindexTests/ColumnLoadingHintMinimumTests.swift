@@ -26,6 +26,13 @@ private final class HintRecorder {
         events.append((visible, ContinuousClock.now))
     }
 
+    /// bug.0.4.068 b): wie oft die Ansicht `isLoading == false` wirklich bekommen hat.
+    private(set) var loadingEndsSeen = 0
+
+    func noteLoadingEnded() {
+        loadingEndsSeen += 1
+    }
+
     var last: Bool? { events.last?.visible }
     var firstShown: ContinuousClock.Instant? { events.first { $0.visible }?.at }
 
@@ -52,6 +59,9 @@ private struct LoadingHarness: View {
             onLoadingHintVisible: { recorder.record($0) }
         ) { _ in EmptyView() }
         .frame(width: 270, height: 200)
+        .onChange(of: model.isLoading) { _, loading in
+            if !loading { recorder.noteLoadingEnded() }
+        }
     }
 }
 
@@ -110,27 +120,33 @@ extension WindowTestGroup {
         }
 
         @Test func reloadDuringMinimumKeepsHintWithoutGap() async throws {
-            // Verzögerung (300 ms) größer als die Lücke bis zum Neustart (20 ms): Ohne Fortsetzen würde der
+            // Verzögerung (300 ms) größer als die kurze Lücke bis zum Neustart: Ohne Fortsetzen würde der
             // Hinweis am Ende der Mindestanzeige ausgeblendet und erst nach 300 ms wieder gezeigt.
             let model = LoadSwitch()
             let recorder = HintRecorder()
             let window = open(LoadingHarness(
                 model: model,
                 recorder: recorder,
-                timing: DelayedLoadingTiming(delayBeforeHint: .milliseconds(300), minimumHintVisible: .milliseconds(400))
+                timing: DelayedLoadingTiming(delayBeforeHint: .milliseconds(300), minimumHintVisible: .milliseconds(1_500))
             ))
             defer { close(window) }
 
             let shownSeen = await waitUntil { recorder.last == true }
             try #require(shownSeen, "Ladehinweis erscheint nicht")
 
+            // bug.0.4.068 b): erst weiter, wenn das Ladeende wirklich in der Ansicht ankam; sonst würden beide
+            // Änderungen zusammengefasst und `resumeLoading` nie gebraucht (Test grün ohne Beleg).
+            let endsBefore = recorder.loadingEndsSeen
             model.isLoading = false
-            try? await Task.sleep(for: .milliseconds(20))
+            let endSeen = await waitUntil { recorder.loadingEndsSeen > endsBefore }
+            try #require(endSeen, "isLoading == false kam in der Ansicht nicht an")
+            try #require(recorder.last == true, "Hinweis schon vor dem Neustart ausgeblendet: \(recorder.events.map(\.visible))")
             model.isLoading = true
             let restartedAt = ContinuousClock.now
 
-            // Über das Ende der Mindestanzeige hinaus laden lassen.
-            try? await Task.sleep(for: .milliseconds(900))
+            // Über das Ende der Mindestanzeige (1,5 s ab Erscheinen) hinaus laden lassen. Die lange Mindestanzeige
+            // lässt Reserve, damit der Hinweis unter Last vor dem Neustart noch steht (bug.0.4.068 b, Regel 20).
+            try? await Task.sleep(for: .milliseconds(1_900))
             let gap = recorder.firstHidden(after: restartedAt)
             #expect(gap == nil, "Hinweis während erneuten Ladens ausgeblendet: \(recorder.events.map(\.visible))")
             #expect(recorder.last == true)

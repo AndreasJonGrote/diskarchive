@@ -215,6 +215,31 @@ enum LiveWiring {
             service?.pauseChanged()
             watcher?.pauseChanged()
         }
+
+        // bug.0.4.063: Sperre rastet ein → 100 % nur ansehen. Abgleich (zum Entsperren gemerkt) und Überwachung
+        // sofort stoppen, laufende Läufe abbrechen. Die Überwachung speichert dabei keinen Ereignisstand (kein Schreiben).
+        appState.onVersionLockEngaged = { [weak service, weak watcher, weak appState] in
+            appState?.cancelRuleReconcileForVersionLock()
+            watcher?.stopAllForVersionLock()
+            DiskIndexLog.shared.record(.app, .info, "sperre stoppt läufe abgleich überwachung")
+            Task { await service?.cancelAllActiveForVersionLock() }
+        }
+        // Entsperrt → wieder normal: Überwachung der indizierten verbundenen Medien wie nach Pausenende
+        // (`pauseChanged` → `applyPause`), nicht fertige verbundene Medien erneut indizieren. Den Regel-Abgleich nimmt
+        // `applyVersionLockEvaluation` schon wieder auf.
+        appState.onVersionLockReleased = { [weak coordinator, weak watcher, weak appState] in
+            guard let appState, appState.featureAccess.canWriteIndex else { return }
+            DiskIndexLog.shared.record(.app, .info, "entsperrt nimmt überwachung und indizierung auf")
+            watcher?.pauseChanged()
+            guard !appState.globalAutoIndexPaused else { return }
+            for medium in appState.media
+            where medium.connectionStatus == .connected && medium.decision == .index && medium.allowIndexing
+                && medium.indexStatus != .indexed {
+                // Der vor der Sperre abgebrochene Auftrag darf den neuen nicht als „bereits angefordert“ verschlucken.
+                coordinator?.clearIndexRequest(mediumID: medium.id)
+                coordinator?.requestIndexingAfterDecision(mediumID: medium.id)
+            }
+        }
     }
 
     private static func stopWatcherAndStartIndex(

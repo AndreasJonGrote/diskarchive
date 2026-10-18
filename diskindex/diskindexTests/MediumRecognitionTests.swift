@@ -125,11 +125,13 @@ struct MediumCoordinatorTests {
             name: "ALT",
             type: .usb,
             decision: .index,
+            rememberDecision: true,
             indexStatus: .indexed
         )
         try await rig.store.upsertMedium(existing)
         await rig.coordinator.handle(.appeared(rig.volume(name: "NEU", uuid: existing.volumeUUID, created: created)))
         #expect(rig.appState.newMediumDialogMediumID == nil)
+        #expect(!rig.appState.needsNewMediumDialog(existing.uuid))
         let live = try #require(rig.appState.medium(with: existing.uuid))
         #expect(live.connectionStatus == .connected)
         #expect(live.name == "NEU")
@@ -150,6 +152,7 @@ struct MediumCoordinatorTests {
             name: "STICK",
             type: .usb,
             decision: .index,
+            rememberDecision: true,
             indexStatus: .indexed,
             lastIndexedAt: Date()
         )
@@ -180,6 +183,7 @@ struct MediumCoordinatorTests {
             name: "NOIDX",
             type: .usb,
             decision: .dontIndex,
+            rememberDecision: true,
             indexStatus: .indexed
         )
         try await rig.store.upsertMedium(existing)
@@ -256,6 +260,8 @@ struct MediumCoordinatorTests {
             name: "ZOOM_H4E",
             type: .usb,
             decision: .ignore,
+            // `.ignore` wird als „Nicht indizieren“ gespeichert; ohne „merken“ fragte der Dialog erneut (todo.0.4.026).
+            rememberDecision: true,
             indexStatus: .indexed,
             allowIndexing: false
         )
@@ -398,6 +404,250 @@ struct MediumCoordinatorTests {
         rig.appState.onNewMediumChoice?(id, true, true)
         await rig.coordinator.waitForChoice()
         #expect(rig.indexRequests == [id])
+    }
+
+    // MARK: - todo.0.4.026 „Für dieses Medium merken“
+
+    /// Ohne Haken: beim nächsten Anschließen erscheint der Dialog wieder, vorbelegt mit der letzten Entscheidung;
+    /// bis zur Antwort gilt sie weiter. Gleiche Antwort mit Haken → gemerkt, danach kein Dialog mehr.
+    @Test func decisionWithoutRememberAsksAgainOnNextConnect() async throws {
+        let rig = try await RecognitionRig.make()
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, true, false)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(id)
+        #expect(rig.indexRequests == [id])
+        #expect(!rig.appState.needsNewMediumDialog(id))
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.pendingNewMediumDecisionIDs.contains(id), "Dialog ohne Haken nicht erneut angefordert")
+        #expect(rig.appState.needsNewMediumDialog(id))
+        let live = try #require(rig.appState.medium(with: id))
+        #expect(live.decision == .index, "Vorbelegung = letzte Entscheidung")
+        #expect(NewMediumDetectedDialog.isAskedAgain(live))
+        #expect(!NewMediumDetectedDialog.defaultsToDontIndex(live))
+        // Letzte Entscheidung gilt bis zur Antwort weiter (Lauf angefordert).
+        #expect(rig.indexRequests == [id, id])
+
+        // Gleiche Antwort, jetzt mit Haken: nur „merken“ ändert sich, kein weiterer Lauf.
+        rig.appState.onNewMediumChoice?(id, true, true)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(id)
+        let stored = try #require(try await rig.store.medium(uuid: id))
+        #expect(stored.rememberDecision)
+        #expect(stored.decision == .index)
+        #expect(stored.indexStatus == .pending)
+        #expect(rig.indexRequests == [id, id])
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "gemerkte Entscheidung fragt erneut")
+        #expect(!rig.appState.needsNewMediumDialog(id))
+    }
+
+    /// Indiziertes Medium ohne Haken: Abgleich wie bisher und Dialog; „Indizieren“ erneut → Status bleibt
+    /// „indiziert“, kein Erstlauf.
+    @Test func askedAgainIndexedMediumKeepsIndexOnSameAnswer() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_805)
+        let existing = StoredMedium(
+            volumeUUID: "AAAAAAAA-BBBB-CCCC-DDDD-000000000026",
+            volumeCreatedAt: created,
+            fsType: "msdos",
+            volumeTotalBytes: 1_000,
+            name: "MERKEN",
+            type: .usb,
+            decision: .index,
+            indexStatus: .indexed,
+            fileCount: 40,
+            folderCount: 2,
+            lastIndexedAt: Date(),
+            completedDepth: 2
+        )
+        try await rig.store.upsertMedium(existing)
+        await rig.coordinator.handle(.appeared(rig.volume(name: "MERKEN", uuid: existing.volumeUUID, created: created)))
+        #expect(rig.reconcileRequests == [existing.uuid])
+        #expect(rig.appState.needsNewMediumDialog(existing.uuid))
+
+        rig.appState.onNewMediumChoice?(existing.uuid, true, true)
+        await rig.coordinator.waitForChoice()
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.indexStatus == .indexed, "gleiche Antwort setzt den Index auf Erstlauf zurück")
+        #expect(stored.rememberDecision)
+        #expect(rig.indexRequests.isEmpty)
+        #expect(rig.appState.medium(with: existing.uuid)?.indexStatus == .indexed)
+    }
+
+    /// Korrektur 1 (Regel 18): erneut gefragtes Medium bekommt über die echte Kette ein Panel (Warteschlange →
+    /// `syncNewMediumPanels`), und die Menüleiste meldet eine offene Entscheidung.
+    @Test func askedAgainMediumOpensPanel() async throws {
+        let rig = try await RecognitionRig.make()
+        let volume = rig.volume(name: "PANEL", path: "/Volumes/PANEL")
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, true, false)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(id)
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
+        #expect(AppWindowPresenter.openNewMediumPanelCount == 0)
+        defer {
+            AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
+        }
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.newMediumDialogMediumID == id, "erneut gefragtes Medium nicht vorne in der Warteschlange")
+        #expect(rig.appState.hasPendingNewMediumDecisions)
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
+        #expect(AppWindowPresenter.openNewMediumPanelCount == 1, "kein Panel für das erneut gefragte Medium")
+    }
+
+    /// Korrektur 2: erneut gefragt, unvollständiger Index (`pending`, Ebene 2) → „Indizieren“ lässt den Status.
+    @Test func askedAgainPendingIndexKeepsStatusOnIndex() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_806)
+        let existing = StoredMedium(
+            volumeUUID: "AAAAAAAA-BBBB-CCCC-DDDD-000000000126",
+            volumeCreatedAt: created,
+            fsType: "msdos",
+            volumeTotalBytes: 1_000,
+            name: "HALB",
+            type: .usb,
+            decision: .index,
+            indexStatus: .pending,
+            fileCount: 10,
+            folderCount: 2,
+            completedDepth: 2
+        )
+        try await rig.store.upsertMedium(existing)
+        await rig.coordinator.handle(.appeared(rig.volume(name: "HALB", uuid: existing.volumeUUID, created: created)))
+        #expect(rig.appState.needsNewMediumDialog(existing.uuid))
+        rig.appState.onNewMediumChoice?(existing.uuid, true, true)
+        await rig.coordinator.waitForChoice()
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.indexStatus == .pending, "unvollständiger Index als „indiziert“ markiert")
+        #expect(stored.rememberDecision)
+    }
+
+    /// Korrektur 3: Reprobe nach Fehler in derselben Sitzung fragt nicht noch einmal.
+    @Test func reprobeDoesNotAskAgainInSameSession() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_807)
+        let uuid = "AAAAAAAA-BBBB-CCCC-DDDD-000000000226"
+        var existing = StoredMedium(
+            volumeUUID: uuid,
+            volumeCreatedAt: created,
+            fsType: "apfs",
+            volumeTotalBytes: 1_000,
+            name: "REPROBE",
+            type: .usb,
+            decision: .index,
+            indexStatus: .indexed,
+            lastIndexedAt: Date()
+        )
+        try await rig.store.upsertMedium(existing)
+        existing = try #require(try await rig.store.medium(uuid: existing.uuid))
+        let volume = rig.volume(name: "REPROBE", path: "/Volumes/REPROBE", uuid: uuid, created: created)
+        rig.access.result = .granted
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.needsNewMediumDialog(existing.uuid))
+        rig.appState.onNewMediumChoice?(existing.uuid, true, false)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(existing.uuid)
+
+        existing = try #require(try await rig.store.medium(uuid: existing.uuid))
+        existing.indexStatus = .error
+        try await rig.store.updateMedium(uuid: existing.uuid, existing)
+        rig.appState.updateMedium(id: existing.uuid) { $0.indexStatus = .error }
+        let reconcilesBefore = rig.reconcileRequests.count
+        await rig.coordinator.applicationDidBecomeActive()
+        #expect(rig.reconcileRequests.count == reconcilesBefore + 1)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(existing.uuid), "Reprobe fragt erneut")
+    }
+
+    /// Mit Haken: beim nächsten Anschließen kein Dialog.
+    @Test func decisionWithRememberDoesNotAskAgain() async throws {
+        let rig = try await RecognitionRig.make()
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, false, true)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(id)
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.medium(with: id)?.connectionStatus == .connected)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "gemerkte Entscheidung fragt erneut")
+        #expect(!rig.appState.needsNewMediumDialog(id))
+        #expect(rig.indexRequests.isEmpty)
+        let stored = try #require(try await rig.store.medium(uuid: id))
+        #expect(stored.decision == .dontIndex)
+        #expect(stored.rememberDecision)
+    }
+
+    /// Erneut gefragt nach „Nicht indizieren“: Vorbelegung Nein; Antwort „Indizieren“ fordert den Lauf an, eine
+    /// spätere Antwort „Nicht indizieren“ stoppt wie die Änderung in 05/06.
+    @Test func askedAgainDontIndexCanBeChangedInTheDialog() async throws {
+        let rig = try await RecognitionRig.make()
+        var changes: [(UUID, StoredIndexDecision, Bool)] = []
+        rig.appState.onMediumDecisionChanged = { id, decision, allow in changes.append((id, decision, allow)) }
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, false, false)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(id)
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.needsNewMediumDialog(id))
+        let live = try #require(rig.appState.medium(with: id))
+        #expect(NewMediumDetectedDialog.defaultsToDontIndex(live), "Vorbelegung nicht die letzte Entscheidung (Nein)")
+        #expect(rig.indexRequests.isEmpty, "„Nicht indizieren“ gilt bis zur Antwort weiter")
+
+        rig.appState.onNewMediumChoice?(id, true, false)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(id)
+        #expect(rig.indexRequests == [id])
+        let indexed = try #require(try await rig.store.medium(uuid: id))
+        #expect(indexed.decision == .index)
+        #expect(!indexed.rememberDecision)
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.needsNewMediumDialog(id))
+        rig.appState.onNewMediumChoice?(id, false, true)
+        await rig.coordinator.waitForChoice()
+        let refused = try #require(try await rig.store.medium(uuid: id))
+        #expect(refused.decision == .dontIndex)
+        #expect(refused.rememberDecision)
+        let stop = try #require(changes.last)
+        #expect(stop.0 == id && stop.1 == .dontIndex && stop.2 == false, "Nein im erneuten Dialog stoppt nicht")
+    }
+
+    /// Entscheidung in 05/06, während der erneute Dialog offen ist → Dialog beantwortet (aus der Warteschlange).
+    @Test func settingsDecisionAnswersAskedAgainDialog() async throws {
+        let rig = try await RecognitionRig.make()
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, true, false)
+        await rig.coordinator.waitForChoice()
+        rig.appState.completeNewMediumDecision(id)
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.needsNewMediumDialog(id))
+
+        rig.appState.updateMedium(id: id, persist: true) {
+            $0.decision = .dontIndex
+            $0.allowIndexing = false
+        }
+        #expect(!rig.appState.needsNewMediumDialog(id))
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id))
     }
 }
 

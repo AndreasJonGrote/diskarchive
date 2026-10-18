@@ -15,9 +15,19 @@ extension AppState {
            let decoded = try? JSONDecoder().decode(GlobalPause.self, from: data) {
             storedPause = decoded
         }
-        _ = storedPause.refresh(now: now)
+        // todo.0.4.027: Eine Pause, die bei beendeter App abgelaufen ist, wird hier nicht still aufgelöst. Den Ablauf
+        // erledigt `refreshGlobalPause` beim Start (`applicationDidFinishLaunching`, nach der Einzelinstanz-Prüfung)
+        // wie im Betrieb: Mitteilung „pause-expired“, Speichern, Abgleich über `globalAutoIndexPaused`.
         globalAutoIndexPaused = storedPause.isPaused
-        schedulePauseExpiryCheck(now: now)
+        if !pauseExpired(at: now) {
+            schedulePauseExpiryCheck(now: now)
+        }
+    }
+
+    /// Befristete Pause, deren Ende erreicht ist (noch nicht aufgelöst).
+    private func pauseExpired(at now: Date) -> Bool {
+        guard storedPause.isPaused, !storedPause.forever, let until = storedPause.until else { return false }
+        return now >= until
     }
 
     func pauseIndexing(until date: Date?, defaults: UserDefaults = AppDefaults.current, now: Date = Date()) {

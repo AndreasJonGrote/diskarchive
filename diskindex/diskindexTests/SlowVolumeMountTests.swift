@@ -248,6 +248,58 @@ struct SlowVolumeMountTests {
         #expect(script.calls == 2, "alter Pfad weiter versucht")
     }
 
+    /// bug.0.4.068 c: Aushängen meldet einen nicht standardisierten Pfad („…/../Name“) → die hängende Abfrage wird
+    /// trotzdem verlassen; ein neues Einhängen startet eine neue Abfrage statt an der alten zu hängen.
+    @Test func unmountWithNonStandardPathAbandonsHangingLookup() async throws {
+        let name = "StuckDots-\(UUID().uuidString)"
+        let path = "/Volumes/\(name)"
+        try await Self.expectRemountAfterUnmount(mountPath: path, unmountPath: "\(path)/../\(name)", standardPath: path)
+    }
+
+    /// bug.0.4.068 c: Einhängen meldet den nicht standardisierten Pfad, Aushängen den standardisierten → derselbe Flug.
+    @Test func mountWithNonStandardPathIsAbandonedByStandardUnmount() async throws {
+        let name = "StuckMount-\(UUID().uuidString)"
+        let path = "/Volumes/\(name)"
+        try await Self.expectRemountAfterUnmount(mountPath: "\(path)/../\(name)", unmountPath: path, standardPath: path)
+    }
+
+    /// Erste Abfrage hängt dauerhaft; Aushängen unter `unmountPath`, danach erneut unter `mountPath` einhängen →
+    /// das Volume erscheint über eine zweite Abfrage, die erste bleibt verlassen.
+    private static func expectRemountAfterUnmount(mountPath: String, unmountPath: String, standardPath: String) async throws {
+        let expected = Self.volume(path: standardPath)
+        let script = ScriptedLookup(byCall: { call in call == 1 ? .hold(returning: nil) : .answer(expected) })
+        defer { script.open() }
+        let sink = MountLogSink()
+        let center = NotificationCenter()
+        let flights = VolumeLookupFlights(lookup: { script.lookup($0) })
+        let monitor = MediumMonitor(
+            mountedVolumes: { [] },
+            wakeEvents: { AsyncStream { _ in } },
+            notificationCenter: center,
+            lookupFlights: flights,
+            lookupTimeout: 0.3,
+            mountRetryDelays: [3, 3, 3],
+            log: { sink.add($0, path: $1) }
+        )
+        let events = MountEventCollector(monitor.events())
+        defer { events.stop() }
+
+        Self.post(NSWorkspace.didMountNotification, path: mountPath, on: center)
+        let held = await script.arrived()
+        try #require(held == false, "erste Abfrage hat das Tor nicht erreicht oder lief auf main")
+        Self.post(NSWorkspace.didUnmountNotification, path: unmountPath, on: center)
+        let gone = await waitUntil(timeout: 8) { !events.disappeared.isEmpty }
+        try #require(gone)
+
+        // Erste Abfrage hängt weiter (Tor bleibt zu); ohne Verlassen hinge sich das neue Einhängen an sie.
+        Self.post(NSWorkspace.didMountNotification, path: mountPath, on: center)
+        let appeared = await waitUntil(timeout: 8) { !events.appeared.isEmpty }
+        #expect(appeared, "Aushängen mit anderem Pfad hat die hängende Abfrage nicht verlassen")
+        #expect(events.appeared == [expected])
+        #expect(flights.startedLookups(path: standardPath) == 2)
+        #expect(script.calls == 2)
+    }
+
     // MARK: - Hilfen
 
     private static func monitor(

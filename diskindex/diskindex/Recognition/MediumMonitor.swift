@@ -187,7 +187,9 @@ final class MediumMonitor {
         wakeRescan: Bool,
         firstAttemptDone: Bool
     ) {
-        let path = url.standardizedFileURL.path
+        // bug.0.4.068 c: Abfrage unter dem standardisierten Pfad, damit Aushängen und Umbenennen den Flug finden.
+        let url = url.standardizedFileURL
+        let path = url.path
         guard pendingMounts[path] == nil else { return }
         let token = UUID()
         let task = Task { @MainActor in
@@ -291,8 +293,10 @@ final class MediumMonitor {
         guard let url = note.userInfo?[NSWorkspace.volumeURLUserInfoKey] as? URL else { return }
         let path = url.path
         // bug.0.3.9.012: ausgehängt → laufende/wartende Abfrage für diesen Pfad nicht weiter versuchen.
-        cancelPendingMount(path: url.standardizedFileURL.path)
-        lookupFlights.abandon(path: url.path)
+        // bug.0.4.068 c: Warteliste und Flüge stehen unter dem standardisierten Pfad; beide mit demselben abbrechen.
+        let standardizedPath = url.standardizedFileURL.path
+        cancelPendingMount(path: standardizedPath)
+        lookupFlights.abandon(path: standardizedPath)
         guard debouncer.shouldEmit(path: path, kind: kind) else { return }
         continuation.yield(event(path))
     }

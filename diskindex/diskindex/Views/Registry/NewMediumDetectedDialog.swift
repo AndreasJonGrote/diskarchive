@@ -14,7 +14,9 @@ struct NewMediumDialogWindowHost: View {
 
     var body: some View {
         Group {
-            if let medium = appState.medium(with: mediumID), medium.decision == .undecided {
+            // todo.0.4.026: auch ein erneut gefragtes (entschiedenes, nicht gemerktes) Medium in der Warteschlange.
+            if let medium = appState.medium(with: mediumID),
+               medium.decision == .undecided || appState.needsNewMediumDialog(mediumID) {
                 NewMediumDetectedDialog(medium: medium)
                     .padding(Self.shadowInset)
             } else {
@@ -37,8 +39,23 @@ struct NewMediumDetectedDialog: View {
     @Environment(AppState.self) private var appState
     let medium: Medium
 
-    /// Wirkt erst mit dem Backend (Entscheidung pro Medium speichern).
-    @State private var rememberChoice = true
+    /// „Für dieses Medium merken“: neues Medium angehakt; erneut gefragt (todo.0.4.026) wie zuletzt, also ohne Haken.
+    @State private var rememberChoice: Bool
+
+    init(medium: Medium) {
+        self.medium = medium
+        _rememberChoice = State(initialValue: !Self.isAskedAgain(medium))
+    }
+
+    /// Erneut gefragt (todo.0.4.026): schon entschieden, aber nicht gemerkt.
+    static func isAskedAgain(_ medium: Medium) -> Bool {
+        medium.decision == .index || medium.decision == .dontIndex
+    }
+
+    /// Vorbelegung = letzte Entscheidung (todo.0.4.026): Eingabetaste wählt bei „Nicht indizieren“ zuletzt Nein.
+    static func defaultsToDontIndex(_ medium: Medium) -> Bool {
+        medium.decision == .dontIndex
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -63,13 +80,14 @@ struct NewMediumDetectedDialog: View {
                     applyChoice(allowIndexing: false)
                 }
                 .buttonStyle(SecondaryButtonStyle())
+                .keyboardShortcut(Self.defaultsToDontIndex(medium) ? .defaultAction : nil)
                 .pointerCursor()
 
                 Button(LayoutCopy.index) {
                     applyChoice(allowIndexing: true)
                 }
                 .buttonStyle(PrimaryButtonStyle())
-                .keyboardShortcut(.defaultAction)
+                .keyboardShortcut(Self.defaultsToDontIndex(medium) ? nil : .defaultAction)
                 .pointerCursor()
             }
             .padding(.top, 8)

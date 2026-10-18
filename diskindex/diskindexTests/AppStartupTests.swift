@@ -154,9 +154,7 @@ struct AppStartupTests {
         let elapsed = started.duration(to: .now)
         #expect(done)
         #expect(elapsed >= timeout)
-        log.flushPendingWritesForTesting()
-        let text = String(decoding: (try? Data(contentsOf: log.fileURL)) ?? Data(), as: UTF8.self)
-        #expect(text.contains("app terminate timeout"))
+        #expect(await Self.waitForLogLine("app terminate timeout", in: log))
         // Der hängende Abschluss endet später: keine zweite Antwort.
         gate.open()
         try await Task.sleep(for: .milliseconds(200))
@@ -236,9 +234,7 @@ struct AppStartupTests {
         #expect(await waitUntil(timeout: 20) { counts.finishes > 0 })
         #expect(counts.replies == 1)
         #expect(exits.value == 0)
-        log.flushPendingWritesForTesting()
-        let text = String(decoding: try Data(contentsOf: log.fileURL), as: UTF8.self)
-        #expect(text.contains("app terminate timeout"))
+        #expect(await Self.waitForLogLine("app terminate timeout", in: log))
     }
 
     /// bug.0.3.9.011: Hängt der Hauptthread selbst, feuert der Zeitgeber trotzdem (GCD, nicht MainActor); kommt die
@@ -272,10 +268,8 @@ struct AppStartupTests {
         let result = Self.blockMainThread(until: exited, seconds: 5)
         #expect(result == .success)
         #expect(exits.value == 1)
-        log.flushPendingWritesForTesting()
-        let text = String(decoding: try Data(contentsOf: log.fileURL), as: UTF8.self)
-        #expect(text.contains("app terminate timeout"))
-        #expect(text.contains("app terminate force exit"))
+        #expect(await Self.waitForLogLine("app terminate timeout", in: log))
+        #expect(await Self.waitForLogLine("app terminate force exit", in: log))
         // Danach: die eingereihte Antwort läuft einmal, der spätere Abschluss antwortet nicht noch einmal.
         #expect(await waitUntil(timeout: 20) { counts.replies > 0 })
         gate.open()
@@ -286,6 +280,136 @@ struct AppStartupTests {
 
     private static func blockMainThread(until semaphore: DispatchSemaphore, seconds: Double) -> DispatchTimeoutResult {
         semaphore.wait(timeout: .now() + seconds)
+    }
+
+    /// Zeilen des Zeitgebers kommen nicht dauerhaft und asynchron (bug.0.4.064): auf die Zeile warten.
+    private static func waitForLogLine(_ needle: String, in log: DiskIndexLog) async -> Bool {
+        await waitUntil(timeout: 20) {
+            log.flushPendingWritesForTesting()
+            let text = String(decoding: (try? Data(contentsOf: log.fileURL)) ?? Data(), as: UTF8.self)
+            return text.contains(needle)
+        }
+    }
+
+    /// bug.0.4.064 (Nacharbeit): Echte Senke. Beim Ausstieg steht die Zeile „force exit“ schon in der Datei
+    /// (dauerhaft geschrieben, bevor `forceExit` läuft); `forceExit` liest die Datei selbst, ohne Flush.
+    @Test func forceExitFindsTheLineOnDisk() async throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let log = DiskIndexLog(directory: folder)
+        log.start(installHandlers: false)
+        let fileURL = log.fileURL
+        let exited = DispatchSemaphore(value: 0)
+        let seen = LineSeen()
+        let flow = TerminationFlow(
+            timeout: .milliseconds(200),
+            exitGrace: .milliseconds(300),
+            exitLogWait: .seconds(5),
+            log: log,
+            forceExit: {
+                let text = String(decoding: (try? Data(contentsOf: fileURL)) ?? Data(), as: UTF8.self)
+                seen.set(text.contains("app terminate force exit"))
+                exited.signal()
+            }
+        )
+        let gate = FinishGate()
+        let counts = FinishFlag()
+        let reply = flow.shouldTerminate(
+            handedOff: false,
+            teardown: {},
+            finish: { await gate.wait() },
+            reply: { counts.replies += 1 }
+        )
+        #expect(reply == .terminateLater)
+        let result = Self.blockMainThread(until: exited, seconds: 8)
+        #expect(result == .success)
+        #expect(seen.value == true)
+        #expect(await waitUntil(timeout: 20) { counts.replies > 0 })
+        gate.open()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(counts.replies == 1)
+    }
+
+    /// bug.0.4.064: Das Protokoll-Schreiben hängt (Senke je Instanz, wie eine hängende Platte). Die Antwort kommt
+    /// trotzdem nach der Zeitgrenze, solange die Zeile noch hängt; die Senke wurde aufgerufen.
+    @Test func blockedLogStillRepliesAfterTheTimeout() async throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let hook = BlockingHook()
+        defer { hook.release() }
+        let exits = ExitCounter()
+        let timeout: Duration = .milliseconds(300)
+        let flow = TerminationFlow(
+            timeout: timeout,
+            exitGrace: .seconds(30),
+            log: DiskIndexLog(directory: folder),
+            logLine: { _ in hook.block(atMost: 5) },
+            forceExit: { exits.add() }
+        )
+        let gate = FinishGate()
+        let counts = FinishFlag()
+        var sinkFinishedAtReply: Bool?
+        let reply = flow.shouldTerminate(
+            handedOff: false,
+            teardown: {},
+            finish: { await gate.wait() },
+            reply: {
+                counts.replies += 1
+                sinkFinishedAtReply = hook.finished
+            }
+        )
+        #expect(reply == .terminateLater)
+        #expect(await waitUntil(timeout: 20) { counts.replies > 0 })
+        #expect(await waitUntil(timeout: 20) { hook.entered })
+        // Antwort kam, bevor die hängende Protokollzeile fertig war (vorher: erst danach, hier nach 5 s).
+        #expect(sinkFinishedAtReply == false)
+        #expect(!hook.finished)
+        hook.release()
+        gate.open()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(counts.replies == 1)
+        #expect(exits.value == 0)
+    }
+
+    /// bug.0.4.064: Hauptthread hängt und das Protokoll-Schreiben hängt: der Ausstieg kommt trotzdem nach der Frist.
+    @Test func blockedLogAndMainThreadStillForceExit() async throws {
+        let folder = try directory()
+        defer { try? FileManager.default.removeItem(at: folder) }
+        let hook = BlockingHook()
+        defer { hook.release() }
+        let exited = DispatchSemaphore(value: 0)
+        let exits = ExitCounter()
+        let flow = TerminationFlow(
+            timeout: .milliseconds(200),
+            exitGrace: .milliseconds(300),
+            log: DiskIndexLog(directory: folder),
+            logLine: { _ in hook.block(atMost: 8) },
+            forceExit: {
+                exits.add()
+                exited.signal()
+            }
+        )
+        let gate = FinishGate()
+        let counts = FinishFlag()
+        let reply = flow.shouldTerminate(
+            handedOff: false,
+            teardown: {},
+            finish: { await gate.wait() },
+            reply: { counts.replies += 1 }
+        )
+        #expect(reply == .terminateLater)
+        // Hauptthread blockieren, bis der Ausstieg kommt (höchstens 5 s; die Senke hinge bis 8 s).
+        let result = Self.blockMainThread(until: exited, seconds: 5)
+        #expect(result == .success)
+        #expect(exits.value == 1)
+        // Ausstieg kam, bevor die hängende Protokollzeile fertig war.
+        #expect(!hook.finished)
+        hook.release()
+        #expect(await waitUntil(timeout: 20) { counts.replies > 0 })
+        gate.open()
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(counts.replies == 1)
+        #expect(exits.value == 1)
     }
 
     /// `O_APPEND`: zwei Schreiber auf dieselbe Datei überschreiben sich nicht (vorher: Handle sprang einmal ans Ende).
@@ -356,9 +480,12 @@ nonisolated private final class BlockingHook: @unchecked Sendable {
     private var blocking = false
     private var didEnter = false
     private var released = false
+    private var didFinish = false
 
     var isBlocking: Bool { lock.withLock { blocking } }
     var entered: Bool { lock.withLock { didEnter } }
+    /// Mindestens ein Aufruf ist durch (gelöst oder Zeitgrenze).
+    var finished: Bool { lock.withLock { didFinish } }
 
     func block(atMost seconds: Double) {
         lock.withLock {
@@ -367,7 +494,10 @@ nonisolated private final class BlockingHook: @unchecked Sendable {
         }
         guard isBlocking else { return }
         _ = gate.wait(timeout: .now() + seconds)
-        lock.withLock { blocking = false }
+        lock.withLock {
+            blocking = false
+            didFinish = true
+        }
     }
 
     func release() {
@@ -377,6 +507,13 @@ nonisolated private final class BlockingHook: @unchecked Sendable {
         }
         if !wasReleased { gate.signal() }
     }
+}
+
+nonisolated private final class LineSeen: @unchecked Sendable {
+    private let lock = NSLock()
+    private var seen: Bool?
+    var value: Bool? { lock.withLock { seen } }
+    func set(_ found: Bool) { lock.withLock { seen = found } }
 }
 
 nonisolated private final class ExitCounter: @unchecked Sendable {

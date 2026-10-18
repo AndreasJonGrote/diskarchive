@@ -49,7 +49,7 @@ struct PopoverSearchDebounceTests {
         #expect(counts <= 1, "\(counts) Zählabfragen für 5 Eingaben")
         #expect(app.popoverResults.totalCount == 600)
         #expect(!app.popoverResults.isCountPending)
-        #expect(app.popoverResults.groups.contains { $0.title == "DATEIEN" })
+        #expect(app.popoverResults.groups.contains { $0.title == LayoutCopy.popoverGroupFiles })
     }
 
     /// Erste Suche nach leerem Feld: keine Zahl bekannt → die Seite erscheint erst mit der Zahl, nie mit „6“.
@@ -86,7 +86,7 @@ struct PopoverSearchDebounceTests {
         let early = await waitUntil(timeout: 5) { app.popoverResults.isCountPending }
         try #require(early, "Seite kam nicht vor der Zahl")
         #expect(app.popoverResults.totalCount == 600, "Fußzeile während der Zählung: \(app.popoverResults.totalCount)")
-        #expect(app.popoverResults.groups.first { $0.title == "DATEIEN" }?.hits.first?.title == "Rechnung_100.pdf")
+        #expect(app.popoverResults.groups.first { $0.title == LayoutCopy.popoverGroupFiles }?.hits.first?.title == "Rechnung_100.pdf")
         await app.waitForPopoverSearch()
         #expect(app.popoverResults.totalCount == 100)
         #expect(!app.popoverResults.isCountPending)
@@ -142,7 +142,7 @@ struct PopoverSearchDebounceTests {
         await four.waitForPopoverSearch()
         #expect(fourStore.searchCountCalls.value >= 1)
         #expect(four.popoverResults.totalCount == 4)
-        #expect(four.popoverResults.groups.first { $0.title == "DATEIEN" }?.hits.count == 3)
+        #expect(four.popoverResults.groups.first { $0.title == LayoutCopy.popoverGroupFiles }?.hits.count == 3)
     }
 
     /// bug.0.3.9.005 d: Eine überholte **Seite** (alte Eingabe, Abfrage läuft noch) kommt nach der neuen an und wird verworfen.
@@ -163,12 +163,12 @@ struct PopoverSearchDebounceTests {
         app.popoverSearchText = "rechnung_00"
         app.schedulePopoverSearch()
         await app.waitForPopoverSearch()
-        #expect(app.popoverResults.groups.first { $0.title == "DATEIEN" }?.hits.first?.title == "Rechnung_000.pdf")
+        #expect(app.popoverResults.groups.first { $0.title == LayoutCopy.popoverGroupFiles }?.hits.first?.title == "Rechnung_000.pdf")
         // Alte Seite fertig: ihre Dateiabfrage kehrt nach dem Halten zurück (danach bricht sie ab, ihre Seite ist leer
         // und käme ohne Prüfung über die neue). Warten bis nach dem Halten, mit Reserve.
         try await Task.sleep(until: heldAt + hold + .milliseconds(400), clock: .continuous)
         #expect(app.popoverResults.totalCount == 10, "Zahl \(app.popoverResults.totalCount)")
-        #expect(app.popoverResults.groups.first { $0.title == "DATEIEN" }?.hits.first?.title == "Rechnung_000.pdf")
+        #expect(app.popoverResults.groups.first { $0.title == LayoutCopy.popoverGroupFiles }?.hits.first?.title == "Rechnung_000.pdf")
         await store.setSearchQueryHold(nil)
     }
 }

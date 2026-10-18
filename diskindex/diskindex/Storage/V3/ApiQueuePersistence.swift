@@ -47,35 +47,48 @@ nonisolated enum ApiQueuePersistence {
     static func enqueue(_ pool: DatabasePool, kind: ApiQueueKind, payload: Data, createdAt: Int) throws {
         guard let text = String(data: payload, encoding: .utf8) else { return }
         try pool.write { db in
-            if kind == .versionCheck, try coalesceVersionCheck(db) { return }
-            try db.execute(
-                sql: """
-                    INSERT INTO api_queue (kind, payload, createdAt, attempts, lastTryAt, info)
-                    VALUES (?, ?, ?, 0, NULL, NULL)
-                    """,
-                arguments: [kind.rawValue, text, createdAt]
-            )
+            try insert(db, kind: kind, text: text, createdAt: createdAt)
         }
         try trim(pool)
     }
 
+    /// todo.0.4.028: Einreihen innerhalb einer laufenden Schreib-Transaktion (gleiche Regeln wie `enqueue`).
+    static func enqueue(_ db: Database, kind: ApiQueueKind, payload: Data, createdAt: Int) throws {
+        guard let text = String(data: payload, encoding: .utf8) else { return }
+        try insert(db, kind: kind, text: text, createdAt: createdAt)
+        try trimRows(db)
+    }
+
+    private static func insert(_ db: Database, kind: ApiQueueKind, text: String, createdAt: Int) throws {
+        if kind == .versionCheck, try coalesceVersionCheck(db) { return }
+        try db.execute(
+            sql: """
+                INSERT INTO api_queue (kind, payload, createdAt, attempts, lastTryAt, info)
+                VALUES (?, ?, ?, 0, NULL, NULL)
+                """,
+            arguments: [kind.rawValue, text, createdAt]
+        )
+    }
+
     static func trim(_ pool: DatabasePool) throws {
-        try pool.write { db in
-            while true {
-                let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue") ?? 0
-                let total = try Int.fetchOne(
-                    db,
-                    sql: "SELECT COALESCE(SUM(length(payload)), 0) FROM api_queue"
-                ) ?? 0
-                if count <= maxRows, total <= maxPayloadBytes { break }
-                // bug.0.4.051: zuerst Nicht-Berichte (z. B. Versions-Check) entfernen, Absturzberichte zuletzt.
-                guard let oldest = try Int64.fetchOne(
-                    db,
-                    sql: "SELECT id FROM api_queue ORDER BY (kind = ?) ASC, id ASC LIMIT 1",
-                    arguments: [ApiQueueKind.issueReport.rawValue]
-                ) else { break }
-                try db.execute(sql: "DELETE FROM api_queue WHERE id = ?", arguments: [oldest])
-            }
+        try pool.write(trimRows)
+    }
+
+    private static func trimRows(_ db: Database) throws {
+        while true {
+            let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue") ?? 0
+            let total = try Int.fetchOne(
+                db,
+                sql: "SELECT COALESCE(SUM(length(payload)), 0) FROM api_queue"
+            ) ?? 0
+            if count <= maxRows, total <= maxPayloadBytes { break }
+            // bug.0.4.051: zuerst Nicht-Berichte (z. B. Versions-Check) entfernen, Absturzberichte zuletzt.
+            guard let oldest = try Int64.fetchOne(
+                db,
+                sql: "SELECT id FROM api_queue ORDER BY (kind = ?) ASC, id ASC LIMIT 1",
+                arguments: [ApiQueueKind.issueReport.rawValue]
+            ) else { break }
+            try db.execute(sql: "DELETE FROM api_queue WHERE id = ?", arguments: [oldest])
         }
     }
 

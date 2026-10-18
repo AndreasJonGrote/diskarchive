@@ -5,6 +5,7 @@
 
 import AppKit
 import Foundation
+import GRDB
 import SwiftUI
 import Testing
 @testable import diskindex
@@ -89,7 +90,14 @@ import Testing
         #expect(outcome.completedDepths.isEmpty)
     }
 
-    @Test func resumeAfterDepthTwoDoesNotListTheRootAgain() async throws {
+    /// bug.0.4.066: Fortsetzen nach Ebene 2 zählt den ganzen Baum (das Zählen darf die Wurzel lesen),
+    /// indiziert Ebene 1 und 2 aber nicht noch einmal (Trigger in der Test-DB zählen die Schreibvorgänge):
+    /// keine Zeile der Ebenen 1/2 neu angelegt, gelöscht oder als Kind geändert, und Ebene 1 gar nicht berührt
+    /// (ein erneutes Listen von „a“ für Ebene 2 setzte dort `listedAt`). Erlaubt ist nur, dass „b“ als Eltern
+    /// von Ebene 3 gelistet wird (`listedAt`, `contentStamp`). Ein unveränderter Ordner schreibt beim Listen nichts
+    /// (gleicher `contentStamp`), deshalb kommen vor dem Fortsetzen auf Ebene 1 und 2 je eine Datei dazu: nur ein
+    /// erneutes Indizieren dieser Ebenen würde sie schreiben; das Zählen sieht sie (Gesamtzahl 6).
+    @Test func resumeAfterDepthTwoDoesNotIndexTheFirstLevelsAgain() async throws {
         let harness = try await ScanHarness.make()
         let access = MemoryVolume(mountPath: "/Volumes/T")
         access.file("a/b/c/f.txt")
@@ -101,12 +109,58 @@ import Testing
         })
         #expect(first.status == .pending)
         #expect(try await harness.store.medium(uuid: harness.mediumID)?.completedDepth == 2)
-        access.clearListed()
+
+        struct Row: Equatable { var id: Int64; var parentID: Int64?; var name: String; var depth: Int }
+        func firstLevels() async throws -> [Row] {
+            try await harness.store.pool.read { db in
+                try GRDB.Row.fetchAll(db, sql: "SELECT id, parentID, name, depth FROM items WHERE depth <= 2 ORDER BY id")
+                    .map { Row(id: $0["id"], parentID: $0["parentID"], name: $0["name"], depth: $0["depth"]) }
+            }
+        }
+        let before = try await firstLevels()
+        #expect(before.map(\.name) == ["a", "b"])
+        try await harness.store.pool.write { db in
+            try db.execute(sql: """
+                CREATE TABLE test_item_writes (op TEXT NOT NULL, itemID INTEGER, depth INTEGER);
+                CREATE TRIGGER test_items_insert AFTER INSERT ON items
+                    BEGIN INSERT INTO test_item_writes VALUES ('insert', NEW.id, NEW.depth); END;
+                CREATE TRIGGER test_items_child_update
+                    AFTER UPDATE OF parentID, name, slug, isFolder, extID, kind, depth, modifiedAt, fileID, status ON items
+                    BEGIN INSERT INTO test_item_writes VALUES ('child-update', NEW.id, OLD.depth); END;
+                CREATE TRIGGER test_items_depth_one_update AFTER UPDATE ON items WHEN OLD.depth = 1
+                    BEGIN INSERT INTO test_item_writes VALUES ('depth1-update', NEW.id, OLD.depth); END;
+                CREATE TRIGGER test_items_delete AFTER DELETE ON items
+                    BEGIN INSERT INTO test_item_writes VALUES ('delete', OLD.id, OLD.depth); END;
+                CREATE TRIGGER test_details_insert AFTER INSERT ON item_details
+                    BEGIN INSERT INTO test_item_writes VALUES ('details', NEW.itemID, (SELECT depth FROM items WHERE id = NEW.itemID)); END;
+                CREATE TRIGGER test_details_update AFTER UPDATE ON item_details
+                    BEGIN INSERT INTO test_item_writes VALUES ('details', NEW.itemID, (SELECT depth FROM items WHERE id = NEW.itemID)); END;
+                """)
+        }
+        access.file("x.txt")
+        access.file("a/y.txt")
         arm.value = false
-        let second = try await harness.run(access: access, maxDepth: nil, fromScratch: false)
-        #expect(!access.listed.contains(access.mountPath))
+        let progress = ProgressLog()
+        let second = try await harness.run(access: access, maxDepth: nil, fromScratch: false, onProgress: { progress.note($0) })
+        #expect(second.status == .indexed)
         #expect(second.completedDepths.first == 3)
-        #expect(try await harness.names().contains("f.txt"))
+        let names = try await harness.names()
+        #expect(names.contains("f.txt"))
+        #expect(!names.contains("x.txt"), "Ebene 1 erneut indiziert")
+        #expect(!names.contains("y.txt"), "Ebene 2 erneut indiziert")
+        // Die Zählung lief über den ganzen Baum (a, b, c, f.txt, x.txt, y.txt) statt `scanTotal = entriesCompleted`.
+        let events = progress.events
+        #expect(events.contains { $0.phase == .counting && $0.countingCount > 0 })
+        let firstIndexing = try #require(events.first { $0.phase == .indexing })
+        #expect(firstIndexing.entriesTotal == 6)
+
+        let writes: [(op: String, depth: Int?)] = try await harness.store.pool.read { db in
+            try GRDB.Row.fetchAll(db, sql: "SELECT op, depth FROM test_item_writes").map { ($0["op"], $0["depth"]) }
+        }
+        #expect(writes.contains { ($0.depth ?? 0) >= 3 }, "Trigger hat die neuen Ebenen nicht gesehen: \(writes)")
+        let firstLevelWrites = writes.filter { ($0.depth ?? 0) <= 2 }
+        #expect(firstLevelWrites.isEmpty, "Ebene 1/2 erneut geschrieben: \(firstLevelWrites)")
+        #expect(try await firstLevels() == before)
     }
 
     @Test func exclusionsSkipSystemFilesPatternsAndHiddenNames() async throws {
@@ -319,3 +373,20 @@ private final class Samples: @unchecked Sendable {
     var values: [Double] = []
 }
 
+/// bug.0.4.066: Fortschrittsereignisse eines Laufs (Instanz je Test, Regel 20).
+private final class ProgressLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var values: [IndexProgress] = []
+
+    func note(_ progress: IndexProgress) {
+        lock.lock()
+        defer { lock.unlock() }
+        values.append(progress)
+    }
+
+    var events: [IndexProgress] {
+        lock.lock()
+        defer { lock.unlock() }
+        return values
+    }
+}

@@ -51,28 +51,39 @@ enum AppStartup {
 /// genau einmal (zweites SIGTERM oder ⌘Q während `.terminateLater` startet nichts neu) und Antwort spätestens nach
 /// der Zeitgrenze. Der Zeitgeber läuft auf einer GCD-Queue, nicht auf dem MainActor; die Antwort an AppKit wird auf
 /// main eingereiht. Kommt sie auch nach `exitGrace` nicht an (Hauptthread blockiert), endet der Prozess mit Protokollzeile.
+/// bug.0.4.064: Der Zeitgeber hängt nie am Protokoll. Zuerst Antwort einreihen und Ausstieg planen, dann protokollieren,
+/// und zwar auf einer eigenen Schlange: dort darf die Zeile dauerhaft (`sync`/`fsync`) geschrieben werden, der
+/// Zeitgeber wartet nicht darauf. Vor dem Ausstieg wartet er höchstens `exitLogWait`, bis die letzte Zeile geschrieben ist.
 @MainActor
 final class TerminationFlow {
     nonisolated static let standardTimeout: Duration = .seconds(8)
     nonisolated static let standardExitGrace: Duration = .seconds(4)
+    nonisolated static let standardExitLogWait: Duration = .milliseconds(250)
 
     private let timeout: Duration
     private let exitGrace: Duration
-    private let log: DiskIndexLog
+    private let exitLogWait: Duration
+    private let logLine: @Sendable (String) -> Void
+    private let logQueue = DispatchQueue(label: "app.diskarchive.termination-log", qos: .utility)
     private let forceExit: @Sendable () -> Void
     private let state = TerminationReplyState()
     private var started = false
     private var pendingReply: (@MainActor () -> Void)?
 
+    /// `logLine` (Tests: eigene Senke je Instanz) schreibt eine Fehlerzeile des Zeitgebers; Standard: dauerhaft ins
+    /// Protokoll (`.error`), aufgerufen nur auf `logQueue`, nie auf dem Zeitgeber selbst.
     init(
         timeout: Duration = TerminationFlow.standardTimeout,
         exitGrace: Duration = TerminationFlow.standardExitGrace,
+        exitLogWait: Duration = TerminationFlow.standardExitLogWait,
         log: DiskIndexLog,
+        logLine: (@Sendable (String) -> Void)? = nil,
         forceExit: @escaping @Sendable () -> Void = { _exit(0) }
     ) {
         self.timeout = timeout
         self.exitGrace = exitGrace
-        self.log = log
+        self.exitLogWait = exitLogWait
+        self.logLine = logLine ?? { [log] line in log.record(.app, .error, line) }
         self.forceExit = forceExit
     }
 
@@ -100,21 +111,29 @@ final class TerminationFlow {
     /// Unabhängig vom MainActor: feuert auch, wenn der Hauptthread hängt.
     private func scheduleDeadline() {
         let state = state
-        let log = log
         let timeout = timeout
         let exitGrace = exitGrace
+        let exitLogWait = Self.seconds(exitLogWait)
+        let logLine = logLine
+        let logQueue = logQueue
         let forceExit = forceExit
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Self.seconds(timeout)) { [self] in
             guard !state.isAnswered else { return }
-            log.record(.app, .error, "app terminate timeout after=\(timeout)")
+            // Erst Antwort und Ausstieg, dann die Zeile (bug.0.4.064).
             DispatchQueue.main.async {
                 MainActor.assumeIsolated { self.answer() }
             }
             DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + Self.seconds(exitGrace)) {
                 guard !state.isAnswered else { return }
-                log.record(.app, .error, "app terminate force exit after=\(exitGrace)")
+                let written = DispatchSemaphore(value: 0)
+                logQueue.async {
+                    logLine("app terminate force exit after=\(exitGrace)")
+                    written.signal()
+                }
+                _ = written.wait(timeout: .now() + exitLogWait)
                 forceExit()
             }
+            logQueue.async { logLine("app terminate timeout after=\(timeout)") }
         }
     }
 

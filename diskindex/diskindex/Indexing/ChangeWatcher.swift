@@ -75,6 +75,11 @@ final class ChangeWatcher {
         resumeLastEventID: Int64 = 0
     ) {
         guard tasks[mediumID] == nil else { return }
+        // bug.0.4.063: gesperrt = nur ansehen; kein Start, auch nicht über Pausenende oder Neustart nach dem Aufwachen.
+        guard appState.featureAccess.canWriteIndex else {
+            DiskIndexLog.shared.record(.watcher, .info, "start übersprungen gesperrt medium=\(mediumID)")
+            return
+        }
         let source = source ?? FSEventsChangeSource(
             mountPath: volume.mountPath,
             resumeVolumeUUID: resumeFSEventsUUID,
@@ -97,6 +102,7 @@ final class ChangeWatcher {
     }
 
     func saveCursor(mediumID: UUID) async {
+        guard appState.featureAccess.canWriteIndex else { return }
         guard let cursor = cursors[mediumID] else { return }
         guard cursor.eventID != savedCursors[mediumID] else { return }
         // Vor dem Schreiben vormerken: ein zweiter Aufruf während des Schreibens (Flush, Zeitgeber) schreibt
@@ -135,6 +141,21 @@ final class ChangeWatcher {
         volumes.removeAll()
     }
 
+    /// bug.0.4.063: Sperre rastet ein. Alles stoppen ohne Schreiben; alte Ereignisstände verwerfen (nach dem
+    /// Entsperren gilt der gespeicherte Stand), laufende Starts und Flushes über die Generation entwerten.
+    func stopAllForVersionLock() {
+        for id in Array(tasks.keys) {
+            watchGenerations[id, default: 0] += 1
+        }
+        stopAllForTermination()
+        cursors.removeAll()
+        savedCursors.removeAll()
+        flushInFlight.removeAll()
+        flushAgain.removeAll()
+        pauseGeneration += 1
+        DiskIndexLog.shared.record(.watcher, .info, "alle gestoppt sperre")
+    }
+
     func isWatching(mediumID: UUID) -> Bool {
         tasks[mediumID] != nil
     }
@@ -156,7 +177,7 @@ final class ChangeWatcher {
         volumes[mediumID] = nil
         flushInFlight.remove(mediumID)
         flushAgain.remove(mediumID)
-        if let cursor {
+        if let cursor, appState.featureAccess.canWriteIndex {
             do {
                 try await store.recordEventCursor(
                     mediumUUID: mediumID,

@@ -46,6 +46,22 @@ nonisolated struct GlobalPause: Equatable, Codable {
     var isPaused: Bool { active }
 }
 
+nonisolated extension GlobalPause {
+    private enum CodingKeys: String, CodingKey {
+        case active, until, forever, span
+    }
+
+    /// bug.0.4.068 a): Eine unbekannte Spanne (gespeichert von einer späteren Version) wird als `nil` gelesen,
+    /// statt das Dekodieren der ganzen Pause scheitern zu lassen; die Dauer folgt dann aus `until`.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        active = try container.decode(Bool.self, forKey: .active)
+        until = try container.decodeIfPresent(Date.self, forKey: .until)
+        forever = try container.decode(Bool.self, forKey: .forever)
+        span = try? container.decodeIfPresent(PauseSpan.self, forKey: .span)
+    }
+}
+
 nonisolated enum PauseNoticeCopy {
     static func began(until: Date?, now: Date) -> String {
         guard let until else { return LayoutCopy.noticePauseForever }

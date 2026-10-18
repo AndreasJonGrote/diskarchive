@@ -77,6 +77,23 @@ struct LocalizedFormattingTests {
         #expect(english.replacingOccurrences(of: "\u{00A0}", with: " ") == "1.5 GB", "\(english)")
     }
 
+    /// bug.0.4.067: Größen wie im Finder – unter 1.000 Byte die Bytes, Null als Ziffer, darüber kB/MB/GB.
+    @Test func byteCountsMatchFinderBelowAndAboveOneKilobyte() {
+        func formatted(_ count: Int64, _ language: AppDisplayLanguage) -> String {
+            L10n.$languageOverride.withValue(language) {
+                ByteCountFormatter.storage.string(fromByteCount: count)
+            }.replacingOccurrences(of: "\u{00A0}", with: " ")
+        }
+        #expect(formatted(0, .german) == "0 Byte")
+        #expect(formatted(999, .german) == "999 Byte")
+        #expect(formatted(1_500, .german) == "2 kB")
+        #expect(formatted(1_500_000_000, .german) == "1,5 GB")
+        #expect(formatted(0, .english) == "0 bytes")
+        #expect(formatted(999, .english) == "999 bytes")
+        #expect(formatted(1_500, .english) == "2 kB")
+        #expect(formatted(1_500_000_000, .english) == "1.5 GB")
+    }
+
     @Test func countsAreGroupedByAppLanguage() {
         let germanLine = L10n.$languageOverride.withValue(.german) { ColumnSizeSummary.objectLine(count: 50_000) }
         let englishLine = L10n.$languageOverride.withValue(.english) { ColumnSizeSummary.objectLine(count: 50_000) }

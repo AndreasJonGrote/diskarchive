@@ -84,6 +84,8 @@ final class AppState {
     var versionLockBannerVisible = false
     var updateNotice: UpdateNotice?
     @ObservationIgnored var onVersionLockEngaged: (() -> Void)?
+    /// bug.0.4.063: Übergang gesperrt → entsperrt (LiveWiring nimmt Überwachung und Indizierung wieder auf).
+    @ObservationIgnored var onVersionLockReleased: (() -> Void)?
     /// Nach Versions-Check (todo.0.4.011): Anmeldung kann einmal das Hauptfenster öffnen.
     @ObservationIgnored var onVersionCheckEvaluationApplied: (() -> Void)?
     /// Index konnte nicht geöffnet werden (82).
@@ -204,12 +206,9 @@ final class AppState {
     var pendingNewMediumDecisionIDs: [UUID] = []
     /// Panels, die der Nutzer ohne Ja/Nein geschlossen hat (Badge/Queue bleiben).
     var dismissedNewMediumPanelIDs: Set<UUID> = []
-    /// Vorderstes Medium der Warteschlange (verbunden, unentschieden).
+    /// Vorderstes Medium der Warteschlange (verbunden; unentschieden oder erneut gefragt, todo.0.4.026).
     var newMediumDialogMediumID: UUID? {
-        pendingNewMediumDecisionIDs.first { id in
-            guard let medium = medium(with: id) else { return false }
-            return medium.connectionStatus == .connected && medium.decision == .undecided
-        }
+        pendingNewMediumDecisionIDs.first { needsNewMediumDialog($0) }
     }
     var hasPendingNewMediumDecisions: Bool { newMediumDialogMediumID != nil }
     /// Medium-ID, indizieren ja/nein, „merken“. Gesetzt vom `MediumCoordinator`.

@@ -92,6 +92,16 @@ nonisolated struct DirectoryIndexer: Sendable {
             countingIncomplete = flagged
         }
 
+        func markCountingIncomplete() async {
+            do {
+                try await store.markScanTotalIncomplete(mediumUUID: mediumUUID)
+            } catch {
+                if DiskIndexLog.isOperationalFailure(error) {
+                    DiskIndexLog.shared.record(.store, .error, "store error markScanTotalIncomplete \(error)")
+                }
+            }
+        }
+
         func countWholeTree() async {
             needsCounting = false
             scanTotal = await runCountingPhase(
@@ -179,6 +189,9 @@ nonisolated struct DirectoryIndexer: Sendable {
                 // Vorlauf (README 4): erst Ebene 1 und 2 über die normale Ebenen-Schleife schreiben,
                 // danach den ganzen Baum zählen.
                 needsCounting = true
+                // bug.0.4.066: Merker schon zu Beginn des Vorlaufs, sonst fehlt er bei einem Halt nach Ebene 2
+                // vor Zählbeginn, und das Fortsetzen nimmt `scanTotal = entriesCompleted` (sofort 99 %).
+                await markCountingIncomplete()
                 // Anzeige wie in der Zählphase („0 % indiziert“ mit Spinner), solange der Vorlauf läuft.
                 await onProgress(IndexProgress(
                     phase: .counting,
@@ -205,7 +218,13 @@ nonisolated struct DirectoryIndexer: Sendable {
                 countingCount: 0,
                 finished: false
             ))
-            if startDepth > preludeEnd { await countWholeTree() }
+            if startDepth > preludeEnd {
+                await countWholeTree()
+            } else if !countingIncomplete {
+                // bug.0.4.066: der fortgesetzte Vorlauf behält den Merker bis zur vollständigen Zählung
+                // (nur schreiben, wenn er noch nicht steht).
+                await markCountingIncomplete()
+            }
         } else if scanTotal <= 0 {
             scanTotal = max(entriesCompleted, 1)
         }

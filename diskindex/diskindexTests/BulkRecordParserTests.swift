@@ -209,4 +209,21 @@ private struct BulkRecordBuilder {
             #expect(entry.fileSize == nil)
         }
     }
+
+    /// bug.0.4.068 d): `loadUnaligned` liest nur innerhalb des Puffers. Der Puffer ist der Anfang eines größeren
+    /// Arrays, damit ein Lesen über das Ende (Sabotage) gültigen Speicher trifft und nur der Rückgabewert zählt.
+    @Test func loadUnalignedRejectsReadsPastTheBufferEnd() {
+        let backing: [UInt8] = Array(1...16)
+        backing.withUnsafeBytes { whole in
+            let raw = UnsafeRawBufferPointer(rebasing: whole[0..<6])
+            #expect(BulkDirectoryReader.loadUnaligned(UInt32.self, from: raw, at: 0) == UInt32(littleEndian: 0x0403_0201))
+            #expect(BulkDirectoryReader.loadUnaligned(UInt32.self, from: raw, at: 2) == UInt32(littleEndian: 0x0605_0403))
+            #expect(BulkDirectoryReader.loadUnaligned(UInt32.self, from: raw, at: 3) == nil)
+            #expect(BulkDirectoryReader.loadUnaligned(UInt32.self, from: raw, at: 6) == nil)
+            #expect(BulkDirectoryReader.loadUnaligned(UInt32.self, from: raw, at: -1) == nil)
+            #expect(BulkDirectoryReader.loadUnaligned(UInt64.self, from: raw, at: 0) == nil)
+        }
+        let empty = UnsafeRawBufferPointer(start: nil, count: 0)
+        #expect(BulkDirectoryReader.loadUnaligned(UInt32.self, from: empty, at: 0) == nil)
+    }
 }

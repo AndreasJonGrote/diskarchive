@@ -124,7 +124,7 @@ extension WindowTestGroup {
         let match = await SearchIndex.matching(store: rig.store, query: "rechn", filters: SearchFilters(), media: rig.app.registryMedia, maxDepth: nil)
         let popover = PopoverSearch.grouped(match: match, media: rig.app.registryMedia)
         #expect(popover.totalCount == match.totalCount)
-        #expect(popover.groups.contains { $0.title == "DATEIEN" })
+        #expect(popover.groups.contains { $0.title == LayoutCopy.popoverGroupFiles })
         // bug.0.4.038/039: der Popover-Weg (eigene Abfragen je Gruppe, Zahl nachgereicht) kommt auf dieselbe Zahl.
         rig.app.popoverSearchDebounce = .zero
         rig.app.popoverSearchText = "rechn"

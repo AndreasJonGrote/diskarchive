@@ -32,6 +32,47 @@ import Testing
         )
     }
 
+    /// bug.0.4.068 f): Der FileManager-Rückfallweg erkennt Symlinks auf Dateien, auf Ordner und verwaiste Links
+    /// wie der Bulk-Weg (Link, kein Ordner, keine Größe, keine fileID); Dateien und Ordner bleiben gleich.
+    /// `linkCount` liefert nur der Bulk-Weg und wird nicht verglichen.
+    @Test func fileManagerFallbackMatchesBulkReadForSymlinks() async throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-fallback-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try Data(repeating: 3, count: 4_321).write(to: root.appendingPathComponent("a.bin"))
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("sub"), withIntermediateDirectories: false)
+        try FileManager.default.createSymbolicLink(atPath: root.appendingPathComponent("link-a").path, withDestinationPath: "a.bin")
+        try FileManager.default.createSymbolicLink(atPath: root.appendingPathComponent("link-sub").path, withDestinationPath: "sub")
+        try FileManager.default.createSymbolicLink(atPath: root.appendingPathComponent("link-gone").path, withDestinationPath: "missing")
+
+        let (bulk, fallback) = try await Task.detached {
+            let result = try BulkDirectoryReader.readResult(at: root)
+            return (result, try BulkDirectoryReader.readUsingFileManager(at: root))
+        }.value
+        #expect(bulk.stats.usedBulk, "Vergleich braucht den Bulk-Weg")
+        let names = ["a.bin", "sub", "link-a", "link-sub", "link-gone"]
+        #expect(Set(bulk.entries.map(\.name)) == Set(names))
+        #expect(Set(fallback.map(\.name)) == Set(names))
+        for name in names {
+            let expected = try #require(bulk.entries.first { $0.name == name })
+            let actual = try #require(fallback.first { $0.name == name })
+            #expect(actual.isSymbolicLink == expected.isSymbolicLink, "\(name)")
+            #expect(actual.isDirectory == expected.isDirectory, "\(name)")
+            #expect(actual.isPackage == expected.isPackage, "\(name)")
+            #expect(actual.isHidden == expected.isHidden, "\(name)")
+            #expect(actual.fileSize == expected.fileSize, "\(name)")
+            #expect(actual.fileID == expected.fileID, "\(name)")
+            let expectedDate = try #require(expected.modifiedAt, "\(name)")
+            let actualDate = try #require(actual.modifiedAt, "\(name)")
+            #expect(abs(actualDate.timeIntervalSince(expectedDate)) < 1, "\(name)")
+        }
+        let linkToFile = try #require(fallback.first { $0.name == "link-a" })
+        #expect(linkToFile.isSymbolicLink)
+        #expect(linkToFile.fileSize == nil)
+        #expect(linkToFile.fileID == nil)
+    }
+
     @Test func deepTreeEmitsAtMostTenReadLogLines() throws {
         let tracker = BulkDirectoryReader.ReadLogEmitTracker()
         try BulkDirectoryReader.$readLogEmitTracker.withValue(tracker) {

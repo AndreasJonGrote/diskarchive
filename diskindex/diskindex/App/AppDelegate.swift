@@ -66,7 +66,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appState = AppDelegateBridge.appState
         appState.configureForApp()
         appState.appSettings.appearance.apply()
-        appState.refreshGlobalPause()
         appState.refreshLaunchAtLoginState()
         NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification,
@@ -76,6 +75,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MainActor.assumeIsolated { AppDelegateBridge.appState.refreshLaunchAtLoginState() }
         }
         UNUserNotificationCenter.current().delegate = self
+        // todo.0.4.027: Pause beim Start abgelaufen → Mitteilung erst, wenn der Mitteilungs-Delegat gesetzt ist.
+        appState.refreshGlobalPause()
         SystemNotice.logAuthorizationStatus()
         if NoticePermission.shouldRequest(arguments: CommandLine.arguments, defaults: AppDefaults.current) {
             AppDefaults.current.set(true, forKey: NoticePermission.askedKey)

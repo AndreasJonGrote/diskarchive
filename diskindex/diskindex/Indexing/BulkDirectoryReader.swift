@@ -243,8 +243,7 @@ nonisolated enum BulkDirectoryReader {
                 guard let base = raw.baseAddress else { return }
                 var offset = 0
                 for _ in 0..<readCount {
-                    guard offset + 4 <= raw.count else { break }
-                    guard let recordLengthU32 = loadUnaligned(UInt32.self, from: base, at: offset) else { break }
+                    guard let recordLengthU32 = loadUnaligned(UInt32.self, from: raw, at: offset) else { break }
                     let recordLength = Int(recordLengthU32)
                     guard recordLength >= 4, offset + recordLength <= raw.count else { break }
                     if let entry = parseBulkRecord(
@@ -399,30 +398,52 @@ nonisolated enum BulkDirectoryReader {
         flag
     }
 
-    private static func loadUnaligned<T>(_ type: T.Type, from base: UnsafeRawPointer, at offset: Int) -> T? {
-        guard offset >= 0, offset + MemoryLayout<T>.size <= Int.max else { return nil }
+    /// bug.0.4.068 d): Grenzprüfung gegen die Länge des Puffers (vorher `<= Int.max`, also wirkungslos).
+    /// Intern statt privat, damit Tests die Grenze prüfen.
+    static func loadUnaligned<T>(_ type: T.Type, from buffer: UnsafeRawBufferPointer, at offset: Int) -> T? {
+        guard let base = buffer.baseAddress, offset >= 0, offset <= buffer.count - MemoryLayout<T>.size else { return nil }
         return base.advanced(by: offset).loadUnaligned(as: T.self)
     }
 
-    private static func readUsingFileManager(at directoryURL: URL) throws -> [ListedDirectoryEntry] {
+    /// FileManager-Rückfallweg (kein `getattrlistbulk`). bug.0.4.068 f): `lstat` statt `fileExists` (folgt Links),
+    /// damit Symlinks auf Dateien (und verwaiste Links) wie im Bulk-Weg als Link erscheinen: kein Ordner, keine
+    /// Größe, keine fileID, Änderungsdatum des Links selbst. Intern statt privat, damit Tests ihn direkt aufrufen.
+    static func readUsingFileManager(at directoryURL: URL) throws -> [ListedDirectoryEntry] {
         let names = try FileManager.default.contentsOfDirectory(atPath: directoryURL.path)
         var entries: [ListedDirectoryEntry] = []
         entries.reserveCapacity(names.count)
         for name in names {
             if shouldIgnoreName(name) { continue }
             let child = directoryURL.appendingPathComponent(name)
-            var isDirectory: ObjCBool = false
-            guard FileManager.default.fileExists(atPath: child.path, isDirectory: &isDirectory) else { continue }
+            var statInfo = stat()
+            guard lstat(child.path, &statInfo) == 0 else { continue }
+            let fileType = statInfo.st_mode & S_IFMT
+            if fileType == S_IFLNK {
+                entries.append(
+                    ListedDirectoryEntry(
+                        name: name,
+                        isDirectory: false,
+                        isPackage: false,
+                        isSymbolicLink: true,
+                        isHidden: name.hasPrefix("."),
+                        fileSize: nil,
+                        modifiedAt: Date(
+                            timeIntervalSince1970: TimeInterval(statInfo.st_mtimespec.tv_sec)
+                                + TimeInterval(statInfo.st_mtimespec.tv_nsec) / 1_000_000_000
+                        ),
+                        fileID: nil
+                    )
+                )
+                continue
+            }
+            let isDirectory = fileType == S_IFDIR
             var isHidden = name.hasPrefix(".")
             var fileSize: Int64?
             var modifiedAt: Date?
             var isPackage = false
-            var isSymlink = false
-            var fileID: Int64?
-            if isDirectory.boolValue {
-                if let values = try? child.resourceValues(forKeys: [.isPackageKey, .isHiddenKey, .contentModificationDateKey, .isSymbolicLinkKey]) {
+            if isDirectory {
+                if let values = try? child.resourceValues(forKeys: [.isPackageKey, .isHiddenKey, .contentModificationDateKey]) {
                     isPackage = values.isPackage == true
-                    isSymlink = values.isSymbolicLink == true
                     if values.isHidden == true { isHidden = true }
                     modifiedAt = values.contentModificationDate
                 }
@@ -431,22 +452,16 @@ nonisolated enum BulkDirectoryReader {
                 modifiedAt = values.contentModificationDate
                 if values.isHidden == true { isHidden = true }
             }
-            if !isSymlink {
-                var statInfo = stat()
-                if stat(child.path, &statInfo) == 0 {
-                    fileID = Int64(statInfo.st_ino)
-                }
-            }
             entries.append(
                 ListedDirectoryEntry(
                     name: name,
-                    isDirectory: isDirectory.boolValue && !isSymlink,
+                    isDirectory: isDirectory,
                     isPackage: isPackage,
-                    isSymbolicLink: isSymlink,
+                    isSymbolicLink: false,
                     isHidden: isHidden,
                     fileSize: fileSize,
                     modifiedAt: modifiedAt,
-                    fileID: fileID
+                    fileID: Int64(statInfo.st_ino)
                 )
             )
         }

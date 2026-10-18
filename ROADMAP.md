@@ -17,7 +17,8 @@ Gilt zusammen mit [README.md](README.md) (Konzept, Abschnitt „Datenbank“), [
 | **0.3.2** | Erkennung und Dashboard | Code ✓ (12.10.); offen: Layout 02 + 04 nachziehen (`todo.0.3.2.001`), Version anheben (`todo.0.3.2.002`) |
 | **0.3.8** | Stabilität, Teil 1 | Paket 4 (Medien-I/O, Nacharbeit, Testisolation) und Paket 5 (Entscheidung, Status, Regeln, Identität): `bug.0.3.8.001`–`002`, `bug.0.4.045`, `021`–`033` |
 | **0.3.9** | Stabilität, Teil 2 | Paket 6 (Oberfläche `034`–`040`), Paket 7 (`041`–`042`), Paket 8 (`050`–`062`), Stabilitätsprüfung |
-| **0.4** | **Beta für Beta-Tester** | erste Weitergabe nach außen; nur noch Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Beta-Verfallsdatum, macOS 14, Update durch Ersetzen); Versions-Check, Update-Modal, Beta-Sperre und Nur-Lesen-Sperre bereits gebaut ✓ (`todo.0.4.001`, `bug.0.4.001`) |
+| **0.4.0** | **Release-Kandidat der Open Beta** | nur, was die App fehlerfrei macht; Abschluss mit der Abnahmerunde des Nutzers (`todo.0.4.040`) |
+| **0.4.1** | **Release der Open Beta** | Auslieferung: Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, macOS 14; ab hier laden andere die App |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
 | **0.7** | Export von CSV-Listen | |
@@ -104,7 +105,10 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 ---
 
-## 0.4 — Beta für Beta-Tester
+## 0.4.0 — Release-Kandidat der Open Beta (bis 18.10.: „0.4 — Beta für Beta-Tester“)
+
+**Neu geordnet (Nutzer 18.10.):** 0.4.0 enthält nur, was die App fehlerfrei macht. Alles zur Auslieferung (Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, macOS 14) gehört zu 0.4.1, Signatur und Notarisierung zu 1.0. Die Punkte unten, die Auslieferung betreffen, gelten damit für 0.4.1.
+
 
 **Ziel:** Die erste Version, die andere Menschen bekommen. **Alle Probleme sind erledigt** (Sprünge 0.3.8 und 0.3.9). 0.4 enthält nur noch die Voraussetzungen der Weitergabe.
 
@@ -122,6 +126,15 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 **Fertig, wenn [Vorschlag]:**
 - Keine bekannten Fehler offen (0.3.8 und 0.3.9 abgenommen; Audit 13.10.: `bug.0.4.010`–`062`).
 - Eine Testperson außer dem Nutzer hat die App aus dem Download installiert und eine Woche benutzt, ohne Eingriff.
+
+---
+
+## 0.4.1 — Release der Open Beta (Nutzer 18.10.)
+
+Auslieferung an die Tester: Download-Seite mit Anleitung (`todo.0.4.021`), Test auf macOS 14 (`022`), Update durch Ersetzen (`024`), Prüfung wie ein Tester mit Quarantäne-Merkmal (`todo.0.4.1.002`) und das DMG:
+
+
+DMG mit der App, einem Verweis auf `/Applications` und einem Hintergrundbild (Pfeil „in Programme ziehen“, Hinweis zum Öffnen der nicht notarisierten Beta). Erzeugt mit **einem Befehl** („Erstelle nun das Ausgabe-DMG“ → `Werkzeuge/dmg-erstellen.sh`: Release bauen, Version lesen, DMG mit dmgbuild, Ablage im Git-Hauptverzeichnis). Positionen aus der Layout-Seite `layout/DMG.dc.html`. Aufgabe: `todo.0.4.1.001` (TODO.md). Ab 0.4.1 laden andere die App.
 
 ---
 
@@ -200,6 +213,8 @@ Sichere Erkennung über mehrere Medien hinweg per vollständiger Prüfsumme (BLA
 - **Offen:** Welche Dateitypen zuerst (Fotos, PDF, HTML)? Schlagwörter nur zum Suchen oder auch sichtbar und bearbeitbar? Sprache der Schlagwörter (Deutsch, Englisch, nach Systemsprache)? Haben die beiden Entwicklungs-Macs einen Apple-Chip (Voraussetzung für den Testrechner)?
 
 ## 1.0 — Erste fertige Version
+
+- **Signatur und Notarisierung (Nutzer 18.10.):** erst zu 1.0 (Developer-ID-Zertifikat, `notarytool`, Stapeln; vorher `todo.0.4.020`). Bis dahin gehen alle Betas ohne Notarisierung an den kleinen Kreis der Tester, mit Anleitung auf der Download-Seite (in „Programme“ ziehen, „Trotzdem öffnen“).
 
 Alle Funktionen von 0.5 bis 0.9 sind drin, der Nutzer hat 1.0 selbst mehrere Wochen benutzt.
 

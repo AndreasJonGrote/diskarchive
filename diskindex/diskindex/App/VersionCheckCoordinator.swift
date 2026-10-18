@@ -33,15 +33,39 @@ enum VersionCheckCoordinator {
         }
     }
 
-    static func reevaluateLocal(appState: AppState, store: IndexStoreV3, now: Date = Date()) {
-        guard let appVersion = AppVersion.currentApp() else { return }
-        let pool = store.pool
+    /// `databaseWasNewThisLaunch`: `nil` = Wert des App-Starts (`freshInstallForVersionCheck`); Tests geben ihn je
+    /// Aufruf mit (bug.0.4.065, Regel 20: kein prozessweiter Schalter im Test).
+    static func reevaluateLocal(
+        appState: AppState,
+        store: IndexStoreV3,
+        now: Date = Date(),
+        databaseWasNewThisLaunch: Bool? = nil
+    ) {
         let settings: SystemSettingsSnapshot
+        let mediaCount: Int
         do {
-            settings = try VersionLockEvaluator.readSettings(pool: pool)
+            (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndMediaCount(pool: store.pool)
         } catch {
             return
         }
+        applyLocal(
+            settings: settings, mediaCount: mediaCount, appState: appState, store: store, now: now,
+            databaseWasNewThisLaunch: databaseWasNewThisLaunch
+        )
+    }
+
+    /// Lokale Auswertung mit schon gelesenen Werten (todo.0.4.028: der Planer liest im Hintergrund, nur das
+    /// Anwenden läuft auf dem Hauptthread).
+    static func applyLocal(
+        settings: SystemSettingsSnapshot,
+        mediaCount: Int,
+        appState: AppState,
+        store: IndexStoreV3,
+        now: Date,
+        databaseWasNewThisLaunch: Bool?
+    ) {
+        guard let appVersion = AppVersion.currentApp() else { return }
+        let pool = store.pool
         let evaluation = VersionLockEvaluator.evaluate(
             now: now,
             appVersion: appVersion,
@@ -49,7 +73,8 @@ enum VersionCheckCoordinator {
             settings: settings,
             isFreshInstall: VersionLockEvaluator.isFreshInstall(
                 settings: settings,
-                databaseWasNewThisLaunch: freshInstallForVersionCheck
+                databaseWasNewThisLaunch: databaseWasNewThisLaunch ?? freshInstallForVersionCheck,
+                registeredMediaCount: mediaCount
             ),
             buildDate: AppVersion.currentBuildDate()
         )
@@ -60,20 +85,24 @@ enum VersionCheckCoordinator {
         _ response: VersionCheckResponse?,
         appState: AppState,
         store: IndexStoreV3,
-        now: Date = Date()
+        now: Date = Date(),
+        databaseWasNewThisLaunch: Bool? = nil
     ) {
         guard let appVersion = AppVersion.currentApp() else { return }
         let pool = store.pool
         let settings: SystemSettingsSnapshot
+        let mediaCount: Int
         do {
-            settings = try VersionLockEvaluator.readSettings(pool: pool)
+            (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndMediaCount(pool: pool)
         } catch {
             return
         }
-        // bug.0.4.053 (c): „frisch“ nur über den gespeicherten ersten Start, nicht über 0 Medien.
+        // bug.0.4.053 (c) / bug.0.4.065: „frisch“ = Datenbank beim ersten Start neu und bei der ersten
+        // API-Antwort noch kein Medium registriert (README „Netz (API)“, Präzisierung 18.10.).
         let fresh = VersionLockEvaluator.isFreshInstall(
             settings: settings,
-            databaseWasNewThisLaunch: freshInstallForVersionCheck
+            databaseWasNewThisLaunch: databaseWasNewThisLaunch ?? freshInstallForVersionCheck,
+            registeredMediaCount: mediaCount
         )
         let evaluation = VersionLockEvaluator.evaluate(
             now: now,
@@ -83,7 +112,7 @@ enum VersionCheckCoordinator {
             isFreshInstall: fresh,
             buildDate: AppVersion.currentBuildDate()
         )
-        freshInstallForVersionCheck = false
+        if databaseWasNewThisLaunch == nil { freshInstallForVersionCheck = false }
         applyEvaluation(evaluation, appState: appState, pool: pool, persist: response != nil)
     }
 
@@ -106,6 +135,8 @@ enum VersionCheckCoordinator {
         appState.applyVersionLockEvaluation(evaluation)
         if !wasLocked, evaluation.lockState.isLocked {
             appState.onVersionLockEngaged?()
+        } else if wasLocked, !evaluation.lockState.isLocked {
+            appState.onVersionLockReleased?()
         }
         appState.onVersionCheckEvaluationApplied?()
     }
@@ -119,6 +150,46 @@ enum VersionCheckCoordinator {
         DispatchQueue.global(qos: .utility).async {
             try? ApiQueuePersistence.enqueue(pool, kind: .versionCheck, payload: payload, createdAt: created)
             IssueReporter.shared.flushInBackground()
+        }
+    }
+
+    /// todo.0.4.028: Abstand der Versions-Checks nach Kalenderzeit.
+    nonisolated static let checkInterval: TimeInterval = 24 * 60 * 60
+    /// Erst ab dieser Abweichung gilt die Uhr als zurückgestellt (fast gleichzeitige Prüfungen, Uhrabgleich).
+    nonisolated static let clockSetBackTolerance: TimeInterval = 5 * 60
+
+    /// Fällig, wenn noch nie geprüft, 24 h vergangen oder die Uhr deutlich vor den letzten Check zurückgestellt wurde.
+    nonisolated static func isCheckDue(lastCheckAt: Date?, now: Date) -> Bool {
+        guard let lastCheckAt else { return true }
+        if now < lastCheckAt.addingTimeInterval(-clockSetBackTolerance) { return true }
+        return now.timeIntervalSince(lastCheckAt) >= checkInterval
+    }
+
+    /// todo.0.4.028: reiht einen Versions-Check ein, wenn seit dem gespeicherten letzten Check 24 h (Kalenderzeit)
+    /// vergangen sind. Läuft auf der übergebenen **seriellen** Queue; die Uhr wird erst in der Schreib-Transaktion
+    /// gelesen, Prüfen, Merken und Einreihen geschehen in derselben `pool.write`. `flush` stößt danach das Senden an
+    /// (Produkt: `IssueReporter.shared`), `completion` meldet, ob eingereiht wurde.
+    nonisolated static func enqueueCheckIfDue(
+        pool: DatabasePool,
+        queue: DispatchQueue,
+        now: @escaping @Sendable () -> Date,
+        flush: @escaping @Sendable () -> Void,
+        completion: (@Sendable (Bool) -> Void)? = nil
+    ) {
+        let payload = Data("{}".utf8)
+        queue.async {
+            let due = (try? pool.write { db -> Bool in
+                let moment = now()
+                let last = try SystemSettingsPersistence.readLastVersionCheckAt(db)
+                guard isCheckDue(lastCheckAt: last, now: moment) else { return false }
+                try SystemSettingsPersistence.writeLastVersionCheckAt(db, at: moment)
+                try ApiQueuePersistence.enqueue(
+                    db, kind: .versionCheck, payload: payload, createdAt: Int(moment.timeIntervalSince1970)
+                )
+                return true
+            }) ?? false
+            if due { flush() }
+            completion?(due)
         }
     }
 

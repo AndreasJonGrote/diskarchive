@@ -187,7 +187,8 @@ final class MediumCoordinator {
         return atBest.count == 1 ? atBest[0] : nil
     }
 
-    private func connectKnown(_ stored: StoredMedium, volume: VolumeInfo) async throws {
+    /// `askAgain: false` (Reprobe nach Fehler): in dieser Sitzung schon gefragt, Erkennungs-Dialog nicht erneut.
+    private func connectKnown(_ stored: StoredMedium, volume: VolumeInfo, askAgain: Bool = true) async throws {
         let started = ContinuousClock.now
         defer { DiskIndexLog.shared.perfIfSlow("abgleich", since: started) }
         if !appState.featureAccess.canWriteIndex {
@@ -258,6 +259,12 @@ final class MediumCoordinator {
                     mountPath: mountPath
                 )
             }
+        }
+        // todo.0.4.026: ohne „Für dieses Medium merken“ erscheint der Erkennungs-Dialog beim Anschließen wieder
+        // (Vorbelegung = letzte Entscheidung). Bis zur Antwort gilt die letzte Entscheidung weiter.
+        if askAgain, Self.asksAgainOnConnect(fresh) {
+            requestDialog(fresh.uuid)
+            DiskIndexLog.shared.record(.medium, .info, "dialog erneut id=\(fresh.uuid) entscheidung=\(fresh.decision.rawValue)")
         }
         if fresh.decision.refusesIndexing {
             DiskIndexLog.shared.record(.medium, .info, "abbruch indizierung verweigert id=\(fresh.uuid)")
@@ -391,7 +398,7 @@ final class MediumCoordinator {
                 }
             case .index:
                 do {
-                    try await connectKnown(stored, volume: volume)
+                    try await connectKnown(stored, volume: volume, askAgain: false)
                 } catch {
                     guard DiskIndexLog.isOperationalFailure(error) else { continue }
                     DiskIndexLog.shared.record(.medium, .error, "reprobe index \(error)")
@@ -441,19 +448,28 @@ final class MediumCoordinator {
         choiceTask = Task {
             guard appState.featureAccess.canWriteIndex else { return }
             let stored: StoredMedium
+            let previous: StoredIndexDecision
             do {
                 guard var row = try await store.medium(uuid: mediumID) else {
                     DiskIndexLog.shared.record(.medium, .error, "entscheidung medium fehlt id=\(mediumID)")
                     return
                 }
+                previous = row.decision
                 row.rememberDecision = remember
+                let hasIndex = row.completedDepth >= 1 || row.fileCount + row.folderCount > 0
                 row.allowIndexing = allowIndexing
                 if allowIndexing {
                     row.decision = .index
-                    row.indexStatus = .pending
+                    if previous == .index {
+                        // todo.0.4.026: erneut gefragt, wieder „Indizieren“ → Status bleibt (auch unvollständig/laufend).
+                    } else if previous == .dontIndex, hasIndex {
+                        // Erneut gefragt, „Nein“ → „Ja“ mit vorhandenem Index: Abgleich statt Erstlauf.
+                        row.indexStatus = .indexed
+                    } else {
+                        row.indexStatus = .pending
+                    }
                 } else {
                     row.decision = .dontIndex
-                    let hasIndex = row.completedDepth >= 1 || row.fileCount + row.folderCount > 0
                     row.indexStatus = hasIndex ? .indexed : .pending
                 }
                 try await store.updateMediumDecision(uuid: mediumID, row)
@@ -465,11 +481,36 @@ final class MediumCoordinator {
             }
             let connection: ConnectionStatus = volume(for: mediumID) != nil ? .connected : .offline
             publish(stored, connection: connection)
+            // todo.0.4.026: die Antwort beantwortet den Dialog; sonst bliebe ein entschiedenes Medium in der Warteschlange.
+            appState.completeNewMediumDecision(mediumID)
+            if Self.isRecognitionDecision(previous) {
+                // todo.0.4.026: erneut gefragtes Medium. Keine Ersetzen-Rückfrage (kein neues Medium); eine geänderte
+                // Antwort wirkt wie die Änderung in 05/06 (Nein stoppt Lauf und Überwachung, Ja fordert an).
+                guard stored.decision != previous else { return }
+                if stored.decision == .dontIndex {
+                    requestedIndex.remove(mediumID)
+                    appState.onMediumDecisionChanged?(mediumID, .dontIndex, false)
+                    return
+                }
+                guard let volume = volume(for: mediumID) else { return }
+                requestIndex(mediumID: mediumID, volume: volume)
+                return
+            }
             // Öffnet das Panel selbst, wenn `appState.promptPanelPlacement` gesetzt ist (bug.0.3.9.005 c).
             appState.offerReplaceMediumPrompt(newID: mediumID)
             guard allowIndexing, let volume = volume(for: mediumID) else { return }
             requestIndex(mediumID: mediumID, volume: volume)
         }
+    }
+
+    /// Im Erkennungs-Dialog getroffene Entscheidung (Ja/Nein); `.undecided` und `.ignore` gehören nicht dazu.
+    private static func isRecognitionDecision(_ decision: StoredIndexDecision) -> Bool {
+        decision == .index || decision == .dontIndex
+    }
+
+    /// todo.0.4.026 (README 2.3): entschieden, aber ohne „Für dieses Medium merken“ → Dialog beim Anschließen wieder.
+    static func asksAgainOnConnect(_ stored: StoredMedium) -> Bool {
+        isRecognitionDecision(stored.decision) && !stored.rememberDecision
     }
 
     private func requestIndex(mediumID: UUID, volume: VolumeInfo) {

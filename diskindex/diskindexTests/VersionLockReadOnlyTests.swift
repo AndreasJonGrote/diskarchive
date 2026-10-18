@@ -132,9 +132,11 @@ struct VersionLockReadOnlyTests {
         #expect(rig.appState.medium(with: existing.uuid)?.name == "LIVE_NAME")
     }
 
-    /// bug.0.3.9.004 b: Der Lauf hält an einem Tor (kein Rennen gegen einen Lauf über eine Datei), dann greift die
-    /// Sperre. `cancelAllActiveForVersionLock` ruft der Test bis `bug.0.4.063` noch von Hand auf (Verdrahtung fehlt).
-    @Test @MainActor func versionLockCancelClearsIndexingStatus() async throws {
+    /// bug.0.3.9.004 b, bug.0.4.063: Der Lauf hält an einem Tor (kein Rennen gegen einen Lauf über eine Datei), ein
+    /// zweites Medium wird überwacht. Dann rastet die Sperre über den echten Weg ein (lokale Auswertung im
+    /// Versions-Koordinator: API seit 100 Tagen nicht erreicht) – der Test ruft keine Abbruch-Funktion selbst auf
+    /// (Regel 18). Erwartet: Lauf beendet, Überwachung aus, nach dem Öffnen des Tors kein Eintrag geschrieben.
+    @Test @MainActor func versionLockEngagedStopsRunAndWatcher() async throws {
         let harness = try await ScanHarness.make()
         let mediumID = harness.mediumID
         let volume = testVolume(path: "/Volumes/SPERRE", name: "TEST")
@@ -149,13 +151,106 @@ struct VersionLockReadOnlyTests {
         try #require(held)
         #expect(rig.service.isRunActive(mediumID))
         #expect(app.medium(with: mediumID)?.indexStatus == .indexing)
+        let watchedID = UUID()
+        let source = ScriptedChangeSource()
+        rig.watcher.start(mediumID: watchedID, volume: testVolume(path: "/Volumes/WACHE", name: "WACHE"), source: source)
+        #expect(rig.watcher.isWatching(mediumID: watchedID))
 
-        app.versionLockState = .locked(.buildExpired)
-        await rig.service.cancelAllActiveForVersionLock()
+        try VersionLockEvaluator.applyMutations(
+            VersionLockSettingsMutations(setFirstRunAt: Date().addingTimeInterval(-100 * 24 * 60 * 60), firstRunFresh: false),
+            pool: harness.store.pool
+        )
+        VersionCheckCoordinator.reevaluateLocal(appState: app, store: harness.store, databaseWasNewThisLaunch: false)
+        try #require(app.versionLockState.isLocked)
+
+        let ended = await waitUntil { !rig.service.isRunActive(mediumID) }
+        #expect(ended)
         let cleared = await waitUntil { app.medium(with: mediumID)?.indexStatus != .indexing }
         #expect(cleared)
-        #expect(!rig.service.isRunActive(mediumID))
+        #expect(!rig.watcher.isWatching(mediumID: watchedID))
+        // Tor auf: der abgebrochene Lauf schreibt nichts mehr.
         await access.open()
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(try await harness.store.item(mediumUUID: mediumID, path: ["ordner"], name: "a.txt") == nil)
+        #expect(!rig.service.isRunActive(mediumID))
+    }
+
+    /// bug.0.4.063 (Nacharbeit): Rig mit einem unfertigen (`pending`) und einem indizierten Medium, beide über die
+    /// Erkennung verbunden (Überwachung mit der FSEvents-Quelle wie in der App, Pfad wie in WatcherLifecycleTests).
+    @MainActor
+    private func lockRig() async throws -> LockRig {
+        let harness = try await ScanHarness.make()
+        let pendingVolume = testVolume(path: "/Volumes/OFFEN", name: "TEST")
+        try await harness.store.recordIdentity(mediumUUID: harness.mediumID, pendingVolume.identity)
+        let indexed = StoredMedium(
+            fsType: "apfs", volumeTotalBytes: 1_000, name: "WACHE", type: .usb,
+            decision: .index, indexStatus: .indexed, completedDepth: 1
+        )
+        try await harness.store.upsertMedium(indexed)
+        let watchVolume = testVolume(path: "/Volumes/WACHE", name: "WACHE")
+        try await harness.store.recordIdentity(mediumUUID: indexed.uuid, watchVolume.identity)
+        let pendingInner = MemoryVolume(mountPath: "/Volumes/OFFEN")
+        pendingInner.file("a.txt")
+        let watchInner = MemoryVolume(mountPath: "/Volumes/WACHE")
+        let access = RunGateAccess([pendingInner, watchInner]) { _ in false }
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: access, app: app)
+        return LockRig(
+            harness: harness, pendingVolume: pendingVolume, watchVolume: watchVolume,
+            watchedID: indexed.uuid, app: app, rig: rig
+        )
+    }
+
+    /// Sperre über den echten Weg: lokale Auswertung, API seit 100 Tagen nicht erreicht.
+    @MainActor
+    private func engageLock(_ lock: LockRig) throws {
+        try VersionLockEvaluator.applyMutations(
+            VersionLockSettingsMutations(setFirstRunAt: Date().addingTimeInterval(-100 * 24 * 60 * 60), firstRunFresh: false),
+            pool: lock.harness.store.pool
+        )
+        VersionCheckCoordinator.reevaluateLocal(appState: lock.app, store: lock.harness.store, databaseWasNewThisLaunch: false)
+    }
+
+    /// bug.0.4.063 (Nacharbeit): Pause und Fortsetzen im gesperrten Zustand starten die Überwachung nicht
+    /// (vorher: `applyPause` → `start`).
+    @Test @MainActor func pauseEndWhileLockedStartsNoWatcher() async throws {
+        let lock = try await lockRig()
+        try engageLock(lock)
+        try #require(lock.app.versionLockState.isLocked)
+        await lock.rig.coordinator.handle(.appeared(lock.watchVolume))
+        #expect(lock.rig.coordinator.volume(for: lock.watchedID) != nil)
+        let defaults = try #require(UserDefaults(suiteName: "lock-pause-\(UUID().uuidString)"))
+        SystemNotice.$testHooks.withValue(NoticeTestHooks(post: { _, _ in })) {
+            lock.app.pauseIndexing(until: nil, defaults: defaults)
+            lock.app.resumeIndexing(defaults: defaults)
+        }
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(!lock.rig.watcher.isWatching(mediumID: lock.watchedID))
+        await lock.rig.watcher.stop(mediumID: lock.watchedID)
+    }
+
+    /// bug.0.4.063 (Nacharbeit): Sperre durch Auswertung, Medien verbunden (nichts startet), dann Entsperren durch eine
+    /// API-Antwort → Überwachung des indizierten Mediums läuft, das unfertige wird indiziert.
+    @Test @MainActor func unlockResumesWatcherAndIndexing() async throws {
+        let lock = try await lockRig()
+        let version = try #require(AppVersion.currentApp())
+        try engageLock(lock)
+        try #require(lock.app.versionLockState.isLocked)
+        await lock.rig.coordinator.handle(.appeared(lock.pendingVolume))
+        await lock.rig.coordinator.handle(.appeared(lock.watchVolume))
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(!lock.rig.watcher.isWatching(mediumID: lock.watchedID))
+        #expect(lock.rig.starts(lock.harness.mediumID).isEmpty)
+
+        VersionCheckCoordinator.handleAPIResult(
+            VersionCheckResponse(version: version), appState: lock.app, store: lock.harness.store,
+            databaseWasNewThisLaunch: false
+        )
+        try #require(!lock.app.versionLockState.isLocked)
+        #expect(await waitUntil { lock.rig.watcher.isWatching(mediumID: lock.watchedID) })
+        #expect(await waitUntil { !lock.rig.starts(lock.harness.mediumID).isEmpty })
+        #expect(await waitUntil { !lock.rig.service.isRunActive(lock.harness.mediumID) })
+        await lock.rig.watcher.stop(mediumID: lock.watchedID)
     }
 
     @Test @MainActor func watcherFlushSkipsWritesWhenLocked() async throws {
@@ -184,6 +279,16 @@ struct VersionLockReadOnlyTests {
         #expect(try await rig.store.item(mediumUUID: mediumID, path: [], name: "live.txt") == nil)
         #expect(rig.access.listCount(for: "/Volumes/DISK") == 0)
     }
+}
+
+@MainActor
+private struct LockRig {
+    let harness: ScanHarness
+    let pendingVolume: VolumeInfo
+    let watchVolume: VolumeInfo
+    let watchedID: UUID
+    let app: AppState
+    let rig: WiredRig
 }
 
 @MainActor

@@ -151,7 +151,10 @@ struct LifecycleConcurrencyTests {
     // MARK: bug.0.4.062 onTrackedError
 
     /// Setzen und Lesen von verschiedenen Threads (vorher ohne Sperre); danach wirkt der zuletzt gesetzte Handler.
-    @Test func trackedErrorHandlerIsSetAndReadConcurrently() throws {
+    /// Rauchtest (bug.0.4.068 e): belegt nur, dass gleichzeitiges Setzen und Lesen nicht abstürzt und der letzte
+    /// Handler wirkt. Ein Datenrennen beweist oder widerlegt er ohne Thread Sanitizer (TSan) nicht.
+    @Test("Rauchtest ohne TSan: onTrackedError gleichzeitig setzen und lesen")
+    func trackedErrorHandlerIsSetAndReadConcurrently() throws {
         let directory = try folder()
         defer { try? FileManager.default.removeItem(at: directory) }
         let log = DiskIndexLog(directory: directory)

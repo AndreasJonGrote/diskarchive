@@ -177,10 +177,15 @@ nonisolated enum VersionLockEvaluator {
         return max(now, highest)
     }
 
-    /// Frische Installation (README: „keine Datenbank“) über den gespeicherten ersten Start, nicht über die
-    /// Zahl der Medien (bug.0.4.053 c). Gilt bis zur ersten Antwort der API.
-    static func isFreshInstall(settings: SystemSettingsSnapshot, databaseWasNewThisLaunch: Bool) -> Bool {
-        guard settings.apiLastSeen == nil else { return false }
+    /// Frische Installation (README: „keine Datenbank“): erster Start mit neuer Datenbank (bug.0.4.053 c) **und**
+    /// noch kein Medium registriert (bug.0.4.065: wer offline installiert und schon indiziert hat, bekommt bei der
+    /// ersten API-Antwort die 7-Tage-Frist). Gilt bis zur ersten Antwort der API.
+    static func isFreshInstall(
+        settings: SystemSettingsSnapshot,
+        databaseWasNewThisLaunch: Bool,
+        registeredMediaCount: Int
+    ) -> Bool {
+        guard settings.apiLastSeen == nil, registeredMediaCount == 0 else { return false }
         if settings.firstRunAt != nil { return settings.firstRunFresh }
         return databaseWasNewThisLaunch
     }
@@ -214,5 +219,14 @@ nonisolated enum VersionLockEvaluator {
 
     static func readSettings(pool: DatabasePool) throws -> SystemSettingsSnapshot {
         try pool.read(SystemSettingsPersistence.read)
+    }
+
+    /// Einstellungen und Zahl der registrierten Medien (`storages`) in einem Lesezugriff (bug.0.4.065).
+    static func readSettingsAndMediaCount(pool: DatabasePool) throws -> (SystemSettingsSnapshot, Int) {
+        try pool.read { db in
+            let settings = try SystemSettingsPersistence.read(db)
+            let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0
+            return (settings, count)
+        }
     }
 }

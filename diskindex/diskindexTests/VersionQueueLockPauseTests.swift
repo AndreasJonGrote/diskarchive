@@ -199,26 +199,26 @@ struct VersionLockGapTests {
         #expect(stored.highestSeenAt == later)
     }
 
-    /// (c) „Frisch“ nur über den gespeicherten ersten Start (README: keine Datenbank), nicht über 0 Medien.
+    /// (c) „Frisch“ nur über den gespeicherten ersten Start (README: keine Datenbank), dazu bug.0.4.065: kein Medium registriert.
     @Test func freshInstallComesFromStoredFirstRun() {
         let existing = settings(firstRunAt: now, firstRunFresh: false)
-        #expect(!VersionLockEvaluator.isFreshInstall(settings: existing, databaseWasNewThisLaunch: true))
+        #expect(!VersionLockEvaluator.isFreshInstall(settings: existing, databaseWasNewThisLaunch: true, registeredMediaCount: 0))
         let fresh = settings(firstRunAt: now, firstRunFresh: true)
-        #expect(VersionLockEvaluator.isFreshInstall(settings: fresh, databaseWasNewThisLaunch: false))
+        #expect(VersionLockEvaluator.isFreshInstall(settings: fresh, databaseWasNewThisLaunch: false, registeredMediaCount: 0))
+        #expect(!VersionLockEvaluator.isFreshInstall(settings: fresh, databaseWasNewThisLaunch: false, registeredMediaCount: 1))
         let answered = settings(apiLastSeen: now, firstRunAt: now, firstRunFresh: true)
-        #expect(!VersionLockEvaluator.isFreshInstall(settings: answered, databaseWasNewThisLaunch: true))
-        #expect(VersionLockEvaluator.isFreshInstall(settings: settings(), databaseWasNewThisLaunch: true))
-        #expect(!VersionLockEvaluator.isFreshInstall(settings: settings(), databaseWasNewThisLaunch: false))
+        #expect(!VersionLockEvaluator.isFreshInstall(settings: answered, databaseWasNewThisLaunch: true, registeredMediaCount: 0))
+        #expect(VersionLockEvaluator.isFreshInstall(settings: settings(), databaseWasNewThisLaunch: true, registeredMediaCount: 0))
+        #expect(!VersionLockEvaluator.isFreshInstall(settings: settings(), databaseWasNewThisLaunch: true, registeredMediaCount: 2))
+        #expect(!VersionLockEvaluator.isFreshInstall(settings: settings(), databaseWasNewThisLaunch: false, registeredMediaCount: 0))
     }
 
     /// (c) Bestandsnutzer ohne Medien (erster Start gespeichert, Datenbank war da) wird bei API ≥ 1.0 nicht sofort gesperrt.
+    /// bug.0.4.065: kein prozessweiter Schalter mehr, der Wert „Datenbank neu“ geht als Parameter mit (Regel 20).
     @Test(.enabled(if: AppVersion.currentApp()?.isBeta == true, "nur für Beta-Builds (0.x)"))
     @MainActor func existingUserWithoutMediaIsNotTreatedAsFresh() throws {
-        let savedFreshFlag = VersionCheckCoordinator.freshInstallForVersionCheck
-        defer { VersionCheckCoordinator.freshInstallForVersionCheck = savedFreshFlag }
         let testStore = try TestStore.make()
-        let mediaCount = try testStore.pool.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0 }
-        #expect(mediaCount == 0)
+        #expect(try registeredMediaCount(testStore.pool) == 0)
         let firstRun = Date().addingTimeInterval(-2 * day)
         try VersionLockEvaluator.applyMutations(
             VersionLockSettingsMutations(setFirstRunAt: firstRun, firstRunFresh: false),
@@ -226,12 +226,70 @@ struct VersionLockGapTests {
         )
         let appState = AppState()
         VersionCheckCoordinator.handleAPIResult(
-            VersionCheckResponse(version: api10), appState: appState, store: testStore.store
+            VersionCheckResponse(version: api10), appState: appState, store: testStore.store,
+            databaseWasNewThisLaunch: true
         )
         #expect(!appState.versionLockState.isLocked)
         let stored = try VersionLockEvaluator.readSettings(pool: testStore.pool)
         #expect(stored.lockedVersion == nil)
         #expect(stored.betaExpiryNoticedAt != nil)
+    }
+
+    /// bug.0.4.065: frisch installiert (neue Datenbank, kein Medium) → erste API-Antwort ≥ 1.0 sperrt sofort.
+    /// Echter Weg: lokale Auswertung beim Start, dann API-Antwort über den Koordinator.
+    @Test(.enabled(if: AppVersion.currentApp()?.isBeta == true, "nur für Beta-Builds (0.x)"))
+    @MainActor func freshInstallWithoutMediaLocksAtFirstAPIResponse() async throws {
+        let testStore = try TestStore.make()
+        let appState = AppState()
+        VersionCheckCoordinator.reevaluateLocal(
+            appState: appState, store: testStore.store, databaseWasNewThisLaunch: true
+        )
+        #expect(await waitUntil { (try? VersionLockEvaluator.readSettings(pool: testStore.pool))?.firstRunAt != nil })
+        #expect(try VersionLockEvaluator.readSettings(pool: testStore.pool).firstRunFresh)
+        #expect(try registeredMediaCount(testStore.pool) == 0)
+
+        VersionCheckCoordinator.handleAPIResult(
+            VersionCheckResponse(version: api10), appState: appState, store: testStore.store,
+            databaseWasNewThisLaunch: false
+        )
+        #expect(appState.versionLockState == .locked(.betaExpired))
+        let stored = try VersionLockEvaluator.readSettings(pool: testStore.pool)
+        #expect(stored.lockedVersion != nil)
+        #expect(stored.betaExpiryNoticedAt == nil)
+    }
+
+    /// bug.0.4.065: offline installiert und schon indiziert (Medium registriert) → erste API-Antwort ≥ 1.0 gibt die
+    /// normale 7-Tage-Frist statt der sofortigen Sperre.
+    @Test(.enabled(if: AppVersion.currentApp()?.isBeta == true, "nur für Beta-Builds (0.x)"))
+    @MainActor func offlineInstallWithMediumGetsGracePeriodAtFirstAPIResponse() async throws {
+        let testStore = try TestStore.make()
+        let appState = AppState()
+        VersionCheckCoordinator.reevaluateLocal(
+            appState: appState, store: testStore.store, databaseWasNewThisLaunch: true
+        )
+        #expect(await waitUntil { (try? VersionLockEvaluator.readSettings(pool: testStore.pool))?.firstRunAt != nil })
+        #expect(try VersionLockEvaluator.readSettings(pool: testStore.pool).firstRunFresh)
+        try await testStore.pool.write { db in
+            try db.execute(
+                sql: "INSERT INTO storages (uuid, name, slug) VALUES (?, 'Offline', 'offline')",
+                arguments: [Data(repeating: 7, count: 16)]
+            )
+        }
+        #expect(try registeredMediaCount(testStore.pool) == 1)
+
+        VersionCheckCoordinator.handleAPIResult(
+            VersionCheckResponse(version: api10), appState: appState, store: testStore.store,
+            databaseWasNewThisLaunch: true
+        )
+        #expect(!appState.versionLockState.isLocked)
+        let stored = try VersionLockEvaluator.readSettings(pool: testStore.pool)
+        #expect(stored.lockedVersion == nil)
+        #expect(stored.betaExpiryNoticedAt != nil)
+        #expect(stored.apiLastSeen != nil)
+    }
+
+    private func registeredMediaCount(_ pool: DatabasePool) throws -> Int {
+        try pool.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0 }
     }
 
     /// (a)/(b) Auch ohne API-Antwort werden erster Start und höchste Uhrzeit gespeichert.
@@ -240,7 +298,9 @@ struct VersionLockGapTests {
         let testStore = try TestStore.make()
         let moment = Date().addingTimeInterval(-60)
         let appState = AppState()
-        VersionCheckCoordinator.reevaluateLocal(appState: appState, store: testStore.store, now: moment)
+        VersionCheckCoordinator.reevaluateLocal(
+            appState: appState, store: testStore.store, now: moment, databaseWasNewThisLaunch: false
+        )
         let stored = await waitUntil {
             let snapshot = try? VersionLockEvaluator.readSettings(pool: testStore.pool)
             return snapshot?.firstRunAt != nil && snapshot?.highestSeenAt != nil

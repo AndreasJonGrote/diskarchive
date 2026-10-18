@@ -17,6 +17,8 @@ nonisolated enum SystemSettingsKey {
     static let firstRunAt = "firstRunAt"
     /// bug.0.4.053: höchster je gesehener Zeitpunkt der Mac-Uhr (gegen zurückgestellte Uhr).
     static let highestSeenAt = "highestSeenAt"
+    /// todo.0.4.028: Zeitpunkt des letzten eingereihten Versions-Checks (Kalenderzeit, `date`).
+    static let lastVersionCheckAt = "lastVersionCheckAt"
 }
 
 nonisolated enum FirstRunMarker {
@@ -74,6 +76,14 @@ nonisolated enum SystemSettingsPersistence {
                 """,
             arguments: [SystemSettingsKey.highestSeenAt, Int64(at.timeIntervalSince1970)]
         )
+    }
+
+    static func readLastVersionCheckAt(_ db: Database) throws -> Date? {
+        try readDate(db, key: SystemSettingsKey.lastVersionCheckAt)
+    }
+
+    static func writeLastVersionCheckAt(_ db: Database, at: Date) throws {
+        try writeDate(db, key: SystemSettingsKey.lastVersionCheckAt, date: at)
     }
 
     static func writeBetaExpiryNoticedAt(_ db: Database, at: Date) throws {

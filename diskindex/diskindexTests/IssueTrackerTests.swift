@@ -107,13 +107,34 @@ struct IssueTrackerTests {
         #expect(ReportTarget.endpoint.absoluteString == "http://localhost:8888/disk-archive/api/issues/")
     }
 
-    @Test func createdWithoutIDRetries() async throws {
+    /// todo.0.4.029: jedes 201 gilt als Erfolg, `id` optional (vorher: leere `id` → erneut senden).
+    @Test func createdWithEmptyIDIsSuccess() async throws {
         let reporter = try makeReporter()
         IssueStubURL.status = 201
         IssueStubURL.body = Data(#"{"id":""}"#.utf8)
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        try expectQueued(reporter, 1)
+        try expectQueued(reporter, 0)
+    }
+
+    /// todo.0.4.029: 201 ohne Antwortkörper → Zeile gelöscht, kein erneutes Senden.
+    @Test func createdWithoutBodyDeletesRowAndDoesNotResend() async throws {
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        var lines: [String] = []
+        let reporter = try makeReporter(now: { clock.value }, log: { lines.append($0) })
+        IssueStubURL.status = 201
+        IssueStubURL.body = Data()
+        reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
+        let id = try #require(try reporter.firstQueuedIssueID())
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1)
+        try expectQueued(reporter, 0)
+        #expect(reporter.nextRetry(id: id) == nil)
+        #expect(lines.contains { $0.contains("app report sent") && $0.contains("status=201") })
+        clock.value = clock.value.addingTimeInterval(2 * 3_600)
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1)
     }
 
     @Test func sentBodyHasRequiredAPIFields() async throws {
@@ -154,7 +175,8 @@ struct IssueTrackerTests {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
         var lines: [String] = []
         let reporter = try makeReporter(now: { clock.value }, log: { lines.append($0) })
-        IssueStubURL.status = 201
+        // todo.0.4.029: 201 ist immer Erfolg; „Erfolg ohne passenden Körper“ gilt nur noch für andere 2xx.
+        IssueStubURL.status = 200
         IssueStubURL.body = Data("<html>tracker</html>".utf8)
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
@@ -162,7 +184,7 @@ struct IssueTrackerTests {
         await reporter.flush()
         try expectQueued(reporter, 1)
         #expect(IssueStubURL.hits == 1)
-        #expect(lines.contains { $0.contains("status=201") && $0.contains("body=nicht-ok") })
+        #expect(lines.contains { $0.contains("status=200") && $0.contains("body=nicht-ok") })
         let first = try #require(reporter.nextRetry(id: id))
         #expect(first.attempts == 1)
         #expect(abs(first.next.timeIntervalSince(clock.value) - 3_600) < 1)

@@ -147,6 +147,35 @@ private final class CountingPauseProbe: @unchecked Sendable {
         #expect(try await store.medium(uuid: mediumID)?.scanTotal == 90)
     }
 
+    /// bug.0.4.066: Halt nach Ebene 2, aber vor Zählbeginn. Der Merker steht seit Beginn des Vorlaufs,
+    /// also zählt das Fortsetzen neu statt `scanTotal = entriesCompleted` (sofort 99 %).
+    @Test func haltAfterDepthTwoBeforeCountingRecountsOnResume() async throws {
+        let harness = try await ScanHarness.make()
+        let access = volume()
+        let store = harness.store
+        let mediumID = harness.mediumID
+        let first = try await harness.run(access: access, maxDepth: nil, shouldHalt: {
+            let depth = (try? await store.medium(uuid: mediumID))?.completedDepth ?? 0
+            return depth >= 2 ? .pause : .none
+        })
+        #expect(first.status == .pending)
+        let paused = try #require(try await store.medium(uuid: mediumID))
+        #expect(paused.completedDepth == 2)
+        #expect(paused.scanTotal == 0)
+        #expect(try await store.scanTotalIsIncomplete(mediumUUID: mediumID))
+
+        let resumed = CountingPauseProbe()
+        let second = try await harness.run(access: access, maxDepth: nil, fromScratch: false, onProgress: { resumed.note($0) })
+        #expect(second.status == .indexed)
+        let events = resumed.events
+        #expect(events.contains { $0.phase == .counting && $0.countingCount > 0 })
+        let firstIndexing = try #require(events.first { $0.phase == .indexing })
+        #expect(firstIndexing.entriesTotal == 90)
+        #expect(firstIndexing.ratio < 0.9, "erste Anzeige nach dem Fortsetzen \(firstIndexing.ratio)")
+        #expect(try await store.medium(uuid: mediumID)?.scanTotal == 90)
+        #expect(try await store.scanTotalIsIncomplete(mediumUUID: mediumID) == false)
+    }
+
     /// Voller Abgleich eines indizierten Mediums: die Nachzählung im Hintergrund setzt keinen Merker
     /// (die alte Gesamtzahl bleibt gültig), auch wenn der Lauf sofort angehalten wird.
     @Test func backgroundRecountOfAFullReconcileSetsNoFlag() async throws {

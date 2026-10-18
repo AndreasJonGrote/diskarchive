@@ -156,7 +156,8 @@ struct MenuBarConnectedMediumRow: View {
     }
 
     private func rowPrimaryTap() {
-        if medium.decision == .undecided {
+        // todo.0.4.026: auch ein erneut gefragtes Medium öffnet zuerst den Erkennungs-Dialog.
+        if medium.decision == .undecided || appState.needsNewMediumDialog(medium.id) {
             appState.enqueueNewMediumDecision(medium.id)
             AppWindowPresenter.openNewMedium(appState: appState)
             return

@@ -500,9 +500,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         request.timeoutInterval = 10
         let kind = (try? JSONSerialization.jsonObject(with: body) as? [String: Any])?["kind"] as? String ?? "?"
         do {
-            let (data, response) = try await session.data(for: request)
+            let (_, response) = try await session.data(for: request)
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            if status == 201 && Self.bodyAcceptsSuccess(data) {
+            // todo.0.4.029: jedes 201 gilt als Erfolg, `id` im Antwortkörper ist optional.
+            if status == 201 {
                 try? ApiQueuePersistence.delete(pool, rowID: row.id)
                 log("app report sent kind=\(kind) id=\(issueID) status=\(status)")
                 return
@@ -577,11 +578,5 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         var size = model.count
         sysctlbyname("hw.model", &model, &size, nil, 0)
         return String(cString: model)
-    }
-
-    private static func bodyAcceptsSuccess(_ data: Data) -> Bool {
-        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return false }
-        guard let issueID = object["id"] as? String else { return false }
-        return !issueID.isEmpty
     }
 }

@@ -14,7 +14,12 @@ extension ByteCountFormatter {
 nonisolated struct StorageByteCountFormat {
     let locale: Locale
 
+    /// bug.0.4.067: wie im Finder – unter 1.000 Byte die Bytes („999 Byte“ / „999 bytes“),
+    /// Null als Ziffer („0 Byte“ / „0 bytes“), darüber das Datei-Format („1,5 GB“, „kB“ klein).
     func string(fromByteCount count: Int64) -> String {
-        count.formatted(.byteCount(style: .file).locale(locale))
+        if count.magnitude < 1_000 {
+            return count.formatted(.byteCount(style: .file, allowedUnits: .bytes, spellsOutZero: false).locale(locale))
+        }
+        return count.formatted(.byteCount(style: .file, spellsOutZero: false).locale(locale))
     }
 }

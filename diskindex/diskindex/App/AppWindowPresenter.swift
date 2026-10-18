@@ -107,11 +107,11 @@ enum AppWindowPresenter {
         }
     }
 
-    /// Pro unentschiedenem Medium ein schwebendes Panel (0.3.2), unten rechts gestapelt.
+    /// Pro unentschiedenem oder erneut gefragtem Medium (todo.0.4.026) ein schwebendes Panel (0.3.2), unten rechts
+    /// gestapelt.
     static func syncNewMediumPanels(appState: AppState, revealDismissed: Bool = false) {
         let activeIDs = appState.pendingNewMediumDecisionIDs.filter { id in
-            guard let medium = appState.medium(with: id) else { return false }
-            guard medium.connectionStatus == .connected, medium.decision == .undecided else { return false }
+            guard appState.needsNewMediumDialog(id) else { return false }
             if !revealDismissed, appState.dismissedNewMediumPanelIDs.contains(id) { return false }
             return true
         }
