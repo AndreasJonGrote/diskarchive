@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import GRDB
 
 @MainActor
 final class VersionCheckScheduler {
@@ -47,10 +48,16 @@ final class VersionCheckScheduler {
         self.onCheckFinished = onCheckFinished
     }
 
+    /// bug.0.4.074: Die **lokale** Sperr-Auswertung läuft hier synchron (ein einzelnes Lesen der Datenbank beim Start,
+    /// ausdrücklich verlangt), damit `canWriteIndex` steht, bevor die Erkennung startet (`StoreLaunchSequence`). Nur
+    /// das Einreihen der Abfrage läuft asynchron; Takt und Aufwachen lesen weiter im Hintergrund (`checkNow`).
     func start(appState: AppState, store: IndexStoreV3) {
         self.appState = appState
         self.store = store
-        checkNow()
+        VersionCheckCoordinator.reevaluateLocal(
+            appState: appState, store: store, now: now(), databaseWasNewThisLaunch: databaseWasNewThisLaunch
+        )
+        enqueueCheck(pool: store.pool)
         timerTask?.cancel()
         let interval = tickInterval
         timerTask = Task { [weak self] in
@@ -84,7 +91,7 @@ final class VersionCheckScheduler {
         let clock = now
         let databaseNew = databaseWasNewThisLaunch
         checkQueue.async { [weak self] in
-            guard let read = try? VersionLockEvaluator.readSettingsAndMediaCount(pool: pool) else { return }
+            guard let read = try? VersionLockEvaluator.readSettingsAndIndexedMediaCount(pool: pool) else { return }
             let (settings, mediaCount) = read
             let moment = clock()
             Task { @MainActor [weak self] in
@@ -95,8 +102,12 @@ final class VersionCheckScheduler {
                 )
             }
         }
+        enqueueCheck(pool: pool)
+    }
+
+    private func enqueueCheck(pool: DatabasePool) {
         VersionCheckCoordinator.enqueueCheckIfDue(
-            pool: pool, queue: checkQueue, now: clock, flush: flush, completion: onCheckFinished
+            pool: pool, queue: checkQueue, now: now, flush: flush, completion: onCheckFinished
         )
     }
 }

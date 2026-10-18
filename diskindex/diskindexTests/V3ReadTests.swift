@@ -243,11 +243,12 @@ struct V3ReadTests {
         }
         #expect(byDate.contains("items_modified"), "\(byDate)")
         #expect(!byDate.contains("TEMP B-TREE FOR ORDER BY"), "\(byDate)")
-        #expect(byNameDesc.contains("items_search"), "\(byNameDesc)")
+        // bug.0.4.077: genauer Indexname (`items_search` wäre auch Teil von `items_search_natural`).
+        #expect(planIndexNames(byNameDesc).contains("items_search_natural"), "\(byNameDesc)")
         #expect(!byNameDesc.contains("TEMP B-TREE FOR ORDER BY"), "\(byNameDesc)")
         #expect(columns.contains("items_children"), "\(columns)")
         #expect(!columns.contains("TEMP B-TREE"), "\(columns)")
-        #expect(search.contains("items_search"), "\(search)")
+        #expect(planIndexNames(search).contains("items_search_natural"), "\(search)")
         // Der Index liefert die Treffer nach Suchname; nur gleiche Namen werden nach Kennung nachsortiert („RIGHT PART“).
         #expect(!search.contains("TEMP B-TREE FOR ORDER BY"), "\(search)")
     }

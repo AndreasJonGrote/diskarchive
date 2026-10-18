@@ -76,7 +76,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         UNUserNotificationCenter.current().delegate = self
         // todo.0.4.027: Pause beim Start abgelaufen → Mitteilung erst, wenn der Mitteilungs-Delegat gesetzt ist.
-        appState.refreshGlobalPause()
+        // bug.0.4.076 c: Schritt 1 des Startablaufs, vor der Erkennung (`StoreLaunchSequence`).
+        StoreLaunchSequence.evaluatePauseAtLaunch(appState: appState)
         SystemNotice.logAuthorizationStatus()
         if NoticePermission.shouldRequest(arguments: CommandLine.arguments, defaults: AppDefaults.current) {
             AppDefaults.current.set(true, forKey: NoticePermission.askedKey)
@@ -347,13 +348,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         mediumCoordinator = coordinator
         indexingService = service
         changeWatcher = watcher
-        MediumRecognitionStartup.bootstrap(
+        // bug.0.4.074: Versions-Sperre lokal und synchron auswerten, dann erst die Erkennung starten.
+        StoreLaunchSequence.startServices(
             appState: appState,
             store: store,
             coordinator: coordinator,
+            versionCheck: versionCheckScheduler,
             startChangeLoop: { appState.startChangeLoop() }
         )
-        versionCheckScheduler.start(appState: appState, store: store)
     }
 
     private func postIndexStoreOpenFailureNotification() {

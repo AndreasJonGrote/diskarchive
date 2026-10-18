@@ -208,6 +208,12 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | todo.0.4.027 | – | Abgelaufene Pause beim Start meldet einmal „Medien werden wieder indiziert.“ | 18.10. Host (seriell 840/840, parallel 3/3, 0 Warnungen, App 0.3.9) | A C (Prüf-Agenten) |
 | todo.0.4.028 | – | Versions-Check nach Kalenderzeit (Zeitpunkt gespeichert, Start/Aufwachen/stündlich; Sperre beim Start: `bug.0.4.074`) | 18.10. Host (seriell 840/840, parallel 3/3, 0 Warnungen, App 0.3.9) | A C (Prüf-Agenten) |
 | todo.0.4.029 | – | Jedes 201 gilt als Erfolg, `id` optional | 18.10. Host (seriell 840/840, parallel 3/3, 0 Warnungen, App 0.3.9) | A C (Prüf-Agenten) |
+| bug.0.4.072 | – | „Frisch installiert“ zählt nur Medien mit Index (`firstIndexedAt`); Tests über die echte Erkennung | 18.10. Host (seriell 866/866, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.073 | – | Nach dem Entsperren werden unterbrochene Abgleiche nachgeholt; Test über die echte Kette, eigener Test für `stopAllForVersionLock` | 18.10. Host (seriell 866/866, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.074 | – | Versions-Sperre beim Start synchron vor der Erkennung (`StoreLaunchSequence`), alter Versions-Check-Code samt prozessweiter Variable entfernt | 18.10. Host (seriell 866/866, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.075 | – | Änderung der Entscheidung in 05/06 gilt als gemerkt; Tests ohne Handaufruf | 18.10. Host (seriell 866/866, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.076 | – | Kleinkram: Einzahl im Größenformat, `>= 2` im Lookup-Test, Startreihenfolge im Pausen-Test, Flush-Reste nach der Sperre | 18.10. Host (seriell 866/866, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| todo.0.4.023 | – | Fehlerbericht mit echten Protokollzeilen über die echte Kette getestet (letzte 100 Zeilen, Schwärzung, ≤ 256 KB); Feinschliff: `bug.0.4.078`/`079` | 18.10. Host (seriell 866/866, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

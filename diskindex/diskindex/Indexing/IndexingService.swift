@@ -47,6 +47,15 @@ final class IndexingService {
         tasks[mediumUUID] != nil
     }
 
+    #if DEBUG
+    /// Tests: `cancel` hat den Lauf abgemeldet und wartet noch auf das Ende des Tasks.
+    func isCancellingForTesting(_ mediumUUID: UUID) -> Bool {
+        tasks[mediumUUID] != nil && runs[mediumUUID] == nil
+    }
+    /// Tests (bug.0.4.073): läuft in `cancel` nach dem Abmelden, vor dem Warten auf den Task. Je Instanz.
+    var cancelBeforeAwaitHookForTesting: (@MainActor (UUID) async -> Void)?
+    #endif
+
     fileprivate func isRunToken(_ mediumUUID: UUID, _ token: UUID) -> Bool {
         runs[mediumUUID] == token
     }
@@ -63,15 +72,39 @@ final class IndexingService {
         Array(Set(tasks.keys).union(runs.keys))
     }
 
+    /// bug.0.4.073: Die Sperre bricht einen vollständigen Abgleich ab, das Medium bleibt `.indexed` (`interrupted`).
+    /// Nach dem Entsperren holt `LiveWiring` genau diese Abgleiche nach (je Instanz gemerkt).
+    private var reconcilesInterruptedByVersionLock: Set<UUID> = []
+
     func cancelAllActiveForVersionLock() async {
         for id in activeMediumUUIDs() {
+            // Inzwischen entsperrt: nichts mehr abbrechen (sonst ginge der Abgleich verloren).
+            guard !appState.featureAccess.canWriteIndex else { break }
+            if runFullReconcile[id] == true {
+                reconcilesInterruptedByVersionLock.insert(id)
+            }
             await cancel(mediumUUID: id)
         }
+    }
+
+    /// Entsperren: gemerkte, durch die Sperre abgebrochene Abgleiche abholen (danach vergessen).
+    func takeReconcilesInterruptedByVersionLock() -> Set<UUID> {
+        defer { reconcilesInterruptedByVersionLock.removeAll() }
+        return reconcilesInterruptedByVersionLock
     }
 
     func start(mediumUUID: UUID, volume: VolumeInfo, fromScratch: Bool) {
         guard appState.featureAccess.canWriteIndex else {
             coordinator?.clearIndexRequest(mediumID: mediumUUID)
+            return
+        }
+        if tasks[mediumUUID] != nil, runs[mediumUUID] == nil {
+            // Abbruch läuft noch (`cancel` wartet auf den Task): `finish` dieses Laufs löst kein `rerunAfterFinish`
+            // mehr ein, also auf das Ende warten und dann neu starten (bug.0.4.073).
+            Task {
+                await waitUntilIdle(mediumUUID)
+                start(mediumUUID: mediumUUID, volume: volume, fromScratch: fromScratch)
+            }
             return
         }
         if tasks[mediumUUID] != nil {
@@ -188,6 +221,9 @@ final class IndexingService {
                 $0.indexStatus = reconcileInterrupted ? .indexed : .pending
             }
         }
+        #if DEBUG
+        await cancelBeforeAwaitHookForTesting?(mediumUUID)
+        #endif
         await task?.value
         if runs[mediumUUID] == nil {
             tasks[mediumUUID] = nil

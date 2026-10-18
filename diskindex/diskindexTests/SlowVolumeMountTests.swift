@@ -296,8 +296,10 @@ struct SlowVolumeMountTests {
         let appeared = await waitUntil(timeout: 8) { !events.appeared.isEmpty }
         #expect(appeared, "Aushängen mit anderem Pfad hat die hängende Abfrage nicht verlassen")
         #expect(events.appeared == [expected])
-        #expect(flights.startedLookups(path: standardPath) == 2)
-        #expect(script.calls == 2)
+        // bug.0.4.076 b (Regel 20): die erste Abfrage hängt dauerhaft, also stammt das Erscheinen aus einer NEUEN
+        // Abfrage; spätere Wiederholungen dürfen weitere starten, daher `>=` statt exakter Zahl.
+        #expect(flights.startedLookups(path: standardPath) >= 2, "kein neuer Lookup nach dem Aushängen")
+        #expect(script.calls >= 2, "kein neuer Lookup nach dem Aushängen")
     }
 
     // MARK: - Hilfen

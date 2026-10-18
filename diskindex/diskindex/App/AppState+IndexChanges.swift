@@ -645,13 +645,21 @@ extension AppState {
     func writeMedium(_ id: UUID) async {
         guard featureAccess.canWriteIndex else { return }
         guard let indexStore, let current = medium(with: id) else { return }
+        // bug.0.4.075: nur eine Änderung in 05/06 schreibt die Entscheidung und gilt als gemerkt (auch wenn ihr eigener
+        // Write abgelöst wurde: Debounce, Beenden). Ein fremder Write (Favorit, Kapazität) lässt die Entscheidung der DB
+        // stehen, sonst schriebe er eine veraltete Entscheidung der Oberfläche zurück (Bereich bug.0.4.043).
+        let userChange = userDecisionIDs[id]
+        let decisionByUser = userChange != nil
         do {
             guard var stored = try await indexStore.medium(uuid: id) else { return }
+            if decisionByUser {
+                stored.rememberDecision = true
+                stored.allowIndexing = current.decision == .index
+                stored.decision = current.decision
+            }
             stored.showAbsoluteCapacity = current.showAbsoluteCapacity
             stored.isFavorite = current.isFavorite
             stored.autoIndexPaused = current.autoIndexPaused
-            stored.allowIndexing = current.decision == .index
-            stored.decision = current.decision
             if let type = StoredMediumType(rawValue: current.type.rawValue) { stored.type = type }
             stored.isForgotten = current.isForgotten
             #if DEBUG
@@ -663,7 +671,9 @@ extension AppState {
             }
             #endif
             try await indexStore.updateMediumUserFields(uuid: id, stored)
+            if let userChange, userDecisionIDs[id] == userChange { userDecisionIDs[id] = nil }
         } catch {
+            // Nicht geschrieben: die Änderung aus 05/06 bleibt für den nächsten Write vorgemerkt.
             guard DiskIndexLog.isOperationalFailure(error) else { return }
             DiskIndexLog.shared.record(.store, .error, "writeMedium \(error)")
         }

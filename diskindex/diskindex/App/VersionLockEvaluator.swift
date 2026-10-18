@@ -178,14 +178,15 @@ nonisolated enum VersionLockEvaluator {
     }
 
     /// Frische Installation (README: „keine Datenbank“): erster Start mit neuer Datenbank (bug.0.4.053 c) **und**
-    /// noch kein Medium registriert (bug.0.4.065: wer offline installiert und schon indiziert hat, bekommt bei der
-    /// ersten API-Antwort die 7-Tage-Frist). Gilt bis zur ersten Antwort der API.
+    /// noch kein Medium indiziert (bug.0.4.065, bug.0.4.072: wer offline installiert und schon indiziert hat, bekommt
+    /// bei der ersten API-Antwort die 7-Tage-Frist; ein nur angesteckter, unentschiedener Stick zählt nicht).
+    /// Gilt bis zur ersten Antwort der API.
     static func isFreshInstall(
         settings: SystemSettingsSnapshot,
         databaseWasNewThisLaunch: Bool,
-        registeredMediaCount: Int
+        indexedMediaCount: Int
     ) -> Bool {
-        guard settings.apiLastSeen == nil, registeredMediaCount == 0 else { return false }
+        guard settings.apiLastSeen == nil, indexedMediaCount == 0 else { return false }
         if settings.firstRunAt != nil { return settings.firstRunFresh }
         return databaseWasNewThisLaunch
     }
@@ -221,11 +222,12 @@ nonisolated enum VersionLockEvaluator {
         try pool.read(SystemSettingsPersistence.read)
     }
 
-    /// Einstellungen und Zahl der registrierten Medien (`storages`) in einem Lesezugriff (bug.0.4.065).
-    static func readSettingsAndMediaCount(pool: DatabasePool) throws -> (SystemSettingsSnapshot, Int) {
+    /// Einstellungen und Zahl der schon indizierten Medien in einem Lesezugriff (bug.0.4.065). bug.0.4.072: nur
+    /// Medien mit Index (`firstIndexedAt IS NOT NULL`); beim bloßen Anstecken legt die Erkennung schon eine Zeile an.
+    static func readSettingsAndIndexedMediaCount(pool: DatabasePool) throws -> (SystemSettingsSnapshot, Int) {
         try pool.read { db in
             let settings = try SystemSettingsPersistence.read(db)
-            let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0
+            let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages WHERE firstIndexedAt IS NOT NULL") ?? 0
             return (settings, count)
         }
     }

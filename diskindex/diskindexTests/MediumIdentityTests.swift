@@ -24,7 +24,7 @@ struct MediumIdentityTests {
         let firstID = try #require(app.newMediumDialogMediumID)
         app.onNewMediumChoice?(firstID, false, true)
         await rig.coordinator.waitForChoice()
-        app.completeNewMediumDecision(firstID)
+        #expect(!app.pendingNewMediumDecisionIDs.contains(firstID), "Koordinator beantwortet den Dialog nicht")
         let firstBefore = try #require(try await store.medium(uuid: firstID))
 
         await rig.coordinator.handle(.appeared(clone))
@@ -42,7 +42,7 @@ struct MediumIdentityTests {
         // Klon ab- und wieder anstecken, während das Original steckt → er findet seine eigene Zeile, keine dritte.
         app.onNewMediumChoice?(cloneID, false, true)
         await rig.coordinator.waitForChoice()
-        app.completeNewMediumDecision(cloneID)
+        #expect(!app.pendingNewMediumDecisionIDs.contains(cloneID), "Koordinator beantwortet den Dialog nicht")
         await rig.coordinator.handle(.disappeared(path: "/Volumes/USB 1"))
         await rig.coordinator.handle(.appeared(clone))
         #expect(rig.coordinator.volume(for: cloneID)?.mountPath == "/Volumes/USB 1")
@@ -164,12 +164,12 @@ struct MediumIdentityTests {
         let originalID = try #require(app.newMediumDialogMediumID)
         app.onNewMediumChoice?(originalID, false, true)
         await rig.coordinator.waitForChoice()
-        app.completeNewMediumDecision(originalID)
+        #expect(!app.pendingNewMediumDecisionIDs.contains(originalID), "Koordinator beantwortet den Dialog nicht")
         await rig.coordinator.handle(.appeared(clone))
         let cloneID = try #require(app.newMediumDialogMediumID)
         app.onNewMediumChoice?(cloneID, false, true)
         await rig.coordinator.waitForChoice()
-        app.completeNewMediumDecision(cloneID)
+        #expect(!app.pendingNewMediumDecisionIDs.contains(cloneID), "Koordinator beantwortet den Dialog nicht")
         #expect(try await store.media().count == 2)
 
         // Erst das Original ab, in der nächsten Sekunde der Klon: der Klon ist zuletzt gesehen (`lastSeenAt` in s).

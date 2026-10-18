@@ -73,26 +73,38 @@ nonisolated enum IssuePayload {
     ) -> Data {
         var actions = clipped(draft.actions, limit: 50)
         var logTail = clipped(draft.logTail, limit: 100)
-        var data = encode(
-            draft: draft, id: id, version: version, build: build, config: config,
-            macOS: macOS, model: model, runtimeSeconds: runtimeSeconds, createdAt: createdAt,
-            actions: actions, logTail: logTail
-        )
-        while data.count > bodyLimit, !logTail.isEmpty {
-            logTail.removeLast()
-            data = encode(
+        // todo.0.4.023: Der Stapel kommt aus dem Protokoll ab der letzten „CRASH“-Zeile und hat keine feste Länge;
+        // er wird zuletzt gekürzt (vom Ende her), damit der Bericht nie über `bodyLimit` liegt.
+        var stack = draft.crashStack.map { String($0.prefix(lineLimit)) }
+        var signature = String(draft.signature.prefix(lineLimit))
+        var signal = String((draft.crashSignal ?? "unknown").prefix(lineLimit))
+        func make() -> Data {
+            encode(
                 draft: draft, id: id, version: version, build: build, config: config,
                 macOS: macOS, model: model, runtimeSeconds: runtimeSeconds, createdAt: createdAt,
-                actions: actions, logTail: logTail
+                actions: actions, logTail: logTail, stack: stack,
+                signature: signature, signal: signal
             )
+        }
+        var data = make()
+        // Älteste Zeilen zuerst verwerfen, die neuesten liegen am nächsten am Fehler (todo.0.4.023).
+        while data.count > bodyLimit, !logTail.isEmpty {
+            logTail.removeFirst()
+            data = make()
         }
         while data.count > bodyLimit, !actions.isEmpty {
             actions.removeLast()
-            data = encode(
-                draft: draft, id: id, version: version, build: build, config: config,
-                macOS: macOS, model: model, runtimeSeconds: runtimeSeconds, createdAt: createdAt,
-                actions: actions, logTail: logTail
-            )
+            data = make()
+        }
+        while data.count > bodyLimit, !stack.isEmpty {
+            stack.removeLast(max(1, min(stack.count, (data.count - bodyLimit) / (lineLimit * 4))))
+            data = make()
+        }
+        // Letzte Sicherung: Signatur und Signal sind schon auf `lineLimit` gekürzt; reicht das nicht, kürzer.
+        if data.count > bodyLimit {
+            signature = String(signature.prefix(64))
+            signal = String(signal.prefix(64))
+            data = make()
         }
         return data
     }
@@ -120,7 +132,10 @@ nonisolated enum IssuePayload {
         runtimeSeconds: Int,
         createdAt: Date,
         actions: [String],
-        logTail: [String]
+        logTail: [String],
+        stack: [String],
+        signature: String,
+        signal: String
     ) -> Data {
         let object: [String: Any] = [
             "schema": 2,
@@ -130,10 +145,10 @@ nonisolated enum IssuePayload {
             "app": ["version": version, "build": build, "config": config],
             "system": ["macOS": macOS, "model": model],
             "runtimeSeconds": runtimeSeconds,
-            "signature": String(draft.signature.prefix(lineLimit)),
+            "signature": signature,
             "crash": [
-                "signal": draft.crashSignal ?? "unknown",
-                "stack": draft.crashStack.map { String($0.prefix(lineLimit)) },
+                "signal": signal,
+                "stack": stack,
             ],
             "actions": actions,
             "logTail": logTail,
@@ -180,6 +195,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     var log: (String) -> Void
     var makeDraft: (String) -> IssueDraft
     var knownNames: () -> [String]
+    /// Protokoll, aus dem der Bericht entsteht (todo.0.4.023): Standard `DiskIndexLog.shared`; Tests geben
+    /// eine eigene Instanz mit eigenem Ordner mit, damit der echte Weg ohne Prozesszustand prüfbar ist.
+    let diskLog: DiskIndexLog
 
     var sendsImmediately = true
     private let reachability = ApiQueueReachability()
@@ -200,8 +218,11 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         releaseBuild: Bool = false,
         now: @escaping () -> Date = { Date() },
         log: ((String) -> Void)? = nil,
-        makeDraft: ((String) -> IssueDraft)? = nil
+        makeDraft: ((String) -> IssueDraft)? = nil,
+        diskLog: DiskIndexLog? = nil
     ) {
+        let diskLog = diskLog ?? DiskIndexLog.shared
+        self.diskLog = diskLog
         self.endpoint = endpoint
         self._queuePool = queuePool
         self.defaults = defaults
@@ -233,7 +254,12 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             self.releaseBuild = true
         }
         #endif
-        self.makeDraft = makeDraft ?? { kind in Self.liveDraft(kind: kind, pool: IssueReporter.shared.queuePool) }
+        // Eigene Warteschlange, nicht die von `shared` (todo.0.4.023; in der App ist beides dieselbe Instanz).
+        // Erst ohne `self` belegen, weil der Abschluss `self` erst nach voller Initialisierung fassen darf.
+        self.makeDraft = makeDraft ?? { kind in Self.liveDraft(kind: kind, pool: nil, log: diskLog) }
+        if makeDraft == nil {
+            self.makeDraft = { [weak self] kind in Self.liveDraft(kind: kind, pool: self?.queuePool, log: diskLog) }
+        }
         reachability.onFlush = { [weak self] in
             self?.flushInBackground()
         }
@@ -259,31 +285,25 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         flushInBackground()
     }
 
-    /// Mediennamen einmal im Hintergrund laden (bug.0.4.012 b).
+    /// Mediennamen einmal im Hintergrund laden (bug.0.4.012 b). Auf `dbQueue` (todo.0.4.023): `flushOnce` wartet
+    /// dort zuerst, so prüft der Leak-Wächter schon beim ersten Senden nach `start()` gegen die geladenen Namen
+    /// (vorher eigener Task: in etwa 1 von 6 Läufen wurde vor dem Laden gesendet).
     func refreshKnownNamesInBackground() {
-        Task.detached(priority: .utility) { [weak self] in
+        dbQueue.async { [weak self] in
             guard let self else { return }
             var names: [String] = []
-            if let pool = self.queuePool {
-                do {
-                    let store = IndexStoreV3(pool: pool)
-                    let media = try await store.media()
-                    names = media.map(\.name).filter { $0.count >= 4 }
-                } catch {
-                    names = []
-                }
-            } else if let url = try? IndexStoreV3.storeFileURL(),
-                      FileManager.default.fileExists(atPath: url.path) {
-                do {
+            do {
+                if let pool = self.queuePool {
+                    names = try pool.read { try MediumCodecV3.fetchAll($0) }.map(\.name)
+                } else if let url = try? IndexStoreV3.storeFileURL(),
+                          FileManager.default.fileExists(atPath: url.path) {
                     let pool = try SchemaV3.openPool(at: url)
-                    let store = IndexStoreV3(pool: pool)
-                    let media = try await store.media()
-                    names = media.map(\.name).filter { $0.count >= 4 }
-                } catch {
-                    names = []
+                    names = try pool.read { try MediumCodecV3.fetchAll($0) }.map(\.name)
                 }
+            } catch {
+                names = []
             }
-            self.storeCachedKnownNames(names)
+            self.storeCachedKnownNames(names.filter { $0.count >= 4 })
         }
     }
 
@@ -313,7 +333,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             config: releaseBuild ? "Release" : "Debug",
             macOS: ProcessInfo.processInfo.operatingSystemVersionString,
             model: Self.modelName(),
-            runtimeSeconds: DiskIndexLog.shared.runtimeSeconds(),
+            runtimeSeconds: diskLog.runtimeSeconds(),
             createdAt: now()
         )
         let createdAt = Int(now().timeIntervalSince1970)
@@ -549,22 +569,23 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         copy.signature = ReportScrubber.text(draft.signature)
         copy.actions = draft.actions.map(ReportScrubber.text)
         copy.logTail = draft.logTail.map(ReportScrubber.text)
-        copy.crashStack = draft.crashStack.map(ReportScrubber.text)
+        copy.crashStack = draft.crashStack.map(ReportScrubber.stackLine)
         copy.crashSignal = draft.crashSignal.map(ReportScrubber.text)
         return copy
     }
 
-    private static func liveDraft(kind: String, pool: DatabasePool?) -> IssueDraft {
-        let crash = DiskIndexLog.shared.crashExcerpt()
+    private static func liveDraft(kind: String, pool: DatabasePool?, log: DiskIndexLog) -> IssueDraft {
+        let crash = log.crashExcerpt()
         let labels = IndexStoreV3.inventoryLabels(using: pool)
-        let bytes = ((try? IndexStoreV3.storeFileURL()).flatMap { url in
+        let databaseURL = pool.map { URL(fileURLWithPath: $0.path) } ?? (try? IndexStoreV3.storeFileURL())
+        let bytes = (databaseURL.flatMap { url in
             try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber
         })?.intValue ?? 0
         return IssueDraft(
             kind: kind,
             signature: kind == "crash" ? crash.signal : kind,
-            actions: DiskIndexLog.shared.recentBreadcrumbs(),
-            logTail: DiskIndexLog.shared.logTail(100),
+            actions: log.recentBreadcrumbs(),
+            logTail: log.logTail(100),
             crashSignal: kind == "crash" ? crash.signal : nil,
             crashStack: kind == "crash" ? crash.stack : [],
             media: Int(labels.media) ?? 0,

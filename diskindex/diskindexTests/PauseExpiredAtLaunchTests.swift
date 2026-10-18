@@ -26,8 +26,9 @@ struct PauseExpiredAtLaunchTests {
         return try JSONDecoder().decode(GlobalPause.self, from: data)
     }
 
-    /// Start: `AppState(defaults:)` lädt die abgelaufene Pause, das Medium erscheint noch unter der Pause (kein Start),
-    /// dann `refreshGlobalPause()` wie in `applicationDidFinishLaunching` → Mitteilung und Lauf.
+    /// Start in der Reihenfolge des Produkts (bug.0.4.076 c): `AppState(defaults:)` lädt die abgelaufene Pause,
+    /// `StoreLaunchSequence.evaluatePauseAtLaunch` (wie `applicationDidFinishLaunching`) wertet sie aus → Mitteilung,
+    /// danach `startServices` (wie `wireStore`) startet die Erkennung → das bekannte Medium wird indiziert.
     @Test func expiredPauseAnnouncesAtLaunchAndReconciles() async throws {
         let defaults = try defaultsWithExpiredPause()
         let harness = try await ScanHarness.make()
@@ -36,21 +37,17 @@ struct PauseExpiredAtLaunchTests {
         try await harness.store.recordIdentity(mediumUUID: mediumID, volume.identity)
         let inner = MemoryVolume(mountPath: "/Volumes/PAUSE")
         inner.file("a.txt")
-        let access = RunGateAccess([inner]) { _ in false }
 
         let app = AppState(store: harness.store, defaults: defaults)
         app.appSettings.notificationsEnabled = true
         app.appSettings.notifySystem = true
-        // Erkennung steht, die Pause gilt noch (vor `refreshGlobalPause`): das Medium erscheint, kein Start.
-        let rig = WiredRig(store: harness.store, access: access, app: app)
-        await rig.coordinator.handle(.appeared(volume))
-        try await Task.sleep(for: .milliseconds(200))
-        #expect(rig.starts(mediumID).isEmpty)
+        #expect(app.globalAutoIndexPaused)
 
+        // Schritt 1: Pause-Auswertung, vor jeder Erkennung.
         var posts: [(body: String, kind: String)] = []
         let hooks = NoticeTestHooks(post: { request, kind in posts.append((request.content.body, kind)) })
         SystemNotice.$testHooks.withValue(hooks) {
-            app.refreshGlobalPause(defaults: defaults)
+            StoreLaunchSequence.evaluatePauseAtLaunch(appState: app, defaults: defaults)
         }
         #expect(posts.count == 1)
         #expect(posts.first?.kind == "pause-expired")
@@ -58,9 +55,33 @@ struct PauseExpiredAtLaunchTests {
         #expect(!app.globalAutoIndexPaused)
         #expect(try !storedPause(defaults).isPaused)
 
-        // Danach Abgleich wie nach Pausenende: das bekannte Medium wird indiziert.
+        // Schritt 2: Datenbank offen → Dienste verdrahten (wie `wireStore`), Versions-Sperre, dann Erkennung;
+        // das bekannte Medium wird indiziert.
+        let rig = WiredRig(store: harness.store, access: inner, app: app)
+        let scheduler = VersionCheckScheduler(
+            wakeEvents: { AsyncStream { _ in } }, flush: {}, databaseWasNewThisLaunch: false
+        )
+        defer {
+            scheduler.stop()
+            rig.coordinator.stop()
+        }
+        StoreLaunchSequence.startServices(
+            appState: app,
+            store: harness.store,
+            coordinator: rig.coordinator,
+            versionCheck: scheduler,
+            startChangeLoop: {},
+            makeMonitor: {
+                MediumMonitor(
+                    mountedVolumes: { [volume] },
+                    wakeEvents: { AsyncStream { _ in } },
+                    notificationCenter: NotificationCenter()
+                )
+            }
+        )
         #expect(await waitUntil { !rig.starts(mediumID).isEmpty })
         #expect(await waitUntil { app.medium(with: mediumID)?.indexStatus != .indexing && !rig.service.isRunActive(mediumID) })
+        #expect(inner.listed.contains("/Volumes/PAUSE"))
     }
 
     /// Gleiche Schalter wie im Betrieb: Mitteilungen aus → keine Meldung, die Pause ist trotzdem vorbei.

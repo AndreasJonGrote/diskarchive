@@ -20,11 +20,16 @@ nonisolated enum SchemaV3 {
 
     static let indexNames = [
         "items_identity", "items_children", "items_search", "items_modified", "items_fileid",
-        "items_parent", "item_checksum_full", "storages_slug", "storages_uuid", "items_gone",
+        "items_parent", "item_checksum_full", "storages_slug", "storages_uuid", "items_gone", "items_search_natural",
     ]
 
     /// Teilindex für verschwundene Einträge (bug.0.4.013).
     static let itemsGoneMigration = "0.4.0-items_gone"
+
+    /// bug.0.4.077: Suchhilfe in natürlicher Namensordnung („Rechnung 2“ vor „Rechnung 10“), damit die Datenbank die
+    /// Trefferseiten nach Name schon natürlich auswählt. Nur Erweiterung (Regel 27); bei neuen Datenbanken leer
+    /// angelegt, wächst beim Indizieren mit.
+    static let itemsSearchNaturalMigration = "0.4.0-items_search_natural"
 
     /// Größe der Journal-Datei nach einem Checkpoint (64 MB).
     static let journalSizeLimit = 64 * 1024 * 1024
@@ -39,6 +44,9 @@ nonisolated enum SchemaV3 {
         }
         migrator.registerMigration(itemsGoneMigration) { db in
             try db.execute(sql: "CREATE INDEX items_gone ON items(storageID, isFolder) WHERE status = 2")
+        }
+        migrator.registerMigration(itemsSearchNaturalMigration) { db in
+            try db.execute(sql: "CREATE INDEX items_search_natural ON items (slug COLLATE \"\(NaturalOrder.collationName)\", status)")
         }
         return migrator
     }

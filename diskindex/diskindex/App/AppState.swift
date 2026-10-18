@@ -149,6 +149,10 @@ final class AppState {
     var databaseMaintenanceTask: Task<Void, Never>?
     var pendingSearchAfterRuleReconcile = false
     var pendingMediumWrites: [UUID: Task<Void, Never>] = [:]
+    /// Entscheidung in 05/06 geändert, noch nicht geschrieben (bug.0.4.075): nur dann schreibt `writeMedium` die
+    /// Entscheidung und setzt „Für dieses Medium merken“. Wert = Zähler der Änderung; die Marke fällt erst nach
+    /// erfolgreichem Schreiben derselben Änderung weg (eine spätere Änderung während des Schreibens bleibt stehen).
+    @ObservationIgnored var userDecisionIDs: [UUID: Int] = [:]
     /// Favoriten-Schreib- und Prüfsummen-Aufgaben; jede entfernt sich am Ende selbst (bug.0.3.9.006 c).
     @ObservationIgnored var favoriteChecksumTasks: [UUID: Task<Void, Never>] = [:]
     var changeLoop: Task<Void, Never>?

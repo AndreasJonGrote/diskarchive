@@ -72,8 +72,8 @@ struct ObjectResultsTable<Placeholder: View>: View {
     /// bug.0.4.038: Spalten, nach denen `results` schon sortiert ankommen (Datenbank); sie werden nicht nachsortiert.
     var serverSortedColumns: Set<SearchSortColumn> = []
     /// `false`: Pfad und Status (Spalten außerhalb von `serverSortedColumns`, außer Name) sind nicht sortierbar (Kopf
-    /// deaktiviert), weil nicht alle Treffer auf der Seite stehen. Name bleibt klickbar: die Abfrage wählt die Seite nach
-    /// Name, der Client sortiert sie natürlich nach.
+    /// deaktiviert), weil nicht alle Treffer auf der Seite stehen. Name bleibt klickbar: die Abfrage wählt die Seite
+    /// natürlich nach Name (bug.0.4.077).
     var clientSortAvailable = true
     @ViewBuilder var placeholder: () -> Placeholder
 
@@ -136,10 +136,10 @@ enum ObjectResultsOrdering {
         serverSortedColumns.contains(column) || column == .name || clientSortAvailable
     }
 
-    /// Spalten in `serverSortedColumns` kommen fertig sortiert; Name wird immer (natürlich) nachsortiert, Pfad und
-    /// Status nur, wenn alle Treffer auf der Seite stehen. Medium: die Reihenfolge der Medien bleibt wie aus der
-    /// Datenbank, innerhalb eines Mediums wird natürlich nach Name nachsortiert (bug.0.3.9.007 d; die Datenbank
-    /// ordnet dort binär nach `slug`, „datei 10“ vor „datei 2“).
+    /// Spalten in `serverSortedColumns` kommen fertig sortiert und werden nicht nachsortiert. Medium: Medien und
+    /// innerhalb eines Mediums die Namen ordnet die Datenbank natürlich („datei 2“ vor „datei 10“, bug.0.4.077; vorher
+    /// sortierte hier `naturalWithinMedium` die Seite nach). Name wird nachsortiert, solange er nicht in
+    /// `serverSortedColumns` steht; Pfad und Status nur, wenn alle Treffer auf der Seite stehen.
     static func rows(
         _ results: [SearchResultItem],
         sort: SearchSort,
@@ -148,25 +148,9 @@ enum ObjectResultsOrdering {
         mediumNames: [UUID: String],
         online: [UUID: Bool] = [:]
     ) -> [SearchResultItem] {
-        if sort.column == .medium, serverSortedColumns.contains(.medium) { return naturalWithinMedium(results) }
         if serverSortedColumns.contains(sort.column) { return results }
         guard sort.column == .name || clientSortAvailable else { return results }
         return sort.sorted(results, mediumNames: mediumNames, online: online)
-    }
-
-    /// Aufeinanderfolgende Zeilen desselben Mediums natürlich nach Name (aufsteigend wie in der Datenbank).
-    static func naturalWithinMedium(_ results: [SearchResultItem]) -> [SearchResultItem] {
-        var output: [SearchResultItem] = []
-        output.reserveCapacity(results.count)
-        var start = results.startIndex
-        while start < results.endIndex {
-            let medium = results[start].mediumID
-            var end = start
-            while end < results.endIndex, results[end].mediumID == medium { end += 1 }
-            output.append(contentsOf: results[start..<end].sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending })
-            start = end
-        }
-        return output
     }
 }
 

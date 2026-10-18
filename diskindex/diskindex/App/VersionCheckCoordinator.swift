@@ -11,27 +11,6 @@ import GRDB
 @MainActor
 enum VersionCheckCoordinator {
     static var freshInstallForVersionCheck = false
-    private static var globalLastVersionCheckEnqueue: Date?
-
-    /// Per-test override; mutating `value` avoids assigning to `@TaskLocal` directly.
-    final class LastEnqueueTracker: @unchecked Sendable {
-        var value: Date?
-    }
-
-    @TaskLocal static var lastVersionCheckEnqueueTracker: LastEnqueueTracker?
-    private static let enqueueCooldown: TimeInterval = 30
-
-    private static func effectiveLastEnqueue() -> Date? {
-        lastVersionCheckEnqueueTracker?.value ?? globalLastVersionCheckEnqueue
-    }
-
-    private static func noteEnqueue(at now: Date) {
-        if let tracker = lastVersionCheckEnqueueTracker {
-            tracker.value = now
-        } else {
-            globalLastVersionCheckEnqueue = now
-        }
-    }
 
     /// `databaseWasNewThisLaunch`: `nil` = Wert des App-Starts (`freshInstallForVersionCheck`); Tests geben ihn je
     /// Aufruf mit (bug.0.4.065, Regel 20: kein prozessweiter Schalter im Test).
@@ -44,8 +23,9 @@ enum VersionCheckCoordinator {
         let settings: SystemSettingsSnapshot
         let mediaCount: Int
         do {
-            (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndMediaCount(pool: store.pool)
+            (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndIndexedMediaCount(pool: store.pool)
         } catch {
+            DiskIndexLog.shared.record(.app, .error, "version lock local read failed \(error)")
             return
         }
         applyLocal(
@@ -64,7 +44,10 @@ enum VersionCheckCoordinator {
         now: Date,
         databaseWasNewThisLaunch: Bool?
     ) {
-        guard let appVersion = AppVersion.currentApp() else { return }
+        guard let appVersion = AppVersion.currentApp() else {
+            DiskIndexLog.shared.record(.app, .error, "version lock local no app version")
+            return
+        }
         let pool = store.pool
         let evaluation = VersionLockEvaluator.evaluate(
             now: now,
@@ -74,7 +57,7 @@ enum VersionCheckCoordinator {
             isFreshInstall: VersionLockEvaluator.isFreshInstall(
                 settings: settings,
                 databaseWasNewThisLaunch: databaseWasNewThisLaunch ?? freshInstallForVersionCheck,
-                registeredMediaCount: mediaCount
+                indexedMediaCount: mediaCount
             ),
             buildDate: AppVersion.currentBuildDate()
         )
@@ -93,16 +76,16 @@ enum VersionCheckCoordinator {
         let settings: SystemSettingsSnapshot
         let mediaCount: Int
         do {
-            (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndMediaCount(pool: pool)
+            (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndIndexedMediaCount(pool: pool)
         } catch {
             return
         }
         // bug.0.4.053 (c) / bug.0.4.065: „frisch“ = Datenbank beim ersten Start neu und bei der ersten
-        // API-Antwort noch kein Medium registriert (README „Netz (API)“, Präzisierung 18.10.).
+        // API-Antwort noch kein Medium indiziert (README „Netz (API)“, Präzisierung 18.10.).
         let fresh = VersionLockEvaluator.isFreshInstall(
             settings: settings,
             databaseWasNewThisLaunch: databaseWasNewThisLaunch ?? freshInstallForVersionCheck,
-            registeredMediaCount: mediaCount
+            indexedMediaCount: mediaCount
         )
         let evaluation = VersionLockEvaluator.evaluate(
             now: now,
@@ -139,18 +122,6 @@ enum VersionCheckCoordinator {
             appState.onVersionLockReleased?()
         }
         appState.onVersionCheckEvaluationApplied?()
-    }
-
-    static func enqueueCheckIfNeeded(store: IndexStoreV3, now: Date = Date(), force: Bool = false) {
-        if !force, let last = effectiveLastEnqueue(), now.timeIntervalSince(last) < enqueueCooldown { return }
-        noteEnqueue(at: now)
-        let created = Int(now.timeIntervalSince1970)
-        let payload = Data("{}".utf8)
-        let pool = store.pool
-        DispatchQueue.global(qos: .utility).async {
-            try? ApiQueuePersistence.enqueue(pool, kind: .versionCheck, payload: payload, createdAt: created)
-            IssueReporter.shared.flushInBackground()
-        }
     }
 
     /// todo.0.4.028: Abstand der Versions-Checks nach Kalenderzeit.

@@ -58,7 +58,19 @@ final class ChangeWatcher {
     private var flushInFlight: Set<UUID> = []
     private var flushAgain: Set<UUID> = []
     private var pauseGeneration = 0
+    /// Nur `stopAllForVersionLock` erhöht sie (bug.0.4.076 d): ein laufender Flush aus der Zeit davor legt keine
+    /// Pfade zurück und schreibt nicht mehr, auch nicht nach schnellem Entsperren. Normales stop/start lässt sie stehen.
+    private var versionLockGeneration = 0
     private let engine: ChangeWatcherEngine
+    #if DEBUG
+    /// Tests (bug.0.4.076 d): läuft im Flush nach dem Vorbereiten, vor der erneuten Sperr-Prüfung. Je Instanz.
+    var flushAfterPrepareHookForTesting: (@MainActor () async -> Void)?
+    func pendingPathsForTesting(_ mediumID: UUID) -> Set<String> { pending[mediumID] ?? [] }
+    func pendingItemEventCountForTesting(_ mediumID: UUID) -> Int { pendingItemEvents[mediumID]?.count ?? 0 }
+    func watchGenerationForTesting(_ mediumID: UUID) -> Int { watchGenerations[mediumID, default: 0] }
+    var versionLockGenerationForTesting: Int { versionLockGeneration }
+    func hasEventCursorForTesting(_ mediumID: UUID) -> Bool { cursors[mediumID] != nil || savedCursors[mediumID] != nil }
+    #endif
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
         self.store = store
@@ -147,6 +159,7 @@ final class ChangeWatcher {
         for id in Array(tasks.keys) {
             watchGenerations[id, default: 0] += 1
         }
+        versionLockGeneration += 1
         stopAllForTermination()
         cursors.removeAll()
         savedCursors.removeAll()
@@ -353,6 +366,7 @@ final class ChangeWatcher {
             scheduleDeferredFlush(mediumID)
             return
         }
+        let lockGeneration = versionLockGeneration
         let rawPaths = pending[mediumID] ?? []
         pending[mediumID] = []
         let rawItemEvents = pendingItemEvents[mediumID] ?? []
@@ -369,19 +383,23 @@ final class ChangeWatcher {
             maxDepth: maxDepth,
             fileExists: exists
         )
+        #if DEBUG
+        await flushAfterPrepareHookForTesting?()
+        #endif
         var events = prep.directories
         // Erneut prüfen: Sperre kann zwischen Guard und Schreiben greifen (VersionLock-Tests).
         guard appState.featureAccess.canWriteIndex else {
-            pending[mediumID, default: []].formUnion(rawPaths)
-            pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
+            requeue(mediumID, lockGeneration: lockGeneration, paths: rawPaths, itemEvents: rawItemEvents)
             return
         }
+        // Inzwischen gesperrt und wieder entsperrt: Stand von vor der Sperre verwerfen, nichts schreiben.
+        guard lockGeneration == versionLockGeneration else { return }
         for (index, pair) in prep.renamePairs.enumerated() {
             guard appState.featureAccess.canWriteIndex else {
-                pending[mediumID, default: []].formUnion(rawPaths)
-                pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
+                requeue(mediumID, lockGeneration: lockGeneration, paths: rawPaths, itemEvents: rawItemEvents)
                 return
             }
+            guard lockGeneration == versionLockGeneration else { return }
             if (try? await store.applyLiveRename(
                 mediumUUID: mediumID,
                 mountPath: mount,
@@ -398,10 +416,10 @@ final class ChangeWatcher {
             }
         }
         guard appState.featureAccess.canWriteIndex else {
-            pending[mediumID, default: []].formUnion(rawPaths)
-            pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
+            requeue(mediumID, lockGeneration: lockGeneration, paths: rawPaths, itemEvents: rawItemEvents)
             return
         }
+        guard lockGeneration == versionLockGeneration else { return }
         appState.beginMediumLiveSync(mediumID)
         defer { appState.endMediumLiveSync(mediumID) }
         let outcome = await engine.processPending(
@@ -410,10 +428,11 @@ final class ChangeWatcher {
             directories: Array(events),
             matcher: matcher,
             maxDepth: maxDepth,
-            writeAllowed: { @MainActor [appState] in
-                appState.featureAccess.canWriteIndex
+            writeAllowed: { @MainActor [weak self, appState] in
+                appState.featureAccess.canWriteIndex && self?.versionLockGeneration == lockGeneration
             }
         )
+        guard lockGeneration == versionLockGeneration else { return }
         switch outcome {
         case .ok:
             await saveCursor(mediumID: mediumID)
@@ -422,13 +441,20 @@ final class ChangeWatcher {
                 onFullReconcile?(mediumID, volume)
             }
         case .deferred:
-            pending[mediumID, default: []].formUnion(rawPaths)
-            pendingItemEvents[mediumID, default: []].append(contentsOf: rawItemEvents)
+            requeue(mediumID, lockGeneration: lockGeneration, paths: rawPaths, itemEvents: rawItemEvents)
             // Bei Sperre nicht erneut planen — nächster Flush nach Entsperren.
             if appState.featureAccess.canWriteIndex {
                 scheduleDeferredFlush(mediumID)
             }
         }
+    }
+
+    /// Nicht geschriebene Pfade zurücklegen – nur, wenn seit Beginn des Flushes `stopAllForVersionLock` die Liste
+    /// nicht geleert hat (bug.0.4.076 d: sonst alte Pfade nach dem Entsperren).
+    private func requeue(_ mediumID: UUID, lockGeneration: Int, paths: Set<String>, itemEvents: [ItemPathEvent]) {
+        guard versionLockGeneration == lockGeneration else { return }
+        pending[mediumID, default: []].formUnion(paths)
+        pendingItemEvents[mediumID, default: []].append(contentsOf: itemEvents)
     }
 
     private func scheduleDeferredFlush(_ mediumID: UUID) {

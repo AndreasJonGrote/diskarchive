@@ -253,6 +253,113 @@ struct VersionLockReadOnlyTests {
         await lock.rig.watcher.stop(mediumID: lock.watchedID)
     }
 
+    /// bug.0.4.073: Ein vollständiger Abgleich eines indizierten Mediums hält am Tor; die Sperre rastet über die echte
+    /// Auswertung ein und bricht ihn ab (Medium bleibt `.indexed`). Entsperren über eine API-Antwort → genau ein neuer
+    /// Abgleich. Der Test ruft keinen Kettenschritt selbst auf (Regel 18), er wartet auf die Bedingung.
+    @Test @MainActor func unlockRetriesReconcileInterruptedByLock() async throws {
+        let harness = try await ScanHarness.make()
+        let version = try #require(AppVersion.currentApp())
+        let indexed = StoredMedium(
+            fsType: "apfs", volumeTotalBytes: 1_000, name: "ABGLEICH", type: .usb,
+            decision: .index, indexStatus: .indexed, completedDepth: 1
+        )
+        try await harness.store.upsertMedium(indexed)
+        let volume = testVolume(path: "/Volumes/ABGLEICH", name: "ABGLEICH")
+        try await harness.store.recordIdentity(mediumUUID: indexed.uuid, volume.identity)
+        let inner = MemoryVolume(mountPath: "/Volumes/ABGLEICH")
+        inner.file("ordner/a.txt")
+        let access = RunGateAccess([inner]) { $0 == "/Volumes/ABGLEICH" }
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: access, app: app)
+        let id = indexed.uuid
+
+        await rig.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { await access.heldCount() >= 1 })
+        #expect(rig.starts(id) == [false])
+        #expect(rig.service.isRunActive(id))
+
+        try VersionLockEvaluator.applyMutations(
+            VersionLockSettingsMutations(setFirstRunAt: Date().addingTimeInterval(-100 * 24 * 60 * 60), firstRunFresh: false),
+            pool: harness.store.pool
+        )
+        VersionCheckCoordinator.reevaluateLocal(appState: app, store: harness.store, databaseWasNewThisLaunch: false)
+        try #require(app.versionLockState.isLocked)
+        #expect(await waitUntil { !rig.service.isRunActive(id) })
+        #expect(app.medium(with: id)?.indexStatus == .indexed)
+        #expect(try await harness.store.medium(uuid: id)?.indexStatus == .indexed)
+        #expect(rig.starts(id).count == 1)
+
+        VersionCheckCoordinator.handleAPIResult(
+            VersionCheckResponse(version: version), appState: app, store: harness.store,
+            databaseWasNewThisLaunch: false
+        )
+        try #require(!app.versionLockState.isLocked)
+        #expect(await waitUntil { rig.starts(id).count >= 2 })
+        #expect(await waitUntil { await access.heldCount() >= 2 })
+        await access.open()
+        #expect(await waitUntil { !rig.service.isRunActive(id) })
+        #expect(rig.starts(id) == [false, false])
+        await rig.watcher.stop(mediumID: id)
+    }
+
+    /// bug.0.4.073 (Prüfung): Entsperren, während der Abbruch noch auf den Lauf wartet (`cancel` hält an einem Tor
+    /// je Instanz). Erwartet: nach dem Ende des Abbruchs genau ein neuer Abgleich, danach läuft die Überwachung
+    /// (über `onRunIndexed` wie in der App). Der Test ruft keinen Kettenschritt selbst auf (Regel 18).
+    @Test @MainActor func unlockDuringPendingCancelStartsOneReconcileAndWatcher() async throws {
+        let harness = try await ScanHarness.make()
+        let version = try #require(AppVersion.currentApp())
+        let indexed = StoredMedium(
+            fsType: "apfs", volumeTotalBytes: 1_000, name: "ZAEH", type: .usb,
+            decision: .index, indexStatus: .indexed, completedDepth: 1
+        )
+        try await harness.store.upsertMedium(indexed)
+        let volume = testVolume(path: "/Volumes/ZAEH", name: "ZAEH")
+        try await harness.store.recordIdentity(mediumUUID: indexed.uuid, volume.identity)
+        let inner = MemoryVolume(mountPath: "/Volumes/ZAEH")
+        inner.file("ordner/a.txt")
+        let access = RunGateAccess([inner]) { $0 == "/Volumes/ZAEH" }
+        let app = AppState(store: harness.store)
+        let box = WatcherBox()
+        let store = harness.store
+        let rig = WiredRig(store: store, access: access, app: app) { [box] id, volume in
+            guard let watcher = box.watcher else { return }
+            await LiveWiring.startWatching(id: id, volume: volume, store: store, watcher: watcher, appState: app)
+        }
+        box.watcher = rig.watcher
+        let probe = CancelHookProbe()
+        rig.service.cancelBeforeAwaitHookForTesting = { [probe] _ in await probe.gate.wait() }
+        let id = indexed.uuid
+
+        await rig.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { await access.heldCount() >= 1 })
+        #expect(rig.starts(id) == [false])
+
+        try VersionLockEvaluator.applyMutations(
+            VersionLockSettingsMutations(setFirstRunAt: Date().addingTimeInterval(-100 * 24 * 60 * 60), firstRunFresh: false),
+            pool: harness.store.pool
+        )
+        VersionCheckCoordinator.reevaluateLocal(appState: app, store: harness.store, databaseWasNewThisLaunch: false)
+        try #require(app.versionLockState.isLocked)
+        try #require(await waitUntil { rig.service.isCancellingForTesting(id) })
+
+        VersionCheckCoordinator.handleAPIResult(
+            VersionCheckResponse(version: version), appState: app, store: harness.store,
+            databaseWasNewThisLaunch: false
+        )
+        try #require(!app.versionLockState.isLocked)
+        await access.open()
+        // Der Abbruch hängt noch: Der Nachholer wartet, bis er fertig ist.
+        try await Task.sleep(for: .milliseconds(100))
+        #expect(rig.service.isCancellingForTesting(id))
+        #expect(rig.starts(id) == [false])
+        await probe.gate.signal()
+        #expect(await waitUntil { rig.starts(id).count >= 2 })
+        #expect(await waitUntil { !rig.service.isRunActive(id) })
+        #expect(rig.starts(id) == [false, false])
+        #expect(await waitUntil { rig.watcher.isWatching(mediumID: id) })
+        await rig.watcher.stop(mediumID: id)
+    }
+
     @Test @MainActor func watcherFlushSkipsWritesWhenLocked() async throws {
         // Scripted source statt echter FSEvents/DMG — unter Parallel-Last sonst Wackeln.
         let rig = try await watchRig()
@@ -342,4 +449,14 @@ private final class ScriptedAccessForLock: MediumAccess, @unchecked Sendable {
     var result: MediumAccessResult = .granted
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { result }
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] { [] }
+}
+
+@MainActor
+private final class WatcherBox {
+    weak var watcher: ChangeWatcher?
+}
+
+@MainActor
+private final class CancelHookProbe {
+    let gate = SurfaceAsyncSignal()
 }

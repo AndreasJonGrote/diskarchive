@@ -403,11 +403,15 @@ struct IssueTrackerTests {
         }
         let entered = await waitUntil { gate.hasEntered }
         #expect(entered)
-        VersionCheckCoordinator.enqueueCheckIfNeeded(store: store, force: true)
+        // bug.0.4.074: der Weg des Produkts (`enqueueCheckIfDue` auf der seriellen Queue des Planers).
+        let queue = DispatchQueue(label: "IssueTrackerTests.version-check")
+        VersionCheckCoordinator.enqueueCheckIfDue(pool: store.pool, queue: queue, now: { Date() }, flush: {})
         // bug.0.3.8.007: statt Zeitgrenze (< 100 ms) — der Aufruf ist zurück, solange der Schreiber noch hält.
-        #expect(!gate.hasLeft, "enqueueCheckIfNeeded hat auf die blockierte Datenbank gewartet")
+        #expect(!gate.hasLeft, "enqueueCheckIfDue hat auf die blockierte Datenbank gewartet")
         gate.release()
         try await writer.value
+        queue.sync {}
+        #expect(try ApiQueuePersistence.count(store.pool, kind: .versionCheck) == 1)
     }
 
     @Test func discardCrashDialogDoesNotRemoveQueuedReport() async throws {

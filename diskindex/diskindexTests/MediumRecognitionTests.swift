@@ -417,7 +417,7 @@ struct MediumCoordinatorTests {
         let id = try #require(rig.appState.newMediumDialogMediumID)
         rig.appState.onNewMediumChoice?(id, true, false)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(id)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
         #expect(rig.indexRequests == [id])
         #expect(!rig.appState.needsNewMediumDialog(id))
 
@@ -435,7 +435,7 @@ struct MediumCoordinatorTests {
         // Gleiche Antwort, jetzt mit Haken: nur „merken“ ändert sich, kein weiterer Lauf.
         rig.appState.onNewMediumChoice?(id, true, true)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(id)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
         let stored = try #require(try await rig.store.medium(uuid: id))
         #expect(stored.rememberDecision)
         #expect(stored.decision == .index)
@@ -490,7 +490,7 @@ struct MediumCoordinatorTests {
         let id = try #require(rig.appState.newMediumDialogMediumID)
         rig.appState.onNewMediumChoice?(id, true, false)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(id)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount == 0)
         defer {
@@ -556,7 +556,7 @@ struct MediumCoordinatorTests {
         #expect(rig.appState.needsNewMediumDialog(existing.uuid))
         rig.appState.onNewMediumChoice?(existing.uuid, true, false)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(existing.uuid)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(existing.uuid), "Koordinator beantwortet den Dialog nicht")
 
         existing = try #require(try await rig.store.medium(uuid: existing.uuid))
         existing.indexStatus = .error
@@ -576,7 +576,7 @@ struct MediumCoordinatorTests {
         let id = try #require(rig.appState.newMediumDialogMediumID)
         rig.appState.onNewMediumChoice?(id, false, true)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(id)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
 
         await rig.coordinator.handle(.disappeared(path: volume.mountPath))
         await rig.coordinator.handle(.appeared(volume))
@@ -600,7 +600,7 @@ struct MediumCoordinatorTests {
         let id = try #require(rig.appState.newMediumDialogMediumID)
         rig.appState.onNewMediumChoice?(id, false, false)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(id)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
 
         await rig.coordinator.handle(.disappeared(path: volume.mountPath))
         await rig.coordinator.handle(.appeared(volume))
@@ -611,7 +611,7 @@ struct MediumCoordinatorTests {
 
         rig.appState.onNewMediumChoice?(id, true, false)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(id)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
         #expect(rig.indexRequests == [id])
         let indexed = try #require(try await rig.store.medium(uuid: id))
         #expect(indexed.decision == .index)
@@ -637,7 +637,7 @@ struct MediumCoordinatorTests {
         let id = try #require(rig.appState.newMediumDialogMediumID)
         rig.appState.onNewMediumChoice?(id, true, false)
         await rig.coordinator.waitForChoice()
-        rig.appState.completeNewMediumDecision(id)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
         await rig.coordinator.handle(.disappeared(path: volume.mountPath))
         await rig.coordinator.handle(.appeared(volume))
         #expect(rig.appState.needsNewMediumDialog(id))
@@ -648,6 +648,104 @@ struct MediumCoordinatorTests {
         }
         #expect(!rig.appState.needsNewMediumDialog(id))
         #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id))
+    }
+
+    // MARK: - bug.0.4.075 Änderung in 05/06 gilt als gemerkt
+
+    /// Dialog ohne Haken, beim nächsten Anschließen erneut gefragt; der Nutzer ändert die Entscheidung in 05/06
+    /// (gleicher Weg wie `RegistryTableRow`/`MediumDetailModalView`) → gemerkt, danach kein Dialog mehr.
+    @Test func settingsDecisionIsRememberedAndNextConnectDoesNotAsk() async throws {
+        let rig = try await RecognitionRig.make(attachStore: true)
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, true, false)
+        await rig.coordinator.waitForChoice()
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.needsNewMediumDialog(id), "ohne Haken nicht erneut gefragt")
+
+        rig.appState.updateMedium(id: id, persist: true) {
+            $0.decision = .dontIndex
+            $0.allowIndexing = false
+        }
+        let written = try await waitUntil(timeout: 5) {
+            guard rig.appState.pendingMediumWrites[id] == nil else { return false }
+            return try await rig.store.medium(uuid: id)?.decision == .dontIndex
+        }
+        #expect(written, "Entscheidung aus 05/06 nicht geschrieben")
+        let stored = try #require(try await rig.store.medium(uuid: id))
+        #expect(stored.rememberDecision, "Änderung in 05/06 nicht als gemerkt gespeichert")
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(rig.appState.medium(with: id)?.connectionStatus == .connected)
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "nach Änderung in 05/06 erneut gefragt")
+        #expect(!rig.appState.needsNewMediumDialog(id))
+    }
+
+    /// Neues Medium, Dialog offen; der Nutzer entscheidet in 05/06 statt im Dialog → gemerkt; der Dialog ist
+    /// beantwortet und kommt beim nächsten Anschließen nicht wieder.
+    @Test func settingsDecisionForUndecidedMediumIsRemembered() async throws {
+        let rig = try await RecognitionRig.make(attachStore: true)
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+
+        rig.appState.updateMedium(id: id, persist: true) {
+            $0.decision = .index
+            $0.allowIndexing = true
+        }
+        #expect(!rig.appState.needsNewMediumDialog(id))
+        let written = try await waitUntil(timeout: 5) {
+            guard rig.appState.pendingMediumWrites[id] == nil else { return false }
+            return try await rig.store.medium(uuid: id)?.rememberDecision == true
+        }
+        #expect(written, "Entscheidung aus 05/06 nicht als gemerkt gespeichert")
+        #expect(try await rig.store.medium(uuid: id)?.decision == .index)
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "nach Änderung in 05/06 erneut gefragt")
+    }
+
+    /// Beenden direkt nach der Änderung in 05/06: der Entscheidungs-Write wird abgelöst, das Ausschreiben beim
+    /// Beenden merkt die Entscheidung trotzdem.
+    @Test func settingsDecisionFlushedAtTerminationIsRemembered() async throws {
+        let rig = try await RecognitionRig.make(attachStore: true)
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, true, false)
+        await rig.coordinator.waitForChoice()
+
+        rig.appState.updateMedium(id: id, persist: true) {
+            $0.decision = .dontIndex
+            $0.allowIndexing = false
+        }
+        await rig.appState.flushPendingWritesForTermination()
+        let stored = try #require(try await rig.store.medium(uuid: id))
+        #expect(stored.decision == .dontIndex)
+        #expect(stored.rememberDecision, "beim Beenden ausgeschriebene Änderung aus 05/06 nicht gemerkt")
+    }
+
+    /// Korrektur (Prüfung 075): ein ausstehender Favoriten-Write vor der Dialog-Antwort ohne Haken macht die Antwort
+    /// nicht zu „gemerkt“ und schreibt die alte Entscheidung der Oberfläche nicht zurück (Bereich bug.0.4.043).
+    @Test func pendingFavoriteWriteDoesNotRememberDialogAnswer() async throws {
+        let rig = try await RecognitionRig.make(attachStore: true)
+        await rig.coordinator.handle(.appeared(rig.volume()))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+
+        rig.appState.updateMedium(id: id, persist: true) { $0.isFavorite.toggle() }
+        #expect(rig.appState.pendingMediumWrites[id] != nil, "Favoriten-Write steht nicht aus")
+        rig.appState.onNewMediumChoice?(id, false, false)
+        await rig.coordinator.waitForChoice()
+        await rig.appState.flushMediumEdits()
+
+        let stored = try #require(try await rig.store.medium(uuid: id))
+        #expect(!stored.rememberDecision, "Dialog ohne Haken durch fremden Write als gemerkt gespeichert")
+        #expect(stored.decision == .dontIndex, "alte Entscheidung der Oberfläche zurückgeschrieben")
+        #expect(stored.isFavorite)
     }
 }
 
@@ -662,13 +760,14 @@ private final class RecognitionRig {
     var indexRequests: [UUID] { requests.ids }
     var reconcileRequests: [UUID] { reconciles.ids }
 
-    static func make() async throws -> RecognitionRig {
+    /// `attachStore`: AppState schreibt Nutzerfelder (05/06) in den Store wie in der App (bug.0.4.075).
+    static func make(attachStore: Bool = false) async throws -> RecognitionRig {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-recognition-\(UUID().uuidString)", isDirectory: true)
         let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
         let store = IndexStoreV3(database: database)
         let access = ScriptedAccess()
-        let appState = AppState()
+        let appState = attachStore ? AppState(store: store) : AppState()
         let requests = IndexRequestLog()
         let reconciles = IndexRequestLog()
         let coordinator = MediumCoordinator(

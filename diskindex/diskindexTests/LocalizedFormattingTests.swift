@@ -85,10 +85,12 @@ struct LocalizedFormattingTests {
             }.replacingOccurrences(of: "\u{00A0}", with: " ")
         }
         #expect(formatted(0, .german) == "0 Byte")
+        #expect(formatted(1, .german) == "1 Byte")
         #expect(formatted(999, .german) == "999 Byte")
         #expect(formatted(1_500, .german) == "2 kB")
         #expect(formatted(1_500_000_000, .german) == "1,5 GB")
         #expect(formatted(0, .english) == "0 bytes")
+        #expect(formatted(1, .english) == "1 byte")
         #expect(formatted(999, .english) == "999 bytes")
         #expect(formatted(1_500, .english) == "2 kB")
         #expect(formatted(1_500_000_000, .english) == "1.5 GB")

@@ -224,9 +224,9 @@ nonisolated struct SearchSort: Equatable, Sendable {
 
     /// bug.0.4.038: Diese Spalten sortiert die Datenbank (`ORDER BY`), über alle Treffer statt nur die erste Seite.
     static let serverColumns: Set<SearchSortColumn> = [.name, .date, .medium]
-    /// Davon kommt die Seite schon in der fertigen Reihenfolge. Name wählt die Datenbank binär nach `slug` aus; der
-    /// Client sortiert die Seite natürlich nach („datei 2“ vor „datei 10“, `localizedStandardCompare`).
-    static let pageOrderedColumns: Set<SearchSortColumn> = [.date, .medium]
+    /// Davon kommt die Seite schon in der fertigen Reihenfolge, der Client sortiert nicht nach. Name ordnet die
+    /// Datenbank natürlich nach `slug` („datei 2“ vor „datei 10“, Suchhilfe `items_search_natural`, bug.0.4.077).
+    static let pageOrderedColumns: Set<SearchSortColumn> = [.name, .date, .medium]
 
     /// Reihenfolge für die Abfrage: Pfad und Status sortiert der Client (nur, wenn alle Treffer auf der Seite
     /// stehen); die Seite selbst kommt dann nach Name aufsteigend.

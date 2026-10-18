@@ -80,6 +80,7 @@ extension AppState {
             let decisionChanged = before.decision != after.decision || before.allowIndexing != after.allowIndexing
             if decisionChanged {
                 // bug.0.4.043: Entscheidung sofort schreiben (kein 500-ms-Fenster gegen reloadMedium).
+                userDecisionIDs[id, default: 0] += 1
                 pendingMediumWrites[id]?.cancel()
                 pendingMediumWrites[id] = Task { [weak self] in
                     guard let self, !Task.isCancelled else { return }
@@ -209,6 +210,7 @@ extension AppState {
         completeNewMediumDecision(id)
         pendingMediumWrites[id]?.cancel()
         pendingMediumWrites[id] = nil
+        userDecisionIDs[id] = nil
         media.removeAll { $0.id == id }
         if detailMediumID == id { detailMediumID = nil }
         if columnBrowserState.selectedMediumID == id { columnBrowserState.selectedMediumID = nil }
@@ -230,6 +232,7 @@ extension AppState {
         DiskIndexLog.shared.record(.store, .info, "forget all count=\(ids.count)")
         pendingMediumWrites.values.forEach { $0.cancel() }
         pendingMediumWrites.removeAll()
+        userDecisionIDs.removeAll()
         media.removeAll()
         favoriteObjects = []
         // bug.0.4.040: Zahlen und Menge der Favoriten mit leeren (alle Medien vergessen).

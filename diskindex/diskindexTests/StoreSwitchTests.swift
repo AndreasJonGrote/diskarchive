@@ -33,7 +33,7 @@ extension MeasurementTestGroup {
         let applied = try await pool.read { db in
             try String.fetchAll(db, sql: "SELECT identifier FROM grdb_migrations ORDER BY identifier")
         }
-        #expect(applied == [SchemaV3.firstMigration, SchemaV3.itemsGoneMigration])
+        #expect(applied == [SchemaV3.firstMigration, SchemaV3.itemsGoneMigration, SchemaV3.itemsSearchNaturalMigration])
         #expect(SchemaV3.firstMigration == "0.3.0-schema")
         let tables = try await pool.read { db in
             Set(try String.fetchAll(db, sql: "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name <> 'grdb_migrations'"))
@@ -55,7 +55,7 @@ extension MeasurementTestGroup {
         // Zweites Öffnen führt keine Migration mehr aus.
         let again = try IndexStoreV3.open(at: fileURL)
         let count = try await again.pool.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM grdb_migrations") }
-        #expect(count == 2)
+        #expect(count == 3)
         try again.pool.close()
 
         #expect(try Data(contentsOf: old) == oldBytes)

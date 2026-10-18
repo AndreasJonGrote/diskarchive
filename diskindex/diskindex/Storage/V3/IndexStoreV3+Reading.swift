@@ -217,27 +217,33 @@ extension IndexStoreV3 {
         }
     }
 
-    /// Trefferkennungen der Suche nach `(slug, id)` (Test: Abfrageplan).
+    /// Sortierfolge „natural“ in SQL (Schlüsselwort, daher in Anführungszeichen).
+    nonisolated static let naturalCollation = "\"\(NaturalOrder.collationName)\""
+
+    /// Trefferkennungen der Suche nach `(slug natürlich, id)` über die Suchhilfe `items_search_natural`
+    /// (bug.0.4.077; Test: Abfrageplan).
     nonisolated static func searchHitsSQL(whereClause: String) -> String {
-        "SELECT i.id, i.slug FROM items i WHERE \(whereClause) ORDER BY i.slug, i.id LIMIT ?"
+        "SELECT i.id, i.slug FROM items i WHERE \(whereClause) ORDER BY i.slug COLLATE \(naturalCollation), i.id LIMIT ?"
     }
 
     /// bug.0.4.038 (REPORT 83): Trefferkennungen in der gewählten Reihenfolge über **alle** Treffer, Seite per
-    /// `LIMIT ? OFFSET ?`. Name: `slug` binär (Suchhilfe `items_search`; welche
-    /// 500 auf die Seite kommen, die Seite sortiert der Client natürlich nach); Datum: `modifiedAt` (Suchhilfe `items_modified`, ohne Datum zuerst wie in der
-    /// Client-Sortierung); Medium: `storages.slug`, innerhalb eines Mediums nach Name. Kennung entscheidet Gleichstand.
+    /// `LIMIT ? OFFSET ?`. Name: `slug` natürlich (bug.0.4.077, Suchhilfe `items_search_natural`; die Datenbank wählt die
+    /// Seite schon natürlich aus, „Rechnung 2“ vor „Rechnung 10“); Datum: `modifiedAt` (Suchhilfe `items_modified`, ohne
+    /// Datum zuerst wie in der Client-Sortierung); Medium: `storages.slug` natürlich, innerhalb eines Mediums natürlich
+    /// nach Name. Kennung entscheidet Gleichstand.
     nonisolated static func searchSortedHitsSQL(whereClause: String, sort: SearchSort) -> String {
         let desc = sort.direction == .descending ? " DESC" : ""
+        let natural = naturalCollation
         switch sort.serverOrder.column {
         case .date:
             return "SELECT i.id FROM items i WHERE \(whereClause) ORDER BY i.modifiedAt\(desc), i.id\(desc) LIMIT ? OFFSET ?"
         case .medium:
             return """
                 SELECT i.id FROM items i JOIN storages s ON s.id = i.storageID WHERE \(whereClause)
-                ORDER BY s.slug\(desc), i.storageID\(desc), i.slug, i.id LIMIT ? OFFSET ?
+                ORDER BY s.slug COLLATE \(natural)\(desc), i.storageID\(desc), i.slug COLLATE \(natural), i.id LIMIT ? OFFSET ?
                 """
         case .name, .path, .status:
-            return "SELECT i.id FROM items i WHERE \(whereClause) ORDER BY i.slug\(desc), i.id\(desc) LIMIT ? OFFSET ?"
+            return "SELECT i.id FROM items i WHERE \(whereClause) ORDER BY i.slug COLLATE \(natural)\(desc), i.id\(desc) LIMIT ? OFFSET ?"
         }
     }
 
@@ -556,7 +562,7 @@ extension IndexStoreV3 {
         max(2, ProcessInfo.processInfo.activeProcessorCount - 1)
     }
 
-    /// Die ersten `limit` Treffer nach `(slug, id)`. Eine einzelne Abfrage: sie liest die Suchhilfe in Namensreihenfolge
+    /// Die ersten `limit` Treffer nach `(slug natürlich, id)`. Eine einzelne Abfrage: sie liest die Suchhilfe in Namensreihenfolge
     /// und hört nach `limit` Treffern auf (gemessen in 232: schneller als Teilabfragen). Nur die Zahl läuft parallel.
     private func topHits(_ plan: SearchPlanV3, limit: Int) async throws -> [(id: Int64, slug: String)] {
         try await searchHitPage(plan: plan, after: nil, limit: limit)
@@ -567,23 +573,25 @@ extension IndexStoreV3 {
         var id: Int64
     }
 
-    /// SQL-Seite der Suche; Cursor auf `(slug, id)`, binär wie `searchHitsSQL`.
+    /// SQL-Seite der Suche; Cursor auf `(slug, id)`, natürlich wie `searchHitsSQL`.
     private func searchHitPage(
         plan: SearchPlanV3,
         after: SearchHitCursor?,
         limit: Int
     ) async throws -> [(id: Int64, slug: String)] {
-        try await pool.read { db in
-            // bug.0.4.057 (REPORT 100): Folgeseiten in derselben (binären) Sortierfolge wie Seite 1
-            // (`searchHitsSQL`), sonst Doppelte/Lücken bei „img9“/„img10“. Natürlich sortiert erst die Anzeige.
+        let natural = Self.naturalCollation
+        return try await pool.read { db in
+            // bug.0.4.057 (REPORT 100) / bug.0.4.077: Folgeseiten in derselben (natürlichen) Sortierfolge wie Seite 1
+            // (`searchHitsSQL`), sonst Doppelte/Lücken bei „img9“/„img10“. „natural“ ist nur bei gleichen Bytes gleich,
+            // `=` unter dieser Sortierfolge entspricht also dem binären Vergleich.
             if let after {
                 var hits: [(Int64, String)] = []
                 let sameSlug = try Row.fetchAll(
                     db,
                     sql: """
                         SELECT i.id, i.slug FROM items i
-                        WHERE \(plan.whereClause) AND i.slug = ? AND i.id > ?
-                        ORDER BY i.slug, i.id LIMIT ?
+                        WHERE \(plan.whereClause) AND i.slug COLLATE \(natural) = ? AND i.id > ?
+                        ORDER BY i.slug COLLATE \(natural), i.id LIMIT ?
                         """,
                     arguments: plan.statementArguments(extra: [after.slug.databaseValue, after.id.databaseValue, limit.databaseValue])
                 )
@@ -593,8 +601,8 @@ extension IndexStoreV3 {
                         db,
                         sql: """
                             SELECT i.id, i.slug FROM items i
-                            WHERE \(plan.whereClause) AND i.slug > ?
-                            ORDER BY i.slug, i.id LIMIT ?
+                            WHERE \(plan.whereClause) AND i.slug COLLATE \(natural) > ?
+                            ORDER BY i.slug COLLATE \(natural), i.id LIMIT ?
                             """,
                         arguments: plan.statementArguments(extra: [after.slug.databaseValue, (limit - hits.count).databaseValue])
                     )

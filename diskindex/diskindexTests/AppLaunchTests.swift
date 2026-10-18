@@ -58,27 +58,26 @@ struct AppLaunchTests {
         AppWindowPresenter.prepareForTermination()
     }
 
+    /// bug.0.4.074: `start` reiht über `enqueueCheckIfDue` ein (kein Abkühl-Zähler mehr, kein TaskLocal).
     @Test @MainActor func schedulerEnqueuesVersionCheckImmediatelyOnStart() async throws {
-        let enqueueTracker = VersionCheckCoordinator.LastEnqueueTracker()
-        try await VersionCheckCoordinator.$lastVersionCheckEnqueueTracker.withValue(enqueueTracker) { () async throws -> Void in
-            let testStore = try TestStore.make()
-            let countBefore = try await testStore.pool.read { db in
+        let testStore = try TestStore.make()
+        let countBefore = try await testStore.pool.read { db in
+            try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
+        }
+        #expect(countBefore == 0)
+        let scheduler = VersionCheckScheduler(wakeEvents: { AsyncStream { _ in } }, flush: {}, databaseWasNewThisLaunch: false)
+        let appState = AppState()
+        scheduler.start(appState: appState, store: testStore.store)
+        defer { scheduler.stop() }
+        // bug.0.3.8.007: genau 1 bleibt Absicht — `start` reiht genau einen Check sofort ein (kein doppelter),
+        // der nächste kommt erst nach 24 h; die Zahl ist also deterministisch. Frist: Standard (10 s) statt 5 s.
+        let enqueued = await waitUntil {
+            let count = try? await testStore.pool.read { db in
                 try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
             }
-            #expect(countBefore == 0)
-            let scheduler = VersionCheckScheduler(flush: {}, databaseWasNewThisLaunch: false)
-            let appState = AppState()
-            scheduler.start(appState: appState, store: testStore.store)
-            defer { scheduler.stop() }
-            // bug.0.3.8.007: genau 1 bleibt Absicht — `start` reiht genau einen Check sofort ein (kein doppelter),
-            // der nächste kommt erst nach 24 h; die Zahl ist also deterministisch. Frist: Standard (10 s) statt 5 s.
-            let enqueued = await waitUntil {
-                let count = try? await testStore.pool.read { db in
-                    try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM api_queue WHERE kind = ?", arguments: [ApiQueueKind.versionCheck.rawValue]) ?? 0
-                }
-                return count == 1
-            }
-            #expect(enqueued)
+            return count == 1
         }
+        #expect(enqueued)
+        #expect(try await testStore.pool.read(SystemSettingsPersistence.readLastVersionCheckAt) != nil)
     }
 }

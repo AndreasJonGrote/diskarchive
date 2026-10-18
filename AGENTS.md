@@ -34,6 +34,10 @@ Der Worker implementiert die freigegebenen Aufgaben aus `TODO.md` bzw. den Auftr
 - **Übergabe:** `PROMPT.md` enthält **nur** den aktuellen Prompt für den Worker (nur der Host schreibt ihn); der Worker ersetzt ihn zum Schluss durch eine Kurzmeldung „Erledigt: … Offen: … HALT“ (höchstens drei Zeilen). Jede Antwort im Chat endet mit einer **Commit-Nachricht**; jeder Bericht des Workers zusätzlich mit einem Prompt für den Host (Aufbau: TODO.md Regel 30). Committen tut nur der Nutzer.
 - **Dateien:** `PROMPT.md` (aktueller Prompt), `TODO.md` (offen), `DONE.md` (abgenommen), `README.md` (Konzept inkl. Datenbank), `ROADMAP.md` (Versionen), `REPORT.md` (bleibt leer, Fehler gehen direkt als `bug.*` in TODO.md). Alte Fassungen: `archiv/`. **Abnahme-Ablauf des Hosts** (Befehle, Reihenfolge, Pflege der Dateien): `archiv/abnahme-ablauf.md` — zu Beginn eines neuen Chats lesen.
 
+## Übergabe an einen neuen Host oder Rechner (Nutzer 18.10.)
+
+Liegt im Hauptverzeichnis eine **`UEBERGABE.md`**, liest jeder neue Host sie **zuerst**, prüft sie gegen das Repository, übernimmt den Stand und **löscht sie dann** (der Nutzer committet die Löschung). Der übergebende Host schreibt sie und nennt sie in der Commit-Beschreibung. Dauerhaftes Wissen gehört nie nur in diese Datei, sondern in AGENTS.md, TODO.md, `archiv/abnahme-ablauf.md`, README oder ROADMAP.
+
 ## Workflow
 
 1. Der Host schreibt/aktualisiert Aufgaben in `TODO.md` (eine Aufgabe = ein klar abgegrenzter Screen oder Teilschritt).

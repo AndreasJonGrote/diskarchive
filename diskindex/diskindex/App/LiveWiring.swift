@@ -227,11 +227,29 @@ enum LiveWiring {
         // Entsperrt → wieder normal: Überwachung der indizierten verbundenen Medien wie nach Pausenende
         // (`pauseChanged` → `applyPause`), nicht fertige verbundene Medien erneut indizieren. Den Regel-Abgleich nimmt
         // `applyVersionLockEvaluation` schon wieder auf.
-        appState.onVersionLockReleased = { [weak coordinator, weak watcher, weak appState] in
+        appState.onVersionLockReleased = { [weak coordinator, weak service, weak watcher, weak appState] in
             guard let appState, appState.featureAccess.canWriteIndex else { return }
             DiskIndexLog.shared.record(.app, .info, "entsperrt nimmt überwachung und indizierung auf")
+            // bug.0.4.073: Von der Sperre abgebrochene Abgleiche (Medium blieb `.indexed`) nachholen. Bei globaler
+            // Pause verworfen: das Pausenende gleicht verbundene indizierte Medien ohnehin ab (`resumePausedRuns`).
+            let interruptedReconciles = service?.takeReconcilesInterruptedByVersionLock() ?? []
             watcher?.pauseChanged()
             guard !appState.globalAutoIndexPaused else { return }
+            for id in interruptedReconciles {
+                guard let medium = appState.medium(with: id), medium.connectionStatus == .connected,
+                      medium.decision == .index, medium.allowIndexing, medium.indexStatus == .indexed,
+                      let volume = coordinator?.volume(for: id) else { continue }
+                DiskIndexLog.shared.record(.app, .info, "entsperrt holt abgleich nach medium=\(id)")
+                Task {
+                    await stopWatcherAndStartIndex(
+                        watcher: watcher,
+                        service: service,
+                        id: id,
+                        volume: volume,
+                        fromScratch: false
+                    )
+                }
+            }
             for medium in appState.media
             where medium.connectionStatus == .connected && medium.decision == .index && medium.allowIndexing
                 && medium.indexStatus != .indexed {

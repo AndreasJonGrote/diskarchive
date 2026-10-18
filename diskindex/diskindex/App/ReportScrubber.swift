@@ -28,6 +28,36 @@ nonisolated enum ReportScrubber {
         return scrubRemainder(value)
     }
 
+    /// Stapelzeile (todo.0.4.023): Swift-Symbole („$s9diskindex…“, „$S…“) bleiben lesbar, alles andere wie `text`.
+    /// Nur für `crash.stack`; in Protokoll, Aktionen und Signatur bleibt „$“ ungewöhnlich (Name → Profil).
+    static func stackLine(_ input: String) -> String {
+        stackLine(input, pathPattern: defaultPathPattern)
+    }
+
+    static func stackLine(_ input: String, pathPattern: String) -> String {
+        guard let expression = try? NSRegularExpression(pattern: #"\$[sS][0-9A-Za-z_]+"#) else {
+            return text(input, pathPattern: pathPattern)
+        }
+        // Platzhalter aus gewöhnlichen Zeichen; steht er in einem Pfad oder Namen, verschwindet er mit dessen Profil.
+        let marker = "ZZSWIFTSYMBOLZZ"
+        var symbols: [String] = []
+        var masked = ""
+        var cursor = input.startIndex
+        for match in expression.matches(in: input, range: NSRange(input.startIndex..., in: input)) {
+            guard let range = Range(match.range, in: input) else { continue }
+            masked += input[cursor..<range.lowerBound]
+            masked += "\(marker)\(symbols.count)\(marker)"
+            symbols.append(String(input[range]))
+            cursor = range.upperBound
+        }
+        masked += input[cursor...]
+        var result = text(masked, pathPattern: pathPattern)
+        for (index, symbol) in symbols.enumerated().reversed() {
+            result = result.replacingOccurrences(of: "\(marker)\(index)\(marker)", with: symbol)
+        }
+        return result
+    }
+
     private static func stripQuotes(_ text: String) -> String {
         guard text.count >= 2 else { return text }
         return String(text.dropFirst().dropLast())

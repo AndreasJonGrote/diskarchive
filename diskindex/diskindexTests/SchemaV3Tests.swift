@@ -206,7 +206,9 @@ struct SchemaV3Tests {
             #expect(columns.contains("items_children"), "\(columns)")
             #expect(!columns.contains("TEMP B-TREE"), "\(columns)")
             let search = try plan(db, "SELECT id FROM items WHERE slug LIKE '%abc%' AND status = 0")
-            #expect(search.contains("items_search"), "\(search)")
+            // bug.0.4.077: genauer Indexname (Teilwort träfe beide). Ohne Sortierung wählt SQLite für die Teilwortsuche
+            // die jüngere, gleich breite Suchhilfe `items_search_natural`.
+            #expect(planIndexNames(search).contains("items_search_natural"), "\(search)")
         }
     }
 
