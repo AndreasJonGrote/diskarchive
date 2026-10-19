@@ -36,7 +36,7 @@ Der Worker implementiert die freigegebenen Aufgaben aus `TODO.md` bzw. den Auftr
 
 ## Übergabe an einen neuen Host oder Rechner (Nutzer 18.10.)
 
-Liegt im Hauptverzeichnis eine **`UEBERGABE.md`**, liest jeder neue Host sie **zuerst**, prüft sie gegen das Repository, übernimmt den Stand und **löscht sie dann** (der Nutzer committet die Löschung). Der übergebende Host schreibt sie und nennt sie in der Commit-Beschreibung. Dauerhaftes Wissen gehört nie nur in diese Datei, sondern in AGENTS.md, TODO.md, `archiv/abnahme-ablauf.md`, README oder ROADMAP.
+Liegt im Hauptverzeichnis eine **`UEBERGABE.md`**, liest jeder neue Host sie **zuerst**, prüft sie gegen das Repository, übernimmt den Stand und **löscht sie dann** (der Nutzer committet die Löschung). Der übergebende Host schreibt sie und nennt sie in der Commit-Beschreibung. **Hostwechsel können jederzeit wieder vorkommen** (anderer Rechner, anderer Client, volle Sitzung): Der Nutzer kommt dann auf den Host zu und bittet um die Übergabe. Der Host prüft in diesem Fall nichts mehr, bringt die festen Dateien auf Stand und schreibt die `UEBERGABE.md`; was offen ist (z. B. die Prüfung eines fertigen Pakets), steht dort als erster Schritt des neuen Hosts. Dauerhaftes Wissen gehört nie nur in diese Datei, sondern in AGENTS.md, TODO.md, `archiv/abnahme-ablauf.md`, README oder ROADMAP.
 
 ## Workflow
 

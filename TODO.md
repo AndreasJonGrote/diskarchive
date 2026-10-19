@@ -51,7 +51,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 17.10.2026 (Host):** Version im Xcode-Projekt **0.3.9**. Abgenommen: 0.3, 0.3.1, 0.3.2, aus 0.4 Versions-Check/Update-Modal/Beta-Sperre/Nur-Lesen-Sperre, und für **0.3.8 die Pakete 4 und 5a** (DONE.md). Offen für 0.3.8: **Paket 5c** (freigegeben; 4, 5a, 5b abgenommen), danach `todo.0.3.8.001` (Version). Stick-Test, Großplatten-Lauf und Layout gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`). Letzte Prüfung 18.10. 16:36–17:04 (Paket 11): 0 Warnungen, seriell 872/873, parallel je 1 rot (`bug.0.4.081`, nicht aus Paket 11). Ein Worker zur Zeit, Pakete nacheinander. Bestandsaufnahme vom 16.10.: [archiv/bestandsaufnahme-2026-10-16.md](archiv/bestandsaufnahme-2026-10-16.md).
+**Stand 19.10.2026 (Host, Übergabe):** Version im Xcode-Projekt **0.3.9**. Abgenommen bis einschließlich **Paket 11** (DONE.md). **Paket 12** (`bug.0.4.081`–`092`) vom Worker als „Bereit zur Prüfung“ gemeldet und vom Nutzer committet (`027154d`), **vom Host noch nicht geprüft** – erster Schritt des nächsten Hosts. Danach: großer Audit (unten), dann Abnahmerunde des Nutzers (`todo.0.4.040`, Festplatten ab 21.10.). Letzte Host-Prüfung 18.10. 16:36–17:04 (Paket 11). Ein Worker zur Zeit, Pakete nacheinander.
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
@@ -79,7 +79,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 9 | **0.4** | ~~`todo.0.3.9.001`, `bug.0.4.063`–`068`, `todo.0.4.026`–`029`~~ | Version 0.3.9, Prüfbefunde, Code ohne Nutzerschritte | **abgenommen 18.10.** |
 | 10 | **0.4.0** | ~~`bug.0.4.072`–`076`, `todo.0.4.023`~~ | Prüfbefunde 9, Fehlerbericht | **abgenommen 18.10.** |
 | 11 | **0.4.0** | ~~`bug.0.4.077`–`080`~~ | natürliche Ordnung schneller, Datenschutz im Fehlerbericht | **abgenommen 18.10.** |
-| 12 | **0.4.0** | `bug.0.4.086`–`092`, dann `081`–`085` | Funde des Nutzers (Start nach Migration, Scrollen zu Details, Ignorieren ohne Neuladen, Trennlinie), Prüfbefunde 11 | **freigegeben 18.10.** |
+| 12 | **0.4.0** | `bug.0.4.086`–`092`, dann `081`–`085` | Funde des Nutzers (Start nach Migration, Scrollen zu Details, Ignorieren ohne Neuladen, Spaltenzustand, Trennlinie, Rollbalken-Platz, Filtersuche), Prüfbefunde 11 | **Worker fertig (`027154d`), Host-Prüfung offen** |
 | – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: 2-Mio-Platte, Stick, Layout → Release-Kandidat | nach Paket 12 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `todo.0.4.1.002` (Tester-Prüfung mit Quarantäne) | Release der Open Beta (Auslieferung) | B |
 
@@ -98,6 +98,17 @@ Reihenfolge: 0.3.8 abgenommen; jetzt 0.3.9 mit den Paketen 6, 7, 8, danach 0.4. 
 **Prüfung Host 18.10. 11:02–11:19 (Paket 10, ungecommittet auf `6396632`):** Debug mit Testziel und Release 0 Warnungen, seriell **866/866** grün, **Parallel 3 von 3 grün**, keine neuen `.ips`, Regel 23 (App 11:19:28, Signatur gültig; Achtung: diese App legt den Index aus `bug.0.4.077` beim Öffnen der Nutzer-Datenbank an). Zwei Prüf-Agenten: kein hoher Befund; ein mittlerer (Schwärzung, `bug.0.4.078`) und niedrige (`079`, `080`). **Abgenommen:** `bug.0.4.072`–`076`, `todo.0.4.023`. **Offen:** `bug.0.4.077` (Messung über der Grenze, Nacharbeit unten). Volltexte: `archiv/todo-stand-2026-10-18-vor-abnahme-paket10.md`.
 
 **Prüfung Host 18.10. 16:36–17:04 (Paket 11, ungecommittet auf `28fed5f`, neuer Rechner, macOS 15.7.4, Xcode 26.3):** Debug mit Testziel und Release 0 Warnungen, seriell **872/873** (rot nur `SearchSortHeaderWindowTests/thePathHeaderToggles…`), parallel dreimal je 867 grün, 5 übersprungen, **1 rot** (derselbe Test); der Test ist laut Worker auch auf HEAD rot und gehört nicht zu Paket 11 → `bug.0.4.081`. Keine neuen `.ips`, Regel 23 (App 16:55:48, keine neuere `.swift`, Signatur gültig, Version 0.3.9). **Nachmessung `bug.0.4.077`** (Debug `-O` ganzes Modul, ein Build, je 3 Läufe im Wechsel, 1.010.100 Einträge): vorher 34,55/34,63/34,69 s, nachher 36,08/36,42/36,49 s, Median **+5,2 %** (Grenze 10 %); Größe 238,0 → 274,6 MB (+15,35 %, vom Nutzer hingenommen). Drei Prüf-Agenten: kein hoher Befund; mittel `bug.0.4.084`, niedrig `082`, `083`, `085`. **Abgenommen:** `bug.0.4.077`–`080`. Volltexte: `archiv/todo-stand-2026-10-18-vor-abnahme-paket11.md`.
+
+#### Nach Paket 12: großer Audit vor der Abnahmerunde (Nutzer 18.10., geplant)
+
+Der Nutzer will die Zeit bis zu seinem Test (Festplatten ab 21.10.) für einen **großen Audit** nutzen: gezielt nach Unstimmigkeiten im Code suchen, nicht nach schönerer Architektur. **Start erst nach der Abnahme von Paket 12** (stabiler Stand). Ablauf: mehrere Prüf-Agenten parallel, nur lesend, je ein Bereich; jeder Befund mit Datei:Zeile, Ablauf, Schwere und vorgeschlagenem Repro-Test (Vorbild `Werkzeuge/audit-repro/`). Der Host prüft jeden Befund gegen (Fehlalarme aussortieren), vergibt Kennungen und schnürt daraus ein bis zwei Pakete.
+- **Bereiche:** (1) Nebenläufigkeit (Haupt-Thread, Actors, `@concurrent`, Rennen, Beenden); (2) Datenbank (Migration auf vorhandenen großen Datenbanken, ein Pool je Prozess, Kollation auf allen Verbindungen, Abbruch beim Schreiben); (3) Medien-Lebenszyklus (Anschließen, Abziehen, Umbenennen, Ersetzen, Vergessen, Schlaf, Abgleich, Fortsetzen, offline); (4) Live-Überwachung (FSEvents, Bündelung, Neustart nach Ereignissen und Fehlern, Pause, Sperre); (5) Datenschutz und Netz (Fehlerbericht, Protokoll, Schwärzung, Warteschlange, keine Schreibzugriffe auf Medien); (6) Oberfläche und Plattform (Klickflächen, Rollbalken-Stile, Spaltenzustände, macOS 14/15); (7) Tests selbst (immer grün, Nachhilfe Regel 18, Wackelkandidaten Regel 20); (8) Start mit echten, älteren Datenbanken; (9) Spaltenansicht unter Last (Neuladen, Scrollen, Trennlinien, Ignorieren).
+- **Schwelle (Vorschlag Host 18.10., vom Nutzer noch zu bestätigen):** In 0.4.0 kommen nur Befunde **hoch** und **mittel** sowie jeder Befund zu **Datenschutz oder Datenverlust**; alles andere ins Backlog 0.4.1/0.5.
+
+**Offene Fragen an den Nutzer (Stand 19.10.):**
+1. Wartescreen der Suche (`todo.0.4.042`): nur beim Start **aus dem Leerzustand**, beim Verfeinern bleiben alte Treffer stehen (Empfehlung Host, so in README Abschnitt 5) – bestätigen.
+2. `todo.0.4.043` (Favoriten werden geladen): Layout vorhanden, freigebbar – mit dem nächsten Paket?
+3. Schwelle für 0.4.0 nach dem Audit (siehe oben) – bestätigen.
 
 #### Paket 12 — 0.4.0 (Release-Kandidat): Funde des Nutzers am 18.10. abends, dann Prüfbefunde 11 (freigegeben 18.10.)
 
