@@ -9,13 +9,15 @@ import SwiftUI
 
 struct DashboardView: View {
     @Environment(AppState.self) private var appState
+    private let scrollerStyle = EffectiveScrollerStyle()
 
     var body: some View {
         if appState.indexedMedia.isEmpty {
             EmptyStateView(title: EmptyStateCopy.noMediumTitle, message: EmptyStateCopy.noMediumMessage)
         } else {
             GeometryReader { geo in
-                let contentWidth = geo.size.width - DashboardGridLayout.spacing * 2
+                // bug.0.4.091: reservierter Rollbalken-Platz gehört nicht zur Kartenfläche.
+                let contentWidth = geo.size.width - DashboardGridLayout.spacing * 2 - ScrollbarGutter.width(for: scrollerStyle.style)
                 let columns = DashboardGridLayout.columnCount(containerWidth: contentWidth)
                 let cardWidth = DashboardGridLayout.cellWidth(containerWidth: contentWidth, columns: columns)
                 let rows = chunked(appState.indexedMedia, columns: columns)
@@ -35,6 +37,7 @@ struct DashboardView: View {
                     }
                     .padding(DashboardGridLayout.spacing)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .stableScrollbarGutter()
                 }
             }
         }

@@ -83,6 +83,9 @@ nonisolated enum SchemaV3 {
 
     /// Öffnet die Datei, legt sie bei Bedarf an und lässt den Migrator laufen.
     static func openPool(at fileURL: URL) throws -> DatabasePool {
+        #if DEBUG
+        OpenCounter.shared.note(fileURL, onMain: Thread.isMainThread)
+        #endif
         let folder = fileURL.deletingLastPathComponent()
         guard WriteGuard.permitsWrite(to: folder), WriteGuard.permitsWrite(to: fileURL) else {
             throw IndexStoreError.directoryWriteFailed
@@ -101,6 +104,26 @@ nonisolated enum SchemaV3 {
         FilePrivacy.restrict(folder)
         return pool
     }
+
+    #if DEBUG
+    /// Zahl der `openPool`-Aufrufe je Datei (bug.0.4.086: je Prozess genau einer für `archive.sqlite`). Je Pfad
+    /// gezählt, Tests nutzen eigene Dateien; kein Schalter, nur Zählung.
+    final class OpenCounter: @unchecked Sendable {
+        static let shared = OpenCounter()
+        private let lock = NSLock()
+        private var counts: [String: Int] = [:]
+        private var mainCounts: [String: Int] = [:]
+        func note(_ url: URL, onMain: Bool) {
+            lock.withLock {
+                counts[url.standardizedFileURL.path, default: 0] += 1
+                if onMain { mainCounts[url.standardizedFileURL.path, default: 0] += 1 }
+            }
+        }
+        func count(_ url: URL) -> Int { lock.withLock { counts[url.standardizedFileURL.path] ?? 0 } }
+        /// Öffnungen (samt Migration) auf dem Hauptfaden – soll 0 sein (bug.0.4.086, Regel 15).
+        func mainThreadCount(_ url: URL) -> Int { lock.withLock { mainCounts[url.standardizedFileURL.path] ?? 0 } }
+    }
+    #endif
 
     /// Nach Absturz/Beenden: `indexing` ohne laufenden Prozess → `indexed` oder `pending` (bug.0.4.028).
     private static func normalizeInterruptedIndexingStatuses(in pool: DatabasePool) throws {

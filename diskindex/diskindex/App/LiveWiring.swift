@@ -106,6 +106,7 @@ enum LiveWiring {
             await service?.cancel(mediumUUID: id)
         }
         coordinator.onWillUnmount = { [weak watcher, weak service] id in
+            service?.discardWaitingStart(mediumUUID: id)
             await service?.cancel(mediumUUID: id)
             await watcher?.saveCursor(mediumID: id)
         }

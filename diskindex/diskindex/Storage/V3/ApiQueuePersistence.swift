@@ -26,7 +26,8 @@ nonisolated enum ApiQueuePersistence {
         #if DEBUG
         openQueuePoolCountTracker?.count += 1
         #endif
-        return try SchemaV3.openPool(at: IndexStoreV3.storeFileURL())
+        // bug.0.4.086: derselbe Pool wie der Index, kein zweites Öffnen derselben Datei.
+        return try ArchiveDatabase.shared.pool()
     }
 
     static func openQueuePool(at fileURL: URL) throws -> DatabasePool {

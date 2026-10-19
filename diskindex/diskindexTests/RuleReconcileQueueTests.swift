@@ -119,7 +119,9 @@ struct RuleReconcileQueueTests {
         #expect(store.nameChecks.value == baseline)
     }
 
-    @Test func ruleReconcileClearsColumnCacheWhileActive() async throws {
+    /// bug.0.4.088 (README „Ausblenden an Ort und Stelle“, Nutzer 18.10.; vorher: Warteschlange leerte die Spalten):
+    /// Während der Warteschlange bleibt die Spalte stehen, nur der jetzt ausgeschlossene Eintrag ist sofort weg.
+    @Test func ruleReconcileHidesInPlaceWhileActive() async throws {
         let (app, store, medium) = try await appWithHiddenFile()
         app.mainWindowDestination = .columnBrowser
         app.columnBrowserState.selectedMediumID = medium.uuid
@@ -129,9 +131,29 @@ struct RuleReconcileQueueTests {
         try #require(loaded)
 
         await store.setReconcileBatchDelay(.milliseconds(200))
+        let before = app.indexRepository.children(mediumID: medium.uuid, path: []).map(\.name)
+        try #require(before.contains(".bericht-versteckt.pdf"))
         app.appSettings.ignoreHiddenFiles = true
         try #require(app.isRuleReconcileQueueActive)
-        #expect(app.indexRepository.children(mediumID: medium.uuid, path: []).isEmpty)
+        let during = app.indexRepository.children(mediumID: medium.uuid, path: []).map(\.name)
+        #expect(during == before.filter { $0 != ".bericht-versteckt.pdf" }, "Spalte während der Warteschlange: \(during)")
+        #expect(!app.indexRepository.isLoading(mediumID: medium.uuid, path: []))
+        await app.waitForRuleReconcileIdle()
+    }
+
+    /// bug.0.4.088: Suchtreffer, die die neue Regel ausschließt, verschwinden sofort (Warteschlange läuft noch).
+    @Test func searchHitHiddenInPlaceWhileQueueActive() async throws {
+        let (app, store, _) = try await appWithHiddenFile()
+        await app.runSearch()
+        await app.waitForSearchCount()
+        let before = app.searchMatch.items.map(\.name)
+        try #require(before.contains(".bericht-versteckt.pdf"), "Treffer: \(before)")
+        let countBefore = try #require(app.searchMatch.itemCount)
+        await store.setReconcileBatchDelay(.milliseconds(200))
+        app.appSettings.ignoreHiddenFiles = true
+        try #require(app.isRuleReconcileQueueActive)
+        #expect(app.searchMatch.items.map(\.name) == before.filter { $0 != ".bericht-versteckt.pdf" })
+        #expect(app.searchMatch.itemCount == countBefore - 1)
         await app.waitForRuleReconcileIdle()
     }
 

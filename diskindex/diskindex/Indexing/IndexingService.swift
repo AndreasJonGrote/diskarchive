@@ -29,6 +29,7 @@ final class IndexingService {
     private var startsWaitingForCancel: [UUID: (volume: VolumeInfo, fromScratch: Bool)] = [:]
     /// Abgleich-Lauf (bug.0.4.014), damit `cancel` wie `DirectoryIndexer.stop` endet.
     private var runFullReconcile: [UUID: Bool] = [:]
+    /// Lauf zu Ende: Live-Überwachung starten (nach Erfolg und, bug.0.4.084, nach einem gescheiterten Lauf).
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
 
     fileprivate func setRunFullReconcile(_ mediumUUID: UUID, _ value: Bool) {
@@ -198,7 +199,18 @@ final class IndexingService {
             tasks[id] = nil
         }
         pauseIDs.removeAll()
+        // bug.0.4.085 a): kein wartender Start läuft nach dem Beenden noch an.
+        startsWaitingForCancel.removeAll()
     }
+
+    /// bug.0.4.085 a): Medium wird ausgehängt – ein wartender Start (mit altem Volume) läuft nicht mehr an.
+    func discardWaitingStart(mediumUUID: UUID) {
+        startsWaitingForCancel[mediumUUID] = nil
+    }
+
+    #if DEBUG
+    func hasWaitingStartForTesting(_ mediumUUID: UUID) -> Bool { startsWaitingForCancel[mediumUUID] != nil }
+    #endif
 
     func cancel(mediumUUID: UUID) async {
         let task = tasks[mediumUUID]
@@ -256,6 +268,12 @@ final class IndexingService {
         while tasks[mediumUUID] != nil {
             try? await Task.sleep(for: .milliseconds(20))
         }
+    }
+
+    private func watchesAfterFailedRun(_ mediumUUID: UUID) -> Bool {
+        guard appState.featureAccess.canWriteIndex, !isPaused(mediumUUID),
+              let medium = appState.medium(with: mediumUUID) else { return false }
+        return medium.connectionStatus == .connected && medium.decision == .index && medium.allowIndexing
     }
 
     private func isPaused(_ mediumUUID: UUID) -> Bool {
@@ -344,6 +362,13 @@ final class IndexingService {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
         if outcome.status == .indexed, !outcome.interrupted, let volume = runVolumes[mediumUUID] {
+            onRunIndexed?(mediumUUID, volume)
+        } else if outcome.status == .error || (outcome.failureReason != nil && !outcome.interrupted),
+                  watchesAfterFailedRun(mediumUUID), let volume = runVolumes[mediumUUID] {
+            // bug.0.4.084 (README: beim Anschließen Lauf und sofort Live-Überwachung): Ein gescheiterter Lauf lässt die
+            // Überwachung nicht aus, solange das Medium angeschlossen, „Indizieren: Ja“, nicht pausiert und nicht
+            // gesperrt ist. Abbrüche (Pause, Sperre, Aushängen, Beenden) kommen hier nicht an: ihr Token ist weg.
+            DiskIndexLog.shared.record(.index, .info, "überwachung nach fehler medium=\(mediumUUID)")
             onRunIndexed?(mediumUUID, volume)
         }
         if outcome.status == .indexed, !outcome.interrupted {

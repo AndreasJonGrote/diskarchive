@@ -135,7 +135,10 @@ struct NaturalOrderEquivalenceTests {
             return try String.fetchAll(db, sql: "SELECT s FROM t ORDER BY s COLLATE \"\(NaturalOrder.collationName)\"")
         }
         try #require(sqlOrder.count == expected.count)
-        let firstDifference = zip(sqlOrder, expected).enumerated().first { $0.element.0 != $0.element.1 }
+        // bug.0.4.085 d): Bytes vergleichen; Swift-`==` auf Strings sieht NFC und NFD als gleich an.
+        let firstDifference = zip(sqlOrder, expected).enumerated().first {
+            !$0.element.0.utf8.elementsEqual($0.element.1.utf8)
+        }
         #expect(firstDifference == nil, "erste Abweichung: \(String(describing: firstDifference))")
     }
 }

@@ -30,7 +30,7 @@ nonisolated enum ReportScrubber {
 
     /// Stapelzeile (todo.0.4.023): Swift-Symbole („$s9diskindex…“, „$S…“) bleiben lesbar, alles andere wie `text`.
     /// Nur für `crash.stack`; in Protokoll, Aktionen und Signatur bleibt „$“ ungewöhnlich (Name → Profil).
-    /// bug.0.4.078: Nur echte Stapelrahmen (`backtrace_symbols`: Nummer, Modul, Adresse) behalten ihre Symbole;
+    /// bug.0.4.078: Nur echte Stapelrahmen (`backtrace_symbols`: Nummer, Modul, Adresse) behalten ihr Symbol;
     /// jede andere Zeile im Stapel (Protokollzeilen nach „CRASH signal=“) geht über die normale Schwärzung.
     static func stackLine(_ input: String) -> String {
         stackLine(input, pathPattern: defaultPathPattern)
@@ -40,29 +40,18 @@ nonisolated enum ReportScrubber {
     /// Protokollzeilen beginnen mit dem Datum („2026-10-18 …“) und passen nicht.
     static let stackFramePattern = #"^[0-9]+ +[^\n]+? +0x[0-9a-fA-F]+ "#
 
+    /// bug.0.4.082: Die Ausnahme gilt nur für **ein** Symbol direkt nach der Adresse; Kopf und Rest der Zeile (weitere
+    /// „$S…“, Namen, Pfade) gehen über die normale Schwärzung.
     static func stackLine(_ input: String, pathPattern: String) -> String {
-        guard input.range(of: stackFramePattern, options: .regularExpression) != nil,
-              let expression = try? NSRegularExpression(pattern: #"\$[sS][0-9A-Za-z_]+"#) else {
+        guard let expression = try? NSRegularExpression(pattern: stackFramePattern + #"(\$[sS][0-9A-Za-z_]+)"#),
+              let match = expression.firstMatch(in: input, range: NSRange(input.startIndex..., in: input)),
+              let whole = Range(match.range, in: input),
+              let symbol = Range(match.range(at: 1), in: input) else {
             return text(input, pathPattern: pathPattern)
         }
-        // Platzhalter aus gewöhnlichen Zeichen; steht er in einem Pfad oder Namen, verschwindet er mit dessen Profil.
-        let marker = "ZZSWIFTSYMBOLZZ"
-        var symbols: [String] = []
-        var masked = ""
-        var cursor = input.startIndex
-        for match in expression.matches(in: input, range: NSRange(input.startIndex..., in: input)) {
-            guard let range = Range(match.range, in: input) else { continue }
-            masked += input[cursor..<range.lowerBound]
-            masked += "\(marker)\(symbols.count)\(marker)"
-            symbols.append(String(input[range]))
-            cursor = range.upperBound
-        }
-        masked += input[cursor...]
-        var result = text(masked, pathPattern: pathPattern)
-        for (index, symbol) in symbols.enumerated().reversed() {
-            result = result.replacingOccurrences(of: "\(marker)\(index)\(marker)", with: symbol)
-        }
-        return result
+        let head = String(input[..<symbol.lowerBound])
+        let rest = String(input[whole.upperBound...])
+        return text(head, pathPattern: pathPattern) + String(input[symbol]) + text(rest, pathPattern: pathPattern)
     }
 
     private static func stripQuotes(_ text: String) -> String {

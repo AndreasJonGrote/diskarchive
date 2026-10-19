@@ -59,7 +59,10 @@ struct ColumnBrowserView: View {
         let keepFolders = appState.appSettings.showFoldersRegardlessOfFilter
         var columns: [ColumnBrowserFolderColumn] = (0..<baseDepth).map { columnIndex in
             let path = Array(stack.prefix(columnIndex))
-            let id = path.isEmpty ? "root" : path.joined(separator: "\u{0}")
+            // bug.0.4.090: Medium in der Kennung. Vorher hieß die Wurzel jedes Mediums „root“: ihre Ansicht blieb beim
+            // Medienwechsel stehen und meldete das Ende eines Ladehinweises für das neue Medium – der Hinweis des alten
+            // blieb hängen (Wurzel füllte die Restbreite, keine Trennlinie, keine Details), bis die Ansicht neu entstand.
+            let id = ([mediumID.uuidString] + path).joined(separator: "\u{0}")
             let items = appState.indexRepository.children(mediumID: mediumID, path: path)
             let openFolder = columnIndex < stack.count ? stack[columnIndex] : nil
             let filtered = ColumnBrowserFiltering.visibleItems(
@@ -320,8 +323,13 @@ struct ColumnBrowserView: View {
         GeometryReader { geometry in
             let showDetail: Bool = {
                 guard let medium else { return false }
+                // bug.0.4.090/087: nur die Spalte der Auswahl zählt (README „Detail-Spalte nur bei gewählter Datei
+                // oder Mehrfachauswahl“); ein Ladehinweis in einer anderen Spalte blendet die Details nicht aus.
+                let selectedColumn = folderColumns.first {
+                    $0.columnIndex == appState.columnBrowserState.selection.focusColumnIndex
+                }
                 return shouldShowDetailColumn(medium: medium, in: geometry, folderColumns: folderColumns)
-                    && !folderColumns.contains(where: { columnShowsStatusRestFill(medium: medium, column: $0) })
+                    && !(selectedColumn.map { columnShowsStatusRestFill(medium: medium, column: $0) } ?? false)
             }()
             let folderWidth = totalFolderColumnsWidth(depth: folderColumns.count)
             let detailWidth = showDetail
@@ -336,7 +344,7 @@ struct ColumnBrowserView: View {
                     HStack(alignment: .top, spacing: 0) {
                         if let medium {
                             ForEach(folderColumns) { column in
-                                folderColumn(medium: medium, column: column)
+                                folderColumn(medium: medium, column: column, isLast: column.id == folderColumns.last?.id)
                                     .id(column.id)
                             }
 
@@ -434,18 +442,16 @@ struct ColumnBrowserView: View {
         return false
     }
 
-    private func folderColumn(medium: Medium, column: ColumnBrowserFolderColumn) -> some View {
+    private func folderColumn(medium: Medium, column: ColumnBrowserFolderColumn, isLast: Bool) -> some View {
         let items = column.filteredItems
         let header = columnHeaderBase(medium: medium, column: column)
         let columnWidth = folderColumnWidth(for: column.columnIndex)
-        let ruleReconcileLoading = appState.isRuleReconcileQueueActive && column.special == nil
+        // bug.0.4.088: Die Regel-Warteschlange zeigt keinen Ladezustand; die Spalte bleibt stehen (ausgeblendet wird
+        // an Ort und Stelle über `IndexRepository.scope`).
         let loadingContents = appState.indexRepository.isLoading(mediumID: medium.id, path: column.path)
-            || ruleReconcileLoading
         let progress = appState.indexRepository.loadingProgress(mediumID: medium.id, path: column.path)
         let pendingContents = showsPendingIndexingContent(in: column, medium: medium) && !loadingContents
         let statusRest = columnShowsStatusRestFill(medium: medium, column: column)
-        let listItems = ruleReconcileLoading ? [] as [IndexedItem] : items
-        let ruleReconcileHintTiming = DelayedLoadingTiming(delayBeforeHint: .zero, minimumHintVisible: .milliseconds(400))
 
         return VStack(alignment: .leading, spacing: 0) {
             ColumnBrowserColumnHeader(title: header, showsLoadingContents: false)
@@ -471,12 +477,11 @@ struct ColumnBrowserView: View {
                     ColumnFolderContents(
                         mediumID: medium.id,
                         path: column.path,
-                        filteredItems: listItems,
+                        filteredItems: items,
                         selectedIDs: selectedIDs,
                         isLoading: loadingContents,
-                        loaded: ruleReconcileLoading ? 0 : progress.loaded,
-                        total: ruleReconcileLoading ? 0 : progress.total,
-                        loadingTiming: ruleReconcileLoading ? ruleReconcileHintTiming : .standard,
+                        loaded: progress.loaded,
+                        total: progress.total,
                         onLoadingHintVisible: { visible in
                             publishLoadingHint(visible, medium: medium, path: column.path)
                         },
@@ -519,26 +524,30 @@ struct ColumnBrowserView: View {
             pruneSelectionToVisibleItems(in: column, items: items, mediumID: medium.id)
         }
         .overlay(alignment: .trailing) {
-            if !statusRest {
+            // bug.0.4.089: Trennlinie in jedem Zustand (auch Ladehinweis/Statusfläche); nur am rechten Ende einer
+            // letzten Spalte, die die Restbreite füllt, folgt keine Spalte. Ziehen nur bei fester Breite.
+            if !statusRest || !isLast {
                 HStack(spacing: 0) {
-                    ColumnResizeHandle(
-                        committedWidth: folderColumnWidthBinding,
-                        onPreviewWidthChange: { preview in
-                            var transaction = Transaction()
-                            transaction.disablesAnimations = true
-                            withTransaction(transaction) {
-                                if let preview {
-                                    let next = (columnIndex: column.columnIndex, width: preview)
-                                    if columnResizePreview?.columnIndex != next.columnIndex
-                                        || columnResizePreview?.width != next.width {
-                                        columnResizePreview = next
+                    if !statusRest {
+                        ColumnResizeHandle(
+                            committedWidth: folderColumnWidthBinding,
+                            onPreviewWidthChange: { preview in
+                                var transaction = Transaction()
+                                transaction.disablesAnimations = true
+                                withTransaction(transaction) {
+                                    if let preview {
+                                        let next = (columnIndex: column.columnIndex, width: preview)
+                                        if columnResizePreview?.columnIndex != next.columnIndex
+                                            || columnResizePreview?.width != next.width {
+                                            columnResizePreview = next
+                                        }
+                                    } else if columnResizePreview?.columnIndex == column.columnIndex {
+                                        columnResizePreview = nil
                                     }
-                                } else if columnResizePreview?.columnIndex == column.columnIndex {
-                                    columnResizePreview = nil
                                 }
                             }
-                        }
-                    )
+                        )
+                    }
                     Rectangle()
                         .fill(DesignColor.divider)
                         .frame(width: DesignBorder.width)

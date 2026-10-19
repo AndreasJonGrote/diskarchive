@@ -204,27 +204,36 @@ struct SearchSortPagingTests {
         #expect(app.searchState.sort == SearchSort(column: .path, direction: .descending))
     }
 
-    /// REPORT 131: ohne Begriff stammen die Kacheln aus allen Treffern, nicht aus der ersten Seite.
-    @Test func mediumTilesCoverMediaBeyondTheFirstPage() async throws {
+    /// bug.0.4.092 (Nutzer 18.10., ersetzt REPORT 131): Medien erscheinen nur als Namenstreffer eines Suchbegriffs.
+    /// Reine Filtersuche (nur „Ordner“, auch mit Medienauswahl) → keine Kacheln, die Tabelle zeigt die Ordner;
+    /// Suchbegriff gleich dem Mediennamen → Kachel. Die Trefferzahl zählt nur Objekte.
+    @Test func filterOnlySearchShowsNoMediumTiles() async throws {
         let (app, store) = try await sortRig()
         defer { app.prepareForTermination() }
         let second = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "ZWEITES", type: .usb, decision: .index)
         try await store.upsertMedium(second)
         try await store.applyDirectories(
             mediumUUID: second.uuid,
-            batches: [(parentID: nil, path: "/", depth: 1, entries: [ScannedEntry(name: "zzz-ende.txt", isFolder: false, sizeBytes: 1)], finalize: false)],
+            batches: [(parentID: nil, path: "/", depth: 1, entries: [ScannedEntry(name: "Ablage", isFolder: true)], finalize: false)],
             seenAt: Date()
         )
         try await store.completeLayer(mediumUUID: second.uuid, depth: 1)
         await app.loadStoredMedia()
-        var filters = SearchFilters()
-        filters.fileTypes = [.text]
-        let match = await SearchIndex.matching(
-            store: store, query: "", filters: filters, media: app.indexedMedia, maxDepth: nil, withCount: false
-        )
-        try #require(match.items.count == SearchIndex.pageLimit)
-        #expect(!match.items.contains { $0.mediumID == second.uuid }, "Testvoraussetzung: zweites Medium nicht auf der Seite")
-        #expect(match.media.contains { $0.id == second.uuid }, "Kachel des zweiten Mediums fehlt: \(match.media.map(\.name))")
+        var folders = SearchFilters()
+        folders.fileTypes = [.folder]
+        let onlyFilter = await SearchIndex.matching(store: store, query: "", filters: folders, media: app.indexedMedia, maxDepth: nil)
+        #expect(onlyFilter.media.isEmpty, "Kacheln bei reiner Filtersuche: \(onlyFilter.media.map(\.name))")
+        #expect(onlyFilter.items.map(\.name) == ["Ablage"])
+        #expect(onlyFilter.totalCount == 1)
+
+        var chosen = folders
+        chosen.selectAllMedia = false
+        chosen.mediumIDs = [second.uuid]
+        let withMedium = await SearchIndex.matching(store: store, query: "", filters: chosen, media: app.indexedMedia, maxDepth: nil)
+        #expect(withMedium.media.isEmpty, "Kacheln bei Medienauswahl ohne Begriff: \(withMedium.media.map(\.name))")
+
+        let byName = await SearchIndex.matching(store: store, query: "zweites", filters: SearchFilters(), media: app.indexedMedia, maxDepth: nil)
+        #expect(byName.media.map(\.id) == [second.uuid])
     }
 
     /// REPORT 130: 600 Dateien `Rechnung_…` füllen die erste Seite; der Ordner „Rechnungen“ erscheint trotzdem.
@@ -267,27 +276,52 @@ extension WindowTestGroup {
 struct SearchSortHeaderWindowTests {
     private let size = CGSize(width: 1000, height: 500)
 
-    private func headerPoint(_ column: SearchSortColumn) -> CGPoint {
-        let name = ObjectTableColumns(totalWidth: size.width).name
-        let left = ObjectTableColumns.horizontalPadding + ObjectTableColumns.icon
-        let x: CGFloat
+    /// bug.0.4.081: Kopfzellen aus der echten Inhaltsbreite (ohne Rollbalken im dauerhaften Stil, wie mit Maus);
+    /// vorher aus der Fensterbreite – im dauerhaften Stil lag „Status“ 15 pt weiter links als angenommen.
+    private func headerCell(_ column: SearchSortColumn, in window: NSWindow) -> ClosedRange<CGFloat> {
+        let contentWidth = Self.tableScroll(in: window)?.contentView.bounds.width ?? size.width
+        let widths = ObjectTableColumns.cellWidths(contentWidth: contentWidth - 2 * ObjectTableColumns.horizontalPadding)
+        let index: Int
         switch column {
-        case .name: x = left + 12
-        case .date: x = left + name + 12
-        case .medium: x = left + name + ObjectTableColumns.date + 12
-        case .path: x = left + name + ObjectTableColumns.date + ObjectTableColumns.medium + 12
-        case .status: x = size.width - ObjectTableColumns.horizontalPadding - 12
+        case .name: index = 1
+        case .date: index = 2
+        case .medium: index = 3
+        case .path: index = 4
+        case .status: index = 5
         }
+        let left = ObjectTableColumns.horizontalPadding + widths.prefix(index).reduce(0, +)
+        // Regel 20: ohne ungeprüften Indexzugriff (es sind immer sechs Zellen).
+        let width = widths.indices.contains(index) ? widths[index] : 0
+        return left...(left + width)
+    }
+
+    /// Klickpunkt wie bisher: 12 pt hinter dem Textanfang, bei „Status“ (rechtsbündig) 12 pt vor dem rechten Rand.
+    private func headerPoint(_ column: SearchSortColumn, in window: NSWindow) -> CGPoint {
+        let cell = headerCell(column, in: window)
+        let x = column == .status ? cell.upperBound - 12 : cell.lowerBound + 12
         // Kopfzeile: 10 pt Innenabstand oben, Schrift 12 pt.
         return CGPoint(x: x, y: 18)
     }
 
-    private func open(_ app: AppState) async -> PixelProbe.Session {
+    static func tableScroll(in window: NSWindow) -> NSScrollView? {
+        guard let root = window.contentView else { return nil }
+        var best: NSScrollView?
+        func walk(_ view: NSView) {
+            if let scroll = view as? NSScrollView, scroll.frame.width * scroll.frame.height > (best.map { $0.frame.width * $0.frame.height } ?? 0) {
+                best = scroll
+            }
+            for sub in view.subviews { walk(sub) }
+        }
+        walk(root)
+        return best
+    }
+
+    private func open(_ app: AppState, dark: Bool = false) async -> PixelProbe.Session {
         let session = PixelProbe.open(
-            SearchView().environment(app).environment(\.colorScheme, .light)
-                .frame(width: size.width, height: size.height).background(Color.white),
+            SearchView().environment(app).environment(\.colorScheme, dark ? .dark : .light)
+                .frame(width: size.width, height: size.height).background(dark ? Color.black : Color.white),
             size: size,
-            appearance: .aqua
+            appearance: dark ? .darkAqua : .aqua
         )
         await PixelProbe.settleOpenWindow(session)
         return session
@@ -301,7 +335,7 @@ struct SearchSortHeaderWindowTests {
         let loaded = await waitUntil(timeout: 10) { app.searchMatch.items.count == SearchIndex.pageLimit }
         try #require(loaded, "Suche im Fenster lief nicht")
         #expect(app.searchMatch.items.first?.name == "treffer-000.txt")
-        session.click(at: headerPoint(.date), settle: 0.2)
+        session.click(at: headerPoint(.date, in: session.window), settle: 0.2)
         #expect(app.searchState.sort == SearchSort(column: .date, direction: .ascending), "Klick hat nicht umgeschaltet")
         // Ältester Treffer liegt jenseits der ersten Namens-Seite: nur eine neue Abfrage bringt ihn nach oben.
         let resorted = await waitUntil(timeout: 10) { app.searchMatch.items.first?.name == "treffer-599.txt" }
@@ -319,9 +353,9 @@ struct SearchSortHeaderWindowTests {
         let few = await waitUntil(timeout: 10) { app.searchMatch.itemCount == 100 }
         try #require(few, "Trefferzahl für „treffer-1“ kam nicht")
         await PixelProbe.settleOpenWindow(session)
-        session.click(at: headerPoint(.path), settle: 0.2)
+        session.click(at: headerPoint(.path, in: session.window), settle: 0.2)
         #expect(app.searchState.sort == SearchSort(column: .path, direction: .ascending), "Klick traf den Kopf „Pfad“ nicht")
-        session.click(at: headerPoint(.status), settle: 0.2)
+        session.click(at: headerPoint(.status, in: session.window), settle: 0.2)
         #expect(app.searchState.sort == SearchSort(column: .status, direction: .ascending), "Klick traf den Kopf „Status“ nicht")
 
         // Jetzt 601 Treffer: die Sortierung nach Status fällt auf Name zurück, dieselben Klicks schalten nicht um.
@@ -330,12 +364,38 @@ struct SearchSortHeaderWindowTests {
         let many = await waitUntil(timeout: 10) { app.searchMatch.itemCount == 601 && app.searchState.sort == SearchSort() }
         try #require(many, "601 Treffer bzw. Rückfall auf Name kamen nicht: \(app.searchState.sort)")
         await PixelProbe.settleOpenWindow(session)
-        session.click(at: headerPoint(.path), settle: 0.2)
-        session.click(at: headerPoint(.status), settle: 0.2)
+        session.click(at: headerPoint(.path, in: session.window), settle: 0.2)
+        session.click(at: headerPoint(.status, in: session.window), settle: 0.2)
         #expect(app.searchState.sort == SearchSort(), "deaktivierter Kopf hat umgeschaltet: \(app.searchState.sort)")
         // Gegenprobe am selben Fenster: der Kopf „Name“ bleibt klickbar.
-        session.click(at: headerPoint(.name), settle: 0.2)
+        session.click(at: headerPoint(.name, in: session.window), settle: 0.2)
         #expect(app.searchState.sort == SearchSort(column: .name, direction: .descending))
+    }
+
+    /// bug.0.4.081: Jeder sortierbare Kopf schaltet an linkem Rand (+4 pt), Mitte und rechtem Rand (−4 pt) seiner
+    /// Spalte (ganze Spaltenbreite klickbar), hell und dunkel, im Stil dieses Rechners.
+    @Test(arguments: [false, true])
+    func everySortableHeaderTogglesAcrossItsWholeWidth(dark: Bool) async throws {
+        let (app, _) = try await sortRig()
+        defer { app.prepareForTermination() }
+        app.searchState.query = "treffer-1"
+        app.searchState.submittedQuery = "treffer-1"
+        let session = await open(app, dark: dark)
+        defer { session.close() }
+        let few = await waitUntil(timeout: 10) { app.searchMatch.itemCount == 100 }
+        try #require(few, "Trefferzahl für „treffer-1“ kam nicht")
+        await PixelProbe.settleOpenWindow(session)
+        var misses: [String] = []
+        for column in [SearchSortColumn.name, .date, .medium, .path, .status] {
+            let cell = headerCell(column, in: session.window)
+            for (label, x) in [("links", cell.lowerBound + 4), ("Mitte", (cell.lowerBound + cell.upperBound) / 2), ("rechts", cell.upperBound - 4)] {
+                let before = app.searchState.sort
+                session.click(at: CGPoint(x: x, y: 18), settle: 0.15)
+                let after = app.searchState.sort
+                if after == before || after.column != column { misses.append("\(column) \(label) x=\(Int(x))") }
+            }
+        }
+        #expect(misses.isEmpty, "nicht getroffen: \(misses)")
     }
 }
 }

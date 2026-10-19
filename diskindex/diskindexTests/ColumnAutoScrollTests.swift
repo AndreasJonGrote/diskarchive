@@ -24,11 +24,32 @@ struct ColumnAutoScrollTests {
     @Test func liveInvalidateDoesNotScrollDetailColumn() async throws {
         try await ColumnAutoScrollTestSupport.runLiveInvalidatePreservesScrollOffset()
     }
+
+    /// bug.0.4.087: wie in der App mit echtem Store (die Ansicht lädt ihre Spalten selbst, Regel 18).
+    @Test func selectingFileScrollsDetailColumnIntoViewWithStore() async throws {
+        try await ColumnAutoScrollTestSupport.runStoreSelectionScrollsTrailing(byClick: false)
+    }
+
+    /// bug.0.4.087: Klick in die Zeile (echter Weg mit Fokus der Spalte) → Details-Spalte ganz sichtbar.
+    @Test func clickingFileScrollsDetailColumnIntoView() async throws {
+        try await ColumnAutoScrollTestSupport.runStoreSelectionScrollsTrailing(byClick: true)
+    }
+
+    /// bug.0.4.087/090: Eine andere Spalte (Wurzel) hängt im Ladehinweis wie beim Nutzer nach Ignorieren/Freigeben.
+    /// Die Details-Spalte richtet sich nur nach der Spalte der Auswahl: sie erscheint und wird eingescrollt.
+    @Test func clickingFileShowsDetailEvenIfAnotherColumnShowsLoadingHint() async throws {
+        try await ColumnAutoScrollTestSupport.runStoreSelectionScrollsTrailing(byClick: true, stuckRootHint: true)
+    }
+
+    /// bug.0.4.087: dauerhafte Rollbalken (Maus angeschlossen, wie beim Nutzer) – Klick scrollt trotzdem.
+    @Test func clickingFileScrollsDetailColumnIntoViewWithLegacyScrollers() async throws {
+        try await ColumnAutoScrollTestSupport.runStoreSelectionScrollsTrailing(byClick: true, legacyScrollers: true)
+    }
 }
 }
 
 @MainActor
-private enum ColumnAutoScrollTestSupport {
+enum ColumnAutoScrollTestSupport {
     static func runOverflowSelectionScrollsTrailing() async throws {
         let app = deepColumnApp()
         // 4 Ordnerspalten à 230 pt = 920 pt: 1040 − 200 (Seitenleiste) lässt echten Überlauf ohne Detail-Spalte (199).
@@ -63,6 +84,89 @@ private enum ColumnAutoScrollTestSupport {
             return detailTrailingFlushWithViewport(scroll)
         }
         #expect(aligned)
+    }
+
+    /// Baum A/B/C mit Dateien im Store; Ansicht lädt selbst. Datei wählen → Details-Spalte ganz sichtbar.
+    static func runStoreSelectionScrollsTrailing(
+        byClick: Bool, legacyScrollers: Bool = false, stuckRootHint: Bool = false
+    ) async throws {
+        let fileCount = 5
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-autoscroll-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
+        var stored = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Tief", decision: .index, indexStatus: .indexed, completedDepth: 5)
+        try await store.upsertMedium(stored)
+        stored = try #require(try await store.medium(uuid: stored.uuid))
+        var parent: Int64?
+        for (depth, name) in ["A", "B", "C"].enumerated() {
+            try await store.applyDirectory(
+                mediumUUID: stored.uuid, parentID: parent,
+                entries: [ScannedEntry(name: name, isFolder: true)] + (depth == 0 ? [] : [ScannedEntry(name: "x\(depth).txt", isFolder: false, sizeBytes: 1)]),
+                seenAt: Date()
+            )
+            let rows = try await store.children(mediumUUID: stored.uuid, parentID: parent)
+            parent = try #require(rows.first { $0.name == name }).id
+        }
+        try await store.applyDirectory(
+            mediumUUID: stored.uuid, parentID: parent,
+            entries: (1...fileCount).map { ScannedEntry(name: "ziel\($0).txt", isFolder: false, sizeBytes: 1, modifiedAt: Date()) },
+            seenAt: Date()
+        )
+        let app = AppState()
+        app.attach(store: store)
+        defer { app.prepareForTermination() }
+        await app.loadStoredMedia()
+        app.columnBrowserState.selectedMediumID = stored.uuid
+        app.columnBrowserState.pathStack = ["A", "B", "C"]
+        let size = CGSize(width: 1040, height: 600)
+        let session = PixelProbe.open(
+            ColumnBrowserView().environment(app).environment(\.colorScheme, .light).frame(width: size.width, height: size.height),
+            size: size,
+            appearance: .aqua
+        )
+        defer { session.close() }
+        await PixelProbe.settleOpenWindow(session)
+        let loaded = await waitUntil {
+            !app.indexRepository.children(mediumID: stored.uuid, path: ["A", "B", "C"]).isEmpty
+        }
+        try #require(loaded, "Spalte C nicht geladen")
+        try await Task.sleep(for: .milliseconds(600))
+        if legacyScrollers {
+            for scroll in allViews(of: NSScrollView.self, in: session.window.contentView) { scroll.scrollerStyle = .legacy }
+            session.window.contentView?.layoutSubtreeIfNeeded()
+        }
+        if stuckRootHint {
+            // Zustand des Nutzers: der Ladehinweis der Wurzelspalte wurde nie zurückgenommen.
+            app.columnBrowserState.setLoadingHintVisible(true, mediumID: stored.uuid, path: [])
+        }
+        scrollMainHorizontalToLeading(in: session.window)
+        let atLeading = await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            guard let scroll = mainColumnHorizontalScroll(in: session.window) else { return false }
+            return scroll.documentVisibleRect.minX <= 1.5
+        }
+        try #require(atLeading, "nicht am linken Rand")
+        let file = try #require(app.indexRepository.children(mediumID: stored.uuid, path: ["A", "B", "C"]).first { !$0.isFolder })
+        if byClick {
+            // Erste Zeile der Spalte C (Index 3, links sichtbar bis zum Fensterrand): Kopf, dann Zeilen ab oben.
+            let columnLeft = DesignSpacing.columnBrowserSidebarWidth + 3 * DesignSpacing.columnBrowserColumnWidth
+            let point = CGPoint(x: min(columnLeft + 40, size.width - 20), y: firstRowY)
+            session.click(at: point, settle: 0.05)
+            let selected = await waitUntil(timeout: 3) { app.columnBrowserState.selection.ids == [file.id] }
+            try #require(selected, "Klick bei \(point) wählte die Datei nicht: \(app.columnBrowserState.selection.ids)")
+        } else {
+            app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
+        }
+        let aligned = await waitUntil(timeout: 3) {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            session.window.display()
+            guard let scroll = mainColumnHorizontalScroll(in: session.window) else { return false }
+            return detailTrailingFlushWithViewport(scroll) && scroll.documentVisibleRect.minX > 1.5
+        }
+        let scroll = mainColumnHorizontalScroll(in: session.window)
+        #expect(aligned, "Details-Spalte nicht in die Sicht gescrollt: sichtbar \(String(describing: scroll?.documentVisibleRect)), Dokument \(String(describing: scroll?.documentView?.frame.width))")
     }
 
     static func runSelectionWhenAlreadyFitKeepsLeadingEdge() async throws {
@@ -116,6 +220,20 @@ private enum ColumnAutoScrollTestSupport {
         session.window.display()
         let after = scroll.documentVisibleRect.minX
         #expect(abs(anchor - after) <= 1)
+    }
+
+    /// Mitte der ersten Zeile einer Spalte (pt von oben, im Fenster abgetastet: Zeile ab 56 pt).
+    static let firstRowY: CGFloat = 62
+
+    static func allViews<T: NSView>(of type: T.Type, in root: NSView?) -> [T] {
+        guard let root else { return [] }
+        var found: [T] = []
+        func walk(_ view: NSView) {
+            if let match = view as? T { found.append(match) }
+            for sub in view.subviews { walk(sub) }
+        }
+        walk(root)
+        return found
     }
 
     static func detailTrailingFlushWithViewport(_ scroll: NSScrollView) -> Bool {

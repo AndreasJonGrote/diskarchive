@@ -75,6 +75,8 @@ struct ColumnFolderContents<Row: View>: View {
                     LazyVStack(spacing: 2) {
                         ForEach(filteredItems) { item in
                             row(item)
+                                // bug.0.4.088: ausgeblendete Einträge gleiten kurz weg, wieder freigegebene erscheinen.
+                                .transition(.move(edge: .leading).combined(with: .opacity))
                         }
                     }
                     .padding(.horizontal, 8)
@@ -99,6 +101,12 @@ struct ColumnFolderContents<Row: View>: View {
         }
         .onChange(of: hintVisible) { _, visible in
             onLoadingHintVisible(visible)
+        }
+        // bug.0.4.090: Wechselt die Spalte auf einen anderen Zweig (Fehler, „wird indiziert“) oder verschwindet sie,
+        // während der Ladehinweis steht, bliebe der gemeldete Hinweis sonst für immer stehen (Spalte füllt die
+        // Restbreite, keine Trennlinie, keine Details), bis ein neues Laden ihn zurücknimmt.
+        .onDisappear {
+            onLoadingHintVisible(false)
         }
         .onChange(of: loaded) { _, _ in delayed.updateProgress(loaded: loaded, total: total) }
         .onChange(of: total) { _, _ in delayed.updateProgress(loaded: loaded, total: total) }

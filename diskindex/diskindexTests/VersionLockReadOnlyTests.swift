@@ -407,6 +407,8 @@ struct VersionLockReadOnlyTests {
             databaseWasNewThisLaunch: false
         )
         try #require(!app.versionLockState.isLocked)
+        // bug.0.4.085 b): erst warten, bis der Start aus LiveWiring angekommen ist (Bedingung statt Zeitpunkt).
+        try #require(await waitUntil { rig.service.hasWaitingStartForTesting(id) }, "Start aus LiveWiring kam nicht an")
         // Zweiter Start in derselben Abbruchphase (wie der Koordinator nach dem Entsperren).
         rig.service.start(mediumUUID: id, volume: volume, fromScratch: false)
         await access.open()
@@ -418,6 +420,67 @@ struct VersionLockReadOnlyTests {
         try await Task.sleep(for: .milliseconds(500))
         #expect(!rig.service.isRunActive(id))
         #expect(rig.starts(id) == [false, false])
+    }
+
+    /// Aufbau bis „ein Start wartet auf das Ende eines hängenden Abbruchs“ (Sperre, schnelles Entsperren).
+    @MainActor
+    private func rigWithWaitingStart(name: String) async throws -> (rig: WiredRig, probe: CancelHookProbe, id: UUID, volume: VolumeInfo) {
+        let harness = try await ScanHarness.make()
+        let version = try #require(AppVersion.currentApp())
+        let indexed = StoredMedium(
+            fsType: "apfs", volumeTotalBytes: 1_000, name: name, type: .usb,
+            decision: .index, indexStatus: .indexed, completedDepth: 1
+        )
+        try await harness.store.upsertMedium(indexed)
+        let volume = testVolume(path: "/Volumes/\(name)", name: name)
+        try await harness.store.recordIdentity(mediumUUID: indexed.uuid, volume.identity)
+        let inner = MemoryVolume(mountPath: "/Volumes/\(name)")
+        inner.file("ordner/a.txt")
+        let access = RunGateAccess([inner]) { $0 == "/Volumes/\(name)" }
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: access, app: app)
+        let probe = CancelHookProbe()
+        rig.service.cancelBeforeAwaitHookForTesting = { [probe] _ in await probe.gate.wait() }
+        let id = indexed.uuid
+        await rig.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { await access.heldCount() >= 1 })
+        try VersionLockEvaluator.applyMutations(
+            VersionLockSettingsMutations(setFirstRunAt: Date().addingTimeInterval(-100 * 24 * 60 * 60), firstRunFresh: false),
+            pool: harness.store.pool
+        )
+        VersionCheckCoordinator.reevaluateLocal(appState: app, store: harness.store, databaseWasNewThisLaunch: false)
+        try #require(await waitUntil { rig.service.isCancellingForTesting(id) })
+        VersionCheckCoordinator.handleAPIResult(
+            VersionCheckResponse(version: version), appState: app, store: harness.store,
+            databaseWasNewThisLaunch: false
+        )
+        try #require(!app.versionLockState.isLocked)
+        await access.open()
+        // Der Nachholer aus LiveWiring wartet jetzt auf das Ende des Abbruchs.
+        try #require(await waitUntil { rig.service.hasWaitingStartForTesting(id) })
+        return (rig, probe, id, volume)
+    }
+
+    /// bug.0.4.085 a): Medium wird ausgehängt, während ein Start auf den Abbruch wartet → der wartende Start läuft
+    /// nach dem Abbruch nicht mehr an (kein Lauf mit altem Volume).
+    @Test @MainActor func waitingStartIsDiscardedOnUnmount() async throws {
+        let state = try await rigWithWaitingStart(name: "AUSHANG")
+        let unmount = Task { await state.rig.coordinator.handle(.willDisappear(path: state.volume.mountPath)) }
+        #expect(await waitUntil { !state.rig.service.hasWaitingStartForTesting(state.id) }, "wartender Start nicht verworfen")
+        await state.probe.gate.signal()
+        await unmount.value
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(state.rig.starts(state.id) == [false], "Start nach dem Aushängen: \(state.rig.starts(state.id))")
+    }
+
+    /// bug.0.4.085 a): Beenden verwirft wartende Starts.
+    @Test @MainActor func waitingStartIsDiscardedOnTermination() async throws {
+        let state = try await rigWithWaitingStart(name: "ENDE")
+        state.rig.service.cancelAllForTermination()
+        #expect(!state.rig.service.hasWaitingStartForTesting(state.id))
+        await state.probe.gate.signal()
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(state.rig.starts(state.id) == [false], "Start nach dem Beenden: \(state.rig.starts(state.id))")
     }
 
     @Test @MainActor func watcherFlushSkipsWritesWhenLocked() async throws {

@@ -67,8 +67,9 @@ actor IndexStoreV3 {
             .appendingPathComponent("archive.sqlite", isDirectory: false)
     }
 
+    /// Der eine Pool des Prozesses (bug.0.4.086), gemeinsam mit Warteschlange und Fehlerbericht.
     static func openDefault() throws -> IndexStoreV3 {
-        try open(at: storeFileURL())
+        IndexStoreV3(pool: try ArchiveDatabase.shared.pool())
     }
 
     /// Zahl der Medien und der sichtbaren Einträge für Protokoll und Fehlerbericht. „nicht lesbar“ bei fehlender Datei.
@@ -106,6 +107,7 @@ actor IndexStoreV3 {
         let result = try pool.read { db in try String.fetchOne(db, sql: "PRAGMA quick_check") }
         guard DatabaseCare.isHealthy(result) else {
             let url = URL(fileURLWithPath: pool.path)
+            ArchiveDatabase.shared.discard(pool)
             try pool.close()
             try DatabaseCare.quarantine(url)
             throw DatabaseCareError.unhealthy

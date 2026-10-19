@@ -12,6 +12,7 @@ struct SettingsMediaRegistryPanel: View {
     @Environment(AppState.self) private var appState
     @State private var filter: RegistryFilter = .all
     @State private var sort = RegistrySortState()
+    private let scrollerStyle = EffectiveScrollerStyle()
 
     var body: some View {
         if appState.registryMedia.isEmpty {
@@ -36,21 +37,26 @@ struct SettingsMediaRegistryPanel: View {
                 .background(DesignColor.bg)
 
             registryHeader
+                // bug.0.4.091: Kopf so breit wie die Zeilen neben dem reservierten Rollbalken.
+                .padding(.trailing, ScrollbarGutter.width(for: scrollerStyle.style))
 
             ScrollView {
-                if rows.isEmpty {
-                    Text(LayoutCopy.emptyNoMediaTitle)
-                        .font(.system(size: 13))
-                        .foregroundStyle(DesignColor.text.opacity(0.55))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 48)
-                } else {
-                    LazyVStack(spacing: 0) {
-                        ForEach(rows) { medium in
-                            RegistryTableRow(medium: medium, isLast: medium.id == rows.last?.id)
+                Group {
+                    if rows.isEmpty {
+                        Text(LayoutCopy.emptyNoMediaTitle)
+                            .font(.system(size: 13))
+                            .foregroundStyle(DesignColor.text.opacity(0.55))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 48)
+                    } else {
+                        LazyVStack(spacing: 0) {
+                            ForEach(rows) { medium in
+                                RegistryTableRow(medium: medium, isLast: medium.id == rows.last?.id)
+                            }
                         }
                     }
                 }
+                .stableScrollbarGutter()
             }
             .frame(maxHeight: .infinity, alignment: .top)
         }
@@ -81,7 +87,7 @@ struct SettingsMediaRegistryPanel: View {
                 .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
                 .padding(.trailing, 6)
 
-            sortHeader(LayoutCopy.index, column: .indexing)
+            sortHeader(LayoutCopy.index, column: .indexing, alignment: .trailing)
                 .frame(width: RegistryTableLayout.indexingWidth, alignment: .trailing)
 
             Color.clear
@@ -93,8 +99,8 @@ struct SettingsMediaRegistryPanel: View {
         .background(DesignColor.text.opacity(0.05))
     }
 
-    private func sortHeader(_ title: String, column: RegistrySortColumn) -> some View {
-        TableSortHeader(title: title, isActive: sort.column == column) {
+    private func sortHeader(_ title: String, column: RegistrySortColumn, alignment: Alignment = .leading) -> some View {
+        TableSortHeader(title: title, isActive: sort.column == column, alignment: alignment) {
             if sort.column == column {
                 sort.ascending.toggle()
             } else {

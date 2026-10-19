@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// Zwischenspeicher für Ordnerinhalte. Die Spaltenansicht liest synchron, das Laden läuft danach.
 @MainActor
@@ -18,7 +19,18 @@ final class IndexRepository {
     @ObservationIgnored private var pinnedKeys: Set<String> = []
     /// Welcher Lade-Token `loading` für einen Schlüssel gesetzt hat; nur dieser Load räumt ab (bug.0.4.036, 98).
     @ObservationIgnored private var loadingOwner: [String: UInt] = [:]
-    var scope = IndexScope.revealAll
+    /// bug.0.4.088: Wird die Regel enger (Ignorieren, Unsichtbare, Artefakte, Tiefe), verschwinden betroffene Einträge
+    /// sofort aus den geladenen Spalten – an Ort und Stelle, ohne Neuladen und ohne Ladefläche. Die Warteschlange
+    /// (`status = 1`) läuft im Hintergrund; danach liest `markAllStale` die Spalten ohne Leeren neu.
+    var scope = IndexScope.revealAll {
+        didSet {
+            guard scope.maxDepth != oldValue.maxDepth || scope.matcher != oldValue.matcher else { return }
+            hideCachedItems(by: scope)
+        }
+    }
+    /// bug.0.4.088: Während der Regel-Warteschlange trägt die Datenbank noch alte Stände (`status` noch nicht
+    /// umgestellt); neu geladene Spalten werden darum zusätzlich nach `scope` gefiltert. Setzt `AppState`.
+    var hidesLoadsByScope = false
     /// Regel-Warteschlange (234): keine neuen Spalten-Ladevorgänge starten.
     var blocksLoadsForRuleReconcile = false
     private var loading: Set<String> = []
@@ -327,6 +339,10 @@ final class IndexRepository {
                 if loadGenerations[key, default: 0] != loadToken { return }
             }
             guard loadGenerations[key, default: 0] == loadToken else { return }
+            if hidesLoadsByScope {
+                let scope = self.scope
+                accumulated.removeAll { scope.shouldHide(name: $0.name, depth: $0.parentPath.count + 1) }
+            }
             remember(key, accumulated)
             // invalidateAll may race between the guard and remember; drop stale write.
             if loadGenerations[key, default: 0] != loadToken {
@@ -360,8 +376,47 @@ final class IndexRepository {
         loadGenerations[key, default: 0] += 1
     }
 
+    private func hideCachedItems(by scope: IndexScope) {
+        var changed = false
+        for (key, items) in cache {
+            let kept = items.filter { !scope.shouldHide(name: $0.name, depth: $0.parentPath.count + 1) }
+            guard kept.count != items.count else { continue }
+            withAnimation(Self.rowChangeAnimation) { cache[key] = kept }
+            changed = true
+        }
+        if changed { generation += 1 }
+    }
+
+    /// Alle geladenen Spalten veraltet, nicht leer (README „Invalidieren heißt veraltet, nicht leeren“): sie bleiben
+    /// sichtbar und werden im Hintergrund neu gelesen; das Ergebnis ersetzt sie an Ort und Stelle (bug.0.4.088).
+    func markAllStale() {
+        for key in cache.keys {
+            stale.insert(key)
+            bumpLoadGeneration(key)
+        }
+        // Laufende Loads lesen evtl. noch alte Stände: sie dürfen nicht mehr schreiben, ihr Schlüssel lädt neu.
+        for key in loading {
+            stale.insert(key)
+            bumpLoadGeneration(key)
+        }
+        loading.removeAll()
+        loadingOwner.removeAll()
+        loadingLoaded.removeAll()
+        loadingTotals.removeAll()
+        loadErrors.removeAll()
+        generation += 1
+    }
+
+    /// Kurzes Weggleiten bzw. Erscheinen der Zeilen, wenn eine geladene Spalte ersetzt wird (bug.0.4.088).
+    static let rowChangeAnimation = Animation.easeOut(duration: 0.2)
+
     private func remember(_ key: String, _ items: [IndexedItem]) {
-        cache[key] = items
+        if cache[key] != nil {
+            // Neu gelesener Stand einer schon sichtbaren Spalte: Zeilen kommen und gehen an ihrem Platz.
+            withAnimation(Self.rowChangeAnimation) { cache[key] = items }
+        } else {
+            cache[key] = items
+        }
         touch(key)
         // Den am längsten nicht gelesenen Schlüssel verdrängen, nie eine sichtbare Spalte (bug.0.4.036).
         while cacheOrder.count > cacheFolderLimit,

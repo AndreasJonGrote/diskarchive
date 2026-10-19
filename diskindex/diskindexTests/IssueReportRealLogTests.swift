@@ -82,7 +82,13 @@ private struct RealLogHarness {
             .appendingPathComponent("diskindex-real-log-\(UUID().uuidString)", isDirectory: true)
         logDirectory = root.appendingPathComponent("Logs", isDirectory: true)
         try FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
-        pool = try ApiQueuePersistence.openQueuePool(at: root.appendingPathComponent("archive.sqlite"))
+        do {
+            pool = try ApiQueuePersistence.openQueuePool(at: root.appendingPathComponent("archive.sqlite"))
+        } catch {
+            // bug.0.4.085 c): auch ohne Datenbank keinen Testordner zurücklassen.
+            try? FileManager.default.removeItem(at: root)
+            throw error
+        }
         host = "r\(UUID().uuidString.prefix(8).lowercased()).real-log.test"
         defaultsSuite = "diskindex-real-log-\(UUID().uuidString)"
     }
@@ -344,12 +350,45 @@ struct IssueReportRealLogTests {
         #expect(stack.contains { $0.contains("$s") && $0.contains("diskindexTests") }, "Stapel: \(stack)")
     }
 
-    /// Größenkürzung von `logTail`: die ältesten Zeilen fallen zuerst weg, die neueste bleibt.
-    @Test func sizeTrimDropsOldestLogLinesFirst() throws {
+    /// bug.0.4.082: (1) Eine Nachricht mit Zeilenumbruch erzeugt keine eigene, rahmenähnliche Zeile („12 x 0x1
+    /// $Sgeheim.pdf“ hinter der CRASH-Zeile) – „geheim“ steht nicht im Bericht. (2) In einem echten Rahmen bleibt nur
+    /// das Symbol direkt nach der Adresse lesbar, ein weiteres „$S…“ dahinter wird geschwärzt.
+    @Test func newlineInMessageCannotForgeAStackFrame() throws {
+        let harness = try RealLogHarness()
+        defer { harness.cleanUp() }
+        harness.firstRun { log in
+            let frames = [
+                "0   Disk Archive                        0x0000000100a1b2c3 $s9diskindex3FooV3baryyF + 12",
+                "1   Disk Archive                        0x0000000100a1b2d4 $s9diskindex3BarV + 4 $Sparbuch",
+            ]
+            // Auch der Grund einer Ausnahme kann einen Zeilenumbruch tragen (Prüf-Agent).
+            log.recordCrash(signal: "exception NSRangeException reason\n14 x 0x3 $Sgeheimakte.pdf", symbols: frames)
+            log.record(.watcher, .info, "skipped\n12 x 0x1 $Sgeheim.pdf")
+            log.record(.watcher, .info, "skipped\r13 x 0x2 $Sgeheimer.txt")
+        }
+        let log = harness.secondRun()
+        log.flushPendingWritesForTesting()
+        let reporter = try harness.reporter(log: log)
+
+        reporter.enqueue(kind: "crash")
+        let (raw, object) = try queuedObject(reporter)
+
+        #expect(!raw.contains("geheim"), "Bericht enthält „geheim“")
+        #expect(!raw.contains("Sparbuch") && !raw.contains("parbuch"), "zweites Symbol im Rahmen ungeschwärzt")
+        let stack = try #require(crash(object)["stack"] as? [String])
+        #expect(stack.contains { $0.hasSuffix("0x0000000100a1b2c3 $s9diskindex3FooV3baryyF + 12") }, "Stapel: \(stack)")
+        #expect(stack.contains { $0.contains("0x0000000100a1b2d4 $s9diskindex3BarV‹name ") }, "Symbol nach der Adresse fehlt: \(stack)")
+        #expect(!stack.contains { $0.hasPrefix("12 x 0x1") || $0.hasPrefix("13 x 0x2") }, "eigene Zeile aus dem Zeilenumbruch: \(stack)")
+    }
+
+    /// bug.0.4.083 (ersetzt die Reihenfolge aus bug.0.4.079): großer Stapel mit Brotkrumen. Zuerst fallen die
+    /// Brotkrumen im Stapel weg, dann Rahmen von hinten; das reicht → `logTail` behält alle 100 Zeilen, Rahmen 0 bleibt.
+    @Test func stackTrimKeepsAllLogLinesAndFrameZero() throws {
         let harness = try RealLogHarness()
         defer { harness.cleanUp() }
         let filler = String(repeating: "y", count: 480)
         harness.firstRun { log in
+            for index in 0..<40 { log.ui("click row=\(index) \(String(repeating: "k", count: 120))") }
             let symbols = (0..<440).map { "\($0) diskindex 0x0000000100000000 frame\($0) \(filler)" }
             log.recordCrash(signal: "exception NSRangeException", symbols: symbols)
         }
@@ -363,12 +402,14 @@ struct IssueReportRealLogTests {
 
         #expect(raw.utf8.count <= IssuePayload.bodyLimit, "Körper \(raw.utf8.count) Bytes")
         let tail = try #require(object["logTail"] as? [String])
-        #expect(tail.count >= IssuePayload.keptLogLines, "logTail: \(tail.count) Zeilen")
-        #expect(tail.count < 100, "logTail wurde nicht gekürzt: \(tail.count)")
+        #expect(tail.count == 100, "logTail gekürzt, obwohl der Stapel reichte: \(tail.count)")
         let newest = try #require(tail.last)
         #expect(newest.contains("app info newest line marker"))
         let stack = try #require(crash(object)["stack"] as? [String])
-        #expect(stack.count >= 440)
+        let head = try #require(stack.first)
+        #expect(head.hasPrefix("0 diskindex 0x0000000100000000 frame0 "), "Rahmen 0 fehlt: \(head.prefix(60))")
+        #expect(!stack.contains { $0.contains("click row=") }, "Brotkrumen vor den Rahmen nicht gekürzt")
+        #expect(stack.count < 440, "Stapel nicht gekürzt")
     }
 
     /// Signal und Signatur ohne Leerzeichen sind beliebig lang; der Bericht bleibt trotzdem unter 256 KB.

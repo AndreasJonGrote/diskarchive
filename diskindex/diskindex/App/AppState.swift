@@ -53,6 +53,7 @@ final class AppState {
             }
             let scopeChanged = IndexScope.from(oldValue) != newScope
             if scopeChanged {
+                hideResultsInPlace(by: newScope)
                 let indexingIDs = media.filter { $0.connectionStatus == .connected && $0.indexStatus == .indexing }.map(\.id)
                 let scopeGrew = IndexSchedule.grows(from: oldValue, to: appSettings)
                 onScopeRulesChanged?(indexingIDs, scopeGrew)
@@ -502,7 +503,8 @@ final class AppState {
                 clearPruneDeadline()
             }
             await loadStoredMedia()
-            indexRepository.invalidateAll()
+            // bug.0.4.088: veraltet statt leer (die gelöschten Zeilen waren schon ausgeblendet).
+            indexRepository.markAllStale()
             await reloadFavorites()
             if mainWindowDestination == .search { await runSearch() }
             SystemNotice.post(body: LayoutCopy.noticePrune, settings: appSettings)

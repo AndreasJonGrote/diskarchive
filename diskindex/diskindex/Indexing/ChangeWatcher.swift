@@ -74,6 +74,8 @@ final class ChangeWatcher {
     var versionLockGenerationForTesting: Int { versionLockGeneration }
     func hasEventCursorForTesting(_ mediumID: UUID) -> Bool { cursors[mediumID] != nil || savedCursors[mediumID] != nil }
     func isFlushInFlightForTesting(_ mediumID: UUID) -> Bool { flushInFlight[mediumID] != nil }
+    /// Quelle je Instanz statt FSEvents, wenn der Start keine mitgibt (bug.0.4.084: Start über `LiveWiring`).
+    var makeSourceForTesting: ((VolumeInfo) -> ChangeSource)?
     #endif
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
@@ -96,7 +98,12 @@ final class ChangeWatcher {
             DiskIndexLog.shared.record(.watcher, .info, "start übersprungen gesperrt medium=\(mediumID)")
             return
         }
-        let source = source ?? FSEventsChangeSource(
+        #if DEBUG
+        let injected = source ?? makeSourceForTesting?(volume)
+        #else
+        let injected = source
+        #endif
+        let source = injected ?? FSEventsChangeSource(
             mountPath: volume.mountPath,
             resumeVolumeUUID: resumeFSEventsUUID,
             resumeLastEventID: resumeLastEventID > 0 ? FSEventStreamEventId(resumeLastEventID) : nil

@@ -13,11 +13,16 @@ struct TableSortHeader: View {
     let isActive: Bool
     /// `false`: Kopf nicht klickbar, gedämpft wie ein deaktivierter Knopf (bug.0.4.038, Deckkraft wie `MenuBarGhostButton`).
     var isEnabled = true
+    /// Lage der Beschriftung in der Spalte (rechtsbündige Spalten: `.trailing`).
+    var alignment: Alignment = .leading
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
+            // bug.0.4.081: Die Beschriftung füllt die ganze Spaltenbreite, die ganze Spalte ist klickbar (vorher nur der
+            // Text: Mitte/rechter Rand bzw. bei „Status“ linker Rand und Mitte trafen nicht, gleich in welchem Stil).
             Self.label(title, isActive: isActive)
+                .frame(maxWidth: .infinity, alignment: alignment)
         }
         .buttonStyle(.plainFullHit)
         .disabled(!isEnabled)

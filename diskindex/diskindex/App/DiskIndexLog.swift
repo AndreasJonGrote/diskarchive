@@ -233,12 +233,15 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     func record(_ category: DiskLogCategory, _ level: DiskLogLevel, _ message: String, privateDetail: String? = nil) {
         // Datei: kein privateDetail; nur pathDepth/pathLen (bug.0.4.011).
         let fileBody: String
+        // bug.0.4.082: eine Nachricht bleibt eine Zeile. Ein Zeilenumbruch (z. B. in einem Dateinamen) erzeugte sonst
+        // eine eigene Zeile, die im Absturzteil wie ein Stapelrahmen aussehen kann („12 x 0x1 $S…“).
+        let oneLine = Self.singleLine(message)
         if let privateDetail {
             let depth = privateDetail.split(separator: "/").filter { !$0.isEmpty && $0 != "~" }.count
             let len = privateDetail.utf8.count
-            fileBody = "\(message) pathDepth=\(max(depth, 1)) pathLen=\(len)"
+            fileBody = "\(oneLine) pathDepth=\(max(depth, 1)) pathLen=\(len)"
         } else {
-            fileBody = message
+            fileBody = oneLine
         }
         if level == .error, category == .store || category == .index || category == .watcher || category == .medium {
             if !fileBody.contains("CancellationError()") {
@@ -278,6 +281,12 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             return
         }
         record(.ui, .info, message)
+    }
+
+    /// `\n` und `\r` durch ein Leerzeichen ersetzen (bug.0.4.082).
+    static func singleLine(_ message: String) -> String {
+        guard message.contains(where: { $0 == "\n" || $0 == "\r" || $0 == "\r\n" }) else { return message }
+        return String(message.map { $0 == "\n" || $0 == "\r" || $0 == "\r\n" ? " " : $0 })
     }
 
     /// Technische Kurzform für Datei-/Ordnerfehler — keine lokalisierten Texte mit Namen (bug.0.4.011 b).
@@ -324,9 +333,10 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             trail = breadcrumbs
             lock.unlock()
         }
-        var lines = ["CRASH signal=\(signal)"]
+        // bug.0.4.082: Grund und Rahmen bleiben je eine Zeile (z. B. ein Dateiname mit Zeilenumbruch in `reason`).
+        var lines = ["CRASH signal=\(Self.singleLine(signal))"]
         lines.append(contentsOf: trail)
-        lines.append(contentsOf: symbols)
+        lines.append(contentsOf: symbols.map(Self.singleLine))
         for line in lines {
             write(line, durable: true)
         }

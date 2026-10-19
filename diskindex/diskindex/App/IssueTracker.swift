@@ -76,7 +76,7 @@ nonisolated enum IssuePayload {
         var actions = clipped(draft.actions, limit: 50)
         var logTail = clipped(draft.logTail, limit: 100)
         // todo.0.4.023: Der Stapel kommt aus dem Protokoll ab der letzten „CRASH“-Zeile und hat keine feste Länge;
-        // er wird vom Ende her gekürzt, damit der Bericht nie über `bodyLimit` liegt (Reihenfolge unten, bug.0.4.079).
+        // er wird gekürzt, damit der Bericht nie über `bodyLimit` liegt (Reihenfolge unten, bug.0.4.083).
         var stack = draft.crashStack.map { String($0.prefix(lineLimit)) }
         var signature = String(draft.signature.prefix(lineLimit))
         var signal = String((draft.crashSignal ?? "unknown").prefix(lineLimit))
@@ -89,11 +89,15 @@ nonisolated enum IssuePayload {
             )
         }
         var data = make()
-        // bug.0.4.079: Reihenfolge der Kürzung. (1) Protokoll bis auf die letzten `keptLogLines` Zeilen (älteste zuerst,
-        // die neuesten liegen am nächsten am Fehler); (2) Stapel von hinten (älteste Rahmen zuerst), der Kopf bleibt;
-        // (3) Aktionen; erst danach, nur als Sicherung, der Rest von Protokoll und Stapel.
-        while data.count > bodyLimit, logTail.count > keptLogLines {
-            logTail.removeFirst()
+        // bug.0.4.083 (Host-Entscheidung 18.10., ersetzt die Reihenfolge aus bug.0.4.079): (1) Brotkrumen im Stapel
+        // (Zeilen ohne Rahmenform, älteste zuerst), (2) Rahmen von hinten bis auf Rahmen 0 (Signal und Kopf bleiben),
+        // (3) `logTail` von vorn bis auf `keptLogLines`, (4) `actions`, (5) Sicherung: Rest von Protokoll und Stapel.
+        let frame = try? NSRegularExpression(pattern: ReportScrubber.stackFramePattern)
+        func isFrame(_ line: String) -> Bool {
+            frame?.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) != nil
+        }
+        while data.count > bodyLimit, let crumb = stack.firstIndex(where: { !isFrame($0) }) {
+            stack.remove(at: crumb)
             data = make()
         }
         func trimStack(keeping minimum: Int) {
@@ -103,6 +107,10 @@ nonisolated enum IssuePayload {
             }
         }
         trimStack(keeping: 1)
+        while data.count > bodyLimit, logTail.count > keptLogLines {
+            logTail.removeFirst()
+            data = make()
+        }
         while data.count > bodyLimit, !actions.isEmpty {
             actions.removeLast()
             data = make()
@@ -207,6 +215,8 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     var log: (String) -> Void
     var makeDraft: (String) -> IssueDraft
     var knownNames: () -> [String]
+    /// Die Datenbank des Prozesses (bug.0.4.086): vor dem Verdrahten (`queuePool`) nur über sie, nie ein eigener Pool.
+    let archive: ArchiveDatabase
     /// Protokoll, aus dem der Bericht entsteht (todo.0.4.023): Standard `DiskIndexLog.shared`; Tests geben
     /// eine eigene Instanz mit eigenem Ordner mit, damit der echte Weg ohne Prozesszustand prüfbar ist.
     let diskLog: DiskIndexLog
@@ -231,8 +241,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         now: @escaping () -> Date = { Date() },
         log: ((String) -> Void)? = nil,
         makeDraft: ((String) -> IssueDraft)? = nil,
-        diskLog: DiskIndexLog? = nil
+        diskLog: DiskIndexLog? = nil,
+        archive: ArchiveDatabase = .shared
     ) {
+        self.archive = archive
         let diskLog = diskLog ?? DiskIndexLog.shared
         self.diskLog = diskLog
         self.endpoint = endpoint
@@ -307,9 +319,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             do {
                 if let pool = self.queuePool {
                     names = try pool.read { try MediumCodecV3.fetchAll($0) }.map(\.name)
-                } else if let url = try? IndexStoreV3.storeFileURL(),
+                } else if let url = try? self.archive.fileURL(),
                           FileManager.default.fileExists(atPath: url.path) {
-                    let pool = try SchemaV3.openPool(at: url)
+                    // bug.0.4.086: denselben Pool wie der Index (wartet, falls der Start gerade öffnet und migriert).
+                    let pool = try self.archive.pool()
                     names = try pool.read { try MediumCodecV3.fetchAll($0) }.map(\.name)
                 }
             } catch {

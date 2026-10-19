@@ -110,6 +110,8 @@ struct ObjectResultsTable<Placeholder: View>: View {
                 }
             }
             .frame(maxWidth: .infinity)
+            // bug.0.4.091: Platz für den Rollbalken immer reserviert (Kopf und Zeilen springen nicht).
+            .stableScrollbarGutter()
         }
     }
 
@@ -192,7 +194,7 @@ private struct ObjectResultsTableHeader: View {
             header(LayoutCopy.tableDate, column: .date).frame(width: ObjectTableColumns.date, alignment: .leading)
             header(LayoutCopy.tableMedium, column: .medium).frame(width: ObjectTableColumns.medium, alignment: .leading)
             header(LayoutCopy.tablePath, column: .path).frame(maxWidth: .infinity, alignment: .leading)
-            header(LayoutCopy.tableStatus, column: .status).frame(width: ObjectTableColumns.status, alignment: .trailing)
+            header(LayoutCopy.tableStatus, column: .status, alignment: .trailing).frame(width: ObjectTableColumns.status, alignment: .trailing)
         }
         .padding(.horizontal, ObjectTableColumns.horizontalPadding)
         .padding(.vertical, 10)
@@ -201,10 +203,10 @@ private struct ObjectResultsTableHeader: View {
     }
 
     @ViewBuilder
-    private func header(_ title: String, column: SearchSortColumn) -> some View {
+    private func header(_ title: String, column: SearchSortColumn, alignment: Alignment = .leading) -> some View {
         if let sort {
             let enabled = isSortable(column)
-            TableSortHeader(title: title, isActive: enabled && sort.wrappedValue.column == column, isEnabled: enabled) {
+            TableSortHeader(title: title, isActive: enabled && sort.wrappedValue.column == column, isEnabled: enabled, alignment: alignment) {
                 sort.wrappedValue.toggle(column)
             }
         } else {

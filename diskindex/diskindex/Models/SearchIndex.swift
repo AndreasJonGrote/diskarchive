@@ -78,18 +78,11 @@ enum SearchIndex {
         let started = ContinuousClock.now
         let stored: [StoredItem]
         var itemCount: Int?
-        // Ohne Begriff: Kacheln der Medien mit Treffern, über alle Treffer statt der ersten Seite (REPORT 131).
-        var mediumIDsWithItems: Set<UUID>?
         if let store {
             do {
                 let rows = try await store.search(
                     query: query, filters: scoped, limit: pageLimit, maxDepth: maxDepth, scope: scope, sort: sort
                 )
-                if query.isEmpty {
-                    mediumIDsWithItems = rows.isEmpty
-                        ? []
-                        : try await store.searchMediumIDs(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)
-                }
                 let counted: Int?
                 if withCount {
                     counted = try await store.searchCount(query: query, filters: scoped, maxDepth: maxDepth, scope: scope)
@@ -116,14 +109,10 @@ enum SearchIndex {
             SearchResultItem(item: IndexedItem(stored: row), mediumID: row.mediumUUID)
         }
 
-        let matchedMedia: [Medium]
-        if query.isEmpty {
-            let withItems = mediumIDsWithItems ?? Set(items.map(\.mediumID))
-            matchedMedia = media.filter { withItems.contains($0.id) && SearchItemFilter.matchesMedium($0, filters: filters) }
-        } else {
-            matchedMedia = media.filter {
-                SearchItemFilter.matchesMedium($0, filters: filters) && $0.name.localizedCaseInsensitiveContains(query)
-            }
+        // bug.0.4.092 (Nutzer 18.10.): Medien erscheinen nur als Namenstreffer eines Suchbegriffs. Eine reine
+        // Filtersuche zeigt keine Kacheln („hier liegt etwas“ zeigt schon die Tabelle), gleich welcher Filter.
+        let matchedMedia: [Medium] = query.isEmpty ? [] : media.filter {
+            SearchItemFilter.matchesMedium($0, filters: filters) && $0.name.localizedCaseInsensitiveContains(query)
         }
         return SearchMatch(media: matchedMedia, items: items, itemCount: itemCount)
     }

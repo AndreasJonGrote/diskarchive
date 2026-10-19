@@ -376,6 +376,12 @@ struct RegressionSmokeTests {
         #expect(flow.shouldTerminate(handedOff: true, teardown: {}, finish: {}, reply: {}) == .terminateNow)
     }
 
+    /// bug.0.4.087/090: Klick auf eine Datei → Details-Spalte erscheint und wird eingescrollt, auch wenn eine andere
+    /// Spalte noch einen Ladehinweis zeigt (echtes Fenster, echter Store).
+    @Test func clickedFileScrollsDetailColumnIntoView() async throws {
+        try await ColumnAutoScrollTestSupport.runStoreSelectionScrollsTrailing(byClick: true, stuckRootHint: true)
+    }
+
     private func makeSmokeMedium() -> Medium {
         Medium(
             id: UUID(), name: "Rauch", type: .usb, connectionStatus: .connected, indexStatus: .indexing,

@@ -50,6 +50,8 @@ struct SettingsGeneralTab: View {
                 }
             }
             .padding(24)
+            // bug.0.4.091: alle Tabs gleich breit, kein Springen, wenn der Rollbalken (dauerhafter Stil) erscheint.
+            .stableScrollbarGutter()
         }
         .onAppear {
             guard section == .files, appState.settingsScrollTarget == .scanDepth else { return }

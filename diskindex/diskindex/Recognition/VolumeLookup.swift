@@ -27,9 +27,9 @@ nonisolated enum VolumeLookup {
                 once.resume(lookup(url))
             }
             DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + timeout) {
-                if once.resume(nil) {
-                    logTimeout(url.path)
-                }
+                // bug.0.4.085 e): erst die Zeitgrenze melden, dann fortsetzen – sonst konnte der Aufrufer schon weiter
+                // sein, bevor die Meldung geschrieben war (Test sah einmal keine Meldung).
+                once.resume(nil, beforeResume: { logTimeout(url.path) })
             }
         }
     }
@@ -95,16 +95,19 @@ nonisolated private final class LookupResumeOnce: @unchecked Sendable {
         self.continuation = continuation
     }
 
-    /// `true`, wenn dieser Aufruf fortgesetzt hat; spätere Aufrufe werden verworfen.
+    /// `true`, wenn dieser Aufruf fortgesetzt hat; spätere Aufrufe werden verworfen. `beforeResume` läuft nur beim
+    /// Gewinner und vor dem Fortsetzen.
     @discardableResult
-    func resume(_ result: VolumeInfo?) -> Bool {
+    func resume(_ result: VolumeInfo?, beforeResume: () -> Void = {}) -> Bool {
         let pending: CheckedContinuation<VolumeInfo?, Never>? = lock.withLock {
             let value = continuation
             continuation = nil
             return value
         }
-        pending?.resume(returning: result)
-        return pending != nil
+        guard let pending else { return false }
+        beforeResume()
+        pending.resume(returning: result)
+        return true
     }
 }
 
