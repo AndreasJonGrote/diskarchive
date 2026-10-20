@@ -13,9 +13,16 @@ extension AppState {
         settingsReady = false
         let language = AppLanguagePolicy.loadDisplayLanguage(from: settingsDefaults)
             ?? appSettings.displayLanguage
-        if let persisted = await store.loadPersistedAppSettings() {
+        switch await store.loadPersistedAppSettingsResult() {
+        case .loaded(let persisted):
+            settingsUnreadable = false
             appSettings.applying(persisted)
-        } else if persistsSettings {
+        case .unreadable:
+            // bug.0.4.105: Voreinstellungen nur im Speicher; der gespeicherte Eintrag wird nie überschrieben.
+            settingsUnreadable = true
+            DiskIndexLog.shared.record(.store, .error, "settings unreadable")
+        case .missing where persistsSettings:
+            settingsUnreadable = false
             let legacy = AppSettings.loadLegacyPersisted(from: settingsDefaults)
             appSettings.applying(legacy)
             do {
@@ -26,6 +33,8 @@ extension AppState {
                     DiskIndexLog.shared.record(.store, .error, "settings migrate \(error)")
                 }
             }
+        case .missing:
+            settingsUnreadable = false
         }
         appSettings.displayLanguage = language
         AppLanguagePolicy.saveDisplayLanguage(language, to: settingsDefaults)
@@ -46,7 +55,7 @@ extension AppState {
     }
 
     func persistAppSettingsNow() async {
-        guard storeReady, let store = indexStore, persistsSettings else { return }
+        guard storeReady, let store = indexStore, persistsSettings, !settingsUnreadable else { return }
         let snapshot = appSettings.persistedSnapshot()
         do {
             try await store.savePersistedAppSettings(snapshot)

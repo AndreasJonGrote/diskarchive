@@ -84,6 +84,11 @@ enum LiveWiring {
         }
         watcher.onFullReconcile = { [weak service, weak watcher, weak coordinator] id, _ in
             guard appState.featureAccess.canWriteIndex else { return }
+            // bug.0.4.095: nach einem gescheiterten Lauf kein voller Abgleich (Schleife bei dauerhaftem Schreibfehler).
+            if service?.suppressesFullReconcile(id) == true {
+                DiskIndexLog.shared.record(.watcher, .info, "abgleich übersprungen nach fehler medium=\(id)")
+                return
+            }
             // Nicht mehr eingehängt → nichts starten (bug.0.4.031). Sonst gilt der aktuelle Pfad des Coordinators.
             guard let current = coordinator?.volume(for: id) else {
                 DiskIndexLog.shared.record(.watcher, .info, "abgleich übersprungen nicht eingehängt medium=\(id)")
@@ -177,8 +182,11 @@ enum LiveWiring {
             }
         }
         appState.onReindexMedium = { [weak service, weak watcher, weak coordinator, weak appState] id in
-            guard appState?.featureAccess.canWriteIndex == true else { return }
-            guard let volume = coordinator?.volume(for: id) else { return }
+            guard appState?.featureAccess.canWriteIndex == true, let volume = coordinator?.volume(for: id) else {
+                // bug.0.4.129: kein Lauf → Sperre „Neu indizieren“ nicht stehen lassen.
+                appState?.reindexRequested.remove(id)
+                return
+            }
             Task {
                 await stopWatcherAndStartIndex(
                     watcher: watcher,

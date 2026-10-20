@@ -59,8 +59,14 @@ nonisolated struct DirectoryIndexer: Sendable {
         var backgroundRecount: Task<Void, Never>?
         defer { backgroundRecount?.cancel() }
         let fullReconcile = !fromScratch && stored.indexStatus == .indexed && stored.completedDepth > 0
+        // bug.0.4.127: unvollständig wegen nicht lesbarer Ordner (alle Ebenen fertig) → von oben nachlesen, sonst
+        // begänne der Lauf unterhalb des Baums und meldete ohne Nachlesen „indiziert“.
+        var rereadsGaps = false
+        if !fromScratch, !fullReconcile, stored.completedDepth > 0 {
+            rereadsGaps = (try? await store.hasUnreadableFolders(mediumUUID: mediumUUID)) ?? false
+        }
         let startDepth: Int
-        if fromScratch || stored.completedDepth == 0 {
+        if fromScratch || stored.completedDepth == 0 || rereadsGaps {
             startDepth = 1
         } else if fullReconcile {
             startDepth = 1
@@ -233,7 +239,7 @@ nonisolated struct DirectoryIndexer: Sendable {
         while true {
             if let halt = await stopped(shouldHalt), halt != .none {
                 try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                return await stop(store, mediumUUID, token, halt, fullReconcile, stored, readErrors, samples, completedDepths)
+                return await stop(store, mediumUUID, token, halt, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
             }
             if let maxDepth = configuration.maxDepth, depth > maxDepth { break }
             let levelStarted = ContinuousClock.now
@@ -265,7 +271,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 } catch {
                     if error is CancellationError {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                        return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths)
+                        return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                     }
                     try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
                     return await failWrite(error, store, mediumUUID, token, stored, readErrors, samples, completedDepths)
@@ -274,7 +280,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 batchCount = 0
                 if let halt = await stopped(shouldHalt) {
                     try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                    return await stop(store, mediumUUID, token, halt, fullReconcile, stored, readErrors, samples, completedDepths)
+                    return await stop(store, mediumUUID, token, halt, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                 }
                 return nil
             }
@@ -287,7 +293,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                     if foldersProcessed % 50 == 0,
                        await store.indexingIsActive(mediumUUID: mediumUUID, token: token) == false {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                        return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths)
+                        return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                     }
                     let url = directoryURL(mountPath: volume.mountPath, itemPath: parent.path)
                     // bug.0.4.056 (REPORT 97): Pfad je Ordner, nicht je Block/Eintrag.
@@ -330,7 +336,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         }
                     } catch let interrupted as DirectoryIndexInterrupted {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                        return await stop(store, mediumUUID, token, interrupted.halt, fullReconcile, stored, readErrors, samples, completedDepths)
+                        return await stop(store, mediumUUID, token, interrupted.halt, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                     } catch let writeFailed as IndexWriteFailed {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
                         return await failWrite(writeFailed.underlying, store, mediumUUID, token, stored, readErrors, samples, completedDepths)
@@ -343,12 +349,15 @@ nonisolated struct DirectoryIndexer: Sendable {
                         }
                         if IndexRunGuard.shouldPending(consecutiveTimeouts: consecutiveTimeouts, limit: limits.consecutiveTimeoutLimit) {
                             try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                            _ = try? await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .pending, firstIndexedAt: stored.firstIndexedAt)
+                            _ = try? await store.finishIndexing(
+                                mediumUUID: mediumUUID, token: token, status: .pending, firstIndexedAt: stored.firstIndexedAt,
+                                mountPath: volume.mountPath
+                            )
                             return IndexRunOutcome(status: .pending, readErrors: readErrors, progress: samples, completedDepths: completedDepths, firstIndexedAt: stored.firstIndexedAt, failureReason: .timeout)
                         }
                     } catch is CancellationError {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                        return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths)
+                        return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                     } catch {
                         consecutiveTimeouts = 0
                         if parent.id == nil {
@@ -385,7 +394,7 @@ nonisolated struct DirectoryIndexer: Sendable {
 
             if await store.indexingIsActive(mediumUUID: mediumUUID, token: token) == false {
                 try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths)
+                return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
             }
             do {
                 try await store.completeLayer(mediumUUID: mediumUUID, depth: depth)
@@ -394,7 +403,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 DiskIndexLog.shared.perfIfSlow("ebene", since: levelStarted)
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else {
-                    return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths)
+                    return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                 }
                 DiskIndexLog.shared.record(.index, .error, "ebene \(depth) \(error)")
                 do {
@@ -408,7 +417,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             }
             if let halt = await stopped(shouldHalt) {
                 try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-                return await stop(store, mediumUUID, token, halt, fullReconcile, stored, readErrors, samples, completedDepths)
+                return await stop(store, mediumUUID, token, halt, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
             }
             if needsCounting, depth >= preludeEnd { await countWholeTree() }
             if let maxDepth = configuration.maxDepth, depth >= maxDepth { break }
@@ -429,13 +438,16 @@ nonisolated struct DirectoryIndexer: Sendable {
         let stamped = Date()
         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
         let committed: Bool
+        // bug.0.4.127 (README 4): nicht lesbare Ordner → Index unvollständig, nicht `.indexed`.
+        let hasGaps = readErrors > 0
         do {
             committed = try await store.finishIndexing(
                 mediumUUID: mediumUUID,
                 token: token,
-                status: .indexed,
-                firstIndexedAt: stamped,
-                mountPath: volume.mountPath
+                status: hasGaps ? .pending : .indexed,
+                firstIndexedAt: hasGaps ? nil : stamped,
+                mountPath: volume.mountPath,
+                ranToEnd: true
             )
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
@@ -446,11 +458,12 @@ nonisolated struct DirectoryIndexer: Sendable {
         DiskIndexLog.shared.record(.index, .info, "ende medium=\(mediumUUID) committed=\(committed) lesefehler=\(readErrors)")
         let fresh = try? await store.medium(uuid: mediumUUID)
         return IndexRunOutcome(
-            status: committed ? .indexed : (fresh?.indexStatus ?? .pending),
+            status: committed ? (hasGaps ? .pending : .indexed) : (fresh?.indexStatus ?? .pending),
             readErrors: readErrors,
             progress: samples,
             completedDepths: completedDepths,
-            firstIndexedAt: fresh?.firstIndexedAt
+            firstIndexedAt: fresh?.firstIndexedAt,
+            ranToEnd: committed
         )
     }
 
@@ -604,7 +617,8 @@ nonisolated struct DirectoryIndexer: Sendable {
         _ stored: StoredMedium,
         _ readErrors: Int,
         _ samples: [Double],
-        _ completedDepths: [Int]
+        _ completedDepths: [Int],
+        _ mountPath: String
     ) async -> IndexRunOutcome {
         let reconcileInterrupted = fullReconcile && (halt == .none || halt == .pause || halt == .cancel)
         let status: StoredIndexStatus = reconcileInterrupted ? .indexed : .pending
@@ -615,7 +629,9 @@ nonisolated struct DirectoryIndexer: Sendable {
                 token: token,
                 status: status,
                 firstIndexedAt: nil,
-                interrupted: interrupted
+                interrupted: interrupted,
+                // bug.0.4.104: Wiederverbinden beim unterbrochenen Ende mit Teil-Prüfsumme (wie am Ende des Laufs).
+                mountPath: mountPath
             )
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {

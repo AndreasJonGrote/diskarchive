@@ -107,6 +107,9 @@ final class AppState {
     /// Pausentimer-Fenster zeigt Nase oben (unter Schalter) oder unten (über Schalter).
     var popoverPauseMenuOpensAbove = false
     var searchMatch = SearchMatch()
+    /// bug.0.4.132: Zähler je Nutzeraktion (Öffnen über `openObject`, Klick, Taste) – die Spaltenansicht scrollt dann
+    /// waagerecht und senkrecht zur Auswahl; Live-Änderungen zählen nicht.
+    var columnScrollToken = 0
     var favoriteObjects: [SearchResultItem] = []
     /// bug.0.4.040: Zahl der Favoriten zur Anfrage (`nil` = wird gezählt, „–“) und ohne Dateityp/Alter („x von y“).
     var favoriteItemCount: Int? = 0
@@ -134,6 +137,8 @@ final class AppState {
     let persistsSettings: Bool
     var settingsSaveTask: Task<Void, Never>?
     var settingsReady = false
+    /// bug.0.4.105: Eintrag in `settings` war nicht lesbar → nicht überschreiben (bis zum nächsten Start).
+    @ObservationIgnored var settingsUnreadable = false
     private var pruneDeadlineGeneration = 0
     private var pruneScheduleTask: Task<Void, Never>?
     @ObservationIgnored var pruneClock: @Sendable () -> Date = { Date() }
@@ -267,6 +272,11 @@ final class AppState {
     init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil) {
         indexStore = store
         indexRepository = IndexRepository(store: store)
+        defer {
+            indexRepository.onColumnReloaded = { [weak self] mediumID, path, previous, items in
+                self?.followOpenPathAfterReload(mediumID: mediumID, path: path, previous: previous, items: items)
+            }
+        }
         if store != nil {
             storeReady = true
         }
@@ -495,6 +505,12 @@ final class AppState {
 
     func pruneNow() async {
         guard featureAccess.canWriteIndex else { return }
+        // bug.0.4.105: Einstellungen nicht lesbar → Voreinstellungen nur im Speicher; nie danach bereinigen (der Termin
+        // bleibt stehen).
+        guard !settingsUnreadable else {
+            DiskIndexLog.shared.record(.index, .info, "prune skipped settings unreadable")
+            return
+        }
         guard let indexStore else { return }
         let generation = pruneDeadlineGeneration
         do {

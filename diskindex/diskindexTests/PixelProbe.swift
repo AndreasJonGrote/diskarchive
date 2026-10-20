@@ -39,6 +39,23 @@ enum PixelProbe {
         )
     }
 
+    /// bug.0.4.116: randloses Testfenster außerhalb des sichtbaren Bereichs (Regel 19), mit `host` als Inhalt,
+    /// sichtbar über `orderFrontRegardless` (nie Key). Ersetzt eigene `NSWindow(contentRect: .zero…)` in Tests.
+    static func offscreenWindow(hosting host: NSView, size: CGSize) -> NSWindow {
+        host.frame = NSRect(origin: .zero, size: size)
+        let window = NSWindow(
+            contentRect: NSRect(origin: nextOffscreenOrigin(size: size), size: size),
+            styleMask: [.borderless],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = host
+        window.orderFrontRegardless()
+        host.layoutSubtreeIfNeeded()
+        return window
+    }
+
     /// Rendert eine SwiftUI-Ansicht in einem echten Fenster (außerhalb des Bildschirms) und liefert die Bitmap.
     static func render<V: View>(_ view: V, size: CGSize, appearance: NSAppearance.Name = .aqua) async -> NSBitmapImageRep {
         let host = NSHostingView(rootView: view)

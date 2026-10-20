@@ -122,6 +122,9 @@ extension AppState {
         if reindexRequested.contains(id) { return false }
         guard let medium = medium(with: id) else { return false }
         guard medium.decision == .index else { return false }
+        // bug.0.4.129: nur angeschlossen und nicht pausiert (sonst startet kein Lauf und die Sperre bliebe stehen).
+        guard medium.connectionStatus == .connected else { return false }
+        if globalAutoIndexPaused || heldForSleep || medium.autoIndexPaused { return false }
         if medium.indexStatus == .indexing { return false }
         if let end = medium.lastIndexedAt, now < end.addingTimeInterval(59) { return false }
         return true

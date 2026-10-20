@@ -157,6 +157,61 @@ struct RuleReconcileQueueTests {
         await app.waitForRuleReconcileIdle()
     }
 
+    /// bug.0.4.097 (README „sofort“): Ordner „X“ ignorieren → Treffer und Favoriten in `X/…` sofort weg (Warteschlange
+    /// läuft noch, kein Ladezustand); Ausschluss entfernen → wieder da.
+    @Test func hitsAndFavoritesBelowIgnoredFolderHideAtOnce() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-rulequeue-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
+        let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "RULE", type: .usb, decision: .index)
+        try await store.upsertMedium(medium)
+        try await store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "X", isFolder: true), ScannedEntry(name: "bericht-oben.txt", isFolder: false, sizeBytes: 1)],
+            seenAt: Date()
+        )
+        let x = try await store.folderID(mediumUUID: medium.uuid, path: ["X"])
+        try await store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: x,
+            entries: [ScannedEntry(name: "bericht-unten.txt", isFolder: false, sizeBytes: 1)],
+            seenAt: Date()
+        )
+        try await store.completeLayer(mediumUUID: medium.uuid, depth: 2)
+        let below = try #require(try await store.children(mediumUUID: medium.uuid, parentID: x).first)
+        try await store.setFavorites(itemIDs: [below.id], true)
+        let app = AppState(store: store)
+        await app.loadStoredMedia()
+        // Wie in der App: die Änderungsschleife sucht nach dem Ende der Warteschlange neu.
+        app.startChangeLoop()
+        app.mainWindowDestination = .search
+        app.searchState.submittedQuery = "bericht"
+        app.appSettings.ignoreHiddenFiles = false
+        await app.waitForRuleReconcileIdle()
+        await app.runSearch()
+        await app.reloadFavorites()
+        try #require(app.searchMatch.items.map(\.name).contains("bericht-unten.txt"), "Treffer: \(app.searchMatch.items.map(\.name))")
+        try #require(app.favoriteObjects.map(\.name) == ["bericht-unten.txt"])
+
+        await store.setReconcileBatchDelay(.milliseconds(200))
+        app.toggleIgnoredPatterns(["X"])
+        try #require(app.isRuleReconcileQueueActive)
+        #expect(!app.searchMatch.items.map(\.name).contains("bericht-unten.txt"), "Treffer unter X noch sichtbar")
+        #expect(app.searchMatch.items.map(\.name).contains("bericht-oben.txt"))
+        #expect(app.favoriteObjects.isEmpty, "Favorit unter X noch sichtbar")
+        await app.waitForRuleReconcileIdle()
+
+        await store.setReconcileBatchDelay(nil)
+        app.toggleIgnoredPatterns(["X"])
+        await app.waitForRuleReconcileIdle()
+        let back = await waitUntil { app.searchMatch.items.map(\.name).contains("bericht-unten.txt") }
+        #expect(back, "Treffer nach Entfernen des Ausschlusses nicht zurück: \(app.searchMatch.items.map(\.name))")
+        await app.reloadFavorites()
+        #expect(app.favoriteObjects.map(\.name) == ["bericht-unten.txt"])
+    }
+
     @Test func sabotageChecksNamesWouldIncrementCounter() async throws {
         let (app, store, medium) = try await appWithHiddenFile()
         app.appSettings.ignoreHiddenFiles = true

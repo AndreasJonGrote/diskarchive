@@ -225,7 +225,8 @@ final class MediumCoordinator {
         fresh.type = volume.mediumType
         fresh.lastSeenAt = Date()
         if recoveredFromError {
-            fresh.indexStatus = fresh.lastIndexedAt != nil ? .indexed : .pending
+            // bug.0.4.126: „indiziert“ nur nach einem Lauf bis zum Ende, nicht nach der ersten fertigen Ebene.
+            fresh.indexStatus = fresh.firstIndexedAt != nil ? .indexed : .pending
         }
         if let free = volume.volumeFreeBytes {
             fresh.capacityUsedBytes = max(0, volume.volumeTotalBytes - free)
@@ -276,7 +277,7 @@ final class MediumCoordinator {
             return
         }
         if fresh.indexStatus == .indexing, isIndexingActive?(fresh.uuid) != true {
-            fresh.indexStatus = fresh.lastIndexedAt != nil ? .indexed : .pending
+            fresh.indexStatus = fresh.firstIndexedAt != nil ? .indexed : .pending
             try await store.updateMediumIndexStatus(uuid: fresh.uuid, fresh.indexStatus)
             publish(fresh, connection: .connected)
         }
@@ -419,9 +420,8 @@ final class MediumCoordinator {
                 stored.lastSeenAt = Date()
                 try await store.updateMediumLastSeen(uuid: id, at: stored.lastSeenAt ?? Date())
                 publish(stored, connection: .offline)
-                if !Self.isRunningUnitTests {
-                    AppWindowPresenter.syncNewMediumPanels(appState: appState)
-                }
+                // bug.0.4.117: Lage statt Test-Ausschluss (`promptPanelPlacement`; Tests: `nil` oder `.offscreen`).
+                AppWindowPresenter.syncNewMediumPanels(appState: appState)
             } else {
                 appState.updateMedium(id: id) {
                     $0.connectionStatus = .offline
@@ -456,22 +456,11 @@ final class MediumCoordinator {
                 }
                 previous = row.decision
                 row.rememberDecision = remember
-                let hasIndex = row.completedDepth >= 1 || row.fileCount + row.folderCount > 0
                 row.allowIndexing = allowIndexing
-                if allowIndexing {
-                    row.decision = .index
-                    if previous == .index {
-                        // todo.0.4.026: erneut gefragt, wieder „Indizieren“ → Status bleibt (auch unvollständig/laufend).
-                    } else if previous == .dontIndex, hasIndex {
-                        // Erneut gefragt, „Nein“ → „Ja“ mit vorhandenem Index: Abgleich statt Erstlauf.
-                        row.indexStatus = .indexed
-                    } else {
-                        row.indexStatus = .pending
-                    }
-                } else {
-                    row.decision = .dontIndex
-                    row.indexStatus = hasIndex ? .indexed : .pending
-                }
+                // bug.0.4.128 (README 2a): Der Dialog ändert den Index-Status nicht – wie 05/06 (`writeMedium`).
+                // „Ja“ setzt einen unvollständigen Index fort (Lauf mit Fortschritt), ein vollständiger wird
+                // abgeglichen; „Nein“ lässt ihn „x % indiziert“.
+                row.decision = allowIndexing ? .index : .dontIndex
                 try await store.updateMediumDecision(uuid: mediumID, row)
                 stored = row
             } catch {
@@ -583,7 +572,7 @@ final class MediumCoordinator {
 
     private func requestDialog(_ id: UUID) {
         appState.enqueueNewMediumDecision(id)
-        guard !Self.isRunningUnitTests else { return }
+        // bug.0.4.117: Lage statt Test-Ausschluss (`promptPanelPlacement`; Tests: `nil` oder `.offscreen`).
         AppWindowPresenter.syncNewMediumPanels(appState: appState)
     }
 

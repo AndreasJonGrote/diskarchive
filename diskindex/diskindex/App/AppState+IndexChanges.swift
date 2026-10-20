@@ -291,6 +291,9 @@ extension AppState {
         // Erst nach den ausstehenden Favoriten-Schreibvorgängen lesen; kam währenddessen ein Umschalten dazu, neu
         // lesen. Sonst brächte ein Neuladen vor dem Schreiben einen eben abgewählten Favoriten zurück.
         var objects: [SearchResultItem]
+        // bug.0.4.096: vor dem Lesen festhalten – endet die Warteschlange währenddessen, ist die gelesene Seite trotzdem
+        // ein Stand von davor.
+        let filtersPendingRules = indexRepository.hidesLoadsByScope || isRuleReconcileQueueActive
         while true {
             let edits = favoriteEditGeneration
             await favoriteWriteTail?.value
@@ -298,11 +301,17 @@ extension AppState {
             guard generation == favoriteGeneration else { return }
             if edits == favoriteEditGeneration { break }
         }
+        // bug.0.4.096: Während der Warteschlange steht in der Datenbank noch `status = 0` – ausgeblendete Favoriten nicht
+        // zurückbringen (wie `IndexRepository.load`).
+        // Seite nicht voll: das ist die ganze Treffermenge, keine Zählabfrage (gezählt vor dem Ausblenden).
+        let pageComplete = objects.count < SearchIndex.pageLimit
+        if filtersPendingRules || indexRepository.hidesLoadsByScope {
+            let current = indexScope
+            objects.removeAll { Self.ruleHidesResult($0.item, by: current) }
+        }
         let sameRequest = request == lastFavoritesRequest
         favoriteObjects = objects
         let hasObjectFilters = request.filters.hasActiveObjectFilters
-        // Seite nicht voll: das ist die ganze Treffermenge, keine Zählabfrage.
-        let pageComplete = objects.count < SearchIndex.pageLimit
         if pageComplete {
             favoriteItemCount = objects.count
         } else if !sameRequest {

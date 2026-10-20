@@ -22,6 +22,38 @@ nonisolated struct PersistedAppSettings: Equatable, Codable {
     var autoSendCrashReports: Bool = false
 }
 
+nonisolated extension PersistedAppSettings {
+    /// bug.0.4.105: Fehlende Schlüssel (älterer Stand, neues Feld) bekommen die Voreinstellung, die übrigen
+    /// Werte bleiben (wie `AppSettings.init(from:)`); sonst fiele der ganze Eintrag auf Voreinstellungen zurück.
+    init(from decoder: Decoder) throws {
+        let defaults = PersistedAppSettings()
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        scanDepth = try container.decodeIfPresent(Int.self, forKey: .scanDepth) ?? defaults.scanDepth
+        favoriteOnlineNotificationsEnabled = try container.decodeIfPresent(
+            Bool.self, forKey: .favoriteOnlineNotificationsEnabled
+        ) ?? defaults.favoriteOnlineNotificationsEnabled
+        ignoreHiddenFiles = try container.decodeIfPresent(Bool.self, forKey: .ignoreHiddenFiles) ?? defaults.ignoreHiddenFiles
+        artifactsIgnored = try container.decodeIfPresent(Bool.self, forKey: .artifactsIgnored) ?? defaults.artifactsIgnored
+        excludedPatterns = try container.decodeIfPresent([String].self, forKey: .excludedPatterns) ?? defaults.excludedPatterns
+        showFoldersRegardlessOfFilter = try container.decodeIfPresent(
+            Bool.self, forKey: .showFoldersRegardlessOfFilter
+        ) ?? defaults.showFoldersRegardlessOfFilter
+        appearance = try container.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? defaults.appearance
+        notificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? defaults.notificationsEnabled
+        notifySystem = try container.decodeIfPresent(Bool.self, forKey: .notifySystem) ?? defaults.notifySystem
+        notifyIndexed = try container.decodeIfPresent(Bool.self, forKey: .notifyIndexed) ?? defaults.notifyIndexed
+        notifyFavorites = try container.decodeIfPresent(Bool.self, forKey: .notifyFavorites) ?? defaults.notifyFavorites
+        autoSendCrashReports = try container.decodeIfPresent(Bool.self, forKey: .autoSendCrashReports) ?? defaults.autoSendCrashReports
+    }
+}
+
+/// bug.0.4.105: „kein Eintrag“ und „Lesefehler“ getrennt; nur „kein Eintrag“ darf neu geschrieben werden.
+nonisolated enum PersistedAppSettingsLoad: Equatable {
+    case missing
+    case loaded(PersistedAppSettings)
+    case unreadable
+}
+
 extension AppSettings {
     mutating func applying(_ persisted: PersistedAppSettings) {
         scanDepth = persisted.scanDepth

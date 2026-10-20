@@ -242,7 +242,7 @@ struct VersionLockReadOnlyTests {
         #expect(!lock.rig.watcher.isWatching(mediumID: lock.watchedID))
         #expect(lock.rig.starts(lock.harness.mediumID).isEmpty)
 
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: version), appState: lock.app, store: lock.harness.store,
             databaseWasNewThisLaunch: false
         )
@@ -289,7 +289,7 @@ struct VersionLockReadOnlyTests {
         #expect(try await harness.store.medium(uuid: id)?.indexStatus == .indexed)
         #expect(rig.starts(id).count == 1)
 
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: version), appState: app, store: harness.store,
             databaseWasNewThisLaunch: false
         )
@@ -350,7 +350,7 @@ struct VersionLockReadOnlyTests {
         try #require(app.versionLockState.isLocked)
         try #require(await waitUntil { rig.service.isCancellingForTesting(id) })
 
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: version), appState: app, store: harness.store,
             databaseWasNewThisLaunch: false
         )
@@ -402,7 +402,7 @@ struct VersionLockReadOnlyTests {
         VersionCheckCoordinator.reevaluateLocal(appState: app, store: harness.store, databaseWasNewThisLaunch: false)
         try #require(app.versionLockState.isLocked)
         try #require(await waitUntil { rig.service.isCancellingForTesting(id) })
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: version), appState: app, store: harness.store,
             databaseWasNewThisLaunch: false
         )
@@ -450,7 +450,7 @@ struct VersionLockReadOnlyTests {
         )
         VersionCheckCoordinator.reevaluateLocal(appState: app, store: harness.store, databaseWasNewThisLaunch: false)
         try #require(await waitUntil { rig.service.isCancellingForTesting(id) })
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: version), appState: app, store: harness.store,
             databaseWasNewThisLaunch: false
         )

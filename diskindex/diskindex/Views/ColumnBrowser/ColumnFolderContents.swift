@@ -14,6 +14,24 @@ enum ColumnFolderListThreshold {
     static let tableViewMinimum = 50_000
 }
 
+private struct ColumnTableViewMinimumKey: EnvironmentKey {
+    static let defaultValue = ColumnFolderListThreshold.tableViewMinimum
+}
+
+extension EnvironmentValues {
+    /// Schwelle Liste/Tabelle der Spaltenansicht (nur Tests senken sie, bug.0.4.132).
+    var columnTableViewMinimum: Int {
+        get { self[ColumnTableViewMinimumKey.self] }
+        set { self[ColumnTableViewMinimumKey.self] = newValue }
+    }
+}
+
+/// bug.0.4.132: Senkrecht zu `id` scrollen, wenn `token` neu ist (Nutzeraktion, nicht bei Live-Änderungen).
+struct ColumnScrollTarget: Equatable {
+    var id: UUID?
+    var token: Int = 0
+}
+
 struct ColumnFolderContents<Row: View>: View {
     let mediumID: UUID
     let path: [String]
@@ -30,6 +48,8 @@ struct ColumnFolderContents<Row: View>: View {
     var onLoadingHintVisible: (Bool) -> Void = { _ in }
     /// Abstand nur um den Ladehinweis (vorher eigenes Exemplar mit Innenabstand in der Spalte, bug.0.4.061).
     var hintInsets = EdgeInsets()
+    /// bug.0.4.132: Auswahl dieser Spalte, zu der nach einer Nutzeraktion gescrollt wird.
+    var scrollTarget = ColumnScrollTarget()
     @ViewBuilder var row: (IndexedItem) -> Row
 
     @State private var delayed = DelayedLoadingState()
@@ -37,6 +57,8 @@ struct ColumnFolderContents<Row: View>: View {
     @State private var stateTiming: DelayedLoadingTiming = .standard
     /// Beginn des laufenden Ladevorgangs, für das Nachziehen der Verzögerung ohne Schreiben beim Zeichnen.
     @State private var loadStartedAt: ContinuousClock.Instant?
+    /// Zuletzt ausgeführter Scroll-Auftrag (je Auftrag einmal, sobald die Zeile da ist).
+    @State private var scrolledToken: Int?
 
     private var pathKey: String {
         ([mediumID.uuidString] + path).joined(separator: "\u{0}")
@@ -44,6 +66,12 @@ struct ColumnFolderContents<Row: View>: View {
 
     private var usesTableView: Bool {
         filteredItems.count >= tableViewMinimum
+    }
+
+    /// bug.0.4.132: Ein Scroll-Auftrag steht aus und die Zeile ist geladen.
+    private var pendingScroll: Bool {
+        guard let id = scrollTarget.id, scrollTarget.token != scrolledToken, !isLoading else { return false }
+        return filteredItems.contains { $0.id == id }
     }
 
     /// Rein lesend (bug.0.4.061): Der Zustand wird in `.task`/`onChange` nachgeführt, nicht beim Zeichnen.
@@ -68,21 +96,28 @@ struct ColumnFolderContents<Row: View>: View {
             } else if isLoading {
                 Color.clear
             } else if usesTableView {
-                ColumnFolderTableView(items: filteredItems, selectedIDs: selectedIDs, row: row)
+                ColumnFolderTableView(items: filteredItems, selectedIDs: selectedIDs, scrollTarget: scrollTarget, row: row)
                     .padding(.horizontal, 8)
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(filteredItems) { item in
-                            row(item)
-                                // bug.0.4.088: ausgeblendete Einträge gleiten kurz weg, wieder freigegebene erscheinen.
-                                .transition(.move(edge: .leading).combined(with: .opacity))
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 2) {
+                            ForEach(filteredItems) { item in
+                                row(item)
+                                    // bug.0.4.088: ausgeblendete Einträge gleiten kurz weg, wieder freigegebene erscheinen.
+                                    .transition(.move(edge: .leading).combined(with: .opacity))
+                            }
                         }
+                        .padding(.horizontal, 8)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
-                    .padding(.horizontal, 8)
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .scrollIndicators(.automatic)
+                    .onChange(of: pendingScroll, initial: true) { _, pending in
+                        guard pending, let id = scrollTarget.id else { return }
+                        scrolledToken = scrollTarget.token
+                        proxy.scrollTo(id)
+                    }
                 }
-                .scrollIndicators(.automatic)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

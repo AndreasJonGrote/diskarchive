@@ -46,17 +46,7 @@ import Testing
         .frame(width: 280, height: 400)
 
         let host = NSHostingView(rootView: root)
-        host.frame = NSRect(x: 0, y: 0, width: 280, height: 400)
-        let window = NSWindow(
-            contentRect: host.frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.isReleasedWhenClosed = false
-        window.contentView = host
-        window.orderFrontRegardless()
-        host.layoutSubtreeIfNeeded()
+        let window = PixelProbe.offscreenWindow(hosting: host, size: CGSize(width: 280, height: 400))
         try? await Task.sleep(for: .milliseconds(400))
 
         // Aufgabe 137: ohne manuelles reloadData — Representable muss Zeilen liefern.

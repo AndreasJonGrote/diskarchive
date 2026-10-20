@@ -43,4 +43,7 @@ nonisolated struct IndexRunOutcome: Sendable, Equatable {
     var failureReason: IndexFailureReason?
     /// Abgebrochener Abgleich: DB `.indexed`, aber kein vollständiger Lauf (bug.0.4.014).
     var interrupted: Bool = false
+    /// bug.0.4.127: Lauf bis zum Ende, aber mit nicht lesbaren Ordnern → `.pending` („x % indiziert“); Überwachung
+    /// und Aufräumen wie nach einem vollständigen Lauf.
+    var ranToEnd: Bool = false
 }

@@ -35,6 +35,12 @@ nonisolated final class ArchiveDatabase: @unchecked Sendable {
     /// Der Pool; öffnet und migriert beim ersten Aufruf. Nicht auf dem Hauptfaden aufrufen (Migration kann dauern).
     func pool() throws -> DatabasePool {
         if let openedPool { return openedPool }
+        #if DEBUG
+        // bug.0.4.093: Ein Aufruf auf dem Hauptfaden, solange noch nicht geöffnet ist, wartet dort auf die Migration.
+        if Thread.isMainThread, let url = try? fileURL() {
+            SchemaV3.OpenCounter.shared.noteMainThreadPoolWait(url)
+        }
+        #endif
         openLock.lock()
         defer { openLock.unlock() }
         if let openedPool { return openedPool }

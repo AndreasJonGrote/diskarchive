@@ -316,9 +316,10 @@ struct SearchSortHeaderWindowTests {
         return best
     }
 
-    private func open(_ app: AppState, dark: Bool = false) async -> PixelProbe.Session {
+    private func open(_ app: AppState, dark: Bool = false, style: NSScroller.Style? = nil) async -> PixelProbe.Session {
         let session = PixelProbe.open(
             SearchView().environment(app).environment(\.colorScheme, dark ? .dark : .light)
+                .environment(\.scrollerStyleOverride, style)
                 .frame(width: size.width, height: size.height).background(dark ? Color.black : Color.white),
             size: size,
             appearance: dark ? .darkAqua : .aqua
@@ -373,14 +374,15 @@ struct SearchSortHeaderWindowTests {
     }
 
     /// bug.0.4.081: Jeder sortierbare Kopf schaltet an linkem Rand (+4 pt), Mitte und rechtem Rand (−4 pt) seiner
-    /// Spalte (ganze Spaltenbreite klickbar), hell und dunkel, im Stil dieses Rechners.
-    @Test(arguments: [false, true])
-    func everySortableHeaderTogglesAcrossItsWholeWidth(dark: Bool) async throws {
+    /// Spalte (ganze Spaltenbreite klickbar), hell und dunkel; bug.0.4.100 a: im Stil dieses Rechners, dauerhaft und
+    /// Overlay (fester Stil über `scrollerStyleOverride`).
+    @Test(arguments: [false, true], [ScrollerStyleArgument.system, .legacy, .overlay])
+    func everySortableHeaderTogglesAcrossItsWholeWidth(dark: Bool, style: ScrollerStyleArgument) async throws {
         let (app, _) = try await sortRig()
         defer { app.prepareForTermination() }
         app.searchState.query = "treffer-1"
         app.searchState.submittedQuery = "treffer-1"
-        let session = await open(app, dark: dark)
+        let session = await open(app, dark: dark, style: style.style)
         defer { session.close() }
         let few = await waitUntil(timeout: 10) { app.searchMatch.itemCount == 100 }
         try #require(few, "Trefferzahl für „treffer-1“ kam nicht")
@@ -398,4 +400,59 @@ struct SearchSortHeaderWindowTests {
         #expect(misses.isEmpty, "nicht getroffen: \(misses)")
     }
 }
+}
+
+extension WindowTestGroup {
+/// bug.0.4.100 a: Kopf „Index“ der Speichermedien (rechtsbündig, Breite `RegistryTableLayout.indexingWidth`, gleicher
+/// Baustein wie in `SettingsMediaRegistryPanel`) schaltet an linkem Rand (+4), Mitte und rechtem Rand (−4), im Stil
+/// dieses Rechners, dauerhaft und Overlay.
+@Suite @MainActor
+struct RegistryIndexHeaderHitTests {
+    @Test(arguments: [ScrollerStyleArgument.system, .legacy, .overlay])
+    func indexHeaderTogglesAcrossItsWholeWidth(style: ScrollerStyleArgument) async throws {
+        let counter = HitCounter()
+        let width = RegistryTableLayout.indexingWidth
+        let session = PixelProbe.open(
+            HStack(spacing: 0) {
+                Color.clear.frame(width: 20, height: 1)
+                TableSortHeader(title: LayoutCopy.index, isActive: false, alignment: .trailing) { counter.hits += 1 }
+                    .frame(width: width, alignment: .trailing)
+                Spacer(minLength: 0)
+            }
+            .environment(\.scrollerStyleOverride, style.style)
+            .frame(width: 240, height: 40, alignment: .leading)
+            .background(Color.white),
+            size: CGSize(width: 240, height: 40)
+        )
+        defer { session.close() }
+        await PixelProbe.settleOpenWindow(session)
+        var misses: [String] = []
+        for (label, x) in [("links", 20 + 4), ("Mitte", 20 + width / 2), ("rechts", 20 + width - 4)] {
+            let before = counter.hits
+            session.click(at: CGPoint(x: x, y: 20), settle: 0.1)
+            if counter.hits == before { misses.append("\(label) x=\(Int(x))") }
+        }
+        #expect(misses.isEmpty, "nicht getroffen: \(misses)")
+    }
+}
+}
+
+@MainActor
+private final class HitCounter {
+    var hits = 0
+}
+
+/// bug.0.4.100 a: Rollbalken-Stil als Testargument (`nil` = Stil dieses Rechners).
+enum ScrollerStyleArgument: String, CaseIterable, Sendable, CustomTestStringConvertible {
+    case system, legacy, overlay
+
+    var style: NSScroller.Style? {
+        switch self {
+        case .system: nil
+        case .legacy: .legacy
+        case .overlay: .overlay
+        }
+    }
+
+    var testDescription: String { rawValue }
 }

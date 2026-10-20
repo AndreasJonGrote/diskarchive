@@ -120,6 +120,12 @@ struct ArchiveDatabaseStartupTests {
         ticker.start()
         defer { ticker.stop() }
 
+        // bug.0.4.093: Während die Migration läuft, muss der Main Actor springen können (Tor wie `MainHopGate`): die
+        // Migration wartet am Tor, bis der Test auf main die Meldung gelesen hat; Notgrenze nur für den roten Fall.
+        let gate = MainHopGate()
+        SchemaV3.OpenCounter.shared.setBeforeMigrateHook(url) { gate.arrive(onMain: Thread.isMainThread) }
+        defer { SchemaV3.OpenCounter.shared.setBeforeMigrateHook(url, nil) }
+
         // Reihenfolge wie in der App: Öffnen im Hintergrund anstoßen, dann den Fehlerbericht starten.
         var failure: Error?
         let openThread = OpenThreadProbe()
@@ -129,7 +135,8 @@ struct ArchiveDatabaseStartupTests {
             defaults: defaults,
             open: { [openThread] in
                 openThread.note(Thread.isMainThread)
-                return IndexStoreV3(pool: try archive.pool())
+                // bug.0.4.093: derselbe Weg wie die App (`openDefault`), ein Rückfall auf einen eigenen Pool fällt auf.
+                return try IndexStoreV3.openDefault(archive: archive)
             },
             wire: { store in
                 // Öffnen und Migration sind fertig: Ticker anhalten (gemessen wird der Hauptfaden während der Migration;
@@ -153,6 +160,10 @@ struct ArchiveDatabaseStartupTests {
             onFailure: { failure = $0 }
         )
         reporter.start()
+        // Ende ohne Tor (z. B. Fehler vor der Migration) → Warten endet (rot statt Hängen).
+        Task { _ = await startup.value; gate.finish() }
+        let migrationReport = await gate.arrived()
+        gate.open()
         await startup.value
         let openSeconds = Date().timeIntervalSince(started)
 
@@ -166,7 +177,8 @@ struct ArchiveDatabaseStartupTests {
         #expect(await waitUntil(timeout: 10) { reporter.knownNames().contains(medium.name) })
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
-        #expect(try reporter.queuedReportCount() == 1)
+        // Regel 20: ein Rest aus dem Start darf mitzählen.
+        #expect(try reporter.queuedReportCount() >= 1)
 
         // Genau ein Öffnen (und damit eine Migration) für diese Datei.
         #expect(SchemaV3.OpenCounter.shared.count(url) == 1, "openPool-Aufrufe: \(SchemaV3.OpenCounter.shared.count(url))")
@@ -176,6 +188,11 @@ struct ArchiveDatabaseStartupTests {
         #expect(SchemaV3.OpenCounter.shared.mainThreadCount(url) == 0, "Öffnen/Migration auf dem Hauptfaden")
         // Auch das Warten der Startkette auf eine laufende Migration (Sperre in `ArchiveDatabase`) nicht auf ihm.
         #expect(openThread.all == [false], "open-Schritt auf dem Hauptfaden: \(openThread.all)")
+        // bug.0.4.093: kein Aufrufer wartet auf dem Hauptfaden an der Sperre, und während der Migration kam ein Sprung
+        // auf den Main Actor (die Migration lief nicht auf main und blockierte ihn nicht).
+        #expect(SchemaV3.OpenCounter.shared.mainThreadPoolWaitCount(url) == 0, "pool() auf dem Hauptfaden vor dem Öffnen")
+        #expect(migrationReport == false, "Migration erreichte das Tor nicht oder lief auf main")
+        #expect(gate.timedOut == false, "Main Actor während der Migration blockiert")
         #expect(ticker.ticks > 0)
         print("bug.0.4.086 öffnen+migrieren \(itemCount) Einträge: \(openSeconds) s, längste Lücke \(ticker.longestGap) s")
     }

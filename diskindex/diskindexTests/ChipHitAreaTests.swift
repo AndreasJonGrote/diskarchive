@@ -27,6 +27,28 @@ struct ChipHitAreaTests {
         #expect(hits == 0)
     }
 
+    /// bug.0.4.133: Typ-Chip im Filter-Popover ist auf der ganzen Fläche klickbar (Ecke unten links im Innenabstand),
+    /// Maße nach Katalog „Chips“ (Höhe 23,5 ± 0,5).
+    @Test func filterTypeChipHitsPaddingNotOnlyText() throws {
+        var hits = 0
+        let session = openChip(
+            FilterTypeChipButton(label: "Dokumente", isSelected: false) { hits += 1 }
+        )
+        defer { session.close() }
+        let bitmap = session.bitmap()
+        let ink = try #require(PixelProbe.inkBounds(
+            in: bitmap,
+            rect: CGRect(x: 0, y: 0, width: 280, height: 80),
+            background: CGPoint(x: 10, y: 10)
+        ))
+        #expect(abs(ink.height - 23.5) <= 0.5, "Chiphöhe \(ink.height)")
+        session.click(at: CGPoint(x: ink.minX + 3, y: ink.maxY - 2))
+        #expect(hits == 1, "Klick in den Innenabstand ohne Wirkung")
+        hits = 0
+        try clickOutside(session: session)
+        #expect(hits == 0)
+    }
+
     @Test func favoritesConnectionChipHitsPadding() throws {
         var hits = 0
         let session = openChip(

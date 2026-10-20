@@ -30,6 +30,57 @@ struct SettingsScrollGutterTests {
         #expect(widths.contains { $0.overflows } && widths.contains { !$0.overflows }, "Vergleich braucht Tabs mit und ohne Überlauf: \(widths)")
     }
 
+    /// bug.0.4.100 c (Nutzer 20.10.): Im dauerhaften Stil ohne Überlauf keine leere Leiste, nur freier Platz; mit
+    /// Überlauf erscheint die Leiste in diesem Platz (Inhaltsbreite gleich: `legacyStyleKeepsTheSameContentWidthInAllTabs`).
+    @Test func legacyStyleShowsNoEmptyBar() async throws {
+        let widths = try await measure(style: .legacy)
+        try #require(widths.contains { $0.overflows } && widths.contains { !$0.overflows }, "\(widths)")
+        #expect(widths.allSatisfy { $0.barVisible == $0.overflows }, "Leiste sichtbar ohne Überlauf bzw. fehlt mit: \(widths)")
+    }
+
+    /// bug.0.4.100 b: Die Abschnittstitel stehen in allen Tabs an derselben x-Position (dauerhafter Stil).
+    @Test func sectionTitlesShareTheSameXInAllTabs() async throws {
+        // „Speichermedien“ hat seinen Titel über der Liste, außerhalb der Scrollansicht: hier nicht vergleichbar.
+        let widths = try await measure(style: .legacy).filter { $0.tab != .storageMedia }
+        let lefts = widths.compactMap(\.inkLeft)
+        try #require(lefts.count == widths.count, "Titel nicht gefunden: \(widths)")
+        let first = try #require(lefts.first)
+        #expect(lefts.allSatisfy { abs($0 - first) <= 0.5 }, "x-Positionen: \(widths)")
+    }
+
+    /// bug.0.4.100 b: Wechsel des Stils zur Laufzeit gilt sofort (Platz dauerhaft ↔ Overlay 0), ohne neues Fenster.
+    @Test func styleChangeAtRuntimeAppliesAtOnce() async throws {
+        let box = ScrollerStyleBox()
+        box.style = .legacy
+        let app = AppState()
+        app.settingsTab = .advanced
+        let session = PixelProbe.open(
+            ScrollerStyleHost(box: box) { SettingsView().environment(app) }
+                .frame(width: size.width, height: size.height),
+            size: size,
+            appearance: .aqua
+        )
+        defer { session.close() }
+        await PixelProbe.settleOpenWindow(session)
+        let gutter = NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy)
+        let legacy = try #require(Self.tabScroll(in: session.window))
+        #expect(abs(legacy.frame.width - legacy.contentView.bounds.width - gutter) <= 0.5, "dauerhaft: \(legacy.contentView.bounds.width) von \(legacy.frame.width)")
+        box.style = .overlay
+        let overlay = await waitUntil(timeout: 5) {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            guard let scroll = Self.tabScroll(in: session.window) else { return false }
+            return abs(scroll.frame.width - scroll.contentView.bounds.width) <= 0.5
+        }
+        #expect(overlay, "Overlay nach Wechsel reserviert noch Platz")
+        box.style = .legacy
+        let back = await waitUntil(timeout: 5) {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            guard let scroll = Self.tabScroll(in: session.window) else { return false }
+            return abs(scroll.frame.width - scroll.contentView.bounds.width - gutter) <= 0.5
+        }
+        #expect(back, "dauerhaft nach Rückwechsel ohne Platz")
+    }
+
     @Test func overlayStyleReservesNothing() async throws {
         let widths = try await measure(style: .overlay)
         #expect(widths.allSatisfy { abs($0.scrollWidth - $0.settled) <= 0.5 && abs($0.early - $0.settled) <= 0.5 }, "Overlay: \(widths)")
@@ -41,7 +92,11 @@ struct SettingsScrollGutterTests {
         var settled: CGFloat
         var scrollWidth: CGFloat
         var overflows: Bool
-        var description: String { "\(tab): \(early)/\(settled) von \(scrollWidth)\(overflows ? " Überlauf" : "")" }
+        var barVisible = false
+        var inkLeft: CGFloat?
+        var description: String {
+            "\(tab): \(early)/\(settled) von \(scrollWidth)\(overflows ? " Überlauf" : "")\(barVisible ? " Leiste" : "") x=\(inkLeft.map { String(Double($0)) } ?? "–")"
+        }
     }
 
     private func measure(style: NSScroller.Style) async throws -> [Measurement] {
@@ -78,10 +133,29 @@ struct SettingsScrollGutterTests {
                 early: earlyWidth,
                 settled: scroll.contentView.bounds.width,
                 scrollWidth: scroll.frame.width,
-                overflows: documentHeight > scroll.contentView.bounds.height + 1
+                overflows: documentHeight > scroll.contentView.bounds.height + 1,
+                barVisible: Self.barVisible(scroll),
+                inkLeft: Self.firstInkLeft(of: scroll, in: session)
             ))
         }
         return result
+    }
+
+    /// Linker Rand der ersten Tinte oben in der Scrollansicht (Abschnittstitel), in Fensterpunkten.
+    static func firstInkLeft(of scroll: NSScrollView, in session: PixelProbe.Session) -> CGFloat? {
+        let frame = scroll.convert(scroll.bounds, to: nil)
+        let height = session.window.contentView?.bounds.height ?? 0
+        let top = height - frame.maxY
+        let rect = CGRect(x: frame.minX, y: top, width: frame.width - 20, height: min(60, frame.height))
+        return PixelProbe.inkBounds(
+            in: session.bitmap(), rect: rect, background: CGPoint(x: frame.maxX - 30, y: top + 2)
+        )?.minX
+    }
+
+    /// Senkrechte Leiste sichtbar (nicht versteckt, nicht durchsichtig).
+    static func barVisible(_ scroll: NSScrollView) -> Bool {
+        guard scroll.hasVerticalScroller, let bar = scroll.verticalScroller else { return false }
+        return !bar.isHidden && bar.alphaValue > 0.01 && bar.frame.width > 0
     }
 
     /// Ein Durchlauf der Runloop (synchron, nicht im async-Kontext aufrufbar wie `CFRunLoopRunInMode`).
@@ -117,4 +191,20 @@ struct SettingsScrollGutterTests {
         return best
     }
 }
+}
+
+/// bug.0.4.100 b: Stil zur Laufzeit wechseln (Umgebung, kein prozessweiter Schalter).
+@MainActor
+@Observable
+private final class ScrollerStyleBox {
+    var style: NSScroller.Style?
+}
+
+private struct ScrollerStyleHost<Content: View>: View {
+    let box: ScrollerStyleBox
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content().environment(\.scrollerStyleOverride, box.style)
+    }
 }

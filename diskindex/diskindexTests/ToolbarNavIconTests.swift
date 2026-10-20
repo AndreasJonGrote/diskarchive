@@ -43,15 +43,7 @@ struct ToolbarNavIconTests {
             .padding()
             .environment(\.colorScheme, scheme)
         )
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 200, height: 48),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.isReleasedWhenClosed = false
-        window.contentView = host
-        window.orderFrontRegardless()
+        let window = PixelProbe.offscreenWindow(hosting: host, size: CGSize(width: 200, height: 48))
         pumpRunLoop()
         #expect(host.fittingSize.width > 80)
         window.orderOut(nil)

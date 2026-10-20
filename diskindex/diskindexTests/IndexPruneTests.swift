@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import GRDB
 import Testing
 @testable import diskindex
 
@@ -344,6 +345,58 @@ struct IndexPruneTests {
         #expect(removed >= 2_500)
         #expect(after < before)
         #expect(try await harness.store.storedNames() == ["keep.txt"])
+    }
+
+    /// bug.0.4.103: Nachfahren eines ignorierten Ordners werden von der Warteschlange nicht wieder sichtbar,
+    /// auch nicht in späteren Seiten oder weiteren Läufen; ohne Muster wird alles wieder sichtbar.
+    @Test func descendantsOfIgnoredFolderStayHidden() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
+        try await harness.store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: nil,
+            entries: [ScannedEntry(name: "X", isFolder: true), ScannedEntry(name: "keep.txt", isFolder: false)],
+            seenAt: Date()
+        )
+        let x = try await harness.store.folderID(mediumUUID: medium.uuid, path: ["X"])
+        try await harness.store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: x,
+            entries: [ScannedEntry(name: "sub", isFolder: true)],
+            seenAt: Date()
+        )
+        let sub = try await harness.store.folderID(mediumUUID: medium.uuid, path: ["X", "sub"])
+        try await harness.store.applyDirectory(
+            mediumUUID: medium.uuid,
+            parentID: sub,
+            entries: [ScannedEntry(name: "a.txt", isFolder: false)],
+            seenAt: Date()
+        )
+        let ignoreX = IndexScope(
+            maxDepth: nil,
+            matcher: IgnoreMatcher(ignoreHiddenFiles: false, excludedPatterns: ["X"], artifactsIgnored: false)
+        )
+        _ = try await harness.store.reconcileScopeToStatus(ignoreX, batchSize: 1)
+        _ = try await harness.store.reconcileScopeToStatus(ignoreX, batchSize: 1)
+        let hidden = try await statuses(harness)
+        #expect(hidden["X"] == ItemStatus.toDelete.rawValue)
+        #expect(hidden["sub"] == ItemStatus.toDelete.rawValue)
+        #expect(hidden["a.txt"] == ItemStatus.toDelete.rawValue)
+        #expect(hidden["keep.txt"] == ItemStatus.visible.rawValue)
+        _ = try await harness.store.reconcileScopeToStatus(SampleTree.open, batchSize: 1)
+        let shown = try await statuses(harness)
+        #expect(shown.values.allSatisfy { $0 == ItemStatus.visible.rawValue }, "\(shown)")
+        #expect(shown.count == 4)
+    }
+
+    private func statuses(_ harness: StoreHarness) async throws -> [String: Int] {
+        try await harness.store.pool.read { db in
+            var result: [String: Int] = [:]
+            for row in try Row.fetchAll(db, sql: "SELECT name, status FROM items") {
+                result[row["name"]] = row["status"]
+            }
+            return result
+        }
     }
 
     private func defaultsCleanup(_ suite: String) {

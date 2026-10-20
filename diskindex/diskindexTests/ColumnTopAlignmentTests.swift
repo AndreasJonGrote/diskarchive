@@ -42,16 +42,7 @@ struct ColumnTopAlignmentTests {
                 .environment(app)
                 .frame(width: 1280, height: 800)
         )
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1280, height: 800),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.isReleasedWhenClosed = false
-        window.contentView = host
-        window.orderFrontRegardless()
-        host.layoutSubtreeIfNeeded()
+        let window = PixelProbe.offscreenWindow(hosting: host, size: CGSize(width: 1280, height: 800))
         try await Task.sleep(for: .milliseconds(350))
 
         // Spaltenbereich beginnt unter Sidebar/Toolbar; Kopf darf nicht auf halber Höhe sitzen.

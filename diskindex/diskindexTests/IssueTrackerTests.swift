@@ -12,6 +12,7 @@ final class IssueStubURL: URLProtocol, @unchecked Sendable {
     nonisolated(unsafe) static var status = 201
     nonisolated(unsafe) static var body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
     nonisolated(unsafe) static var fail = false
+    nonisolated(unsafe) static var failCode: URLError.Code = .notConnectedToInternet
     nonisolated(unsafe) static var hits = 0
     nonisolated(unsafe) static var lastRequestBody: Data?
     nonisolated(unsafe) static var responseDelayNanoseconds: UInt64 = 0
@@ -31,7 +32,7 @@ final class IssueStubURL: URLProtocol, @unchecked Sendable {
         Self.hits += 1
         Self.lastRequestBody = request.httpBody
         if Self.fail {
-            client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+            client?.urlProtocol(self, didFailWithError: URLError(Self.failCode))
             return
         }
         let response = HTTPURLResponse(url: request.url!, statusCode: Self.status, httpVersion: nil, headerFields: nil)!
@@ -92,6 +93,60 @@ struct IssueTrackerTests {
         await reporter.flush()
         try expectQueued(reporter, 1)
         #expect(IssueStubURL.hits == 1)
+    }
+
+    /// bug.0.4.109: Zeitüberschreitung ist nicht „offline“ → Backoff: nach 61 s nicht fällig, zwei Flushes senden
+    /// einmal (keine doppelten Berichte).
+    @Test func timeoutBacksOffInsteadOfRetryingEveryMinute() async throws {
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        let reporter = try makeReporter(now: { clock.value })
+        IssueStubURL.fail = true
+        IssueStubURL.failCode = .timedOut
+        reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1)
+        try expectQueued(reporter, 1)
+        clock.value = clock.value.addingTimeInterval(61)
+        let pool = try #require(reporter.queuePool)
+        #expect(try ApiQueuePersistence.fetchDue(pool, now: clock.value).isEmpty)
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 1, "nach 61 s erneut gesendet")
+    }
+
+    /// bug.0.4.109: Nach 10 gescheiterten Versuchen (kein „offline“) wird der Eintrag verworfen.
+    @Test func reportIsDroppedAfterTenFailedAttempts() async throws {
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        let reporter = try makeReporter(now: { clock.value })
+        IssueStubURL.fail = true
+        IssueStubURL.failCode = .timedOut
+        reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
+        for _ in 0..<10 {
+            await reporter.flush()
+            clock.value = clock.value.addingTimeInterval(25 * 3_600)
+        }
+        #expect(IssueStubURL.hits == 10)
+        try expectQueued(reporter, 0)
+    }
+
+    /// bug.0.4.109: Echt offline (`notConnectedToInternet`) zählt nicht gegen die Obergrenze.
+    @Test func offlineDoesNotCountTowardsTheLimit() async throws {
+        let reporter = try makeReporter()
+        IssueStubURL.fail = true
+        reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
+        for _ in 0..<12 {
+            await reporter.flush()
+        }
+        try expectQueued(reporter, 1)
+        #expect(IssueStubURL.hits == 12)
+        // Ältere Zeile mit hohem Zähler aus der Zeit, als „offline“ jede Minute zählte: bleibt erhalten.
+        let pool = try #require(reporter.queuePool)
+        let row = try #require(try ApiQueuePersistence.fetchAllOrdered(pool).first)
+        try ApiQueuePersistence.recordFailure(pool, rowID: row.id, attempts: 50, lastTryAt: 0, info: "offline")
+        await reporter.flush()
+        try expectQueued(reporter, 1)
     }
 
     @Test func releaseRejectsPlainHTTP() async throws {
@@ -465,6 +520,7 @@ private func makeReporter(
     IssueStubURL.status = 201
     IssueStubURL.body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
     IssueStubURL.fail = false
+    IssueStubURL.failCode = .notConnectedToInternet
     IssueStubURL.hits = 0
     IssueStubURL.lastRequestBody = nil
     IssueStubURL.responseDelayNanoseconds = 0

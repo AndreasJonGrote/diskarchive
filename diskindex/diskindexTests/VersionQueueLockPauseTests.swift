@@ -216,7 +216,7 @@ struct VersionLockGapTests {
     /// (c) Bestandsnutzer ohne Medien (erster Start gespeichert, Datenbank war da) wird bei API ≥ 1.0 nicht sofort gesperrt.
     /// bug.0.4.065: kein prozessweiter Schalter mehr, der Wert „Datenbank neu“ geht als Parameter mit (Regel 20).
     @Test(.enabled(if: AppVersion.currentApp()?.isBeta == true, "nur für Beta-Builds (0.x)"))
-    @MainActor func existingUserWithoutMediaIsNotTreatedAsFresh() throws {
+    @MainActor func existingUserWithoutMediaIsNotTreatedAsFresh() async throws {
         let testStore = try TestStore.make()
         #expect(try registeredMediaCount(testStore.pool) == 0)
         let firstRun = Date().addingTimeInterval(-2 * day)
@@ -225,7 +225,7 @@ struct VersionLockGapTests {
             pool: testStore.pool
         )
         let appState = AppState()
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: api10), appState: appState, store: testStore.store,
             databaseWasNewThisLaunch: true
         )
@@ -248,7 +248,7 @@ struct VersionLockGapTests {
         #expect(try VersionLockEvaluator.readSettings(pool: testStore.pool).firstRunFresh)
         #expect(try registeredMediaCount(testStore.pool) == 0)
 
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: api10), appState: appState, store: testStore.store,
             databaseWasNewThisLaunch: false
         )
@@ -280,7 +280,7 @@ struct VersionLockGapTests {
         #expect(stored.decision == .undecided)
         #expect(stored.firstIndexedAt == nil)
 
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: api10), appState: appState, store: testStore.store,
             databaseWasNewThisLaunch: false
         )
@@ -310,7 +310,7 @@ struct VersionLockGapTests {
         let medium = try #require(try await harness.store.medium(uuid: harness.mediumID))
         #expect(medium.firstIndexedAt != nil)
 
-        VersionCheckCoordinator.handleAPIResult(
+        await VersionCheckCoordinator.handleAPIResult(
             VersionCheckResponse(version: api10), appState: appState, store: harness.store,
             databaseWasNewThisLaunch: true
         )

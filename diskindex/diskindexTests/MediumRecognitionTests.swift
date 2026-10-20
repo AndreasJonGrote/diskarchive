@@ -69,6 +69,7 @@ struct VolumeCandidateRuleTests {
     }
 }
 
+extension WindowTestGroup {
 @MainActor
 @Suite(.serialized)
 struct MediumCoordinatorTests {
@@ -84,13 +85,52 @@ struct MediumCoordinatorTests {
         )))
         #expect(rig.appState.pendingNewMediumDecisionIDs.count == 2)
         #expect(rig.indexRequests.isEmpty)
+        rig.appState.promptPanelPlacement = .offscreen
+        let ids = rig.appState.pendingNewMediumDecisionIDs
+        defer {
+            for id in ids {
+                AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
+            }
+        }
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
-        #expect(AppWindowPresenter.openNewMediumPanelCount == 2)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 2)
         rig.appState.onNewMediumChoice?(first, true, false)
         await rig.coordinator.waitForChoice()
         #expect(rig.indexRequests == [first])
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
-        #expect(AppWindowPresenter.openNewMediumPanelCount == 1)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1)
+    }
+
+    /// bug.0.4.117: Erkennungs-Panels aus Tests liegen außerhalb des Bildschirms, werden nicht Key, und ein
+    /// zweiter `AppState` schließt die Panels des ersten nicht.
+    @Test func newMediumPanelsStayOffscreenAndPerAppState() async throws {
+        let rig = try await RecognitionRig.make()
+        rig.appState.promptPanelPlacement = .offscreen
+        await rig.coordinator.handle(.appeared(rig.volume(name: "PLATTE_A", path: "/Volumes/PLATTE_A")))
+        await rig.coordinator.handle(.appeared(rig.volume(
+            name: "PLATTE_B",
+            path: "/Volumes/PLATTE_B",
+            uuid: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB",
+            created: Date(timeIntervalSince1970: 1_718_102_900)
+        )))
+        let ids = rig.appState.pendingNewMediumDecisionIDs
+        defer {
+            for id in ids {
+                AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
+            }
+        }
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
+        let panels = NSApp.windows.filter { $0 is KeyablePanel && $0.isVisible }
+        #expect(panels.count >= 2)
+        for panel in panels {
+            let onScreen = NSScreen.screens.contains { $0.frame.intersects(panel.frame) }
+            #expect(!onScreen, "Panel im sichtbaren Bereich: \(panel.frame)")
+            #expect(!panel.isKeyWindow)
+        }
+        let other = AppState()
+        other.promptPanelPlacement = .offscreen
+        AppWindowPresenter.syncNewMediumPanels(appState: other)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 2, "fremder AppState schließt Panels")
     }
 
     @Test func dontIndexWithoutIndexKeepsPendingStatus() async throws {
@@ -169,6 +209,35 @@ struct MediumCoordinatorTests {
         #expect(rig.appState.medium(with: existing.uuid)?.decision == .index)
         let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
         #expect(stored.decision == .index)
+    }
+
+    /// bug.0.4.126: Fehlerstatus nach abgebrochenem Erstlauf (Ebene 1 fertig, nie bis zum Ende) → beim Anschließen
+    /// `.pending` und Erstlauf mit Fortschritt, kein bloßer Abgleich.
+    @Test func errorAfterIncompleteFirstRunResumesAsPending() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_903)
+        let uuid = "EEEEEEEE-1260-EEEE-EEEE-EEEEEEEEEEEE"
+        let existing = StoredMedium(
+            volumeUUID: uuid,
+            volumeCreatedAt: created,
+            fsType: "apfs",
+            volumeTotalBytes: 1_000,
+            name: "HALB",
+            type: .usb,
+            decision: .index,
+            rememberDecision: true,
+            indexStatus: .error
+        )
+        try await rig.store.upsertMedium(existing)
+        try await rig.store.completeLayer(mediumUUID: existing.uuid, depth: 1)
+        let before = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(before.lastIndexedAt != nil, "Voraussetzung: Ebene 1 setzt lastIndexedAt")
+        rig.access.result = .granted
+        await rig.coordinator.handle(.appeared(rig.volume(name: "HALB", path: "/Volumes/HALB", uuid: uuid, created: created)))
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.indexStatus == .pending)
+        #expect(rig.indexRequests.contains(existing.uuid), "kein Erstlauf mit Fortschritt")
+        #expect(!rig.reconcileRequests.contains(existing.uuid))
     }
 
     @Test func reprobeKeepsDontIndexDecision() async throws {
@@ -363,6 +432,7 @@ struct MediumCoordinatorTests {
             type: .usb,
             decision: .index,
             indexStatus: .indexed,
+            firstIndexedAt: Date(),
             lastIndexedAt: Date()
         )
         try await rig.store.upsertMedium(existing)
@@ -491,8 +561,9 @@ struct MediumCoordinatorTests {
         rig.appState.onNewMediumChoice?(id, true, false)
         await rig.coordinator.waitForChoice()
         #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
+        rig.appState.promptPanelPlacement = .offscreen
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
-        #expect(AppWindowPresenter.openNewMediumPanelCount == 0)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 0)
         defer {
             AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
         }
@@ -502,7 +573,7 @@ struct MediumCoordinatorTests {
         #expect(rig.appState.newMediumDialogMediumID == id, "erneut gefragtes Medium nicht vorne in der Warteschlange")
         #expect(rig.appState.hasPendingNewMediumDecisions)
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
-        #expect(AppWindowPresenter.openNewMediumPanelCount == 1, "kein Panel für das erneut gefragte Medium")
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1, "kein Panel für das erneut gefragte Medium")
     }
 
     /// Korrektur 2: erneut gefragt, unvollständiger Index (`pending`, Ebene 2) → „Indizieren“ lässt den Status.
@@ -532,6 +603,63 @@ struct MediumCoordinatorTests {
         #expect(stored.rememberDecision)
     }
 
+    /// bug.0.4.128: Der Erkennungs-Dialog ändert den Index-Status nicht. Unvollständiger Index (Ebene 1, `.pending`),
+    /// „Nicht indizieren“, nicht gemerkt → „Ja“ setzt fort (`.pending`, Lauf angefordert), kein „indiziert“.
+    @Test func dialogYesKeepsIncompleteIndexPending() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_808)
+        let existing = StoredMedium(
+            volumeUUID: "AAAAAAAA-BBBB-CCCC-DDDD-000000000128",
+            volumeCreatedAt: created,
+            fsType: "apfs",
+            volumeTotalBytes: 1_000,
+            name: "TEIL",
+            type: .usb,
+            decision: .dontIndex,
+            rememberDecision: false,
+            indexStatus: .pending,
+            fileCount: 10,
+            folderCount: 2,
+            completedDepth: 1
+        )
+        try await rig.store.upsertMedium(existing)
+        await rig.coordinator.handle(.appeared(rig.volume(name: "TEIL", uuid: existing.volumeUUID, created: created)))
+        #expect(rig.appState.needsNewMediumDialog(existing.uuid))
+        rig.appState.onNewMediumChoice?(existing.uuid, true, false)
+        await rig.coordinator.waitForChoice()
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.indexStatus == .pending, "unvollständiger Index als „indiziert“ markiert")
+        #expect(rig.indexRequests.contains(existing.uuid), "kein Lauf angefordert")
+    }
+
+    /// bug.0.4.128: globale Pause, „Nein“ → der unvollständige Index bleibt `.pending` („x % indiziert“).
+    @Test func dialogNoKeepsIncompleteIndexPending() async throws {
+        let rig = try await RecognitionRig.make()
+        rig.appState.globalAutoIndexPaused = true
+        let created = Date(timeIntervalSince1970: 1_718_102_809)
+        let existing = StoredMedium(
+            volumeUUID: "AAAAAAAA-BBBB-CCCC-DDDD-000000000228",
+            volumeCreatedAt: created,
+            fsType: "apfs",
+            volumeTotalBytes: 1_000,
+            name: "TEIL2",
+            type: .usb,
+            decision: .dontIndex,
+            rememberDecision: false,
+            indexStatus: .pending,
+            fileCount: 10,
+            folderCount: 2,
+            completedDepth: 1
+        )
+        try await rig.store.upsertMedium(existing)
+        await rig.coordinator.handle(.appeared(rig.volume(name: "TEIL2", uuid: existing.volumeUUID, created: created)))
+        #expect(rig.appState.needsNewMediumDialog(existing.uuid))
+        rig.appState.onNewMediumChoice?(existing.uuid, false, false)
+        await rig.coordinator.waitForChoice()
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.indexStatus == .pending, "„Nein“ markiert unvollständigen Index als „indiziert“")
+    }
+
     /// Korrektur 3: Reprobe nach Fehler in derselben Sitzung fragt nicht noch einmal.
     @Test func reprobeDoesNotAskAgainInSameSession() async throws {
         let rig = try await RecognitionRig.make()
@@ -546,6 +674,7 @@ struct MediumCoordinatorTests {
             type: .usb,
             decision: .index,
             indexStatus: .indexed,
+            firstIndexedAt: Date(),
             lastIndexedAt: Date()
         )
         try await rig.store.upsertMedium(existing)
@@ -772,6 +901,7 @@ struct MediumCoordinatorTests {
         #expect(stored.decision == .dontIndex, "alte Entscheidung der Oberfläche zurückgeschrieben")
         #expect(stored.isFavorite)
     }
+}
 }
 
 @MainActor

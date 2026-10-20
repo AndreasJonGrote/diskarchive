@@ -201,14 +201,37 @@ import Testing
         let harness = try await ScanHarness.make()
         let access = MemoryVolume(mountPath: "/Volumes/T")
         access.file("bad/keep.txt")
+        // Tiefer Zweig daneben: die Ebenen unter der Lücke werden fertig (bug.0.4.127, Folgelauf darf nicht darunter
+        // beginnen).
+        access.file("ok/a/b/tief.txt")
         _ = try await harness.run(access: access, maxDepth: nil)
         let kept = try #require(try await harness.item(named: "keep.txt"))
         access.markUnreadable("bad")
-        let outcome = try await harness.run(access: access, maxDepth: nil, fromScratch: true)
-        #expect(outcome.status == .indexed)
+        // Ohne lange Lese-Wiederholungen (1 + 3 + 10 s je unlesbarem Ordner).
+        var fastRetries = IndexingRunLimits.standard
+        fastRetries.readRetryDelays = [.milliseconds(1)]
+        let outcome = try await harness.run(access: access, maxDepth: nil, fromScratch: true, limits: fastRetries)
+        // bug.0.4.127 (README 4): nicht lesbarer Ordner → Index unvollständig („x % indiziert“), nicht `.indexed`.
+        #expect(outcome.status != .indexed)
         #expect(outcome.readErrors == 1)
+        let partial = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        #expect(partial.indexStatus != .indexed)
+        let partialPercent = await MainActor.run { partial.asMedium(connection: .connected).indexProgressPercent }
+        #expect(partialPercent < 100)
         let still = try #require(try await harness.store.item(id: kept.id))
         #expect(still.name == "keep.txt")
+        // Gegenprobe: bleibt „bad“ unlesbar, bleibt der Index unvollständig (der Folgelauf liest die Lücke nach).
+        let stillBad = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)
+        #expect(stillBad.status != .indexed, "Folgelauf meldet ohne Nachlesen „indiziert“")
+        access.markReadable("bad")
+        let listedBefore = access.listed.filter { $0.hasSuffix("/bad") }.count
+        let again = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)
+        #expect(access.listed.filter { $0.hasSuffix("/bad") }.count > listedBefore, "„bad“ wurde nicht neu gelesen")
+        #expect(again.status == .indexed)
+        let complete = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        #expect(complete.indexStatus == .indexed)
+        let completePercent = await MainActor.run { complete.asMedium(connection: .connected).indexProgressPercent }
+        #expect(completePercent == 100)
 
         let broken = try await ScanHarness.make()
         let root = MemoryVolume(mountPath: "/Volumes/T")

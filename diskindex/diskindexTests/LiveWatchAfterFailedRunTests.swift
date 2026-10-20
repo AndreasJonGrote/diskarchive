@@ -66,4 +66,88 @@ struct LiveWatchAfterFailedRunTests {
         #expect(arrived, "Änderung kam nicht über die Überwachung an: \(names)")
         await rig.watcher.stop(mediumID: id)
     }
+
+    /// bug.0.4.095: Schreibfehler bleiben → mehrere Änderungen lösen höchstens einen weiteren Start aus (nach einem
+    /// gescheiterten Lauf kein Vollabgleich bis zum nächsten Lauf). Echte Kette, Skript-Quelle (Regel 18).
+    @Test func persistentFailureDoesNotLoopFullReconciles() async throws {
+        let harness = try await ScanHarness.make()
+        let indexed = StoredMedium(
+            fsType: "apfs", volumeTotalBytes: 1_000, name: "SCHLEIFE", type: .usb,
+            decision: .index, indexStatus: .indexed, completedDepth: 1
+        )
+        try await harness.store.upsertMedium(indexed)
+        let volume = testVolume(path: "/Volumes/SCHLEIFE", name: "SCHLEIFE")
+        try await harness.store.recordIdentity(mediumUUID: indexed.uuid, volume.identity)
+        let inner = MemoryVolume(mountPath: "/Volumes/SCHLEIFE")
+        inner.file("alt.txt")
+        await harness.store.setDirectoryWritesFailing(true)
+        let app = AppState(store: harness.store)
+        let store = harness.store
+        let box = FailedRunWatcherBox()
+        let rig = WiredRig(store: store, access: inner, app: app) { [box] id, volume in
+            guard let watcher = box.watcher else { return }
+            await LiveWiring.startWatching(id: id, volume: volume, store: store, watcher: watcher, appState: app)
+        }
+        box.watcher = rig.watcher
+        let source = ScriptedChangeSource()
+        rig.watcher.makeSourceForTesting = { _ in source }
+        rig.watcher.quietInterval = .milliseconds(30)
+        rig.watcher.cursorSaveInterval = nil
+        let id = indexed.uuid
+        defer { rig.coordinator.stop() }
+
+        await rig.coordinator.handle(.appeared(volume))
+        let watching = await waitUntil { rig.watcher.isWatching(mediumID: id) && !rig.service.isRunActive(id) }
+        try #require(watching, "Überwachung nach gescheitertem Lauf aus")
+        let startsBefore = rig.starts(id).count
+        for round in 1...3 {
+            let listedBefore = inner.listed.filter { $0 == "/Volumes/SCHLEIFE" }.count
+            inner.file("neu\(round).txt")
+            source.emit(VolumeChange(path: "/Volumes/SCHLEIFE/neu\(round).txt", eventID: Int64(10 + round), itemCreated: true))
+            // Positives Signal: die Überwachung hat den Ordner neu gelesen (Schreiben scheitert).
+            let reread = await waitUntil {
+                inner.listed.filter { $0 == "/Volumes/SCHLEIFE" }.count > listedBefore
+                    && !rig.service.isRunActive(id)
+            }
+            #expect(reread, "Runde \(round): Änderung nicht gelesen")
+        }
+        let settled = await waitUntil { !rig.service.isRunActive(id) && rig.watcher.isWatching(mediumID: id) }
+        #expect(settled)
+        #expect(rig.starts(id).count <= startsBefore + 1, "Schleife: \(rig.starts(id).count - startsBefore) weitere Starts")
+        await rig.watcher.stop(mediumID: id)
+    }
+
+    /// bug.0.4.095: Zeitüberschreitung (hängendes Medium) und Abbruch starten die Überwachung nach Fehler nicht.
+    @Test func timeoutAndInterruptionDoNotWatchAfterFailure() {
+        let failed = IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: .database)
+        #expect(IndexingService.watchesAfterFailure(failed))
+        var timeout = IndexRunOutcome(status: .pending, readErrors: 1, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: .timeout)
+        #expect(!IndexingService.watchesAfterFailure(timeout))
+        timeout.status = .error
+        #expect(!IndexingService.watchesAfterFailure(timeout))
+        var interrupted = failed
+        interrupted.interrupted = true
+        #expect(!IndexingService.watchesAfterFailure(interrupted))
+    }
+
+    /// bug.0.4.095: pausiert, „Indizieren“ aus oder gesperrt → keine Überwachung nach Fehler.
+    @Test func pausedDisallowedOrLockedDoNotWatchAfterFailure() async throws {
+        let harness = try await ScanHarness.make()
+        let app = AppState(store: harness.store)
+        let id = harness.mediumID
+        var medium = try #require(try await harness.store.medium(uuid: id)).asMedium(connection: .connected)
+        medium.decision = .index
+        medium.allowIndexing = true
+        app.media = [medium]
+        let service = IndexingService(store: harness.store, access: MemoryVolume(mountPath: "/Volumes/T"), appState: app)
+        #expect(service.watchesAfterFailedRun(id))
+        app.globalAutoIndexPaused = true
+        #expect(!service.watchesAfterFailedRun(id))
+        app.globalAutoIndexPaused = false
+        app.updateMedium(id: id) { $0.allowIndexing = false }
+        #expect(!service.watchesAfterFailedRun(id))
+        app.updateMedium(id: id) { $0.allowIndexing = true }
+        app.versionLockState = .locked(.betaExpired)
+        #expect(!service.watchesAfterFailedRun(id))
+    }
 }

@@ -12,6 +12,8 @@ final class IndexingService {
     /// Tests: gestartete Läufe je Medium, Wert = `fromScratch` (Zähler, keine Steuerung).
     private(set) var startedRunsForTesting: [UUID: [Bool]] = [:]
     #endif
+    /// bug.0.4.095: Medien, deren letzter Lauf scheiterte (Überwachung läuft trotzdem): kein voller Abgleich.
+    private var fullReconcileSuppressed: Set<UUID> = []
 
     private let store: IndexStoreV3
     private let access: any MediumAccess
@@ -98,7 +100,7 @@ final class IndexingService {
 
     func start(mediumUUID: UUID, volume: VolumeInfo, fromScratch: Bool) {
         guard appState.featureAccess.canWriteIndex else {
-            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+            rejectStart(mediumUUID)
             return
         }
         if startsWaitingForCancel[mediumUUID] != nil || (tasks[mediumUUID] != nil && runs[mediumUUID] == nil) {
@@ -131,12 +133,12 @@ final class IndexingService {
             return
         }
         guard !isPaused(mediumUUID) else {
-            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+            rejectStart(mediumUUID)
             return
         }
         guard appState.medium(with: mediumUUID)?.decision == .index else {
             DiskIndexLog.shared.record(.index, .info, "auftrag abgelehnt unentschieden medium=\(mediumUUID)")
-            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+            rejectStart(mediumUUID)
             return
         }
         DiskIndexLog.shared.record(.index, .info, "auftrag medium=\(mediumUUID) scratch=\(fromScratch)")
@@ -145,6 +147,8 @@ final class IndexingService {
         #endif
 
         let token = UUID()
+        // bug.0.4.095: ein neuer Lauf (Anschließen, Neu indizieren, Pausenende) hebt die Sperre des Vollabgleichs auf.
+        fullReconcileSuppressed.remove(mediumUUID)
         runs[mediumUUID] = token
         runVolumes[mediumUUID] = volume
         runStartedAt[mediumUUID] = Date()
@@ -215,6 +219,11 @@ final class IndexingService {
     func cancel(mediumUUID: UUID) async {
         let task = tasks[mediumUUID]
         guard task != nil || runs[mediumUUID] != nil else { return }
+        // bug.0.4.129: Abbruch, bevor der Lauf „wird indiziert“ meldete (Aushängen, Sperre direkt nach dem Klick) →
+        // Sperre „Neu indizieren“ freigeben; ein laufender Lauf gibt sie über `.indexing` frei.
+        if appState.medium(with: mediumUUID)?.indexStatus != .indexing {
+            appState.reindexRequested.remove(mediumUUID)
+        }
         task?.cancel()
         guard let token = runs.removeValue(forKey: mediumUUID) else {
             await task?.value
@@ -270,10 +279,29 @@ final class IndexingService {
         }
     }
 
-    private func watchesAfterFailedRun(_ mediumUUID: UUID) -> Bool {
+    /// bug.0.4.095: Überwachung nach einem gescheiterten Lauf, aber nicht nach Zeitüberschreitung (hängendes Medium)
+    /// und nicht nach einem Abbruch.
+    nonisolated static func watchesAfterFailure(_ outcome: IndexRunOutcome) -> Bool {
+        guard outcome.failureReason != .timeout, !outcome.interrupted else { return false }
+        return outcome.status == .error || outcome.failureReason != nil
+    }
+
+    /// bug.0.4.095: Nach einem gescheiterten Lauf kein voller Abgleich aus der Überwachung, bis ein Lauf neu startet.
+    func suppressesFullReconcile(_ mediumUUID: UUID) -> Bool {
+        fullReconcileSuppressed.contains(mediumUUID)
+    }
+
+    func watchesAfterFailedRun(_ mediumUUID: UUID) -> Bool {
         guard appState.featureAccess.canWriteIndex, !isPaused(mediumUUID),
               let medium = appState.medium(with: mediumUUID) else { return false }
         return medium.connectionStatus == .connected && medium.decision == .index && medium.allowIndexing
+    }
+
+    /// Start abgelehnt: Auftrag und Sperre „Neu indizieren“ freigeben (bug.0.4.129), sonst bliebe der Knopf bis zum
+    /// Neustart gesperrt.
+    private func rejectStart(_ mediumUUID: UUID) {
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
+        appState.reindexRequested.remove(mediumUUID)
     }
 
     private func isPaused(_ mediumUUID: UUID) -> Bool {
@@ -361,17 +389,25 @@ final class IndexingService {
         if outcome.status == .error, let medium = appState.medium(with: mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
-        if outcome.status == .indexed, !outcome.interrupted, let volume = runVolumes[mediumUUID] {
+        // bug.0.4.127: auch ein Lauf bis zum Ende mit nicht lesbaren Ordnern (`.pending`) startet die Überwachung.
+        let finishedRun = !outcome.interrupted && (outcome.status == .indexed || outcome.ranToEnd)
+        if finishedRun {
+            fullReconcileSuppressed.remove(mediumUUID)
+        }
+        if finishedRun, let volume = runVolumes[mediumUUID] {
             onRunIndexed?(mediumUUID, volume)
-        } else if outcome.status == .error || (outcome.failureReason != nil && !outcome.interrupted),
-                  watchesAfterFailedRun(mediumUUID), let volume = runVolumes[mediumUUID] {
+        } else if Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolumes[mediumUUID] {
             // bug.0.4.084 (README: beim Anschließen Lauf und sofort Live-Überwachung): Ein gescheiterter Lauf lässt die
             // Überwachung nicht aus, solange das Medium angeschlossen, „Indizieren: Ja“, nicht pausiert und nicht
-            // gesperrt ist. Abbrüche (Pause, Sperre, Aushängen, Beenden) kommen hier nicht an: ihr Token ist weg.
+            // gesperrt ist. Sperre, Aushängen und Beenden kommen hier nicht an (ihr Token ist weg); eine Pause erreicht
+            // `finish`, aber ohne Fehler (`interrupted`), und fällt durch `watchesAfterFailure`.
+            // bug.0.4.095: bis zum nächsten Lauf (erfolgreich oder neu angestoßen) löst die Überwachung keinen vollen
+            // Abgleich aus, nur Einzeländerungen – sonst startet jede Änderung einen Lauf, der wieder scheitert.
+            fullReconcileSuppressed.insert(mediumUUID)
             DiskIndexLog.shared.record(.index, .info, "überwachung nach fehler medium=\(mediumUUID)")
             onRunIndexed?(mediumUUID, volume)
         }
-        if outcome.status == .indexed, !outcome.interrupted {
+        if finishedRun {
             appState.scheduleDatabaseMaintenance()
         }
         runFullReconcile.removeValue(forKey: mediumUUID)

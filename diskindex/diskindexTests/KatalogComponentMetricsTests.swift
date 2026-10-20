@@ -77,18 +77,7 @@ struct KatalogComponentMetricsTests {
     }
 
     private func present(_ host: NSView, size: NSSize) -> NSWindow {
-        host.frame = NSRect(origin: .zero, size: size)
-        let window = NSWindow(
-            contentRect: host.frame,
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        window.isReleasedWhenClosed = false
-        window.contentView = host
-        window.orderFrontRegardless()
-        host.layoutSubtreeIfNeeded()
-        return window
+        PixelProbe.offscreenWindow(hosting: host, size: size)
     }
 
     private func pump(_ seconds: TimeInterval) async throws {

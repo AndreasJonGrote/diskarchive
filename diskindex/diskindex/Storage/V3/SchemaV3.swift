@@ -99,6 +99,9 @@ nonisolated enum SchemaV3 {
         if try pool.read({ try migrator.hasBeenSuperseded($0) }) {
             throw IndexStoreError.schemaSuperseded
         }
+        #if DEBUG
+        OpenCounter.shared.beforeMigrate(fileURL)
+        #endif
         try migrator.migrate(pool)
         try normalizeInterruptedIndexingStatuses(in: pool)
         FilePrivacy.restrict(folder)
@@ -122,10 +125,30 @@ nonisolated enum SchemaV3 {
         func count(_ url: URL) -> Int { lock.withLock { counts[url.standardizedFileURL.path] ?? 0 } }
         /// Öffnungen (samt Migration) auf dem Hauptfaden – soll 0 sein (bug.0.4.086, Regel 15).
         func mainThreadCount(_ url: URL) -> Int { lock.withLock { mainCounts[url.standardizedFileURL.path] ?? 0 } }
+
+        private var mainPoolWaits: [String: Int] = [:]
+        private var migrateHooks: [String: @Sendable () -> Void] = [:]
+        /// bug.0.4.093: `ArchiveDatabase.pool()` auf dem Hauptfaden, solange der Pool noch nicht offen ist.
+        func noteMainThreadPoolWait(_ url: URL) {
+            lock.withLock { mainPoolWaits[url.standardizedFileURL.path, default: 0] += 1 }
+        }
+        func mainThreadPoolWaitCount(_ url: URL) -> Int {
+            lock.withLock { mainPoolWaits[url.standardizedFileURL.path] ?? 0 }
+        }
+        /// bug.0.4.093 (Tests): Haken je Datei unmittelbar vor der Migration (kein prozessweiter Schalter).
+        func setBeforeMigrateHook(_ url: URL, _ hook: (@Sendable () -> Void)?) {
+            lock.withLock { migrateHooks[url.standardizedFileURL.path] = hook }
+        }
+        func beforeMigrate(_ url: URL) {
+            let hook = lock.withLock { migrateHooks[url.standardizedFileURL.path] }
+            hook?()
+        }
     }
     #endif
 
     /// Nach Absturz/Beenden: `indexing` ohne laufenden Prozess → `indexed` oder `pending` (bug.0.4.028).
+    /// „indiziert“ nur nach mindestens einem Lauf bis zum Ende (`firstIndexedAt`, bug.0.4.126); `lastIndexedAt`
+    /// setzt schon jede fertige Ebene.
     private static func normalizeInterruptedIndexingStatuses(in pool: DatabasePool) throws {
         let indexing = MediumCodecV3.code(.indexing)
         let indexed = MediumCodecV3.code(.indexed)
@@ -134,7 +157,7 @@ nonisolated enum SchemaV3 {
             try db.execute(
                 sql: """
                     UPDATE storages SET indexStatus = CASE
-                        WHEN lastIndexedAt IS NOT NULL THEN ?
+                        WHEN firstIndexedAt IS NOT NULL THEN ?
                         ELSE ?
                     END
                     WHERE indexStatus = ?

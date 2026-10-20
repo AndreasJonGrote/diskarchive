@@ -477,6 +477,47 @@ extension WindowTestGroup {
         #expect(log.ids.isEmpty)
     }
 
+    /// bug.0.4.138: Neuer Baum mit 6 Ebenen, je Ebene ein Ereignis (Bündel in zufälliger Reihenfolge) → kein
+    /// Vollabgleich des Mediums, die tiefste Datei landet im Store; 20 Durchläufe mit wechselnden Namen.
+    @Test func deepNewTreeDoesNotTriggerFullReconcile() async throws {
+        let rig = try await watchRig()
+        let log = ReconcileLog()
+        rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
+        rig.watcher.quietInterval = .milliseconds(25)
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        func folder(_ name: String) -> ListedDirectoryEntry {
+            ListedDirectoryEntry(name: name, isDirectory: true, isPackage: false, isSymbolicLink: false, isHidden: false, fileSize: nil, modifiedAt: nil)
+        }
+        var roots: [ListedDirectoryEntry] = []
+        var eventID: Int64 = 100
+        for round in 0..<20 {
+            let top = "Tief\(round)"
+            roots.append(folder(top))
+            rig.access.listings["/Volumes/DISK/A"] = roots
+            let levels = [top, "L2", "L3", "L4", "L5", "L6"]
+            var path = "/Volumes/DISK/A"
+            var directories: [String] = []
+            for (depth, name) in levels.enumerated() {
+                path += "/\(name)"
+                directories.append(path)
+                let next = depth + 1 < levels.count ? [folder(levels[depth + 1])] : [
+                    ListedDirectoryEntry(name: "f.txt", isDirectory: false, isPackage: false, isSymbolicLink: false, isHidden: false, fileSize: 1, modifiedAt: nil),
+                ]
+                rig.access.listings[path] = next
+            }
+            for directory in directories + [path + "/f.txt"] {
+                eventID += 1
+                rig.source.emit(VolumeChange(path: directory, eventID: eventID))
+            }
+            let found = await waitUntil {
+                (try? await rig.store.item(mediumUUID: rig.medium.uuid, path: ["A"] + levels, name: "f.txt")) != nil
+            }
+            #expect(found, "Runde \(round): tiefste Datei fehlt")
+            #expect(log.ids.isEmpty, "Runde \(round): Vollabgleich ausgelöst")
+            if !found || !log.ids.isEmpty { break }
+        }
+    }
+
     @Test func newFolderUnderKnownParentAppearsAfterQuiet() async throws {
         let rig = try await watchRig()
         rig.access.listings["/Volumes/DISK/A"] = [

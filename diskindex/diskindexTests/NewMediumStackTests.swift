@@ -10,6 +10,7 @@ import Foundation
 import Testing
 @testable import diskindex
 
+extension WindowTestGroup {
 @MainActor
 struct NewMediumStackTests {
     @Test func undecidedConnectedMediaDoesNotRequestIndexAlone() async throws {
@@ -45,12 +46,20 @@ struct NewMediumStackTests {
             uuid: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB",
             created: Date(timeIntervalSince1970: 1_718_102_900)
         )))
+        rig.appState.promptPanelPlacement = .offscreen
+        let ids = rig.appState.pendingNewMediumDecisionIDs
+        defer {
+            for id in ids {
+                AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
+            }
+        }
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
-        #expect(AppWindowPresenter.openNewMediumPanelCount == 2)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 2)
         AppWindowPresenter.closeNewMediumPanel(mediumID: first, appState: rig.appState, userDismissed: true)
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
-        #expect(AppWindowPresenter.openNewMediumPanelCount == 1)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1)
     }
+}
 }
 
 @MainActor

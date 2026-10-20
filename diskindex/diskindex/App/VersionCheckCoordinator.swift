@@ -12,6 +12,7 @@ import GRDB
 enum VersionCheckCoordinator {
     static var freshInstallForVersionCheck = false
 
+
     /// `databaseWasNewThisLaunch`: `nil` = Wert des App-Starts (`freshInstallForVersionCheck`); Tests geben ihn je
     /// Aufruf mit (bug.0.4.065, Regel 20: kein prozessweiter Schalter im Test).
     static func reevaluateLocal(
@@ -64,22 +65,21 @@ enum VersionCheckCoordinator {
         applyEvaluation(evaluation, appState: appState, pool: pool, persist: false)
     }
 
+    /// bug.0.4.137: Lesen und Schreiben der Datenbank im Hintergrund (wartet sonst auf dem Main Actor hinter
+    /// Indexer-Stapeln und `wal_checkpoint`); nur das Anwenden auf `AppState` läuft auf main.
     static func handleAPIResult(
         _ response: VersionCheckResponse?,
         appState: AppState,
         store: IndexStoreV3,
         now: Date = Date(),
         databaseWasNewThisLaunch: Bool? = nil
-    ) {
+    ) async {
         guard let appVersion = AppVersion.currentApp() else { return }
         let pool = store.pool
-        let settings: SystemSettingsSnapshot
-        let mediaCount: Int
-        do {
-            (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndIndexedMediaCount(pool: pool)
-        } catch {
-            return
+        let read = await Self.onDatabaseQueue {
+            try? VersionLockEvaluator.readSettingsAndIndexedMediaCount(pool: pool)
         }
+        guard let (settings, mediaCount) = read else { return }
         // bug.0.4.053 (c) / bug.0.4.065: „frisch“ = Datenbank beim ersten Start neu und bei der ersten
         // API-Antwort noch kein Medium indiziert (README „Netz (API)“, Präzisierung 18.10.).
         let fresh = VersionLockEvaluator.isFreshInstall(
@@ -96,18 +96,43 @@ enum VersionCheckCoordinator {
             buildDate: AppVersion.currentBuildDate()
         )
         if databaseWasNewThisLaunch == nil { freshInstallForVersionCheck = false }
-        applyEvaluation(evaluation, appState: appState, pool: pool, persist: response != nil)
+        if response != nil {
+            let mutations = evaluation.mutations
+            await Self.onDatabaseQueue {
+                try? VersionLockEvaluator.applyMutations(mutations, pool: pool)
+            }
+        }
+        applyEvaluation(evaluation, appState: appState, pool: pool, persist: response != nil, alreadyPersisted: true)
+    }
+
+    /// Blockierende Datenbankarbeit auf einer Dispatch-Queue statt auf dem Pool der Swift-Nebenläufigkeit (wie
+    /// `IndexStoreV3.checkpointInBackground`): wartet der Schreiber, hält sie keinen Faden des Pools fest.
+    nonisolated private static func onDatabaseQueue<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+        #if DEBUG
+        let observer = VersionCheckTestHooks.databaseThreadObserver
+        #endif
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                #if DEBUG
+                observer?(Thread.isMainThread)
+                #endif
+                continuation.resume(returning: work())
+            }
+        }
     }
 
     private static func applyEvaluation(
         _ evaluation: VersionLockEvaluation,
         appState: AppState,
         pool: DatabasePool,
-        persist: Bool
+        persist: Bool,
+        alreadyPersisted: Bool = false
     ) {
         let wasLocked = appState.versionLockState.isLocked
         if persist {
-            try? VersionLockEvaluator.applyMutations(evaluation.mutations, pool: pool)
+            if !alreadyPersisted {
+                try? VersionLockEvaluator.applyMutations(evaluation.mutations, pool: pool)
+            }
         } else if evaluation.mutations.hasClockChanges {
             // bug.0.4.053 (a)/(b): erster Start und höchste Uhrzeit auch ohne API-Antwort sichern (im Hintergrund).
             let clock = evaluation.mutations.clockOnly
@@ -174,3 +199,11 @@ enum VersionCheckCoordinator {
         }
     }
 }
+
+#if DEBUG
+/// bug.0.4.137 (Tests): meldet je Datenbankschritt des Versions-Checks, ob er auf dem Hauptfaden lief; je Task, kein
+/// prozessweiter Schalter.
+nonisolated enum VersionCheckTestHooks {
+    @TaskLocal static var databaseThreadObserver: (@Sendable (Bool) -> Void)?
+}
+#endif

@@ -36,6 +36,77 @@ struct ReindexGateTests {
         #expect(app.canReindex(id, now: end.addingTimeInterval(59)))
     }
 
+    /// bug.0.4.129: offline → „Neu indizieren“ gesperrt, kein hängender Eintrag.
+    @Test func offlineMediumCannotReindex() {
+        let app = AppState()
+        let id = UUID()
+        var offline = medium(id: id, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
+        offline.connectionStatus = .offline
+        app.media = [offline]
+        app.onReindexMedium = { _ in }
+        #expect(!app.canReindex(id))
+        app.reindexMedium(id: id)
+        #expect(app.reindexRequested.isEmpty)
+    }
+
+    /// bug.0.4.129: pausiert → gesperrt; nach Pausenende wieder aktiv.
+    @Test func pausedMediumCannotReindexUntilResumed() {
+        let app = AppState()
+        let id = UUID()
+        app.media = [medium(id: id, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))]
+        app.globalAutoIndexPaused = true
+        #expect(!app.canReindex(id))
+        app.globalAutoIndexPaused = false
+        app.updateMedium(id: id) { $0.autoIndexPaused = true }
+        #expect(!app.canReindex(id))
+        app.updateMedium(id: id) { $0.autoIndexPaused = false }
+        #expect(app.canReindex(id))
+    }
+
+    /// bug.0.4.129: Lehnt der Dienst den Start ab (pausiert), bleibt kein Eintrag in `reindexRequested` hängen.
+    @Test func rejectedStartClearsReindexRequest() async throws {
+        let harness = try await ScanHarness.make()
+        var stored = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        stored.decision = .index
+        try await harness.store.upsertMedium(stored)
+        let app = AppState()
+        let id = harness.mediumID
+        var shown = medium(id: id, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
+        shown.decision = .index
+        app.media = [shown]
+        let service = IndexingService(store: harness.store, access: MemoryVolume(mountPath: "/Volumes/T"), appState: app)
+        app.onReindexMedium = { mediumID in
+            // Zwischen Klick und Start wird pausiert (Wettlauf): der Dienst lehnt ab.
+            app.globalAutoIndexPaused = true
+            service.start(mediumUUID: mediumID, volume: harness.volume(at: "/Volumes/T"), fromScratch: true)
+        }
+        app.reindexMedium(id: id)
+        await service.waitUntilIdle(id)
+        #expect(!app.reindexRequested.contains(id), "Eintrag hängt nach abgelehntem Start")
+    }
+
+    /// bug.0.4.129: Abbruch direkt nach dem Klick (vor „wird indiziert“, z. B. Aushängen) → kein hängender Eintrag.
+    @Test func cancelBeforeRunBeginsClearsReindexRequest() async throws {
+        let harness = try await ScanHarness.make()
+        var stored = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        stored.decision = .index
+        try await harness.store.upsertMedium(stored)
+        let app = AppState()
+        let id = harness.mediumID
+        var shown = medium(id: id, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
+        shown.decision = .index
+        app.media = [shown]
+        let service = IndexingService(store: harness.store, access: MemoryVolume(mountPath: "/Volumes/T"), appState: app)
+        app.onReindexMedium = { mediumID in
+            service.start(mediumUUID: mediumID, volume: harness.volume(at: "/Volumes/T"), fromScratch: true)
+        }
+        app.reindexMedium(id: id)
+        try #require(app.reindexRequested.contains(id))
+        await service.cancel(mediumUUID: id)
+        await service.waitUntilIdle(id)
+        #expect(!app.reindexRequested.contains(id), "Eintrag hängt nach Abbruch vor dem Laufbeginn")
+    }
+
     @Test func buttonsLookDisabledDuringRun() async {
         let idle = await buttonInk(indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
         let locked = await buttonInk(indexing: false, lastIndexedAt: Date())

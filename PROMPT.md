@@ -1,8 +1,2 @@
-Du bist Worker (AGENTS.md). Lies TODO.md: Regeln 1–31, Abschnitt A, dann „Audit 20.10.“ und die Prüfbefunde 12 (`bug.0.4.093`, `095`, `096`, `097`, `100`).
-Paket 13, genau in dieser Reihenfolge: bug.0.4.116, 117, 105, 104, 103, 126, 127, 128, 129, 137, 138, 109, 093, 095, 096, 097, 131, 132, 133, 100. Nichts aus Paket 14 oder B anfassen.
-Zuerst 116 und 117: danach darf kein Testfenster und kein Panel mehr im sichtbaren Bereich erscheinen (Regel 19).
-Je Aufgabe: Repro-Test vor dem Fix rot (Uhrzeit im Status), Fix, grün, Sabotage rot ✓, betroffene Suites; Selbstprüfung mit Subagent (Regel 31). Host-Entscheidungen stehen in den Aufgaben; Produktfragen nur als „Frage:“ unter der Aufgabe.
-Xcode: `export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer` vor jedem Befehl.
-Paketende: clean build-for-testing Debug mit Testziel und Release je 0 Warnungen (`grep "warning:" | grep -v appintents | sort -u | wc -l`); seriell `xcodebuild test-without-building -project diskindex.xcodeproj -scheme diskindex -destination 'platform=macOS,arch=arm64' -derivedDataPath <Ordner> -only-testing:diskindexTests -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120`; derselbe Befehl mit `-parallel-testing-enabled YES` dreimal hintereinander (mit `-resultBundlePath`, rote Tests aus dem `.xcresult`); keine neuen `Disk Archive*.ips`; zuletzt Regel 23 (App ohne `-derivedDataPath`, beide Uhrzeiten).
-Kein Git, kein GitHub (Regel 22). Status je Aufgabe höchstens 5 Zeilen.
-Zum Schluss Bericht nach Regel 30 (Prompt für den Host + Commit-Nachricht) und PROMPT.md ersetzen durch: „Erledigt (Bereit zur Prüfung): … Offen/blockiert: … HALT.“
+Erledigt (Bereit zur Prüfung): bug.0.4.116, 117, 105, 104, 103, 126, 127, 128, 129, 137, 138, 109, 093, 095, 096, 097, 131, 132, 133, 100.
+Offen/blockiert: – (Fragen unter 096, 103, 105, 127, 128, 132, 137; Testreste unter 095, 097, 100, 131). HALT.

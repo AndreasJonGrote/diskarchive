@@ -17,7 +17,9 @@ enum AppWindowPresenter {
     nonisolated private static let newMediumGoldenRatioFromTop: CGFloat = 0.382
 
     private static var mainWindow: NSWindow?
-    private static var newMediumPanels: [UUID: NSPanel] = [:]
+    /// Erkennungs-Panels je `AppState`-Instanz (bug.0.4.117): ein Test sieht und schließt nie die Panels eines
+    /// anderen Tests.
+    private static var newMediumPanels: [ObjectIdentifier: [UUID: NSPanel]] = [:]
     private static var crashReportWindow: NSPanel?
     /// Rückfrage-Panels je `AppState`-Instanz (bug.0.3.9.005 c): in der App genau eins je Art; Tests mit eigener
     /// Instanz sehen und schließen nie das Panel eines anderen Tests.
@@ -25,8 +27,10 @@ enum AppWindowPresenter {
     private static var ignoreConfirmPanels: [ObjectIdentifier: NSPanel] = [:]
     private static var windowDelegates: [ObjectIdentifier: PresenterWindowDelegate] = [:]
 
-    /// Anzahl offener Erkennungs-Panels (Tests).
-    static var openNewMediumPanelCount: Int { newMediumPanels.count }
+    /// Anzahl offener Erkennungs-Panels dieser Instanz (Tests).
+    static func openNewMediumPanelCount(for appState: AppState) -> Int {
+        newMediumPanels[ObjectIdentifier(appState)]?.count ?? 0
+    }
 
     /// Ob das Hauptfenster existiert und sichtbar ist (todo.0.4.011).
     static var isMainWindowVisible: Bool { mainWindow?.isVisible == true }
@@ -36,11 +40,23 @@ enum AppWindowPresenter {
         if let destination {
             appState.mainWindowDestination = destination
         }
-        AppActivationPolicy.showDockIconForMainWindow()
-        NSApp.activate(ignoringOtherApps: true)
+        // bug.0.4.116/117 (Regel 19): Tests (`promptPanelPlacement == .offscreen`) öffnen das Fenster außerhalb des
+        // Bildschirms, ohne die App zu aktivieren, ohne Key-Fenster und ohne die gemerkte Fensterlage zu ändern.
+        let offscreen = appState.promptPanelPlacement == .offscreen
+        if !offscreen {
+            AppActivationPolicy.showDockIconForMainWindow()
+            NSApp.activate(ignoringOtherApps: true)
+        }
 
         if let window = mainWindow {
-            window.makeKeyAndOrderFront(nil)
+            if offscreen {
+                (window as? MainAppWindow)?.keepsOffscreen = true
+                window.setFrameOrigin(PromptPanelPlacement.offscreenOrigin)
+                window.orderFrontRegardless()
+            } else {
+                (window as? MainAppWindow)?.keepsOffscreen = false
+                window.makeKeyAndOrderFront(nil)
+            }
             clearInitialFocus(in: window, appState: appState)
             return
         }
@@ -50,7 +66,7 @@ enum AppWindowPresenter {
                 .environment(appState)
                 .frame(minWidth: 720, minHeight: 480)
         )
-        let window = NSWindow(
+        let window = MainAppWindow(
             contentRect: NSRect(origin: .zero, size: defaultMainWindowSize),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
@@ -62,15 +78,26 @@ enum AppWindowPresenter {
         window.isOpaque = true
         window.backgroundColor = DesignColor.windowChrome
         window.contentViewController = host
-        window.setFrameAutosaveName(mainWindowAutosaveName)
-        if !window.setFrameUsingName(mainWindowAutosaveName) {
-            centerMainWindowOnVisibleScreen(window)
+        window.keepsOffscreen = offscreen
+        if offscreen {
+            window.setFrameOrigin(PromptPanelPlacement.offscreenOrigin)
+        } else {
+            window.setFrameAutosaveName(mainWindowAutosaveName)
+            if !window.setFrameUsingName(mainWindowAutosaveName) {
+                centerMainWindowOnVisibleScreen(window)
+            }
         }
         register(window) {
             mainWindow = nil
         }
         mainWindow = window
-        window.makeKeyAndOrderFront(nil)
+        if offscreen {
+            window.orderFrontRegardless()
+            // AppKit zieht ein Fenster mit Titelleiste beim Anzeigen auf den Bildschirm: Lage danach erneut setzen.
+            window.setFrameOrigin(PromptPanelPlacement.offscreenOrigin)
+        } else {
+            window.makeKeyAndOrderFront(nil)
+        }
         tintWindowTitle(window)
         clearInitialFocus(in: window, appState: appState)
     }
@@ -108,26 +135,37 @@ enum AppWindowPresenter {
     }
 
     /// Pro unentschiedenem oder erneut gefragtem Medium (todo.0.4.026) ein schwebendes Panel (0.3.2), unten rechts
-    /// gestapelt.
+    /// gestapelt. Lage über `appState.promptPanelPlacement` (bug.0.4.117): `nil` = kein Panel, `.offscreen` (Tests)
+    /// außerhalb des Bildschirms und nie Key.
     static func syncNewMediumPanels(appState: AppState, revealDismissed: Bool = false) {
+        guard let placement = appState.promptPanelPlacement else { return }
+        let key = ObjectIdentifier(appState)
         let activeIDs = appState.pendingNewMediumDecisionIDs.filter { id in
             guard appState.needsNewMediumDialog(id) else { return false }
             if !revealDismissed, appState.dismissedNewMediumPanelIDs.contains(id) { return false }
             return true
         }
 
-        let stale = Set(newMediumPanels.keys).subtracting(activeIDs)
+        let stale = Set((newMediumPanels[key] ?? [:]).keys).subtracting(activeIDs)
         for id in stale {
             closeNewMediumPanel(mediumID: id, appState: appState, userDismissed: false)
         }
 
         for (stackIndex, id) in activeIDs.enumerated() {
-            openOrUpdateNewMediumPanel(mediumID: id, appState: appState, stackIndex: stackIndex, stackCount: activeIDs.count)
+            openOrUpdateNewMediumPanel(
+                mediumID: id,
+                appState: appState,
+                stackIndex: stackIndex,
+                stackCount: activeIDs.count,
+                placement: placement
+            )
         }
 
-        if let frontID = activeIDs.last, let panel = newMediumPanels[frontID] {
+        if let frontID = activeIDs.last, let panel = newMediumPanels[key]?[frontID] {
             panel.orderFrontRegardless()
-            panel.makeKey()
+            if placement == .centered {
+                panel.makeKey()
+            }
         }
     }
 
@@ -141,13 +179,13 @@ enum AppWindowPresenter {
         if userDismissed {
             appState.dismissedNewMediumPanelIDs.insert(mediumID)
         }
-        newMediumPanels[mediumID]?.close()
+        newMediumPanels[ObjectIdentifier(appState)]?[mediumID]?.close()
     }
 
     /// Fenster ohne Animation ausblenden — vor dem Prozessende, damit SwiftUI nicht mehr rendert.
     static func prepareForTermination() {
         mainWindow?.orderOut(nil)
-        for panel in newMediumPanels.values {
+        for panel in newMediumPanels.values.flatMap(\.values) {
             panel.orderOut(nil)
         }
         crashReportWindow?.orderOut(nil)
@@ -312,10 +350,12 @@ enum AppWindowPresenter {
         mediumID: UUID,
         appState: AppState,
         stackIndex: Int,
-        stackCount: Int
+        stackCount: Int,
+        placement: PromptPanelPlacement
     ) {
+        let key = ObjectIdentifier(appState)
         let hosting: NSHostingView<AnyView>
-        if let panel = newMediumPanels[mediumID], let existing = panel.contentView as? NSHostingView<AnyView> {
+        if let panel = newMediumPanels[key]?[mediumID], let existing = panel.contentView as? NSHostingView<AnyView> {
             hosting = existing
         } else {
             hosting = NSHostingView(
@@ -326,14 +366,17 @@ enum AppWindowPresenter {
             )
             let panel = makeNewMediumPanel(hosting: hosting)
             register(panel) {
-                newMediumPanels.removeValue(forKey: mediumID)
+                newMediumPanels[key]?.removeValue(forKey: mediumID)
+                if newMediumPanels[key]?.isEmpty == true {
+                    newMediumPanels[key] = nil
+                }
             }
-            newMediumPanels[mediumID] = panel
+            newMediumPanels[key, default: [:]][mediumID] = panel
             let depthFromNewest = stackCount - 1 - stackIndex
-            placeNewMediumPanel(panel, depthFromNewest: depthFromNewest)
+            placeNewMediumPanel(panel, depthFromNewest: depthFromNewest, placement: placement)
         }
 
-        guard let panel = newMediumPanels[mediumID] else { return }
+        guard let panel = newMediumPanels[key]?[mediumID] else { return }
         panel.orderFrontRegardless()
     }
 
@@ -376,8 +419,14 @@ enum AppWindowPresenter {
         )
     }
 
-    private static func placeNewMediumPanel(_ panel: NSPanel, depthFromNewest: Int) {
-        let visible = NSScreen.main?.visibleFrame ?? .zero
+    private static func placeNewMediumPanel(_ panel: NSPanel, depthFromNewest: Int, placement: PromptPanelPlacement) {
+        let visible: CGRect
+        switch placement {
+        case .centered:
+            visible = NSScreen.main?.visibleFrame ?? .zero
+        case .offscreen:
+            visible = CGRect(origin: PromptPanelPlacement.offscreenOrigin, size: CGSize(width: 2_000, height: 2_000))
+        }
         var size = panel.frame.size
         if size.width < 10 || size.height < 10, let hosting = panel.contentView as? NSHostingView<AnyView> {
             size = hosting.fittingSize
@@ -418,6 +467,16 @@ enum PromptPanelPlacement: Equatable {
     case offscreen
 
     static let offscreenOrigin = NSPoint(x: -20_000, y: -20_000)
+}
+
+/// Hauptfenster. Tests (`keepsOffscreen`, Regel 19) bleiben außerhalb des Bildschirms: AppKit zöge ein Fenster mit
+/// Titelleiste sonst auf den Bildschirm.
+private final class MainAppWindow: NSWindow {
+    var keepsOffscreen = false
+
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        keepsOffscreen ? frameRect : super.constrainFrameRect(frameRect, to: screen)
+    }
 }
 
 private final class PresenterWindowDelegate: NSObject, NSWindowDelegate {

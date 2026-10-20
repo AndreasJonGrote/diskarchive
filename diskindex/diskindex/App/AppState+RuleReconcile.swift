@@ -10,6 +10,8 @@ import SwiftUI
 
 extension AppState {
     func enqueueRuleReconcile() {
+        // bug.0.4.105: nicht nach Voreinstellungen abgleichen, solange die gespeicherten Einstellungen nicht lesbar sind.
+        guard !settingsUnreadable else { return }
         guard featureAccess.canWriteIndex else {
             ruleReconcileDeferredWhileLocked = true
             return
@@ -111,8 +113,16 @@ extension AppState {
         waiters.forEach { $0.resume() }
     }
 
+    /// Ob die (noch nicht von der Warteschlange angewendete) Regel einen Treffer bzw. Favoriten ausblendet – eine Quelle
+    /// für `hideResultsInPlace` und das Nachladen während der Warteschlange (bug.0.4.096).
+    /// bug.0.4.097: auch jede Ebene von `parentPath` (Treffer und Favoriten unterhalb eines ignorierten Ordners).
+    nonisolated static func ruleHidesResult(_ item: IndexedItem, by scope: IndexScope) -> Bool {
+        if scope.shouldHide(name: item.name, depth: item.parentPath.count + 1) { return true }
+        return item.parentPath.indices.contains { scope.shouldHide(name: item.parentPath[$0], depth: $0 + 1) }
+    }
+
     /// bug.0.4.088: Suchtreffer und Favoriten, die die neue Regel ausschließt, verschwinden sofort an Ort und Stelle
-    /// (gleiche Prüfung wie die Warteschlange: eigener Name und Tiefe); neu gesucht wird nach der Warteschlange.
+    /// (eigener Name und Tiefe sowie jede Ebene des Pfads, bug.0.4.097); neu gesucht wird nach der Warteschlange.
     func hideResultsInPlace(by scope: IndexScope) {
         // Offener Ordner, den die Regel jetzt ausschließt: seine Spalte (und alle rechts davon) schließen, die Auswahl
         // darin verwerfen – der Ordner selbst ist in der Spalte links schon ausgeblendet.
@@ -125,7 +135,7 @@ extension AppState {
             }
             columnBrowserState = state
         }
-        let hides = { (item: IndexedItem) in scope.shouldHide(name: item.name, depth: item.parentPath.count + 1) }
+        let hides = { (item: IndexedItem) in Self.ruleHidesResult(item, by: scope) }
         let hiddenHits = searchMatch.items.filter { hides($0.item) }.count
         let hiddenFavorites = favoriteObjects.filter { hides($0.item) }.count
         guard hiddenHits > 0 || hiddenFavorites > 0 else { return }
@@ -138,6 +148,47 @@ extension AppState {
                 favoriteObjects.removeAll { hides($0.item) }
                 favoriteItemCount = favoriteItemCount.map { max(0, $0 - hiddenFavorites) }
             }
+        }
+    }
+
+    /// bug.0.4.131: Eine neu gelesene Spalte enthält den dort offenen Ordner nicht mehr. Umbenannt (gleiche Zeile, neuer
+    /// Name) → Pfad folgt dem neuen Namen, Auswahl bleibt; gelöscht → Pfad ab dieser Ebene gekürzt, Auswahl auf den
+    /// Elternordner. Die Unterpfade unter dem alten Namen werden ungültig.
+    func followOpenPathAfterReload(mediumID: UUID, path: [String], previous: [IndexedItem]?, items: [IndexedItem]) {
+        let shownMedium = columnBrowserState.selectedMediumID ?? columnBrowserMedia.first?.id
+        guard shownMedium == mediumID else { return }
+        var state = columnBrowserState
+        let level = path.count
+        guard level < state.pathStack.count, Array(state.pathStack.prefix(level)) == path else { return }
+        let open = state.pathStack[level]
+        if items.contains(where: { $0.isFolder && $0.name == open }) { return }
+        let oldStack = state.pathStack
+        let renamed: IndexedItem? = {
+            if let old = previous?.first(where: { $0.isFolder && $0.name == open }), let rowID = old.rowID {
+                return items.first { $0.isFolder && $0.rowID == rowID }
+            }
+            // Ohne alten Stand (Cache verworfen): der gewählte offene Ordner hat dieselbe stabile Kennung.
+            guard state.selection.focusColumnIndex == level else { return nil }
+            return items.first { $0.isFolder && state.selection.contains($0.id) }
+        }()
+        if let renamed {
+            state.pathStack[level] = renamed.name
+        } else {
+            state.pathStack = Array(state.pathStack.prefix(level))
+            state.selectedUncapturedFolderID = nil
+            if level > 0, let parent = indexRepository.children(mediumID: mediumID, path: Array(path.dropLast()))
+                .first(where: { $0.isFolder && $0.name == path[level - 1] }) {
+                state.selection = ColumnSelection(
+                    ids: [parent.id], anchorID: parent.id, focusColumnIndex: level - 1, lastClickedID: parent.id
+                )
+            } else {
+                state.selection = ColumnSelection()
+            }
+        }
+        DiskIndexLog.shared.ui("open path changed level=\(level)")
+        columnBrowserState = state
+        for depth in (level + 1)...oldStack.count {
+            indexRepository.invalidate(mediumID: mediumID, path: Array(oldStack.prefix(depth)))
         }
     }
 

@@ -513,6 +513,13 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         try? ApiQueuePersistence.trim(pool)
     }
 
+    /// bug.0.4.137: auf dem Main Actor nur Einstieg und Anwenden; Datenbank im Hintergrund (`handleAPIResult`).
+    @MainActor
+    private static func applyVersionCheck(_ response: VersionCheckResponse?, now: Date) async {
+        guard let store = AppDelegateBridge.appState.indexStore else { return }
+        await VersionCheckCoordinator.handleAPIResult(response, appState: AppDelegateBridge.appState, store: store, now: now)
+    }
+
     private func sendVersionCheck(row: ApiQueueRow, pool: DatabasePool) async {
         let url = VersionCheckEndpoint.url
         guard IssueEndpointPolicy.allows(url, release: releaseBuild) else { return }
@@ -520,10 +527,8 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         if response != nil {
             try? ApiQueuePersistence.delete(pool, rowID: row.id)
             log("version check ok")
-            await MainActor.run {
-                guard let store = AppDelegateBridge.appState.indexStore else { return }
-                VersionCheckCoordinator.handleAPIResult(response, appState: AppDelegateBridge.appState, store: store, now: now())
-            }
+            let checkedAt = now()
+            await Self.applyVersionCheck(response, now: checkedAt)
             return
         }
         scheduleRetry(row: row, pool: pool, info: "version-offline")
@@ -572,18 +577,25 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         }
     }
 
+    /// bug.0.4.109: Nur „keine Verbindung“ gilt als offline (immer fällig, sobald das Netz da ist). Zeitüberschreitung,
+    /// Host nicht erreichbar oder Abbruch laufen über den Backoff – sonst ginge derselbe Bericht jede Minute raus
+    /// (bei Zeitüberschreitung kam er oft schon an: doppelte Berichte).
     private static func isOfflineNetworkError(_ error: Error) -> Bool {
-        guard let urlError = error as? URLError else { return false }
-        switch urlError.code {
-        case .notConnectedToInternet, .networkConnectionLost, .cannotFindHost, .cannotConnectToHost, .timedOut:
-            return true
-        default:
-            return false
-        }
+        (error as? URLError)?.code == .notConnectedToInternet
     }
 
+    /// bug.0.4.109: Obergrenze der gescheiterten Versuche (Host: 10), danach wird der Eintrag verworfen.
+    static let maxFailedAttempts = 10
+
     private func scheduleRetry(row: ApiQueueRow, pool: DatabasePool, info: String) {
-        let attempts = row.attempts + 1
+        // „offline“ zählt nicht gegen die Obergrenze (kein Versuch beim Server).
+        let attempts = info == "offline" ? row.attempts : row.attempts + 1
+        // Ältere Zeilen zählten „offline“ jede Minute hoch: die Obergrenze gilt nur für echte Versuche beim Server.
+        if info != "offline", attempts >= Self.maxFailedAttempts {
+            try? ApiQueuePersistence.delete(pool, rowID: row.id)
+            log("app report dropped attempts=\(attempts)")
+            return
+        }
         let lastTry = Int(now().timeIntervalSince1970)
         try? ApiQueuePersistence.recordFailure(pool, rowID: row.id, attempts: attempts, lastTryAt: lastTry, info: info)
     }

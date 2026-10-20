@@ -60,6 +60,21 @@ actor ChangeWatcherEngine {
         return FlushPrep(directories: directories, renamePairs: pairs, renameFollowUps: renameFollowUps)
     }
 
+    /// bug.0.4.138: Ob ein Vorfahre von `relative` (ohne den Ordner selbst) noch ungelesen in der Schlange steht.
+    nonisolated static func hasPendingAncestor(
+        of relative: [String],
+        mount: String,
+        waiting: [String: Int],
+        seen: Set<String>
+    ) -> Bool {
+        guard relative.count > 1 else { return false }
+        for length in 1..<relative.count {
+            let ancestor = directoryURL(mount: mount, components: Array(relative.prefix(length))).path
+            if (waiting[ancestor] ?? 0) > 0, !seen.contains(ancestor) { return true }
+        }
+        return false
+    }
+
     enum Outcome: Sendable {
         case ok
         case needsFullReconcile
@@ -79,14 +94,28 @@ actor ChangeWatcherEngine {
         }
         guard await writeAllowed() else { return .deferred }
         let eventPaths = Set(directories.map { URL(fileURLWithPath: $0).standardizedFileURL.path })
-        var queue = Array(eventPaths)
+        // bug.0.4.138: wenige Komponenten zuerst, damit neue Elternordner vor ihren Kindern gelesen werden (Bündel sind
+        // ungeordnet; sonst fehlen tiefen Ordnern die Elternzeilen und es kommt zum Vollabgleich des Mediums).
+        var queue = eventPaths.sorted { lhs, rhs in
+            let left = Self.relativeComponents(lhs, mount: mount).count
+            let right = Self.relativeComponents(rhs, mount: mount).count
+            return left != right ? left < right : lhs < rhs
+        }
         var seen = Set<String>()
+        // bug.0.4.138: wartende Einträge je Pfad (statt je Aufruf ein Set aus der Restschlange).
+        var waiting: [String: Int] = [:]
+        for path in queue { waiting[path, default: 0] += 1 }
+        func push(_ path: String) {
+            queue.append(path)
+            waiting[path, default: 0] += 1
+        }
         var attempts: [String: Int] = [:]
         var index = 0
         while index < queue.count {
             guard await writeAllowed() else { return .deferred }
             let directory = queue[index]
             index += 1
+            waiting[directory, default: 1] -= 1
             if seen.contains(directory) { continue }
             let relative = Self.relativeComponents(directory, mount: mount)
             let parentID: Int64?
@@ -108,7 +137,7 @@ actor ChangeWatcherEngine {
                     if relative.count == 1 {
                         let rootDir = URL(fileURLWithPath: mount, isDirectory: true).standardizedFileURL.path
                         if !seen.contains(rootDir) {
-                            queue.append(rootDir)
+                            push(rootDir)
                         }
                         continue
                     }
@@ -126,14 +155,19 @@ actor ChangeWatcherEngine {
                     if parentExists {
                         let parentDir = Self.directoryURL(mount: mount, components: Array(relative.dropLast())).path
                         if !seen.contains(parentDir) {
-                            queue.append(parentDir)
+                            push(parentDir)
                         }
+                        continue
+                    }
+                    // bug.0.4.138: Ein Vorfahre steht noch in der Schlange → er legt die Elternzeile an; kein Versuch.
+                    if Self.hasPendingAncestor(of: relative, mount: mount, waiting: waiting, seen: seen) {
+                        push(directory)
                         continue
                     }
                     let attempt = attempts[directory, default: 0] + 1
                     attempts[directory] = attempt
                     if attempt <= 2 {
-                        queue.append(directory)
+                        push(directory)
                     } else {
                         DiskIndexLog.shared.record(.watcher, .error, "ohne Elternzeile", privateDetail: directory)
                         return .needsFullReconcile
@@ -193,7 +227,7 @@ actor ChangeWatcherEngine {
                 let child = URL(fileURLWithPath: directory).appendingPathComponent(entry.name).standardizedFileURL.path
                 let isNew = !liveFolders.contains(entry.name)
                 if isNew || eventPaths.contains(child) {
-                    queue.append(child)
+                    push(child)
                 }
             }
         }

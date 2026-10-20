@@ -13,6 +13,8 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
 
     let items: [IndexedItem]
     let selectedIDs: Set<UUID>
+    /// bug.0.4.132: nach einer Nutzeraktion die gewählte Zeile in die Sicht holen.
+    var scrollTarget = ColumnScrollTarget()
     @ViewBuilder var row: (IndexedItem) -> Row
 
     func makeCoordinator() -> Coordinator {
@@ -93,6 +95,11 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
         }
         coordinator.syncColumnWidth()
         coordinator.syncSelection()
+        if let id = scrollTarget.id, coordinator.scrolledToken != scrollTarget.token,
+           let row = items.firstIndex(where: { $0.id == id }) {
+            coordinator.scrolledToken = scrollTarget.token
+            table?.scrollRowToVisible(row)
+        }
     }
 
     private func makeRowBuilder() -> (IndexedItem) -> AnyView {
@@ -110,6 +117,7 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
         var items: [IndexedItem] = []
         var itemIDs: [UUID] = []
         var selectedIDs: Set<UUID> = []
+        var scrolledToken: Int?
         var rowBuilder: ((IndexedItem) -> AnyView)?
         weak var tableView: NSTableView?
         weak var scrollView: NSScrollView?

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import GRDB
 import Testing
 @testable import diskindex
 
@@ -60,6 +61,40 @@ struct FatReconnectIndexerTests {
         let after = try #require(try await harness.item(named: "x.txt"))
         #expect(after.id == before.id)
         #expect(after.isFavorite)
+    }
+
+    /// bug.0.4.104: Neuer Ort eingefügt, alter Ort `status = 2`, dann Lauf unterbrochen → der nächste volle Lauf
+    /// darf den Favoriten nicht mit der alten Zeile löschen.
+    @Test func interruptedRunKeepsFavoriteOfMovedFile() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let volume = MemoryVolume(mountPath: "/Volumes/EXFAT")
+        _ = volume.file("B/a.txt", size: 50).file("C/c.txt", size: 9)
+        let vol = harness.volume(at: volume.mountPath)
+        _ = try await harness.run(access: volume, maxDepth: nil, fromScratch: true, volume: vol)
+        let before = try #require(try await harness.item(named: "a.txt"))
+        try await harness.store.setFavorite(itemID: before.id, true)
+        volume.remove("B/a.txt")
+        _ = volume.file("A/a.txt", size: 50)
+        let pool = harness.store.pool
+        let outcome = try await harness.run(
+            access: volume,
+            maxDepth: nil,
+            fromScratch: false,
+            volume: vol,
+            shouldHalt: {
+                // Anhalten, sobald die alte Zeile als verschwunden markiert ist (neuer Ort ist dann schon eingefügt).
+                let gone = (try? await pool.read { db in
+                    try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM items WHERE name = 'a.txt' AND status = 2") ?? 0
+                }) ?? 0
+                return gone > 0 ? .pause : .none
+            }
+        )
+        #expect(outcome.interrupted)
+        _ = try await harness.run(access: volume, maxDepth: nil, fromScratch: false, volume: vol)
+        let after = try #require(try await harness.item(named: "a.txt"))
+        #expect(after.isFavorite, "Favorit nach unterbrochenem Lauf verloren")
+        let folderA = try #require(try await harness.item(named: "A"))
+        #expect(after.parentID == folderA.id)
     }
 
     @Test func ambiguousSameSizeDoesNotReconnect() async throws {

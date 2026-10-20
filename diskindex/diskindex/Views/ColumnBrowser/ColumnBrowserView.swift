@@ -43,6 +43,9 @@ struct ColumnBrowserView: View {
     @FocusState private var focusedColumn: Int?
     /// Nur die gezogene Spalte live breiter/schmaler; Commit erst in `ColumnResizeHandle.onEnded`.
     @State private var columnResizePreview: (columnIndex: Int, width: CGFloat)?
+    @Environment(\.columnTableViewMinimum) private var tableViewMinimum
+    /// bug.0.4.132: zuletzt vollständig ausgeführter waagerechter Scroll-Auftrag.
+    @State private var horizontalScrollDoneToken: Int?
 
     private var resolvedSelectedMedium: Medium? {
         if let id = appState.columnBrowserState.selectedMediumID,
@@ -376,6 +379,24 @@ struct ColumnBrowserView: View {
                     alignment: .topLeading
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                // bug.0.4.132: Öffnen über einen Treffer (Ansicht entsteht danach) und Nutzeraktionen. Erscheinen die
+                // Spalten bzw. die Details-Spalte erst nach dem Laden, wird für denselben Auftrag nachgescrollt; danach
+                // (Auftrag erledigt) scrollen Live-Änderungen nicht.
+                .onChange(
+                    of: HorizontalScrollKey(token: appState.columnScrollToken, columns: folderColumns.count, showDetail: showDetail),
+                    initial: true
+                ) { _, key in
+                    // Token 0: noch keine Nutzeraktion (Start mit gemerktem Pfad) – nicht scrollen.
+                    guard key.token > 0, key.token != horizontalScrollDoneToken else { return }
+                    scrollToTrailingColumn(
+                        proxy: proxy,
+                        folderColumns: folderColumns,
+                        showDetail: showDetail
+                    )
+                    if showDetail || !selectionColumnPending {
+                        horizontalScrollDoneToken = key.token
+                    }
+                }
                 .onChange(of: appState.columnBrowserState.pathStack) { _, _ in
                     scrollToTrailingColumn(
                         proxy: proxy,
@@ -482,10 +503,12 @@ struct ColumnBrowserView: View {
                         isLoading: loadingContents,
                         loaded: progress.loaded,
                         total: progress.total,
+                        tableViewMinimum: tableViewMinimum,
                         onLoadingHintVisible: { visible in
                             publishLoadingHint(visible, medium: medium, path: column.path)
                         },
-                        hintInsets: EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16)
+                        hintInsets: EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16),
+                        scrollTarget: scrollTarget(for: column)
                     ) { item in
                         let openState = rowOpenState(item: item, columnIndex: column.columnIndex, medium: medium)
                         ColumnBrowserRow(
@@ -582,6 +605,25 @@ struct ColumnBrowserView: View {
         commit(selection, column: column)
     }
 
+    /// bug.0.4.132: Die Spalte der Auswahl lädt noch – erst danach steht fest, ob eine Details-Spalte erscheint; bis
+    /// dahin bleibt der waagerechte Auftrag offen.
+    private var selectionColumnPending: Bool {
+        let selection = appState.columnBrowserState.selection
+        guard !selection.ids.isEmpty, let medium = resolvedSelectedMedium, let column = selection.focusColumnIndex else {
+            return false
+        }
+        let path = Array(appState.columnBrowserState.pathStack.prefix(column))
+        if appState.indexRepository.isLoading(mediumID: medium.id, path: path) { return true }
+        return !appState.indexRepository.hasLoadedChildren(mediumID: medium.id, path: path)
+    }
+
+    /// bug.0.4.132: Zeile, zu der diese Spalte nach einer Nutzeraktion scrollt (Auswahl der Fokus-Spalte).
+    private func scrollTarget(for column: ColumnBrowserFolderColumn) -> ColumnScrollTarget {
+        let selection = appState.columnBrowserState.selection
+        guard selection.focusColumnIndex == column.columnIndex else { return ColumnScrollTarget() }
+        return ColumnScrollTarget(id: selection.lastClickedID ?? selection.ids.last, token: appState.columnScrollToken)
+    }
+
     private func commit(_ selection: ColumnSelection, column: ColumnBrowserFolderColumn) {
         guard let medium = resolvedSelectedMedium else { return }
         var state = appState.columnBrowserState
@@ -609,6 +651,8 @@ struct ColumnBrowserView: View {
         state.pathStack = effect.path
         state.selectedUncapturedFolderID = effect.uncapturedID
         appState.columnBrowserState = state
+        // bug.0.4.132: Nutzeraktion (Klick, Taste) → zur Auswahl scrollen.
+        appState.columnScrollToken += 1
         DiskIndexLog.shared.ui("selection count=\(selection.ids.count) column=\(column.columnIndex)")
     }
 
@@ -922,4 +966,11 @@ enum ColumnDetailText {
     static func lastSeen(medium: Medium) -> String? {
         medium.lastSeenAt.map { LayoutCopy.columnDetailLastSeen(IndexedDateFormatting.abbreviatedDay($0)) }
     }
+}
+
+/// bug.0.4.132: Auslöser des waagerechten Scrolls (Auftrag, Spaltenzahl, Details-Spalte).
+private struct HorizontalScrollKey: Equatable {
+    var token: Int
+    var columns: Int
+    var showDetail: Bool
 }

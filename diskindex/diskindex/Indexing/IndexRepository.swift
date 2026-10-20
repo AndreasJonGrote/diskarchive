@@ -15,6 +15,9 @@ final class IndexRepository {
     /// Reihenfolge der letzten Nutzung (bug.0.4.036); Lesen in `children` setzt nach hinten. Nicht beobachtet:
     /// das Umsortieren beim Lesen im Body darf keine neue Darstellung auslösen (Regel 15).
     @ObservationIgnored private var cacheOrder: [String] = []
+    /// bug.0.4.131: nach dem Neulesen einer Spalte (Medium, Pfad, alter Stand, neuer Stand) – `AppState` prüft damit den
+    /// offenen Pfad (gelöschter oder umbenannter Ordner).
+    @ObservationIgnored var onColumnReloaded: ((UUID, [String], [IndexedItem]?, [IndexedItem]) -> Void)?
     /// Schlüssel der sichtbaren Spalten (`pathStack`): werden nie verdrängt (bug.0.4.036).
     @ObservationIgnored private var pinnedKeys: Set<String> = []
     /// Welcher Lade-Token `loading` für einen Schlüssel gesetzt hat; nur dieser Load räumt ab (bug.0.4.036, 98).
@@ -343,6 +346,7 @@ final class IndexRepository {
                 let scope = self.scope
                 accumulated.removeAll { scope.shouldHide(name: $0.name, depth: $0.parentPath.count + 1) }
             }
+            let previous = cache[key]
             remember(key, accumulated)
             // invalidateAll may race between the guard and remember; drop stale write.
             if loadGenerations[key, default: 0] != loadToken {
@@ -350,6 +354,7 @@ final class IndexRepository {
                 return
             }
             stale.remove(key)
+            onColumnReloaded?(mediumID, path, previous, accumulated)
             if totalCount == 0, !accumulated.isEmpty, ownsProgress() {
                 loadingTotals[key] = accumulated.count
             }

@@ -128,6 +128,53 @@ struct FavoritesTableWindowTests {
         )
     }
 
+    /// bug.0.4.096 (README „Ausblenden an Ort und Stelle … auch Suche und Favoriten“): Favoriten offen, „Ignorieren“
+    /// über den Eintrag des Kontextmenüs → während der Warteschlange (alle 10 ms abgetastet) erscheint der Favorit nie
+    /// wieder. Regel 18: nur der Menüeintrag, das Neuladen kommt über die echte Kette (Fenster → `.task`).
+    @Test func ignoredFavoriteNeverReturnsDuringQueue() async throws {
+        let rig = try await FavoritesRig.make(names: ["behalten.txt", "weg.tmp"])
+        rig.app.mainWindowDestination = .favorites
+        // Die Spaltenansicht desselben Mediums war schon offen (eigenes Fenster): ihr Cache zählt beim Ignorieren die
+        // Generation hoch, auf die die Favoriten neu laden.
+        rig.app.columnBrowserState.selectedMediumID = rig.medium.uuid
+        let columns = PixelProbe.open(
+            ColumnBrowserView().environment(rig.app).frame(width: 1000, height: 600),
+            size: CGSize(width: 1000, height: 600)
+        )
+        defer { columns.close() }
+        let session = open(rig.app, probe: ObjectRowRenderProbe())
+        defer { session.close() }
+        let columnLoaded = await waitUntil {
+            rig.app.indexRepository.children(mediumID: rig.medium.uuid, path: []).contains { $0.name == "weg.tmp" }
+        }
+        try #require(columnLoaded, "Spalte nicht geladen")
+        let loaded = await waitUntil { rig.app.favoriteObjects.map(\.name).contains("weg.tmp") }
+        try #require(loaded, "Favoriten: \(rig.app.favoriteObjects.map(\.name))")
+        let target = try #require(rig.app.favoriteObjects.first { $0.name == "weg.tmp" })
+        await rig.store.setReconcileBatchDelay(.milliseconds(150))
+        let entry = try #require(
+            multipleContextMenuGroups([.fromSearchResult(target)], appState: rig.app).flatMap { $0 }.first { $0.id == "ignoreName" }
+        )
+        let generationBefore = rig.app.favoriteGeneration
+        entry.action()
+        try #require(rig.app.isRuleReconcileQueueActive)
+        var reappeared = 0
+        var samples = 0
+        var reloadedDuringQueue = false
+        let deadline = Date().addingTimeInterval(10)
+        while rig.app.isRuleReconcileQueueActive, Date() < deadline {
+            samples += 1
+            if rig.app.favoriteGeneration > generationBefore { reloadedDuringQueue = true }
+            if rig.app.favoriteObjects.contains(where: { $0.name == "weg.tmp" }) { reappeared += 1 }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(samples > 0)
+        #expect(!rig.app.isRuleReconcileQueueActive, "Warteschlange endete nicht")
+        #expect(reloadedDuringQueue, "während der Warteschlange nicht neu geladen – der Test prüfte nichts")
+        #expect(reappeared == 0, "Favorit während der Warteschlange \(reappeared)× wieder da")
+        #expect(rig.app.favoriteObjects.map(\.name) == ["behalten.txt"])
+    }
+
     /// bug.0.3.9.005 a/b: Laden über die echte Kette (Fenster → `.task` → Seite), ohne Wanduhr-Grenze. Geprüft wird
     /// gezählt: eine Seite (500) statt 10.000 Zeilen geladen, nur sichtbare Zeilen gebaut; die Dauer wird protokolliert.
     @Test func tenThousandFavoritesLoadOnePageAndBuildOnlyVisibleRows() async throws {

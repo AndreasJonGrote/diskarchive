@@ -68,8 +68,9 @@ actor IndexStoreV3 {
     }
 
     /// Der eine Pool des Prozesses (bug.0.4.086), gemeinsam mit Warteschlange und Fehlerbericht.
-    static func openDefault() throws -> IndexStoreV3 {
-        IndexStoreV3(pool: try ArchiveDatabase.shared.pool())
+    /// `archive`: nur Tests geben eine eigene Datei an (bug.0.4.093: derselbe Weg wie in der App).
+    static func openDefault(archive: ArchiveDatabase = .shared) throws -> IndexStoreV3 {
+        IndexStoreV3(pool: try archive.pool())
     }
 
     /// Zahl der Medien und der sichtbaren Einträge für Protokoll und Fehlerbericht. „nicht lesbar“ bei fehlender Datei.
@@ -250,7 +251,20 @@ actor IndexStoreV3 {
     // MARK: App-Einstellungen (237)
 
     func loadPersistedAppSettings() async -> PersistedAppSettings? {
-        try? await pool.read { db in try SettingsPersistence.readAppSettings(db) }
+        if case .loaded(let settings) = await loadPersistedAppSettingsResult() { return settings }
+        return nil
+    }
+
+    /// bug.0.4.105: unterscheidet „kein Eintrag“ von „Lesefehler“ (kaputter Text, Datenbankfehler).
+    func loadPersistedAppSettingsResult() async -> PersistedAppSettingsLoad {
+        do {
+            guard let settings = try await pool.read({ db in try SettingsPersistence.readAppSettings(db) }) else {
+                return .missing
+            }
+            return .loaded(settings)
+        } catch {
+            return .unreadable
+        }
     }
 
     func savePersistedAppSettings(_ settings: PersistedAppSettings) async throws {
@@ -660,6 +674,18 @@ actor IndexStoreV3 {
         )
     }
 
+    /// bug.0.4.127: Ob das Medium Ordner hat, die beim letzten Lesen nicht lesbar waren (Lücke im Index).
+    func hasUnreadableFolders(mediumUUID: UUID) async throws -> Bool {
+        try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return false }
+            return try Bool.fetchOne(
+                db,
+                sql: "SELECT EXISTS(SELECT 1 FROM items WHERE storageID = ? AND unreadable = 1 AND status = 0)",
+                arguments: [storageID]
+            ) ?? false
+        }
+    }
+
     func markFolderUnreadable(mediumUUID: UUID, folderID: Int64) async throws {
         let folderPath: [String] = try await pool.write { db in
             try db.execute(sql: "UPDATE items SET unreadable = 1 WHERE id = ?", arguments: [folderID])
@@ -719,8 +745,12 @@ actor IndexStoreV3 {
         status: StoredIndexStatus,
         firstIndexedAt: Date?,
         interrupted: Bool = false,
-        mountPath: String? = nil
+        mountPath: String? = nil,
+        ranToEnd: Bool = false
     ) async throws -> Bool {
+        // bug.0.4.127: Lauf bis zum Ende mit nicht lesbaren Ordnern (`.pending`) räumt auf wie ein vollständiger Lauf;
+        // Ordner, die nicht gelesen wurden, haben keine Kinder auf „verschwunden“ gesetzt.
+        let completesRun = (status == .indexed || ranToEnd) && !interrupted
         guard indexingToken[mediumUUID] == token else {
             revokedIndexingTokens.insert(token)
             return false
@@ -740,12 +770,15 @@ actor IndexStoreV3 {
                     arguments: [SchemaTime.seconds(firstIndexedAt), storageID]
                 )
             }
-            if status == .indexed, !interrupted {
+            if completesRun {
                 let total = try Int.fetchOne(db, sql: "SELECT fileCount + folderCount FROM storages WHERE id = ?", arguments: [storageID]) ?? 0
                 try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
                 try Self.setScanTotalIncomplete(db, storageID, false)
             }
-            if status == .indexed, !interrupted {
+            // bug.0.4.104: Wiederverbinden auch beim unterbrochenen Ende — sonst geht die Zuordnung verloren und
+            // der nächste Lauf löscht die alte Zeile samt Favorit, Teil-Prüfsumme und `item_meta`.
+            // Ohne Einhängepfad (Fehlerwege) keine Prüfung der Teil-Prüfsumme möglich → dort nicht wiederverbinden.
+            if !insertedIDs.isEmpty, completesRun || mountPath != nil {
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
                 let reconnectDelta = try writer.reconnectInsertedWithGone(
                     insertedIDs: insertedIDs, mountPath: mountPath
@@ -753,6 +786,8 @@ actor IndexStoreV3 {
                 if reconnectDelta != .zero {
                     try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: Date(), delta: reconnectDelta)
                 }
+            }
+            if completesRun {
                 let deleted = try Self.deleteGoneItems(db, storageID: storageID)
                 if deleted > 0 {
                     try DatabaseMaintenance.addDebt(db, rows: deleted)
@@ -963,13 +998,14 @@ actor IndexStoreV3 {
             let step: (updated: Int, last: Int64?, storages: Set<Int64>) = try await pool.write { db in
                 let rows = try Row.fetchAll(
                     db,
-                    sql: "SELECT id, storageID, name, depth, status FROM items WHERE id > ? AND status IN (?, ?) ORDER BY id LIMIT ?",
+                    sql: "SELECT id, storageID, parentID, name, depth, status FROM items WHERE id > ? AND status IN (?, ?) ORDER BY id LIMIT ?",
                     arguments: [afterID, visible, toDelete, batchSize]
                 )
                 guard let last: Int64 = rows.last?["id"] else { return (0, nil, []) }
                 var hideIDs: [Int64] = []
                 var showIDs: [Int64] = []
                 var storages = Set<Int64>()
+                var hiddenAncestors: [Int64: Bool] = [:]
                 for row in rows {
                     let id: Int64 = row["id"]
                     let storageID: Int64 = row["storageID"]
@@ -981,6 +1017,12 @@ actor IndexStoreV3 {
                         hideIDs.append(id)
                         storages.insert(storageID)
                     } else if !shouldHide, status == toDelete {
+                        // bug.0.4.103: nicht wieder sichtbar machen, solange ein Vorfahre verdeckt ist (Nachfahre
+                        // eines ignorierten Ordners, dessen eigener Name nicht passt).
+                        let parentID: Int64? = row["parentID"]
+                        guard try !Self.hasHiddenAncestor(db, parentID: parentID, scope: scope, memo: &hiddenAncestors) else {
+                            continue
+                        }
                         showIDs.append(id)
                         storages.insert(storageID)
                     }
@@ -1004,6 +1046,37 @@ actor IndexStoreV3 {
         let ms = Int(started.duration(to: .now) / Duration.milliseconds(1))
         DiskIndexLog.shared.record(.index, .info, "index reconcile status=\(changed) ms=\(ms)")
         return changed
+    }
+
+    /// bug.0.4.103: Ob ein Vorfahre (ab `parentID` aufwärts) laut `scope` verdeckt ist; `memo` je Stapel.
+    private nonisolated static func hasHiddenAncestor(
+        _ db: Database,
+        parentID: Int64?,
+        scope: IndexScope,
+        memo: inout [Int64: Bool]
+    ) throws -> Bool {
+        var chain: [Int64] = []
+        var current = parentID
+        var hidden = false
+        while let id = current {
+            if let known = memo[id] {
+                hidden = known
+                break
+            }
+            chain.append(id)
+            guard let row = try Row.fetchOne(db, sql: "SELECT parentID, name, depth FROM items WHERE id = ?", arguments: [id]) else {
+                break
+            }
+            let name: String = row["name"]
+            let depth: Int = row["depth"]
+            if scope.shouldHide(name: name, depth: depth) {
+                hidden = true
+                break
+            }
+            current = row["parentID"]
+        }
+        for id in chain { memo[id] = hidden }
+        return hidden
     }
 
     /// Löscht alle Einträge mit `status = zu-löschen` endgültig (234).
@@ -1192,12 +1265,16 @@ actor IndexStoreV3 {
             }
             var toSizeBytes: Int64?
             var toModifiedAt: Date?
-            if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey]) {
+            var isDirectory = false
+            if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey]) {
                 toSizeBytes = values.fileSize.map(Int64.init)
                 toModifiedAt = values.contentModificationDate
+                isDirectory = values.isDirectory ?? false
             }
             var partial: Data?
-            if partialMatching {
+            // bug.0.4.131: keine Teil-Prüfsumme für Ordner (Lesen wirft) – sonst scheitert jedes Live-Umbenennen eines
+            // Ordners, und der Abgleich legt eine neue Zeile an (offener Pfad, Favoriten).
+            if partialMatching, !isDirectory {
                 partial = try PartialChecksum.compute(at: toURL)?.partial
             }
             return (toSizeBytes, toModifiedAt, partial)

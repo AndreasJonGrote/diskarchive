@@ -76,14 +76,10 @@ struct ColumnLoadingBorderStableTests {
                 .frame(width: 1280, height: 800)
         )
         host.appearance = NSAppearance(named: .aqua)
-        host.frame = NSRect(x: 0, y: 0, width: 1280, height: 800)
-        let window = NSWindow(contentRect: host.frame, styleMask: [.borderless], backing: .buffered, defer: false)
-        window.isReleasedWhenClosed = false
-        window.appearance = host.appearance
         let previous = NSApp.appearance
         NSApp.appearance = host.appearance
-        window.contentView = host
-        window.orderFrontRegardless()
+        let window = PixelProbe.offscreenWindow(hosting: host, size: CGSize(width: 1280, height: 800))
+        window.appearance = host.appearance
         let start = Date()
         var samples: [Sample] = []
         // bug.0.3.8.007: Ende hängt am tatsächlichen Ladeende, nicht an einer festen Uhrzeit —

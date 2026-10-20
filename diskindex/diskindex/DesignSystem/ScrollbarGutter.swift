@@ -6,8 +6,9 @@
 //  rechts immer Platz für ihn reserviert (wie `scrollbar-gutter: stable` in CSS). Breite = Leistenbreite des aktuellen
 //  Systemstils (dauerhaft: `NSScroller.scrollerWidth`, Overlay: 0); ein Wechsel des Systemstils zur Laufzeit gilt
 //  sofort. Ein zentraler Baustein (Regel 12): `.stableScrollbarGutter()` am Inhalt einer senkrechten `ScrollView`.
-//  Umsetzung: Im dauerhaften Stil steht der Rollbalken immer (nicht erst, wenn der Inhalt überläuft) – der Inhalt
-//  springt nicht beim Wechsel zwischen Ansichten mit und ohne Überlauf. (`scrollIndicators(.visible)` lässt den
+//  Umsetzung: Im dauerhaften Stil steht der Platz des Rollbalkens immer (nicht erst, wenn der Inhalt überläuft) – der
+//  Inhalt springt nicht beim Wechsel zwischen Ansichten mit und ohne Überlauf; ohne Überlauf ist die Leiste selbst
+//  ausgeblendet (bug.0.4.100 c, keine leere Leiste). (`scrollIndicators(.visible)` lässt den
 //  dauerhaften Rollbalken ohne Überlauf nicht stehen, im Fenstertest belegt.) Im Overlay-Stil bleibt alles wie bisher.
 //
 
@@ -130,6 +131,47 @@ private struct ScrollbarGutterKeeper: NSViewRepresentable {
             }
             // Sofort neu einteilen: die Inhaltsbreite steht vor der ersten Darstellung fest.
             if changed { scroll.tile() }
+            observe(scroll)
+            syncBarVisibility(scroll)
+        }
+
+        // bug.0.4.100 c (Nutzer 20.10.): Platz ja, leere Leiste nein. Die Leiste behält im dauerhaften Stil ihren Platz
+        // (Inhaltsbreite gleich mit und ohne Überlauf), ist ohne Überlauf aber ausgeblendet; mit Überlauf erscheint sie
+        // in diesem Platz.
+        private weak var observedScroll: NSScrollView?
+        private var observers: [NSObjectProtocol] = []
+
+        private func syncBarVisibility(_ scroll: NSScrollView) {
+            guard let bar = scroll.verticalScroller else { return }
+            let documentHeight = scroll.documentView?.frame.height ?? 0
+            let overflows = documentHeight > scroll.contentView.bounds.height + 1
+            let hide = scroll.scrollerStyle == .legacy && !overflows
+            if bar.isHidden != hide { bar.isHidden = hide }
+        }
+
+        private func observe(_ scroll: NSScrollView) {
+            guard observedScroll !== scroll else { return }
+            observers.forEach(NotificationCenter.default.removeObserver)
+            observers.removeAll()
+            observedScroll = scroll
+            let names: [(NSNotification.Name, NSView?)] = [
+                (NSView.frameDidChangeNotification, scroll.documentView),
+                (NSView.frameDidChangeNotification, scroll.contentView),
+            ]
+            for (name, view) in names {
+                guard let view else { continue }
+                view.postsFrameChangedNotifications = true
+                observers.append(NotificationCenter.default.addObserver(forName: name, object: view, queue: .main) { [weak self, weak scroll] _ in
+                    MainActor.assumeIsolated {
+                        guard let self, let scroll else { return }
+                        self.syncBarVisibility(scroll)
+                    }
+                })
+            }
+        }
+
+        deinit {
+            observers.forEach(NotificationCenter.default.removeObserver)
         }
 
         override func hitTest(_ point: NSPoint) -> NSView? { nil }

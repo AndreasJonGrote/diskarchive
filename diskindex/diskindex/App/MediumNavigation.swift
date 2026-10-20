@@ -42,6 +42,8 @@ enum MediumNavigation {
     /// Objekt (Suche, Favoriten, Popover) in der Spaltenansicht zeigen: Datei markiert, Ordner geöffnet.
     static func openObject(_ result: SearchResultItem, appState: AppState) {
         openColumnBrowser(for: result.mediumID, appState: appState)
+        // bug.0.4.132: an die Stelle scrollen, sobald die Spalten stehen (auch wenn die Ansicht erst entsteht).
+        defer { appState.columnScrollToken += 1 }
         let parentPath = result.pathFolderComponents
         let completed = appState.medium(with: result.mediumID)?.completedDepth ?? 0
 

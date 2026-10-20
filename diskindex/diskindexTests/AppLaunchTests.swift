@@ -5,6 +5,7 @@
 //  todo.0.4.013 — Jeder Start öffnet Hauptfenster; Versions-Check sofort.
 //
 
+import AppKit
 import Foundation
 import GRDB
 import Testing
@@ -53,8 +54,15 @@ struct AppLaunchTests {
 
     @Test func openMainCreatesVisibleMainWindow() {
         let app = AppState()
+        // bug.0.4.116 (Regel 19): außerhalb des Bildschirms, nicht aktiviert, nicht Key.
+        app.promptPanelPlacement = .offscreen
         AppWindowPresenter.openMain(appState: app)
         #expect(AppWindowPresenter.isMainWindowVisible)
+        let onScreen = NSApp.windows.contains { window in
+            window.isVisible
+                && NSScreen.screens.contains { $0.frame.intersects(window.frame) }
+        }
+        #expect(!onScreen, "Hauptfenster im sichtbaren Bereich: \(NSApp.windows.filter(\.isVisible).map { "\($0.title) \($0.frame)" })")
         AppWindowPresenter.prepareForTermination()
     }
 
