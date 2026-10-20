@@ -121,7 +121,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 - ○ **Mindest-macOS 14:** Laufzeittest auf macOS 14 (z. B. VM).
 - ○ **Fehlerbericht** mit echten Protokollzeilen getestet (Datenschutz); Pflicht davor: `bug.0.4.011` und `bug.0.4.012`.
 - ○ **Update-Prozess durch Ersetzen der App:** Bundle-ID und Datenordner gleich lassen, Einzelinstanz-Übergabe bei neuerer Version, Launch Agent beim Start neu registrieren.
-- **Ab jetzt nur noch erweitern (Nutzer 10.10.):** Auf anderen Rechnern wird nie etwas gelöscht. Spätere Versionen fügen nur Tabellen oder Spalten hinzu (einmalig beim Start), mit Sicherungskopie davor und Schutz vor Rückschritt (GRDB `hasBeenSuperseded`, ○ `bug.0.4.013`, muss vor der ersten Schema-Erweiterung stehen). Auf dem Mac des Nutzers darf bis 1.0 alles gelöscht werden.
+- **Ab jetzt nur noch erweitern (Nutzer 10.10.):** Auf anderen Rechnern wird nie etwas gelöscht. Spätere Versionen fügen nur Tabellen oder Spalten hinzu (einmalig beim Start), mit Schutz vor Rückschritt (Sicherungskopie davor erst ab 1.0, Nutzer 20.10., `bug.0.4.106`) (GRDB `hasBeenSuperseded`, ○ `bug.0.4.013`, muss vor der ersten Schema-Erweiterung stehen). Auf dem Mac des Nutzers darf bis 1.0 alles gelöscht werden.
 
 **Fertig, wenn [Vorschlag]:**
 - Keine bekannten Fehler offen (0.3.8 und 0.3.9 abgenommen; Audit 13.10.: `bug.0.4.010`–`062`).

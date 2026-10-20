@@ -218,6 +218,18 @@ Nur Claude pflegt diese Datei. Eine Aufgabe steht hier erst nach Prüfung von Co
 | bug.0.4.078 | – | Schwärzung: `$s`/`$S` nur auf echten Stapelrahmen, übrige Zeilen normal geschwärzt (Feinschliff: `bug.0.4.082`) | 18.10. Host (seriell 872/873, parallel je 1 rot nur `bug.0.4.081`, 0 Warnungen) | A C (Prüf-Agenten) |
 | bug.0.4.079 | – | Kürzung des Fehlerberichts behält mindestens 20 Protokollzeilen, ≤ 256 KB (Reihenfolge: `bug.0.4.083`) | 18.10. Host (seriell 872/873, parallel je 1 rot nur `bug.0.4.081`, 0 Warnungen) | A C (Prüf-Agenten) |
 | bug.0.4.080 | – | Kleinkram: wartende Starts zusammengefasst, Entsperren geordnet, `flushInFlight` mit Nummer, Marke bei unbekanntem Medium, Testordner aufgeräumt (Rest: `bug.0.4.084`, `085`) | 18.10. Host (seriell 872/873, parallel je 1 rot nur `bug.0.4.081`, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.086 | – | Ein Datenbank-Pool je Prozess (`ArchiveDatabase`), Öffnen und Migration im Hintergrund, Fehlerbericht und Warteschlange teilen ihn (Test-Nacharbeit: `bug.0.4.093`, Reste `094`) | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.087 | – | Details-Spalte scrollt wieder in die Sicht; zählt nur die Spalte der Auswahl | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.088 | – | Ignorieren blendet an Ort und Stelle aus, kein Ladezustand, Warteschlange leert nichts (Reste: `bug.0.4.096`, `097`, `099`) | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.089 | – | Trennlinie zwischen Spalten in jedem Zustand, zentral im Spalten-Overlay | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.090 | – | Spaltenkennung je Medium, kein hängender Ladehinweis nach Medienwechsel | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.091 | – | Rollbalken-Platz reserviert (`ScrollbarGutter`) in Einstellungen, Suche, Favoriten, Dashboard (offen: Frage leere Leiste, `bug.0.4.100`) | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.092 | – | Reine Filtersuche ohne Medien-Kacheln (toter Code: `bug.0.4.102`) | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.081 | – | Sortierköpfe über die ganze Spaltenbreite klickbar (`TableSortHeader`), Test aus echter Inhaltsbreite | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.082 | – | Schwärzung: Zeilenumbrüche im Protokoll maskiert, Rahmen-Ausnahme nur für das Symbol | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.083 | – | Kürzung: Brotkrumen → Rahmen bis 0 → Protokoll bis 20 → Aktionen (Testlücke: `bug.0.4.102`) | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.084 | – | Live-Überwachung startet auch nach gescheitertem Lauf (Schleife: `bug.0.4.095`) | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
+| bug.0.4.085 | – | Kleinkram: wartender Start verworfen, Bedingung statt Schlafen, Aufräumen, Bytevergleich, Meldung vor Fortsetzen | 20.10. Host (seriell 894/894, parallel 3/3, 0 Warnungen) | A C (Prüf-Agenten) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 
