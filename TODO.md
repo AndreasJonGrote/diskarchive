@@ -51,7 +51,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 
 ## A. Jetzt
 
-**Stand 20.10.2026 (Host):** Version im Xcode-Projekt **0.3.9**. Abgenommen bis einschließlich **Paket 12** (DONE.md). Großer Audit am 20.10. erledigt (Befunde `bug.0.4.103`–`140`, unten). **Paket 13 freigegeben** (Reihenfolge unter „Audit 20.10.“), danach Paket 14 (Reste, Tests, Version 0.4.0), dann Abnahmerunde des Nutzers (`todo.0.4.040`). Ein Worker zur Zeit, Pakete nacheinander.
+**Stand 21.10.2026 (Host, Übergabe):** Version im Xcode-Projekt **0.3.9**. Abgenommen bis einschließlich **Paket 12** (DONE.md). Großer Audit 20.10. erledigt (`bug.0.4.103`–`140`). **Paket 13 vom Worker fertig, vom Nutzer committet (`4f783f8`), vom Host NICHT geprüft** – erster Schritt des nächsten Hosts (Fragen des Workers unter `096`, `103`, `105`, `127`, `128`, `132`, `137`). Danach Paket 14 (Reste, Tests, `todo.0.4.043`, Version 0.4.0), dann Abnahmerunde des Nutzers (`todo.0.4.040`). Ein Worker zur Zeit, Pakete nacheinander.
 
 **Zwei Sprünge bis zur stabilen Version (Nutzer 16.10.):** **0.3.8** = Paket 4 (Medien-I/O, mit Nacharbeit) + Paket 5 (Entscheidung, Status, Regeln, Identität). **0.3.9** = Paket 6 (Oberfläche) + Paket 7 (Absturzschreiber, Start) + Paket 8 (Fehler niedriger Schwere), danach Stabilitätsprüfung. **0.4** enthält danach nur noch die Voraussetzungen der Weitergabe (Signatur, Notarisierung, Download-Seite, Versions-Check-Feinschliff, Beta-Verfallsdatum, macOS 14). **Eingefroren:** Neue Funde kommen nur dann in 0.3.8/0.3.9, wenn sie ein Abnahmekriterium verletzen, sonst nach B mit Zielversion 0.4 oder später. Kein neuer Auditlauf und keine neuen Pakete, bis 0.3.9 abgenommen ist.
 
@@ -80,7 +80,7 @@ Einzige Aufgabenliste. Erledigtes: [DONE.md](DONE.md). Verlauf und alte Fassunge
 | 10 | **0.4.0** | ~~`bug.0.4.072`–`076`, `todo.0.4.023`~~ | Prüfbefunde 9, Fehlerbericht | **abgenommen 18.10.** |
 | 11 | **0.4.0** | ~~`bug.0.4.077`–`080`~~ | natürliche Ordnung schneller, Datenschutz im Fehlerbericht | **abgenommen 18.10.** |
 | 12 | **0.4.0** | ~~`bug.0.4.081`–`092`~~ | Funde des Nutzers (Start nach Migration, Scrollen zu Details, Ignorieren ohne Neuladen, Spaltenzustand, Trennlinie, Rollbalken-Platz, Filtersuche), Prüfbefunde 11 | **abgenommen 20.10.** |
-| 13 | **0.4.0** | `bug.0.4.116`, `117`, `105`, `104`, `103`, `126`–`129`, `137`, `138`, `109`, `093`, `095`–`097`, `131`–`133`, `100` | Testfenster, Datenverlust, Status der Medien, Haupt-Thread, Live, Netz, Prüfbefunde 12, Oberfläche | **freigegeben 20.10.** |
+| 13 | **0.4.0** | `bug.0.4.116`, `117`, `105`, `104`, `103`, `126`–`129`, `137`, `138`, `109`, `093`, `095`–`097`, `131`–`133`, `100` | Testfenster, Datenverlust, Status der Medien, Haupt-Thread, Live, Netz, Prüfbefunde 12, Oberfläche | **Worker fertig (`4f783f8`), Host-Prüfung offen** |
 | 14 | **0.4.0** | `bug.0.4.094`, `098`, `099`, `101`, `102`, `107`, `108`, `110`–`115`, `118`–`125`, `130`, `134`–`136`, `139`, `140`, `todo.0.4.043`, `todo.0.4.044` | Reste, Tests, Version 0.4.0 | geplant |
 | – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: 2-Mio-Platte, Stick, Layout → Release-Kandidat | nach Paket 14 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `todo.0.4.1.002` (Tester-Prüfung mit Quarantäne) | Release der Open Beta (Auslieferung) | B |
