@@ -27,4 +27,16 @@ Teil des Konzepts, ausgelagert aus [README.md](../README.md) am 23.10.2026 (gilt
 
 **Grenzen:** FSEvents sieht nur Änderungen, die dieser Mac macht, solange das Medium hängt (FAT-Sticks haben keinen Verlauf). Deshalb der vollständige Abgleich beim Anschließen. Verschieben/Umbenennen: APFS/HFS+ über die Datei-ID, live über Ereignispaare, FAT/exFAT über Größe, Datum und Teil-Prüfsumme (Abschnitt „Datenbank“); im Zweifel gilt Löschen plus Neu.
 
+## Invarianten (Host 23.10.2026, aus den Fehlern der Pakete 13–16)
+
+Gelten für jeden neuen Code; eine Vorgabe, die dagegen verstößt, ist ein Fehler im Auftrag („Frage:“).
+
+1. **Im Zweifel behalten.** Gelöscht oder als entfernt markiert wird nur mit positivem Beleg. Nicht gelesen, Lesefehler, Zeitüberschreitung oder fehlender Vorab-Wert heißt: den alten Eintrag (samt Favorit) bis zum nächsten Lauf behalten. Davon unberührt: Eine *unklare Zuordnung* wird nicht verknüpft („im Zweifel Löschen plus Neu“ oben betrifft nur das Verknüpfen).
+2. **Kein Medienzugriff in einer Schreibtransaktion.** Erst lesen, dann schreiben. Was außerhalb gelesen wurde, ist nur ein Vorschlag; die Transaktion prüft gegen den aktuellen Stand und behandelt Fehlendes nach 1.
+3. **Jeder Medienzugriff hat eine Zeitgrenze.** Nach der ersten Zeitüberschreitung überspringt der Lauf weitere Zugriffe auf dieses Medium; es bleiben keine blockierten Threads zurück.
+4. **Lauf-Zustand erst nach dem letzten Schreiben freigeben** (Token, Merker, eingefügte IDs). Ein zweiter Lauf desselben Mediums startet nicht, solange der erste noch schreibt.
+5. **Nur auf eigene Ereignisse reagieren.** Ansichten und Aufträge reagieren auf Ereignisse ihres Mediums und Ordners, nie auf globale Zähler; eine Nutzeraktion (Scrollen, Auswahl) wird nur durch den Nutzer oder eine Änderung genau ihres Ziels beendet.
+6. **Gespeicherte Daten enthalten Reste.** Protokoll, Absturzdatei, Merker und Caches enthalten frühere Läufe und andere Medien; jede Auswertung grenzt auf den richtigen Lauf bzw. das richtige Medium ein.
+7. **Protokoll und Bericht ohne Namen, Pfade und Fehlertexte** (`DiskIndexLog.errorSummary`).
+
 **Messwerte und Spike-Ergebnisse:** `archiv/readme-technik-bis-2026-10-04.md`.

@@ -101,7 +101,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 **Inhalt:** Paket 6 Oberfläche (`bug.0.4.034`–`040`), Paket 7 Absturzschreiber und Start (`041`–`042`), Paket 8 Fehler niedriger Schwere (`050`–`062`), danach Stabilitätsprüfung.
 
-**Fertig je Sprung (0.3.8 und 0.3.9), alle Kriterien:** (1) alle Kennungen von Claude abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf dreimal hintereinander grün; (5) keine neuen `Disk Archive*.ips`; (6) Claude baut die App des Nutzers (Regel 23) als letzten Schritt; (7) **entfällt je Sprung (Nutzer 17.10.):** der Test am echten Stick kommt gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`: Großplatten-Lauf, Stick, Layout; danach an die Nutzer); (8) keine offene „Frage:“ in TODO.md. **Eingefroren:** neue Funde kommen nur in einen Sprung, wenn sie ein Kriterium verletzen, sonst ins Backlog 0.4 oder später.
+**Fertig je Sprung (0.3.8 und 0.3.9), alle Kriterien:** (1) alle Kennungen von Claude abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf dreimal hintereinander grün; (5) keine neuen `Disk Archive*.ips`; (6) Claude baut die App des Nutzers (Regel 14) als letzten Schritt; (7) **entfällt je Sprung (Nutzer 17.10.):** der Test am echten Stick kommt gesammelt als letzter Schritt von 0.4 (`todo.0.4.040`: Großplatten-Lauf, Stick, Layout; danach an die Nutzer); (8) keine offene „Frage:“ in TODO.md. **Eingefroren:** neue Funde kommen nur in einen Sprung, wenn sie ein Kriterium verletzen, sonst ins Backlog 0.4 oder später.
 
 ---
 
@@ -209,7 +209,7 @@ Sichere Erkennung über mehrere Medien hinweg per vollständiger Prüfsumme (BLA
   | Sprachmodell auf dem Gerät (Foundation Models) | **macOS 26 (Tahoe)**, eine Quelle nennt für den neuesten Stand macOS 27; **Apple-Chip (M1 oder neuer)**; Apple Intelligence eingeschaltet, Modell geladen, unterstützte Sprache/Region | **nein** |
 - **Pflicht für die Lizenzbeschreibung (Nutzer 18.10.):** Die Beschreibung der Stufen Pro und Max (App, Download-Seite, Kaufseite) nennt ausdrücklich, ab welcher macOS-Version und auf welcher Hardware die Verschlagwortung funktioniert, getrennt nach Grundfunktion (Bilder/Text, ab macOS 14) und besserer Verschlagwortung mit dem Sprachmodell (ab macOS 26 mit Apple-Chip und Apple Intelligence). Die App zeigt im Reiter an, welche Stufe auf diesem Mac verfügbar ist, und kauft niemand etwas, das auf seinem Mac nicht läuft.
 - **Testrechner:** Für das Sprachmodell braucht es einen Mac mit Apple-Chip auf macOS 26 oder neuer. Vorschlag: einen der beiden Entwicklungs-Macs (falls Apple-Chip) auf das aktuelle macOS heben, den zweiten auf macOS 15 lassen, um den Rückfall ohne Sprachmodell zu testen. Der Test auf macOS 14 (`todo.0.4.022`, Mindestversion der App) bleibt davon getrennt.
-- **Daten:** Schlagwörter in einer neuen Tabelle (nur Erweiterung, Regel 27), durchsuchbar wie Namen; Synergie mit 0.5 (Metadaten/Text) und 0.6 (Vorschaubilder).
+- **Daten:** Schlagwörter in einer neuen Tabelle (nur Erweiterung, Regel 7), durchsuchbar wie Namen; Synergie mit 0.5 (Metadaten/Text) und 0.6 (Vorschaubilder).
 - **Offen:** Welche Dateitypen zuerst (Fotos, PDF, HTML)? Schlagwörter nur zum Suchen oder auch sichtbar und bearbeitbar? Sprache der Schlagwörter (Deutsch, Englisch, nach Systemsprache)? Haben die beiden Entwicklungs-Macs einen Apple-Chip (Voraussetzung für den Testrechner)?
 
 ## 1.0 — Erste fertige Version

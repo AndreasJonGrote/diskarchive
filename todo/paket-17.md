@@ -1,8 +1,8 @@
 # Paket 17 — Zielversion 0.4.0 (freigegeben 23.10.2026)
 
-Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (verbindlich, v. a. 14, 18, 20, 25, 31). Konzept: [README.md](../README.md). Volltexte und Status von Paket 16: [archiv/paket-16-abgenommen-2026-10-23.md](../archiv/paket-16-abgenommen-2026-10-23.md).
+Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (verbindlich, 15 Regeln, neu gefasst 23.10.; Invarianten in `konzept/architektur.md`). Konzept: [README.md](../README.md). Volltexte und Status von Paket 16: [archiv/paket-16-abgenommen-2026-10-23.md](../archiv/paket-16-abgenommen-2026-10-23.md).
 
-**Für jede Aufgabe gilt:** Repro-Test vor dem Fix rot (im Status belegen), danach grün, Sabotage rot ✓; Zeilenangaben sind Richtwerte (Regel 16). **Status** je Aufgabe direkt unter ihrem Block in **dieser Datei** (höchstens 5 Zeilen, „Bereit zur Prüfung“). Abweichungen von der Akzeptanz nur als „Frage:“, nie still. Kann ein Test nicht rot werden, ist das kein „Bereit“, sondern eine „Frage:“.
+**Für jede Aufgabe gilt:** Test vor dem Fix rot (im Status belegen), danach grün; **Sabotage als Patch** unter `todo/sabotage/` (Regel 9, der Host prüft jeden automatisch); Selbstprüfung mit den fünf Fragen (Regel 12); Zeilenangaben sind Richtwerte (Regel 3). **Status** je Aufgabe direkt unter ihrem Block in **dieser Datei** (höchstens 5 Zeilen, „Bereit zur Prüfung“). Abweichungen von der Akzeptanz nur als „Frage:“, nie still. Kann ein Test nicht rot werden, ist das kein „Bereit“, sondern eine „Frage:“.
 
 **Reihenfolge (HALT am Ende):**
 1. Nacharbeit aus Paket 16: `bug.0.4.169`, dann `bug.0.4.168`

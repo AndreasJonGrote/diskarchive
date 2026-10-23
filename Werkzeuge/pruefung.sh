@@ -3,13 +3,15 @@
 # Pflege nur durch den Host (AGENTS.md). Der Worker ändert diese Datei nicht.
 #
 # Aufruf (aus beliebigem Ordner):
-#   Werkzeuge/pruefung.sh voll                      Paketende: Build, seriell, 3x parallel, Release, .ips, Regel 23
+#   Werkzeuge/pruefung.sh voll                      Paketende: Build, seriell, 3x parallel, Release, .ips, App des Nutzers (Regel 14)
 #   Werkzeuge/pruefung.sh schnell [Suite ...]       Build + Warnungen + gezielte Suites (nur Lesen, keine Nutzer-App)
+#   Werkzeuge/pruefung.sh sabotage                  nur die Sabotage-Patches aus todo/sabotage/ (Regel 9), je Patch rot erwartet
+#   (voll prüft die Patches am Ende mit, wenn welche da sind)
 # Umgebung (alles optional):
 #   S=<Ordner>   Scratch-Ordner (Standard: neuer Ordner unter ${TMPDIR:-/tmp}); nie im Repository
 #   KEEP=1       DerivedData nicht löschen
 # Ausgabe: eine Zusammenfassung ($S/zusammenfassung.txt, am Ende auch auf stdout), Rohlogs bleiben in $S.
-# Kein Git, keine Eingriffe außerhalb von $S und dem DerivedData der Nutzer-App (Regel 23).
+# Kein Git, keine Eingriffe außerhalb von $S und dem DerivedData der Nutzer-App (Regel 14).
 
 set -u
 MODUS="${1:-voll}"; shift || true
@@ -36,11 +38,59 @@ TESTOPT=(-only-testing:diskindexTests -test-timeouts-enabled YES -maximum-test-e
 zeit() { date '+%H:%M:%S'; }
 log()  { echo "$*" | tee -a "$SUM"; }
 warnungen() { grep "warning:" "$1" | grep -v appintents | sort -u | wc -l | tr -d ' '; }
+# Sabotage (Regel 9): jeder Patch in einer Kopie des Projekts, die in "# Test:" genannten Tests müssen rot werden.
+sabotage() {
+  shopt -s nullglob
+  local P=("$ROOT"/todo/sabotage/*.patch)
+  shopt -u nullglob
+  if [ "${#P[@]}" -eq 0 ]; then log "Sabotage: keine Patches in todo/sabotage/"; return; fi
+  local K="$S/sab-kopie" DDS="$S/dd-sab" ok=0 bad=0
+  rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/diskindex" "$K/"
+  for p in "${P[@]}"; do
+    local name; name=$(basename "$p" .patch)
+    local tests; tests=$(grep -E '^# Test:' "$p" | sed -E 's/^# Test:[[:space:]]*//')
+    if [ -z "$tests" ]; then log "Sabotage $name: FEHLT # Test:-Zeile"; bad=$((bad+1)); continue; fi
+    if ! (cd "$K" && patch -p1 --forward --silent < "$p") > "$S/sab-$name-patch.log" 2>&1; then
+      log "Sabotage $name: Patch passt nicht auf den Endstand"; bad=$((bad+1))
+      rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/diskindex" "$K/"; continue
+    fi
+    local ARGS=() t
+    while IFS= read -r t; do [ -n "$t" ] && ARGS+=("-only-testing:diskindexTests/$t"); done <<< "$tests"
+    local START; START=$(zeit)
+    (cd "$K/diskindex" && xcodebuild build-for-testing "${BASIS[@]}" -derivedDataPath "$DDS") > "$S/sab-$name-build.log" 2>&1
+    if [ $? -ne 0 ]; then
+      log "Sabotage $name: Build mit Patch scheitert (Patch ungültig)  $START–$(zeit)"; bad=$((bad+1))
+    else
+      rm -rf "$S/sab-$name.xcresult"
+      (cd "$K/diskindex" && xcodebuild test-without-building "${BASIS[@]}" -derivedDataPath "$DDS" "${ARGS[@]}" \
+        -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 \
+        -resultBundlePath "$S/sab-$name.xcresult") > "$S/sab-$name-test.log" 2>&1
+      local rot; rot=$(xcrun xcresulttool get test-results summary --path "$S/sab-$name.xcresult" --compact 2>/dev/null \
+        | python3 -I -c 'import sys,json; d=json.load(sys.stdin); print("%s %s" % (d.get("failedTests",0), d.get("totalTestCount",0)))' 2>/dev/null)
+      local f=${rot%% *} n=${rot##* }
+      if [ -n "$rot" ] && [ "${n:-0}" -gt 0 ] && [ "${f:-0}" -gt 0 ]; then
+        log "Sabotage $name: rot ✓ ($f von $n)  $START–$(zeit)"; ok=$((ok+1))
+      elif [ "${n:-0}" -eq 0 ]; then
+        log "Sabotage $name: kein Test gefunden ($tests)  $START–$(zeit)"; bad=$((bad+1))
+      else
+        log "Sabotage $name: GRÜN ✗ – Test beweist den Fix nicht ($tests)  $START–$(zeit)"; bad=$((bad+1))
+      fi
+    fi
+    (cd "$K" && patch -p1 -R --silent < "$p") > /dev/null 2>&1 || { rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/diskindex" "$K/"; }
+  done
+  log "Sabotage gesamt: rot ✓ $ok, Mängel $bad (Ziel 0)"
+  [ "${KEEP:-0}" = "1" ] || rm -rf "$K" "$DDS"
+}
 testzeile() { grep -E "Test run with|Executed [0-9]+ tests|TEST (SUCCEEDED|FAILED)" "$1" | tail -2 | tr '\n' ' '; }
 
 log "Prüfung $MODUS  Start $(zeit)  Scratch $S"
 log "Rechner: $(sw_vers -productVersion), $(xcodebuild -version 2>/dev/null | head -1)"
 BEZUG="$S/bezug"; touch "$BEZUG"
+
+if [ "$MODUS" = "sabotage" ]; then
+  sabotage
+  log "Ende $(zeit)  (Rohlogs in $S)"; echo; echo "=== Zusammenfassung ($SUM) ==="; cat "$SUM"; exit 0
+fi
 
 # 1. Build mit Testziel
 START=$(zeit)
@@ -91,18 +141,21 @@ for f in d.get("testFailures",[]): print("   ROT:",f.get("testName"),"-",f.get("
   NEU=$(find ~/Library/Logs/DiagnosticReports -name 'Disk Archive*.ips' -newer "$BEZUG" 2>/dev/null | wc -l | tr -d ' ')
   log "Neue Absturzberichte seit Start: $NEU (Ziel 0)"
 
-  # 6. Regel 23: App des Nutzers (ohne -derivedDataPath)
+  # 5b. Sabotage-Patches (Regel 9)
+  sabotage
+
+  # 6. Regel 14: App des Nutzers (ohne -derivedDataPath)
   START=$(zeit)
   xcodebuild build "${BASIS[@]}" -configuration Debug > "$S/nutzerapp.log" 2>&1
   log "Nutzer-App gebaut: Exit $?  $START–$(zeit)"
   B=$(ls -dt ~/Library/Developer/Xcode/DerivedData/diskindex-*/Build/Products/Debug/"Disk Archive.app" 2>/dev/null | head -1)
   if [ -n "$B" ]; then
     BIN="$B/Contents/MacOS/Disk Archive"
-    log "Regel 23: Binary $(stat -f '%Sm' -t '%H:%M:%S' "$BIN"); neuere .swift: $(find . -name '*.swift' -newer "$BIN" | wc -l | tr -d ' ') (Ziel 0)"
-    codesign --verify --deep --strict "$B" 2>&1 && log "Regel 23: Signatur gültig" || log "Regel 23: Signatur FEHLT/ungültig"
+    log "App des Nutzers: Binary $(stat -f '%Sm' -t '%H:%M:%S' "$BIN"); neuere .swift: $(find . -name '*.swift' -newer "$BIN" | wc -l | tr -d ' ') (Ziel 0)"
+    codesign --verify --deep --strict "$B" 2>&1 && log "App des Nutzers: Signatur gültig" || log "App des Nutzers: Signatur FEHLT/ungültig"
     log "Version: $(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$B/Contents/Info.plist" 2>/dev/null)"
   else
-    log "Regel 23: Nutzer-App nicht gefunden"
+    log "App des Nutzers: Nutzer-App nicht gefunden"
   fi
 fi
 
