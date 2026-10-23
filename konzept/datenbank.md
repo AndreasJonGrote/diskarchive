@@ -1,0 +1,49 @@
+# Konzept: Datenbank (seit 0.3, Schema eingefroren)
+
+Teil des Konzepts, ausgelagert aus [README.md](../README.md) am 23.10.2026 (gilt unverändert; bei Widerspruch zum Layout gilt das Konzept, außer reine Optik).
+
+# Datenbank (seit 0.3, Schema eingefroren)
+
+Kurzfassung der früheren `datenbank-konzeption.md` (Volltext: [archiv/datenbank-konzeption-bis-2026-10-14.md](../archiv/datenbank-konzeption-bis-2026-10-14.md)). ✓ = gebaut und von Claude abgenommen, ○ = offen (Aufgabe in [TODO.md](../TODO.md)).
+
+**Grundsatz (Nutzer 11.10.):** Nach 0.3 wird **keine Tabelle mehr verändert, nur erweitert**: neue Schlüssel in `settings`, `storage_meta`, `item_meta` oder neue Tabellen. Das Schema ist die erste GRDB-Migration `0.3.0-schema`; spätere Versionen hängen nur Migrationen an. Ab 0.4 wird auf fremden Rechnern nie etwas gelöscht (Sicherung vor Erweiterung, Schutz vor Rückschritt ○ `bug.0.4.013`).
+
+**Erweitern statt aktualisieren (Nutzer/Host 18.10.):** Neue Funktionen bringen ihre Daten als neue Schlüssel (`settings`, `storage_meta`, `item_meta`) oder als neue Tabelle bzw. neues Tabellenpaar mit eigenem Index mit. Eine Migration legt nur diese leeren Strukturen an (Millisekunden); bestehende Tabellen werden nie umgebaut, Daten nie umgeschrieben. Befüllt werden neue Tabellen von der Funktion selbst im normalen Betrieb (z. B. Schlagwörter im Leerlauf, Metadaten im zweiten Durchgang), nicht in der Migration. Einziger Grenzfall: ein **neuer Index auf einer bestehenden großen Tabelle** – möglichst vermeiden; falls nötig, nach dem Start im Hintergrund bauen, nie blockierend beim Öffnen. Den bisher einzigen Fall (natürliche Namensordnung auf `items`, `bug.0.4.077`) ziehen wir vor 0.4.0 vor, damit er bei allen Testern von Anfang an da ist (Nutzer 18.10.). Deshalb gibt es kein Fenster „Datenbank wird aktualisiert“. **Erfahrung 18.10. (`bug.0.4.086`):** Auf der Datenbank des Nutzers (710 MB) dauerte dieser Index beim ersten Start länger als 10 s, ein zweiter Zugang auf dieselbe Datei brach mit „database is locked“ ab. Regel seitdem: **ein Datenbank-Zugang je Prozess**, die Migration läuft genau einmal vor allen anderen Zugriffen, und eine lange Migration ist ein Ladezustand, kein Fehler.
+
+**Datei:** `~/Library/Application Support/Disk Archive/archive.sqlite` (eine Datei für alle Medien, WAL, `auto_vacuum` inkrementell, Journal auf 64 MB begrenzt ✓). Die alte `index.sqlite` wird nie geöffnet (kein Übernehmen, keine Sicherung). Kennungen sind `AUTOINCREMENT` (nie wiederverwendet), Zeiten ganze Sekunden seit 1970, Ja/Nein und Aufzählungen kleine Zahlen. Besitz-Verweise löschen mit (`ON DELETE CASCADE`), Nachschlage-Verweise (`extID`, `keyID`) nicht.
+
+| Tabelle | Inhalt |
+|---|---|
+| `storages` | ein Medium: Kennungen, Name und `slug`, Typ, Dateisystem, Kapazität, Entscheidung, Status, Pause, Zähler, Zeitpunkte |
+| `storage_meta` | alles Weitere je Medium als Schlüssel/Wert (abgeschlossene Tiefe, Überwachungsstand, Anzeige absolut/Prozent …); **Einstellungen je Medium immer hier** („Medium-Wert, sonst globaler Wert“) |
+| `items` | der Baum: `storageID`, `parentID`, `name`, `slug`, `extID`, `kind`, `isFolder`, `depth`, `status`, `modifiedAt`, `fileID`; nur Ordner: `contentStamp`, `listedAt`, `unreadable`. **Kein gespeicherter Pfad** (Pfad = Kette der Elternordner), **kein Suchindex** |
+| `item_details` | Größe, Erstelldatum, Paket ja/nein (nur Detailansicht) |
+| `item_meta` | Metadaten je Datei als Schlüssel/Wert mit Herkunft (gelesen / Nutzer / System); angelegt, gefüllt ab 0.5 ○ |
+| `item_checksum` | Teil- und volle Prüfsumme; Teil-Prüfsumme für Favoriten ✓, volle ab 0.8 ○ |
+| `favorites`, `extensions`, `meta_keys` | Favoriten; Nachschlagelisten Endung und Schlüssel |
+| `settings` | Einstellungen und Systemzustand als Schlüssel/Wert ✓ (außer Sprache und Fensterposition) |
+| `api_queue` | Aufträge ins Netz (Fehlerberichte, Versions-Check) ✓ |
+
+**Keine Tabelle:** Vorschaubilder (Dateien `Thumbnails/<storageID>/<itemID>` ○ 0.6), Protokoll (Datei), Statistik.
+
+**Suche und Sortierung ✓:** `slug` = Name klein, Umlaute und Akzente zum Stammlaut, ß → ss; der Suchbegriff wird gleich umgewandelt. Teilwortsuche per `LIKE '%…%'` auf `slug` von Dateien, Ordnern und Medien. Trefferliste läuft einzeln und hört nach 500 Treffern auf, die Trefferzahl läuft parallel über Kennungsbereiche. Spalten sortieren wie der Finder (natürlich, Ordner und Dateien gemischt). Filter über Zahlenfelder (`kind`, `extID`, `modifiedAt`, `storageID`, `depth`). Alter-Filter = Änderungsdatum der Datei.
+
+**Status je Eintrag ✓:** 0 sichtbar, 1 zu-löschen (Regel schließt ihn aus), 2 verschwunden (wird am Laufende gelöscht, nachdem Umbenennungen verbunden wurden). Regeländerungen laufen als Warteschlange im Hintergrund; eine Stunde nach der letzten Änderung wird gelöscht („Index jetzt bereinigen“ sofort). Lesewege filtern nur `status = 0` in SQL. Die Suche wartet; **die Spalten zeigen keinen Ladezustand** (Nutzer 18.10., `bug.0.4.088`): betroffene Einträge werden in der Ansicht sofort an Ort und Stelle ausgeblendet (kurz weggleiten), die übrigen bleiben stehen. Ein Ereignis „Warteschlange leer“ plus Sicherung bei Fehler/Beenden verhindert Hängen. Wartescreen der Suche: `todo.0.4.042` (0.4.0, wartet auf Layout).
+
+**Umbenennen und Verschieben erkennen ✓:** Die Kennung bleibt erhalten, damit Favoriten und später Metadaten nicht verloren gehen. APFS/HFS+: `fileID` (FAT/exFAT liefern sie nicht verlässlich: bei Verschieben neu, exFAT in der ersten Sitzung ein Fantasiewert). Live: FSEvents-Ereignispaare „alt → neu“. FAT/exFAT außerhalb der Überwachung: Größe + Änderungsdatum (±1 h wegen Ortszeit) + Erstelldatum + Endung, Ordner über Name und Eltern; nur eindeutige Treffer, bei Mehrdeutigkeit entscheidet die Teil-Prüfsumme (erste und letzte 64 KB), sonst gilt „neu“. Ändern sich Größe oder Datum einer Datei, werden ihre gelesenen Metadaten und Prüfsummen gelöscht (Nutzerwerte bleiben).
+
+**Wartung ✓:** Schadenprüfung (`quick_check`) alle 7 Tage oder nach Absturz, im Hintergrund. Aufräumen und Verkleinern nach N = 10.000 Änderungen im Leerlauf; WAL wird nach Läufen gekürzt. Kein Startbildschirm (Menüleiste bereit nach 0,1–0,25 s). Ein Fenster „Datenbank wird aktualisiert“ gibt es nicht (siehe „Erweitern statt aktualisieren“, Nutzer/Host 18.10.).
+
+**Netz (API) ✓:** Der einzige Weg ins Netz ist die Warteschlange `api_queue`: online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Versions-Check `GET https://diskarchive.app/api/version/` (Antwort heute `{"version":"1.0.0"}`); verglichen wird `n.n`.
+- App älter als API → Update-Modal (mit „Dieses Update überspringen“).
+- **Beta (0.x) und API ≥ 1.0** → Hinweis und **7 Tage** Frist (`betaExpiryNoticedAt`); auf einer **frischen Installation (keine Datenbank) sofort gesperrt**. Eine gesperrte Version bleibt gesperrt (`lockedVersion`); heraus kommt man nur mit einer neueren App.
+- API 1 Monat nicht erreicht → gesperrt; Beta-Verfallsdatum 60 Tage nach dem Build → gesperrt.
+- **Präzisierung (Host 18.10., `bug.0.4.053`/`065`):** „Frisch installiert“ = bei der ersten API-Antwort ist noch kein Medium registriert (sonst gilt die 7-Tage-Frist). Wurde die API nie erreicht, zählen 30 Tage ab dem ersten Start. Offline zählt für Fristen `max(Uhr, höchste bisher gesehene Zeit)`; steht die Uhr offline weit vorgestellt, bleibt die App bis zur nächsten API-Antwort gesperrt.
+- **Gesperrt = 100 % nur ansehen:** kein Indizieren, keine Überwachung, keine neuen Medien, keine Schreibzugriffe (`FeatureAccess`). Uhr des Macs genügt.
+- Zählen aktiver Installationen: erst mit der Lizenz (0.9).
+
+**Messung (196 vorher / 238 nachher, 1 Mio. und 8,6 Mio. Einträge) ✓:** Datenbank 54–63 % kleiner; häufige Suche 91–98 % schneller; Filter nach Dateityp von 6,5 s auf 0,13 s; Spaltenansicht mit 50.000 Kindern innerhalb ±10 % (S1 +3,4 %, S2 −9 %). Schwellen bestanden. Berichte: `archiv/messung/`.
+
+**Noch offen im Konzept:** Metadaten-Durchgang mit Markierung „schon analysiert“ (Zeile `_analyzed`, 0.5); Vorschaubilder löschen mit dem Eintrag (0.6); Duplikate über volle Prüfsumme nach Größe gruppiert (0.8); Export mit vorab geladenen Ordnerpfaden (0.7); Duplikat-Screen und Export dürfen auch im gesperrten Zustand laufen (nur lesen).
+
+---

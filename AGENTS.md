@@ -1,5 +1,8 @@
 # AGENTS.md — Rollenverteilung Disk Index
 
+> **⚠ Mindestmodell (Nutzer 23.10.): Host = Opus 5.5 Low. Worker = Sonnet 5.5 Medium.**
+> Jeder Agent nennt in der **ersten Zeile** seiner ersten Antwort einer Sitzung sein Minimum und sein Modell, sobald er sie nicht erfüllt oder nicht sicher ist: „⚠ Minimum Host: Opus 5.5 Low – bitte wechseln“. Den Aufwand (Low/Medium) kann ein Agent nicht sicher erkennen; er meldet, was er sieht. Subagenten: Sonnet für Urteil, Haiku nur für Mechanik; **Tests und Builds laufen per Skript** (`Werkzeuge/pruefung.sh`), nie per Agent. Einzelheiten: `archiv/abnahme-ablauf.md`, Abschnitt 0.
+
 Dieses Projekt wird von Agenten in zwei Rollen bearbeitet: **Host** und **Worker**. Diese Datei legt verbindlich fest, wer was tut.
 
 ## Rollen (Nutzer 17.10.: Rolle kommt aus der Übergabe, nicht aus dem Namen)
@@ -10,17 +13,17 @@ Dieses Projekt wird von Agenten in zwei Rollen bearbeitet: **Host** und **Worker
 Der Host macht **keine Implementierung** im Xcode-Projekt. Er ist zuständig für:
 - **Konzept**: Produktlogik, Screen-Flows, State-Modelle, Edge Cases aus dem Design-Mockup ([layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html)) und dem Farbkonzept ([layout/Farbschema.dc.html](layout/Farbschema.dc.html)) sauber in umsetzbare Aufgaben übersetzen.
 - **Design-Vermittlung**: Farbrollen, Spacing, Icons und Komponentenregeln aus dem Styleguide (Mockup-Sektion 15) und dem Farbkonzept korrekt und vollständig an den Worker weitergeben — inklusive der Feinheiten (Chip-Rezept, gestrichelt = unvollständig, Selectgroup-Regel, Tabellenregel ohne Sortierpfeile, Suchfeld-Reset, Cursor-Regel etc.) und mit exakten sRGB-Werten, wo das Layout OKLCH verwendet — damit nichts davon beim Screenshot-Abtippen verlorengeht.
-- **Briefing**: Aufgaben in [TODO.md](TODO.md) und den Auftrag in [PROMPT.md](PROMPT.md) so präzise formulieren, dass der Worker sie ohne Rückfragen umsetzen kann (Dateien, Screens, Verhalten, Akzeptanzkriterien).
-- **Review**: Nach jeder gemeldeten Erledigung prüft der Host den tatsächlichen Code/Diff gegen die Vorgabe in TODO.md und das Design-Spec — nicht nur die Selbstauskunft des Workers. Er gibt Freigabe oder fordert Korrektur an.
+- **Briefing**: Aufgaben im Paket-File `todo/paket-NN.md` (Index: [TODO.md](TODO.md)) und den Auftrag in [PROMPT.md](PROMPT.md) so präzise formulieren, dass der Worker sie ohne Rückfragen umsetzen kann (Dateien, Screens, Verhalten, Akzeptanzkriterien).
+- **Review**: Nach jeder gemeldeten Erledigung prüft der Host den tatsächlichen Code/Diff gegen die Vorgabe im Paket-File und das Design-Spec — nicht nur die Selbstauskunft des Workers. Er gibt Freigabe oder fordert Korrektur an.
 - **Priorisierung**: Reihenfolge der Screens/Features festlegen, Abhängigkeiten erkennen (z. B. Datenmodell vor UI, Menu-Bar-Grundgerüst vor Popover-Inhalt).
 
-Der Host editiert **niemals** Quellcode im Xcode-Projekt. Er pflegt `AGENTS.md`, `TODO.md`, `PROMPT.md`, `DONE.md`, `README.md`, `ROADMAP.md` und `archiv/`.
+Der Host editiert **niemals** Quellcode im Xcode-Projekt. Er pflegt `AGENTS.md`, `TODO.md`, `PROMPT.md`, `DONE.md`, `README.md` mit `konzept/`, `ROADMAP.md`, `todo/`, `archiv/` und das Prüfskript `Werkzeuge/pruefung.sh` (der Worker ändert es nie).
 
 ### Worker — Umsetzung
-Der Worker implementiert die freigegebenen Aufgaben aus `TODO.md` bzw. den Auftrag in `PROMPT.md` im Xcode-Projekt (SwiftUI/AppKit). Das gilt für jeden Agenten in dieser Rolle, auch für Claude. Er ist zuständig für:
+Der Worker implementiert das freigegebene Paket (`todo/paket-NN.md`, Index TODO.md) bzw. den Auftrag in `PROMPT.md` im Xcode-Projekt (SwiftUI/AppKit). Das gilt für jeden Agenten in dieser Rolle, auch für Claude. Er ist zuständig für:
 - Den tatsächlichen Code (Views, Models, State, Menu-Bar-Integration, App-Fenster).
 - Pixel-genaue Umsetzung der Design-Tokens aus der README mit **nativen Controls** — kein Kopieren von HTML/CSS, aber gleiche Werte (Farben, Radius, Spacing, Icon-Gewichte).
-- Nach jeder Aufgabe: nur das Feld „Status“ der Aufgabe in `TODO.md` ausfüllen (höchstens 5 Zeilen) und „Bereit zur Prüfung“ schreiben, nie „fertig“. Es gelten die **Regeln für den Worker** oben in `TODO.md` (verbindlich, haben Vorrang vor Gewohnheiten).
+- Nach jeder Aufgabe: nur das Feld „Status“ der Aufgabe im Paket-File ausfüllen (höchstens 5 Zeilen) und „Bereit zur Prüfung“ schreiben, nie „fertig“. Es gelten die **Regeln für den Worker** in `todo/regeln.md` (verbindlich, haben Vorrang vor Gewohnheiten).
 - Der Worker nimmt nie selbst ab, pflegt weder DONE.md noch Konzept- oder Regeldateien und schreibt keine Aufgaben.
 
 ## Git und GitHub (Nutzer 10.10., gilt für Host und Worker)
@@ -32,7 +35,7 @@ Der Worker implementiert die freigegebenen Aufgaben aus `TODO.md` bzw. den Auftr
 - **Vom Host geht alles aus:** Konzept, Aufgaben, Prüfung, Abnahme, DONE.md. Worker können auf **anderen Geräten** arbeiten und über Git/GitHub (macht nur der Nutzer) zusammenfließen. Eine Abnahme durch den Worker selbst gilt nicht; der Host liest den Code, baut (0 Warnungen), lässt den Gesamtlauf seriell und parallel laufen und prüft Regel 23.
 - **Zwei Kennungen:** `todo.<Version>.<Nr>` für Aufgaben, `bug.<Version>.<Nr>` für Fehler (Version = Zielversion der Roadmap, Nr dreistellig; Ausnahme: die bis 16.10. vergebenen `bug.0.4.xxx` behalten ihre Nummer, maßgeblich ist die Spalte „Zielversion“ in TODO.md). Sie stehen in TODO.md, im Status, in Commit-Nachrichten und in DONE.md.
 - **Übergabe:** `PROMPT.md` enthält **nur** den aktuellen Prompt für den Worker (nur der Host schreibt ihn); der Worker ersetzt ihn zum Schluss durch eine Kurzmeldung „Erledigt: … Offen: … HALT“ (höchstens drei Zeilen). Jede Antwort im Chat endet mit einer **Commit-Nachricht**; jeder Bericht des Workers zusätzlich mit einem Prompt für den Host (Aufbau: TODO.md Regel 30). Committen tut nur der Nutzer.
-- **Dateien:** `PROMPT.md` (aktueller Prompt), `TODO.md` (offen), `DONE.md` (abgenommen), `README.md` (Konzept inkl. Datenbank), `ROADMAP.md` (Versionen), `REPORT.md` (bleibt leer, Fehler gehen direkt als `bug.*` in TODO.md). Alte Fassungen: `archiv/`. **Abnahme-Ablauf des Hosts** (Befehle, Reihenfolge, Pflege der Dateien): `archiv/abnahme-ablauf.md` — zu Beginn eines neuen Chats lesen.
+- **Dateien:** `Werkzeuge/pruefung.sh` (Prüfläufe des Hosts: Build, Tests, Warnungen, Regel 23), `PROMPT.md` (aktueller Prompt), `TODO.md` (Index), `todo/` (Regeln, Paket-Files, Backlog), `DONE.md` (abgenommen), `README.md` (Index des Konzepts) mit `konzept/` (Themendateien, z. B. `konzept/datenbank.md`), `ROADMAP.md` (Versionen), `REPORT.md` (bleibt leer, Fehler gehen direkt als `bug.*` in TODO.md). Alte Fassungen: `archiv/`. **Abnahme-Ablauf des Hosts** (Befehle, Reihenfolge, Pflege der Dateien): `archiv/abnahme-ablauf.md` — zu Beginn eines neuen Chats lesen.
 
 ## Übergabe an einen neuen Host oder Rechner (Nutzer 18.10.)
 
@@ -40,19 +43,20 @@ Liegt im Hauptverzeichnis eine **`UEBERGABE.md`**, liest jeder neue Host sie **z
 
 ## Workflow
 
-1. Der Host schreibt/aktualisiert Aufgaben in `TODO.md` (eine Aufgabe = ein klar abgegrenzter Screen oder Teilschritt).
-2. Der Worker arbeitet die Aufgaben in `TODO.md` der Reihe nach ab und trägt unter jeder Aufgabe im Feld „Status" ein, was gemacht wurde.
-3. Der Host liest `TODO.md`, prüft, dass die App in `DerivedData/…/Build/Products/Debug/` jünger ist als die letzte geänderte `.swift`-Datei (TODO Regel 23; sonst baut der Host sie vor dem Nutzertest selbst), prüft den Code gegen Aufgabe + Layout + README. Bei Freigabe verschiebt **nur der Host** die Aufgabe nach `DONE.md` (Register) und den Volltext ins Archiv; sonst schreibt der Host Korrekturen in die Aufgabe.
+1. Der Host schreibt Aufgaben in `todo/paket-NN.md` und gibt das Paket in `TODO.md` frei (eine Aufgabe = ein klar abgegrenzter Screen oder Teilschritt).
+2. Der Worker arbeitet die Aufgaben im Paket-File der Reihe nach ab und trägt unter jeder Aufgabe im Feld „Status" ein, was gemacht wurde.
+3. Der Host liest das Paket-File, prüft, dass die App in `DerivedData/…/Build/Products/Debug/` jünger ist als die letzte geänderte `.swift`-Datei (TODO Regel 23; sonst baut der Host sie vor dem Nutzertest selbst), prüft den Code gegen Aufgabe + Layout + README. Bei Freigabe verschiebt **nur der Host** die Aufgabe nach `DONE.md` (Register) und den Volltext ins Archiv; sonst schreibt der Host Korrekturen in die Aufgabe.
 4. Erst nach Freigabe durch den Host gilt eine Aufgabe als abgeschlossen.
+5. **Loop-Frage (Nutzer 23.10.):** Jede Freigabe-Antwort des Hosts mit Auftrag für den Worker endet nach der Commit-Nachricht mit der Frage, ob der 15-Minuten-Loop zur Kontrolle gestartet werden soll. Ohne Ja startet er keinen (`archiv/abnahme-ablauf.md`, Abschnitt 9).
 
 ## Quellen der Wahrheit
-- **Konzept (aktuell gültig)**: [README.md](README.md) — eine Stelle für alle Produktentscheidungen, nach Thema. Bei Widerspruch zum Layout gilt das Konzept (außer reine Optik). Der Host pflegt es bei jeder Entscheidung des Nutzers; überholte werden ersetzt. Älterer Verlauf: [archiv/readme-verlauf-bis-2026-10-02.md](archiv/readme-verlauf-bis-2026-10-02.md).
-- **Versionen und Reihenfolge**: README, Abschnitt „Roadmap“ (maßgeblich). [ROADMAP.md](ROADMAP.md) ist die ausführliche Fassung und folgt der README. `TODO.md` A enthält nur die laufende Version, B ist nach Zielversion sortiert.
+- **Konzept (aktuell gültig)**: [README.md](README.md) als Index, Inhalt in `konzept/*.md` (eine Datei je Thema) — eine Stelle für alle Produktentscheidungen. Nur die Datei zum Thema lesen. Bei Widerspruch zum Layout gilt das Konzept (außer reine Optik). Der Host pflegt es bei jeder Entscheidung des Nutzers; überholte werden ersetzt. Älterer Verlauf: [archiv/readme-verlauf-bis-2026-10-02.md](archiv/readme-verlauf-bis-2026-10-02.md).
+- **Versionen und Reihenfolge**: [konzept/roadmap.md](konzept/roadmap.md) (maßgeblich, früher README „Roadmap“). [ROADMAP.md](ROADMAP.md) ist die ausführliche Fassung und folgt der README. `TODO.md` (Index) nennt nur die laufende Version, B ist nach Zielversion sortiert.
 - **Design (seit 28.09.)**: [layout/Disk Index App.dc.html](layout/Disk%20Index%20App.dc.html) (Mockup, Sektionen 00–15) und [layout/Farbschema.dc.html](layout/Farbschema.dc.html) (Farbkonzept). Screenshot-Vorlage, nicht Code-Vorlage. Regeln für Mockups: [layout/CLAUDE.md](layout/CLAUDE.md).
 - **Komponentenkatalog (Maße, Farben, Zustände):** [layout/Komponenten.dc.html](layout/Komponenten.dc.html), zusammengefasst in [docs/Komponenten-Masse.md](docs/Komponenten-Masse.md) (der Host pflegt die Zusammenfassung; bei Widerspruch gilt die Layout-Seite).
 - **Erledigt**: [DONE.md](DONE.md) — Register der vom Host abgenommenen Aufgaben (nur der Host pflegt es).
-- **Aufgabenliste**: [TODO.md](TODO.md) — nur offene Aufgaben (A. Jetzt) und Backlog (B., der Worker arbeitet nicht daran) plus die verbindlichen Regeln für den Worker. Alte Fassungen und Volltexte: `archiv/prompt-*.md`.
+- **Aufgabenliste**: [TODO.md](TODO.md) — kurzer Index (Stand, Pakete, Entscheidungen). Aufgaben je Paket in `todo/paket-NN.md`, Regeln in `todo/regeln.md`, Backlog in `todo/backlog.md`. **Kurz halten:** große Dateien kosten bei jedem Start Tokens. Alte Fassungen und Volltexte: `archiv/prompt-*.md`.
 - Archiv (nicht mehr maßgeblich): `archiv/layout-alt/design_handoff_disk_index/` — ursprüngliches Handoff mit alter Screen-Nummerierung.
 
 ## Status dieses Projekts
-Xcode-Projekt unter `diskindex/` (SwiftUI/AppKit, GRDB/SQLite). Erkennung, Indizierung, Live-Überwachung, Suche, Favoriten, Einstellungen, Fehlerbericht und Menüleiste laufen auf echten Daten. Es gibt eine Aufgabenliste (`TODO.md`) und einen Worker zur Zeit, Pakete laufen nacheinander. Aktuelle offene Aufgaben: siehe `TODO.md`. Aufbau der Software: README, „Architektur“.
+Xcode-Projekt unter `diskindex/` (SwiftUI/AppKit, GRDB/SQLite). Erkennung, Indizierung, Live-Überwachung, Suche, Favoriten, Einstellungen, Fehlerbericht und Menüleiste laufen auf echten Daten. Es gibt eine Aufgabenliste (`TODO.md`) und einen Worker zur Zeit, Pakete laufen nacheinander. Aktuelle offene Aufgaben: siehe `TODO.md`. Aufbau der Software: [konzept/architektur.md](konzept/architektur.md).

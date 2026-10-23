@@ -2,9 +2,9 @@
 
 Stand 16.10.2026. Der Weg von **0.1 Beta** bis **1.0**; **gebaut ist der Stand 0.3.2 (Code) mit Teilen von 0.4; bis zur Beta kommen die Sprünge 0.3.8 und 0.3.9**. Die Versionsnummern und ihre Reihenfolge stammen vom Nutzer. Mit **[Vorschlag]** markierte Zeilen sind Ergänzungen von Claude und noch nicht bestätigt.
 
-**Maßgeblich ist der Abschnitt „Roadmap“ in [README.md](README.md).** Diese Datei ist die ausführliche Fassung mit Abnahmekriterien. Bei Widerspruch gilt die README.
+**Maßgeblich ist [konzept/roadmap.md](konzept/roadmap.md)** (früher README „Roadmap“). Diese Datei ist die ausführliche Fassung mit Abnahmekriterien. Bei Widerspruch gilt die README.
 
-Gilt zusammen mit [README.md](README.md) (Konzept, Abschnitt „Datenbank“), [TODO.md](TODO.md) (offene Aufgaben und Fehler, Kennungen `todo.<Version>.<Nr>` und `bug.<Version>.<Nr>`) und [DONE.md](DONE.md).
+Gilt zusammen mit [konzept/datenbank.md](konzept/datenbank.md) (Konzept „Datenbank“), [TODO.md](TODO.md) (offene Aufgaben und Fehler, Kennungen `todo.<Version>.<Nr>` und `bug.<Version>.<Nr>`) und [DONE.md](DONE.md).
 
 ## Überblick
 

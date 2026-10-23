@@ -1,0 +1,14 @@
+# Konzept: Fehlerberichte, Datenschutz, Plattform und Sicherheit (Abschnitte 8, 9)
+
+Teil des Konzepts, ausgelagert aus [README.md](../README.md) am 23.10.2026 (gilt unverändert; bei Widerspruch zum Layout gilt das Konzept, außer reine Optik).
+
+## 8. Fehlerberichte und Datenschutz
+- **Nur Absturzberichte, nur über die Schnittstelle** der Disk-Index-API, **nur nach Zustimmung** im Dialog (13). **Optional „Künftig automatisch senden“** (Voreinstellung Aus, auch in Einstellungen → Erweitert änderbar). Das automatische Senden bleibt **bewusst still**: einmal gefragt, jederzeit änderbar.
+- Der Bericht enthält **keine Datei- oder Ordnernamen und keine Suchbegriffe**, nur Version, System, Fehlerort, letzte Aktionen und technische Eigenschaften von Namen (Länge, Sonderzeichen, Unicode-Form). Kein Mail-, Kopier- oder Ticketweg.
+- Der Dialog erscheint **nur nach einem echten Absturz** und je Absturz **einmal**, nicht nach einem harten Stopp (Xcode „Stop“, Programm beenden erzwingen).
+- Release akzeptiert nur `https`.
+
+## 9. Plattform und Sicherheit
+- **Ohne App-Sandbox** (damit Medien automatisch lesbar sind), **Hardened Runtime** an, keine Ausnahmen. Datenbank und Protokoll sind nur für den Benutzer lesbar (700/600). Netzwerk nur über die API-Warteschlange (ab 0.3.1: Fehlerbericht, Versions-, Update-, Lizenz-Check) zu `diskarchive.app`. Keine Verschlüsselung der Datenbank (FileVault schützt die Ruhedaten). Weitergabe ab 1.0 mit Developer-ID-Signatur und Notarisierung; Betas ohne Notarisierung (Nutzer 18.10.).
+- **Speichermedien: ausschließlich Lesezugriff (Nutzer 15.10., verbindlich, Haftung).** Die App darf auf Speichermedien **nichts schreiben, ändern, umbenennen, verschieben, löschen, auswerfen oder in den Papierkorb legen**, und sie bietet dafür auch **keine Funktion** an (Menüs, Kontextmenüs, Tastenkürzel). Erlaubt sind nur: Verzeichnisse und Metadaten lesen (`getattrlistbulk`, `stat`), Dateien **nur zum Lesen** öffnen (Teil-Prüfsumme, später Metadaten und Vorschaubilder), FSEvents beobachten, „Im Finder anzeigen“. Alles, was die App schreibt (Datenbank, Protokoll, Fehlerbericht-Ausgang, Absturzdatei, Vorschaubilder), liegt im eigenen Datenordner **auf dem Mac, nie auf einem Medium**. Nachweis: eine zentrale Schreibschranke (`todo.0.4.014`) und ein Wächter-Test über den Quelltext. Grenze, die man ehrlich nennen muss: macOS kann beim bloßen Lesen die Zugriffszeit einer Datei ändern und legt auf Medien eigene Dateien an (`.DS_Store`, `.Spotlight-V100`, `.fseventsd`); das geschieht durch das System, nicht durch die App, und ändert keinen Dateiinhalt. Eine technische Erzwingung über das Betriebssystem (Sandbox) ist nicht möglich, weil die App Medien automatisch lesen muss (siehe oben).
+- Daten: SQLite (GRDB, WAL), `~/Library/Application Support/Disk Archive/archive.sqlite`; Protokoll `~/Library/Logs/Disk Archive/`. Schema und Regeln: Abschnitt „Datenbank“.
