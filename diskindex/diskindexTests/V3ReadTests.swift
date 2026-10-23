@@ -72,7 +72,7 @@ struct V3ReadTests {
         var older = SearchFilters(); older.age = .older
         var both = SearchFilters(); both.fileTypes = [.pdf, .text]; both.age = .lastMonth; both.combineWithAnd = true
         var folders = SearchFilters(); folders.fileTypes = [.folder]
-        var oneMedium = SearchFilters(); oneMedium.selectAllMedia = false; oneMedium.mediumIDs = [media[1].uuid]
+        var oneMedium = SearchFilters(); oneMedium.selectAllMedia = false; oneMedium.mediumIDs = [try #require(media.dropFirst().first).uuid]
         var custom = SearchFilters(); custom.customExtensions = [".html"]
         let searches: [(String, SearchFilters)] = [
             ("bericht", SearchFilters()), ("RECHN", SearchFilters()), ("urlaub", pdf), ("foto", docs), ("", media2),

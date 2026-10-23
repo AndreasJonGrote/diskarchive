@@ -7,7 +7,14 @@ import Foundation
 
 struct ColumnBrowserState: Equatable {
     var selectedMediumID: UUID?
-    var pathStack: [String] = []
+    var pathStack: [String] = [] {
+        didSet {
+            if openFolderRowIDs.count > pathStack.count { openFolderRowIDs.removeSubrange(pathStack.count...) }
+        }
+    }
+    /// bug.0.4.147: Zeilenkennung des offenen Ordners je Pfadebene (soweit durch Klick/Taste bekannt). Damit folgt der
+    /// Pfad einem Umbenennen auch dann, wenn der alte Spaltenstand nicht mehr im Zwischenspeicher liegt.
+    var openFolderRowIDs: [Int64] = []
     var selection = ColumnSelection()
     /// Ordner jenseits der Scan-Tiefe — Detail statt weiterer Spalte (19.10). Nur bei Einzelauswahl.
     var selectedUncapturedFolderID: UUID?

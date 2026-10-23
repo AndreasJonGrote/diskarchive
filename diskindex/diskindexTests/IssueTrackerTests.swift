@@ -35,7 +35,11 @@ final class IssueStubURL: URLProtocol, @unchecked Sendable {
             client?.urlProtocol(self, didFailWithError: URLError(Self.failCode))
             return
         }
-        let response = HTTPURLResponse(url: request.url!, statusCode: Self.status, httpVersion: nil, headerFields: nil)!
+        guard let url = request.url,
+              let response = HTTPURLResponse(url: url, statusCode: Self.status, httpVersion: nil, headerFields: nil) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Self.body)
         client?.urlProtocolDidFinishLoading(self)
@@ -149,6 +153,51 @@ struct IssueTrackerTests {
         try expectQueued(reporter, 1)
     }
 
+    /// bug.0.4.110: Ist nur eine Zeile im Backoff (nichts fällig), steht ein Wecker auf ihren Fälligkeitstermin –
+    /// kein Warten bis zum nächsten Ereignis (vorher bis zu 24 h statt 1/2/4 h).
+    @Test func backoffDueDateArmsAWakeTimer() async throws {
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        let reporter = try makeReporter(now: { clock.value })
+        IssueStubURL.status = 500
+        IssueStubURL.body = Data("no".utf8)
+        reporter.enqueue(kind: "crash")
+        reporter.waitForPendingEnqueuesForTesting()
+        await reporter.flush()
+        try expectQueued(reporter, 1)
+        // bug.0.4.114: Fälligkeit wird im Hintergrund gelesen (keine Anweisung auf dem Hauptfaden).
+        let poolURL = URL(fileURLWithPath: try #require(reporter.queuePool).path)
+        let mainBefore = SchemaV3.OpenCounter.shared.mainThreadStatementCount(poolURL)
+        reporter.syncReachabilityTimerForTesting()
+        let armed = await waitUntil {
+            await MainActor.run { reporter.reachabilityTimersForTesting.wakeFireDate != nil }
+        }
+        try #require(armed, "kein Wecker für den Fälligkeitstermin")
+        let timers = await MainActor.run { reporter.reachabilityTimersForTesting }
+        #expect(timers.periodic == false, "Minutentakt ohne fällige Arbeit")
+        #expect(SchemaV3.OpenCounter.shared.mainThreadStatementCount(poolURL) == mainBefore, "Warteschlange auf dem Hauptfaden gelesen")
+        let fire = try #require(timers.wakeFireDate)
+        // Backoff nach dem ersten Fehlversuch: 1 h.
+        #expect(abs(fire.timeIntervalSinceNow - 3_600) < 30, "Wecker in \(fire.timeIntervalSinceNow) s")
+    }
+
+    /// bug.0.4.145: Auch der Versions-Check wird offline nie wegen der Obergrenze verworfen (20 Versuche ohne Netz).
+    @Test func versionCheckOfflineDoesNotCountTowardsTheLimit() async throws {
+        var lines: [String] = []
+        let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
+        let reporter = try makeReporter(now: { clock.value }, log: { lines.append($0) })
+        let pool = try #require(reporter.queuePool)
+        try ApiQueuePersistence.enqueue(pool, kind: .versionCheck, payload: Data(), createdAt: 1)
+        IssueStubURL.fail = true
+        for _ in 0..<20 {
+            await reporter.flush()
+            // Jedes Mal weit hinter den Backoff, damit die Zeile wirklich wieder fällig ist.
+            clock.value = clock.value.addingTimeInterval(48 * 3_600)
+        }
+        #expect(try ApiQueuePersistence.count(pool, kind: .versionCheck) == 1, "Versions-Check-Zeile offline verworfen")
+        #expect(lines.contains { $0.contains("version check offline") })
+        #expect(!lines.contains { $0.contains("app report dropped") })
+    }
+
     @Test func releaseRejectsPlainHTTP() async throws {
         var lines: [String] = []
         let reporter = try makeReporter(release: true, log: { lines.append($0) })
@@ -158,7 +207,7 @@ struct IssueTrackerTests {
         #expect(lines.contains { $0.contains("status=scheme") })
         #expect(!IssueEndpointPolicy.allows(ReportTarget.endpoint, release: true))
         #expect(IssueEndpointPolicy.allows(ReportTarget.endpoint, release: false))
-        #expect(IssueEndpointPolicy.allows(URL(string: "https://example.com/issue-tracker/")!, release: true))
+        #expect(IssueEndpointPolicy.allows(try #require(URL(string: "https://example.com/issue-tracker/")), release: true))
         #expect(ReportTarget.endpoint.absoluteString == "http://localhost:8888/disk-archive/api/issues/")
     }
 
@@ -358,6 +407,22 @@ struct IssueTrackerTests {
         #expect(IssueStubURL.hits == 0)
     }
 
+    /// bug.0.4.111: Ein nach dem Start angeschlossenes Medium gilt beim nächsten Senden für den Leak-Wächter.
+    @Test func leakWatchReloadsMediumNamesBeforeSending() async throws {
+        var logs: [String] = []
+        let reporter = try makeReporter(log: { logs.append($0) })
+        let pool = try #require(reporter.queuePool)
+        let store = IndexStoreV3(pool: pool)
+        try await store.upsertMedium(StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Steuerunterlagen"))
+        let body = try JSONSerialization.data(withJSONObject: [
+            "schema": 2, "kind": "crash", "logTail": ["lese Steuerunterlagen"], "id": UUID().uuidString.uppercased(),
+        ])
+        try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: body, createdAt: Int(Date().timeIntervalSince1970))
+        await reporter.flush()
+        #expect(IssueStubURL.hits == 0)
+        #expect(logs.contains { $0.contains("blocked:leak=name") })
+    }
+
     /// bug.0.4.012: Payload mit Pfad direkt in die Queue → flush → blocked:leak=path, kein Request.
     @Test func leakWatchBlocksQueuedPathPayload() async throws {
         var logs: [String] = []
@@ -530,7 +595,7 @@ private func makeReporter(
     }
     let dbDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let pool = try ApiQueuePersistence.openQueuePool(at: dbDirectory.appendingPathComponent("archive.sqlite"))
-    let defaults = UserDefaults(suiteName: "diskindex-issue-\(UUID().uuidString)")!
+    let defaults = TestDefaults.make()
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [IssueStubURL.self]
     let session = URLSession(configuration: configuration)

@@ -38,6 +38,76 @@ struct SettingsScrollGutterTests {
         #expect(widths.allSatisfy { $0.barVisible == $0.overflows }, "Leiste sichtbar ohne Überlauf bzw. fehlt mit: \(widths)")
     }
 
+    /// bug.0.4.150 (c): Auch im Dashboard bleibt die Inhaltsbreite mit und ohne Überlauf gleich (dauerhafter Stil).
+    @Test func dashboardContentWidthIsTheSameWithAndWithoutOverflow() async throws {
+        var widths: [CGFloat] = []
+        var overflow: [Bool] = []
+        for count in [1, 40] {
+            let app = AppState()
+            app.media = (0..<count).map { index in
+                var medium = previewMedium(0)
+                medium = Medium(
+                    id: UUID(), name: "Platte \(index)", type: .usb, connectionStatus: .connected, indexStatus: .indexed,
+                    allowIndexing: true, autoIndexPaused: false, decision: .index, capacityTotalBytes: 1_000,
+                    capacityUsedBytes: 10, fileCount: 1, folderCount: 1, lastSeenAt: Date(), firstIndexedAt: Date(),
+                    lastIndexedAt: Date(), isForgotten: false, indexingProgress: 1
+                )
+                return medium
+            }
+            let session = PixelProbe.open(
+                DashboardView().environment(app).environment(\.scrollerStyleOverride, .legacy).frame(width: 900, height: 600),
+                size: CGSize(width: 900, height: 600),
+                appearance: .aqua
+            )
+            defer { session.close() }
+            await PixelProbe.settleOpenWindow(session)
+            try await Task.sleep(for: .milliseconds(300))
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            let scroll = try #require(Self.largestScroll(in: session.window), "keine Scrollansicht im Dashboard")
+            widths.append(scroll.contentView.bounds.width)
+            overflow.append((scroll.documentView?.frame.height ?? 0) > scroll.contentView.bounds.height + 1)
+        }
+        try #require(overflow == [false, true], "Voraussetzung (ohne/mit Überlauf): \(overflow)")
+        #expect(abs(widths[0] - widths[1]) <= 0.5, "Inhaltsbreiten \(widths)")
+    }
+
+    static func largestScroll(in window: NSWindow) -> NSScrollView? {
+        guard let root = window.contentView else { return nil }
+        var best: NSScrollView?
+        func walk(_ view: NSView) {
+            if let scroll = view as? NSScrollView,
+               scroll.frame.width * scroll.frame.height > (best.map { $0.frame.width * $0.frame.height } ?? 0) {
+                best = scroll
+            }
+            for sub in view.subviews { walk(sub) }
+        }
+        walk(root)
+        return best
+    }
+
+    /// bug.0.4.150 (b): Setzt ein späterer Layoutlauf die ausgeblendete Leiste zurück (`isHidden = false`), blendet der
+    /// Baustein sie ohne neues Layout der Ansicht wieder aus (kein Überlauf).
+    @Test func hiddenBarStaysHiddenAfterAnotherLayoutPass() async throws {
+        let app = AppState()
+        app.settingsTab = .general
+        let session = PixelProbe.open(
+            SettingsView().environment(app).environment(\.scrollerStyleOverride, .legacy)
+                .frame(width: size.width, height: 2_000),
+            size: CGSize(width: size.width, height: 2_000),
+            appearance: .aqua
+        )
+        defer { session.close() }
+        await PixelProbe.settleOpenWindow(session)
+        let scroll = try #require(Self.tabScroll(in: session.window))
+        let overflows = (scroll.documentView?.frame.height ?? 0) > scroll.contentView.bounds.height + 1
+        try #require(!overflows, "Voraussetzung: kein Überlauf")
+        let bar = try #require(scroll.verticalScroller)
+        try #require(bar.isHidden, "Voraussetzung: Leiste ohne Überlauf ausgeblendet")
+        bar.isHidden = false
+        let hidden = await waitUntil(timeout: 5) { bar.isHidden }
+        #expect(hidden, "Leiste ohne Überlauf blieb nach dem Zurücksetzen sichtbar")
+    }
+
     /// bug.0.4.100 b: Die Abschnittstitel stehen in allen Tabs an derselben x-Position (dauerhafter Stil).
     @Test func sectionTitlesShareTheSameXInAllTabs() async throws {
         // „Speichermedien“ hat seinen Titel über der Liste, außerhalb der Scrollansicht: hier nicht vergleichbar.

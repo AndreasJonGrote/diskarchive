@@ -43,7 +43,12 @@ struct ColumnTopAlignmentTests {
                 .frame(width: 1280, height: 800)
         )
         let window = PixelProbe.offscreenWindow(hosting: host, size: CGSize(width: 1280, height: 800))
-        try await Task.sleep(for: .milliseconds(350))
+        // Auf die Bedingung warten: der erste Treffer am oberen Rand steht, sobald das Layout fertig ist.
+        let laidOut = await waitUntil {
+            host.layoutSubtreeIfNeeded()
+            return host.hitTest(NSPoint(x: 400, y: host.bounds.height - 80)) != nil
+        }
+        try #require(laidOut)
 
         // Spaltenbereich beginnt unter Sidebar/Toolbar; Kopf darf nicht auf halber Höhe sitzen.
         // Treffer nahe der oberen Kante des rechten Inhalts (x≈280, y nahe maxY).

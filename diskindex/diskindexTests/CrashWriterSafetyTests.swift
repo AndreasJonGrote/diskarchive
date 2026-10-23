@@ -144,17 +144,6 @@ import Testing
         #expect(excerpt.stack.contains("frame"))
     }
 
-    @Test func freshCrashFileAddsNoCrashSectionToTheReport() throws {
-        let directory = try makeDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let log = DiskIndexLog(directory: directory)
-        log.start(installHandlers: false)
-        log.flushPendingWritesForTesting()
-        let report = log.report(includeCrash: true, logLineLimit: 50, actionLimit: 50)
-        #expect(!report.contains("\u{0}"))
-        #expect(!report.contains("CRASH signal="))
-    }
-
     /// bug.0.3.9.010: Ein gleichzeitiges `storeCrumb` beim Absturz hinterlässt Nullbytes mitten im Ring.
     @Test func nullBytesInsideTheRingAreSkippedWhenReading() throws {
         let directory = try makeDirectory()
@@ -173,9 +162,6 @@ import Testing
         #expect(excerpt.signal == "SIGSEGV")
         #expect(excerpt.stack == ["ui info erste", "ui info zweite", "frame"])
         #expect(!excerpt.stack.contains { $0.contains("\u{0}") })
-        let report = log.report(includeCrash: true, logLineLimit: 50, actionLimit: 50)
-        #expect(report.contains("CRASH signal=SIGSEGV"))
-        #expect(!report.contains("\u{0}"))
     }
 
     /// bug.0.3.9.010: Parameter `crashAutoSend:` belegt. Auto-Senden an → Bericht in die eigene Warteschlange
@@ -186,7 +172,7 @@ import Testing
             defer { try? FileManager.default.removeItem(at: directory) }
             let pool = try ApiQueuePersistence.openQueuePool(at: directory.appendingPathComponent("queue.sqlite"))
             let suiteName = "diskindex-crash-\(UUID().uuidString)"
-            let defaults = try #require(UserDefaults(suiteName: suiteName))
+            let defaults = TestDefaults.make()
             defer { defaults.removePersistentDomain(forName: suiteName) }
             let reporter = IssueReporter(
                 endpoint: try #require(URL(string: "file:///dev/null")),

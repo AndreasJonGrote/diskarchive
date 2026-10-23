@@ -128,7 +128,7 @@ struct VersionCheckTests {
 
     @Test func buildExpiryUsesUTCCalendarDays() throws {
         var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        utc.timeZone = gmtTimeZone
         let build = try #require(utc.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 12, minute: 0)))
         let expiryDay = try #require(utc.date(byAdding: .day, value: 60, to: build))
         let now = expiryDay.addingTimeInterval(3600)

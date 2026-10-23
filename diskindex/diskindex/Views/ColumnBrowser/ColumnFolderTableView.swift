@@ -15,6 +15,9 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
     let selectedIDs: Set<UUID>
     /// bug.0.4.132: nach einer Nutzeraktion die gewählte Zeile in die Sicht holen.
     var scrollTarget = ColumnScrollTarget()
+    /// bug.0.4.148 (b): erledigter Auftrag, gehalten außerhalb dieser Ansicht (der Ladezustand ersetzt die Tabelle; eine
+    /// neue Tabelle springt sonst bei jeder Live-Änderung erneut zur Auswahl).
+    var scrollDone = ScrollTokenBox()
     @ViewBuilder var row: (IndexedItem) -> Row
 
     func makeCoordinator() -> Coordinator {
@@ -95,9 +98,10 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
         }
         coordinator.syncColumnWidth()
         coordinator.syncSelection()
-        if let id = scrollTarget.id, coordinator.scrolledToken != scrollTarget.token,
+        // Token 0 = noch keine Nutzeraktion: nie scrollen. `firstIndex` nur, wenn sich der Auftrag geändert hat (c).
+        if scrollTarget.token > 0, scrollDone.token != scrollTarget.token, let id = scrollTarget.id,
            let row = items.firstIndex(where: { $0.id == id }) {
-            coordinator.scrolledToken = scrollTarget.token
+            scrollDone.token = scrollTarget.token
             table?.scrollRowToVisible(row)
         }
     }
@@ -117,7 +121,6 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
         var items: [IndexedItem] = []
         var itemIDs: [UUID] = []
         var selectedIDs: Set<UUID> = []
-        var scrolledToken: Int?
         var rowBuilder: ((IndexedItem) -> AnyView)?
         weak var tableView: NSTableView?
         weak var scrollView: NSScrollView?
@@ -209,4 +212,10 @@ struct ColumnFolderTableView<Row: View>: NSViewRepresentable {
             }
         }
     }
+}
+
+/// bug.0.4.148: Merker „dieser Scroll-Auftrag ist erledigt“, von außen gehalten (Referenz, damit er den Neuaufbau der
+/// Tabelle überlebt).
+final class ScrollTokenBox {
+    var token: Int?
 }

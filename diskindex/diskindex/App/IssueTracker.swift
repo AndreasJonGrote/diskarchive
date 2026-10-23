@@ -54,6 +54,8 @@ nonisolated struct IssueDraft: Equatable {
     var media: Int
     var items: Int
     var dbBytes: Int
+    /// bug.0.4.113: gesetzt, wenn der Bericht einen früheren Lauf beschreibt (Absturz beim Start des nächsten Laufs).
+    var previousRun: PreviousRunInfo? = nil
 }
 
 nonisolated enum IssuePayload {
@@ -70,7 +72,7 @@ nonisolated enum IssuePayload {
         config: String,
         macOS: String,
         model: String,
-        runtimeSeconds: Int,
+        runtimeSeconds: Int?,
         createdAt: Date
     ) -> Data {
         var actions = clipped(draft.actions, limit: 50)
@@ -149,7 +151,7 @@ nonisolated enum IssuePayload {
         config: String,
         macOS: String,
         model: String,
-        runtimeSeconds: Int,
+        runtimeSeconds: Int?,
         createdAt: Date,
         actions: [String],
         logTail: [String],
@@ -164,7 +166,7 @@ nonisolated enum IssuePayload {
             "createdAt": timestamp(createdAt),
             "app": ["version": version, "build": build, "config": config],
             "system": ["macOS": macOS, "model": model],
-            "runtimeSeconds": runtimeSeconds,
+            "runtimeSeconds": runtimeSeconds.map { $0 as Any } ?? NSNull(),
             "signature": signature,
             "crash": [
                 "signal": signal,
@@ -206,6 +208,8 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             queuePoolLock.lock()
             _queuePool = newValue
             queuePoolLock.unlock()
+            // bug.0.4.094: Namen erst laden, wenn verdrahtet ist (die Migration ist dann durch).
+            if newValue != nil, started { refreshKnownNamesInBackground() }
         }
     }
     var defaults: UserDefaults
@@ -287,10 +291,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         reachability.onFlush = { [weak self] in
             self?.flushInBackground()
         }
-        reachability.queueHasWork = { [weak self] in
-            guard let self else { return false }
-            guard let pool = try? self.resolvePool() else { return false }
-            return (try? ApiQueuePersistence.hasDueWork(pool, kind: nil, now: self.now())) ?? false
+        reachability.now = { [weak self] in self?.now() ?? Date() }
+        reachability.queueSchedule = { [weak self] in
+            guard let self, let pool = try? self.resolvePool() else { return (false, nil) }
+            return (try? ApiQueuePersistence.schedule(pool, now: self.now())) ?? (false, nil)
         }
         knownNames = { [weak self] in
             guard let self else { return [] }
@@ -319,10 +323,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             do {
                 if let pool = self.queuePool {
                     names = try pool.read { try MediumCodecV3.fetchAll($0) }.map(\.name)
-                } else if let url = try? self.archive.fileURL(),
-                          FileManager.default.fileExists(atPath: url.path) {
-                    // bug.0.4.086: denselben Pool wie der Index (wartet, falls der Start gerade öffnet und migriert).
-                    let pool = try self.archive.pool()
+                } else if let pool = self.archive.openedPool {
+                    // bug.0.4.094: nur über den schon geöffneten Pool (derselbe wie der Index). Wer hier warten würde,
+                    // hielte einen Faden die ganze Migration lang fest; die Namen kommen beim nächsten Senden nach.
                     names = try pool.read { try MediumCodecV3.fetchAll($0) }.map(\.name)
                 }
             } catch {
@@ -353,12 +356,14 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         let data = IssuePayload.json(
             draft: prepared,
             id: id,
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?",
-            build: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?",
+            version: draft.previousRun.map { $0.version ?? "" }
+                ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?",
+            build: draft.previousRun.map { $0.build ?? "" }
+                ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?",
             config: releaseBuild ? "Release" : "Debug",
             macOS: ProcessInfo.processInfo.operatingSystemVersionString,
             model: Self.modelName(),
-            runtimeSeconds: diskLog.runtimeSeconds(),
+            runtimeSeconds: draft.previousRun != nil ? draft.previousRun?.runtimeSeconds : diskLog.runtimeSeconds(),
             createdAt: now()
         )
         let createdAt = Int(now().timeIntervalSince1970)
@@ -377,6 +382,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     }
 
     #if DEBUG
+    /// Tests (bug.0.4.110): Zeitgeber der Warteschlange nach dem Umstellen.
+    var reachabilityTimersForTesting: (periodic: Bool, wakeFireDate: Date?) { reachability.timersForTesting }
+    func syncReachabilityTimerForTesting() { reachability.syncPeriodicTimer() }
+
     func waitForPendingEnqueuesForTesting() {
         dbQueue.sync { }
     }
@@ -391,6 +400,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     }
 
     private func flushOnce() async {
+        dbQueue.sync { }
+        // bug.0.4.111: Namen vor dem Senden neu laden (ein später angeschlossenes Medium gilt sofort für den Leak-Wächter).
+        refreshKnownNamesInBackground()
         dbQueue.sync { }
         guard IssueEndpointPolicy.allows(endpoint, release: releaseBuild) else {
             log("app report failed kind=any id=- status=scheme")
@@ -523,12 +535,19 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     private func sendVersionCheck(row: ApiQueueRow, pool: DatabasePool) async {
         let url = VersionCheckEndpoint.url
         guard IssueEndpointPolicy.allows(url, release: releaseBuild) else { return }
-        let response = await VersionCheckClient.fetch(session: session, url: url)
+        let outcome = await VersionCheckClient.fetchOutcome(session: session, url: url)
+        let response = outcome.response
         if response != nil {
             try? ApiQueuePersistence.delete(pool, rowID: row.id)
             log("version check ok")
             let checkedAt = now()
             await Self.applyVersionCheck(response, now: checkedAt)
+            return
+        }
+        // bug.0.4.145: keine Verbindung zählt nicht gegen die Obergrenze (wie bei den Berichten), eigener Protokolltext.
+        if outcome.offline {
+            scheduleRetry(row: row, pool: pool, info: "offline")
+            log("version check offline")
             return
         }
         scheduleRetry(row: row, pool: pool, info: "version-offline")
@@ -621,13 +640,16 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         return IssueDraft(
             kind: kind,
             signature: kind == "crash" ? crash.signal : kind,
+            // Die Aktionen des abgestürzten Laufs stehen im Stapel (Brotkrumen); hier nur, was der neue Lauf selbst
+            // getan hat (z. B. „Senden“ im Absturzdialog).
             actions: log.recentBreadcrumbs(),
             logTail: log.logTail(100),
             crashSignal: kind == "crash" ? crash.signal : nil,
             crashStack: kind == "crash" ? crash.stack : [],
             media: Int(labels.media) ?? 0,
             items: Int(labels.objects) ?? 0,
-            dbBytes: bytes
+            dbBytes: bytes,
+            previousRun: kind == "crash" ? log.previousRunInfo() : nil
         )
     }
 

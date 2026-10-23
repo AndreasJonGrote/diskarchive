@@ -18,7 +18,7 @@ extension AppState {
         // todo.0.4.027: Eine Pause, die bei beendeter App abgelaufen ist, wird hier nicht still aufgelöst. Den Ablauf
         // erledigt `refreshGlobalPause` beim Start (`applicationDidFinishLaunching`, nach der Einzelinstanz-Prüfung)
         // wie im Betrieb: Mitteilung „pause-expired“, Speichern, Abgleich über `globalAutoIndexPaused`.
-        globalAutoIndexPaused = storedPause.isPaused
+        globalAutoIndexPaused = storedPause.isPaused || settingsUnreadable
         if !pauseExpired(at: now) {
             schedulePauseExpiryCheck(now: now)
         }
@@ -46,7 +46,7 @@ extension AppState {
     func resumeIndexing(defaults: UserDefaults = AppDefaults.current) {
         let wasPaused = storedPause.isPaused
         storedPause.resume()
-        globalAutoIndexPaused = false
+        globalAutoIndexPaused = settingsUnreadable
         savePause(defaults)
         pauseExpiryTask?.cancel()
         pauseExpiryTask = nil
@@ -61,7 +61,7 @@ extension AppState {
 
     func refreshGlobalPause(now: Date = Date(), defaults: UserDefaults = AppDefaults.current) {
         guard storedPause.refresh(now: now) else { return }
-        globalAutoIndexPaused = false
+        globalAutoIndexPaused = settingsUnreadable
         savePause(defaults)
         pauseExpiryTask?.cancel()
         pauseExpiryTask = nil

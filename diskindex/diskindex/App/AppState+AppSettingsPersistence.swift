@@ -20,6 +20,9 @@ extension AppState {
         case .unreadable:
             // bug.0.4.105: Voreinstellungen nur im Speicher; der gespeicherte Eintrag wird nie überschrieben.
             settingsUnreadable = true
+            // bug.0.4.153: keine Indizierung, kein Abgleich, keine Live-Überwachung in dieser Sitzung (wie Pause, nur im
+            // Speicher: `storedPause` und die gespeicherte Pause bleiben unberührt).
+            globalAutoIndexPaused = true
             DiskIndexLog.shared.record(.store, .error, "settings unreadable")
         case .missing where persistsSettings:
             settingsUnreadable = false
@@ -30,7 +33,7 @@ extension AppState {
                 clearLegacyAppSettingsKeys()
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "settings migrate \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "settings migrate \(DiskIndexLog.errorSummary(error))")
                 }
             }
         case .missing:
@@ -62,7 +65,7 @@ extension AppState {
             AppSettingsRuntimeCache.update(from: snapshot)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "settings save \(error)")
+                DiskIndexLog.shared.record(.store, .error, "settings save \(DiskIndexLog.errorSummary(error))")
             }
         }
     }

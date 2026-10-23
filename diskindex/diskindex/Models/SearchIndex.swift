@@ -94,7 +94,7 @@ enum SearchIndex {
                 itemCount = counted
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.index, .error, "search \(error)")
+                    DiskIndexLog.shared.record(.index, .error, "search \(DiskIndexLog.errorSummary(error))")
                 }
                 stored = []
                 itemCount = 0
@@ -144,7 +144,7 @@ enum SearchIndex {
             folders = try await store.search(query: query, filters: scoped, limit: perGroup, maxDepth: maxDepth, scope: scope, isFolder: true)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.index, .error, "popover search \(error)")
+                DiskIndexLog.shared.record(.index, .error, "popover search \(DiskIndexLog.errorSummary(error))")
             }
             return (matchedMedia, [], [])
         }
@@ -198,7 +198,7 @@ enum SearchIndex {
             rows = try await store.favoritePage(filters: request.storeFilters, limit: limit ?? pageLimit, maxDepth: request.maxDepth, scope: scope)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.index, .error, "favorites \(error)")
+                DiskIndexLog.shared.record(.index, .error, "favorites \(DiskIndexLog.errorSummary(error))")
             }
             rows = []
         }
@@ -221,7 +221,7 @@ enum SearchIndex {
             return try await store.favoriteCount(filters: filters, maxDepth: request.maxDepth, scope: scope)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.index, .error, "favorite count \(error)")
+                DiskIndexLog.shared.record(.index, .error, "favorite count \(DiskIndexLog.errorSummary(error))")
             }
             return 0
         }

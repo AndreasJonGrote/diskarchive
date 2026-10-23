@@ -11,7 +11,7 @@ import Testing
 
 
 @Test func stableRowIDIsDeterministicAndUnique() {
-    let medium = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
+    let medium = testUUID("AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")
     let first = IndexedItem.stableID(mediumID: medium, rowID: 1)
     let again = IndexedItem.stableID(mediumID: medium, rowID: 1)
     let other = IndexedItem.stableID(mediumID: medium, rowID: 2)

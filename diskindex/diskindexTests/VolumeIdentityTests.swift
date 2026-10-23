@@ -128,7 +128,7 @@ struct VolumeIdentityTests {
         )
         let unchanged = try #require(try await harness.store.medium(uuid: stick.uuid))
         #expect(unchanged.volumeUUID == stored.volumeUUID)
-        #expect(VolumeIdentity.sameSecond(unchanged.volumeCreatedAt!, created))
+        #expect(VolumeIdentity.sameSecond(try #require(unchanged.volumeCreatedAt), created))
     }
 
     @Test func missingCreationDateIsOnlyWeak() async throws {

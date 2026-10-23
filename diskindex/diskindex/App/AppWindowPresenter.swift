@@ -32,6 +32,16 @@ enum AppWindowPresenter {
         newMediumPanels[ObjectIdentifier(appState)]?.count ?? 0
     }
 
+    /// bug.0.4.142: Lage, die ein `open*` tatsächlich benutzt. Im Testprozess immer außerhalb des Bildschirms (Regel 19/21),
+    /// auch wenn ein Test die Lage nicht gesetzt oder `.centered` angefordert hat; sonst die angeforderte Lage.
+    nonisolated static func effectivePlacement(_ requested: PromptPanelPlacement?) -> PromptPanelPlacement {
+        RuntimeEnvironment.isRunningTests ? .offscreen : (requested ?? .centered)
+    }
+
+    static func mainWindowPlacement(for appState: AppState) -> PromptPanelPlacement {
+        effectivePlacement(appState.promptPanelPlacement)
+    }
+
     /// Ob das Hauptfenster existiert und sichtbar ist (todo.0.4.011).
     static var isMainWindowVisible: Bool { mainWindow?.isVisible == true }
 
@@ -42,7 +52,8 @@ enum AppWindowPresenter {
         }
         // bug.0.4.116/117 (Regel 19): Tests (`promptPanelPlacement == .offscreen`) öffnen das Fenster außerhalb des
         // Bildschirms, ohne die App zu aktivieren, ohne Key-Fenster und ohne die gemerkte Fensterlage zu ändern.
-        let offscreen = appState.promptPanelPlacement == .offscreen
+        // bug.0.4.142: auch ohne gesetzte Lage – im Testprozess ist `.offscreen` die Vorgabe.
+        let offscreen = mainWindowPlacement(for: appState) == .offscreen
         if !offscreen {
             AppActivationPolicy.showDockIconForMainWindow()
             NSApp.activate(ignoringOtherApps: true)
@@ -182,6 +193,12 @@ enum AppWindowPresenter {
         newMediumPanels[ObjectIdentifier(appState)]?[mediumID]?.close()
     }
 
+    /// bug.0.4.143: nur das Hauptfenster schließen (Tests), ohne die Panels anderer `AppState`-Instanzen anzufassen.
+    static func closeMainWindow() {
+        mainWindow?.orderOut(nil)
+        mainWindow?.close()
+    }
+
     /// Fenster ohne Animation ausblenden — vor dem Prozessende, damit SwiftUI nicht mehr rendert.
     static func prepareForTermination() {
         mainWindow?.orderOut(nil)
@@ -208,8 +225,9 @@ enum AppWindowPresenter {
     }
 
     /// Rückfrage „Ersetzt dieses Medium?“ als schwebendes Panel wie der Erkennungs-Dialog (bug.0.4.031 c).
-    static func openReplaceMediumPrompt(appState: AppState, placement: PromptPanelPlacement = .centered) {
+    static func openReplaceMediumPrompt(appState: AppState, placement requested: PromptPanelPlacement = .centered) {
         guard appState.replaceMediumPrompt != nil else { return }
+        let placement = effectivePlacement(requested)
         let key = ObjectIdentifier(appState)
         if let panel = replaceMediumPanels[key] {
             show(panel, placement: placement)
@@ -246,8 +264,9 @@ enum AppWindowPresenter {
     }
 
     /// Rückfrage vor dem Ignorieren vieler Ziele (bug.0.4.035), gleiches Panel wie die Medium-Rückfrage.
-    static func openIgnoreConfirmation(appState: AppState, placement: PromptPanelPlacement = .centered) {
+    static func openIgnoreConfirmation(appState: AppState, placement requested: PromptPanelPlacement = .centered) {
         guard appState.ignoreConfirmationPrompt != nil else { return }
+        let placement = effectivePlacement(requested)
         let key = ObjectIdentifier(appState)
         if let panel = ignoreConfirmPanels[key] {
             show(panel, placement: placement)
@@ -311,9 +330,10 @@ enum AppWindowPresenter {
     }
 
     static func openCrashReport() {
+        let placement = effectivePlacement(.centered)
         if let window = crashReportWindow {
             window.orderFrontRegardless()
-            window.makeKey()
+            if placement == .centered { window.makeKey() }
             return
         }
         let hosting = NSHostingView(
@@ -339,11 +359,11 @@ enum AppWindowPresenter {
         panel.contentView = hosting
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
-        panel.center()
+        place(panel, placement: placement)
         register(panel) { crashReportWindow = nil }
         crashReportWindow = panel
         panel.orderFrontRegardless()
-        panel.makeKey()
+        if placement == .centered { panel.makeKey() }
     }
 
     private static func openOrUpdateNewMediumPanel(

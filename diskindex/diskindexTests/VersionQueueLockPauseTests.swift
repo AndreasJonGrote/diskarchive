@@ -368,7 +368,7 @@ struct PauseSpanPersistenceTests {
     }
 
     @Test func spanIsSavedAndLoadedWithPause() throws {
-        let defaults = try #require(UserDefaults(suiteName: "PauseSpanPersistenceTests-\(UUID().uuidString)"))
+        let defaults = TestDefaults.make()
         let start = Date()
         let app = AppState()
         let hooks = NoticeTestHooks(post: { _, _ in })

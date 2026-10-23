@@ -25,7 +25,7 @@ struct NewMediumStackTests {
         app.onMediumDecisionChanged = { _, decision, allow in
             seen = decision == .index && allow
         }
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.decision = .undecided
         medium.allowIndexing = false
         app.media = [medium]
@@ -38,6 +38,7 @@ struct NewMediumStackTests {
 
     @Test func closingOnePanelLeavesOtherOpen() async throws {
         let rig = try await StackRecognitionRig.make()
+        rig.appState.promptPanelPlacement = .offscreen
         await rig.coordinator.handle(.appeared(rig.volume(name: "A", path: "/Volumes/A")))
         let first = try #require(rig.appState.pendingNewMediumDecisionIDs.first)
         await rig.coordinator.handle(.appeared(rig.volume(
@@ -46,17 +47,14 @@ struct NewMediumStackTests {
             uuid: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB",
             created: Date(timeIntervalSince1970: 1_718_102_900)
         )))
-        rig.appState.promptPanelPlacement = .offscreen
         let ids = rig.appState.pendingNewMediumDecisionIDs
         defer {
             for id in ids {
                 AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
             }
         }
-        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 2)
         AppWindowPresenter.closeNewMediumPanel(mediumID: first, appState: rig.appState, userDismissed: true)
-        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1)
     }
 }

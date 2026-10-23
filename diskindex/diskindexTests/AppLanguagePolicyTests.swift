@@ -11,7 +11,7 @@ import Testing
     @Test func bootstrapPersistsDetectedLanguageOnFirstRun() {
         let suite = "diskindex-lang-\(UUID().uuidString)"
         defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = TestDefaults.make()
         defaults.removePersistentDomain(forName: suite)
 
         let settings = AppLanguagePolicy.bootstrap(defaults: defaults)
@@ -22,7 +22,7 @@ import Testing
     @Test func applyAppleLanguagesSetsPrimaryAndFallback() {
         let suite = "diskindex-lang-\(UUID().uuidString)"
         defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = TestDefaults.make()
 
         AppLanguagePolicy.applyAppleLanguages(.german, defaults: defaults)
         #expect(defaults.stringArray(forKey: AppLanguagePolicy.appleLanguagesKey)?.first == "de")
@@ -34,7 +34,7 @@ import Testing
     @Test func syncFromSettingsUpdatesActiveLanguageForL10n() {
         let suite = "diskindex-lang-\(UUID().uuidString)"
         defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = TestDefaults.make()
         let previous = AppLanguagePolicy.resolvedDisplayLanguage()
         defer { AppLanguagePolicy.noteActiveDisplayLanguage(previous) }
 

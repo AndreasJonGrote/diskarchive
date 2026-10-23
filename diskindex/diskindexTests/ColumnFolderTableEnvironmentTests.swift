@@ -33,10 +33,11 @@ import Testing
                 sizeBytes: 4),
         ]
 
-        let root = ColumnFolderTableView(items: items, selectedIDs: [items[0].id]) { item in
+        let firstID = try #require(items.first).id
+        let root = ColumnFolderTableView(items: items, selectedIDs: [firstID]) { item in
             ColumnBrowserRow(
                 title: item.name,
-                isSelected: item.id == items[0].id,
+                isSelected: item.id == firstID,
                 iconAsset: item.fileKind.assetName,
                 fadeTitleOnOverflow: true,
                 onSelect: {}
@@ -47,9 +48,9 @@ import Testing
 
         let host = NSHostingView(rootView: root)
         let window = PixelProbe.offscreenWindow(hosting: host, size: CGSize(width: 280, height: 400))
-        try? await Task.sleep(for: .milliseconds(400))
-
-        // Aufgabe 137: ohne manuelles reloadData — Representable muss Zeilen liefern.
+        // Aufgabe 137: ohne manuelles reloadData – die Darstellung muss Zeilen liefern (auf die Bedingung warten).
+        let shown = await waitUntil { (findTable(in: host)?.numberOfRows ?? 0) == 2 }
+        try #require(shown)
         let table = try #require(findTable(in: host))
         #expect(table.numberOfRows == 2)
         #expect(table.allowsMultipleSelection == true)

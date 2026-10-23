@@ -603,7 +603,7 @@ extension AppState {
             stored = row
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
-            DiskIndexLog.shared.record(.store, .error, "reloadMedium \(error)")
+            DiskIndexLog.shared.record(.store, .error, "reloadMedium \(DiskIndexLog.errorSummary(error))")
             return
         }
         let fresh = stored.asMedium(connection: medium(with: id)?.connectionStatus ?? .offline)
@@ -693,7 +693,7 @@ extension AppState {
         } catch {
             // Nicht geschrieben: die Änderung aus 05/06 bleibt für den nächsten Write vorgemerkt.
             guard DiskIndexLog.isOperationalFailure(error) else { return }
-            DiskIndexLog.shared.record(.store, .error, "writeMedium \(error)")
+            DiskIndexLog.shared.record(.store, .error, "writeMedium \(DiskIndexLog.errorSummary(error))")
         }
     }
 

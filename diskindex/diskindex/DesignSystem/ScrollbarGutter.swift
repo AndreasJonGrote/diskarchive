@@ -139,7 +139,11 @@ private struct ScrollbarGutterKeeper: NSViewRepresentable {
         // (Inhaltsbreite gleich mit und ohne Überlauf), ist ohne Überlauf aber ausgeblendet; mit Überlauf erscheint sie
         // in diesem Platz.
         private weak var observedScroll: NSScrollView?
+        /// bug.0.4.150 (a): ersetzt SwiftUI das `documentView`, hängen die Beobachter am alten – neu beobachten.
+        private weak var observedDocument: NSView?
         private var observers: [NSObjectProtocol] = []
+        /// bug.0.4.150 (b): `tile()` und spätere Layoutläufe können `isHidden` zurücksetzen → bei Änderung erneut prüfen.
+        private var hiddenObservation: NSKeyValueObservation?
 
         private func syncBarVisibility(_ scroll: NSScrollView) {
             guard let bar = scroll.verticalScroller else { return }
@@ -150,10 +154,19 @@ private struct ScrollbarGutterKeeper: NSViewRepresentable {
         }
 
         private func observe(_ scroll: NSScrollView) {
-            guard observedScroll !== scroll else { return }
+            guard observedScroll !== scroll || observedDocument !== scroll.documentView else { return }
             observers.forEach(NotificationCenter.default.removeObserver)
             observers.removeAll()
             observedScroll = scroll
+            observedDocument = scroll.documentView
+            hiddenObservation = scroll.verticalScroller?.observe(\.isHidden, options: [.new]) { [weak self, weak scroll] _, _ in
+                DispatchQueue.main.async {
+                    MainActor.assumeIsolated {
+                        guard let self, let scroll else { return }
+                        self.syncBarVisibility(scroll)
+                    }
+                }
+            }
             let names: [(NSNotification.Name, NSView?)] = [
                 (NSView.frameDidChangeNotification, scroll.documentView),
                 (NSView.frameDidChangeNotification, scroll.contentView),

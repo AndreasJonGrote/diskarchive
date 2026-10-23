@@ -74,6 +74,16 @@ import Testing
         #expect(scrubbed.contains("O'Brien") || scrubbed.contains("file://"), "Sabotage muss rot zeigen")
     }
 
+    /// bug.0.4.111: Groß-/Kleinschreibung der Ausschlussliste und Namen mit Sonderzeichen am Rand.
+    @Test func leakWatchIgnoresCaseOfExclusionsAndSeesBracketedNames() {
+        let json = #"{"crash":{"stack":["0 Disk Archive 0x1000 main"]}}"#
+        #expect(ReportScrubber.leakCategory(in: json, names: ["ARCHIVE", "DISK ARCHIVE", "diskarchive"]) == nil)
+        let named = #"{"logTail":["lese Fotos (alt) fertig"]}"#
+        #expect(ReportScrubber.leakCategory(in: named, names: ["Fotos (alt)"]) == "name")
+        // Wortgrenze bleibt: Teil eines längeren Worts ist kein Treffer.
+        #expect(ReportScrubber.leakCategory(in: #"{"x":"Archivplatten"}"#, names: ["Archivplatte"]) == nil)
+    }
+
     @Test func archiveMediumNameDoesNotBlockDiskArchiveBacktrace() {
         let json = #"{"crash":{"stack":["0 Disk Archive 0x1000 main"]}}"#
         #expect(ReportScrubber.leakCategory(in: json, names: ["Archive", "Disk Archive"]) == nil)

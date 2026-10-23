@@ -24,10 +24,13 @@ struct AppSettingsPersistenceTests {
     }
 
     @Test func migratesLegacyUserDefaultsIntoDatabase() async throws {
-        AppSettingsRuntimeCache.resetBootstrapForTests()
+        try await AppSettingsRuntimeCache.isolating { try await migratesLegacyUserDefaultsIntoDatabaseBody() }
+    }
+
+    private func migratesLegacyUserDefaultsIntoDatabaseBody() async throws {
         let suite = "diskindex-settings-\(UUID().uuidString)"
         defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = TestDefaults.make()
         defaults.removePersistentDomain(forName: suite)
 
         var legacy = AppSettings()
@@ -55,7 +58,7 @@ struct AppSettingsPersistenceTests {
     @Test func partialSettingsKeepStoredValues() async throws {
         let suite = "diskindex-settings-\(UUID().uuidString)"
         defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = try #require(UserDefaults(suiteName: suite))
+        let defaults = TestDefaults.make()
         let harness = try StoreHarness.make()
         let raw = #"{"scanDepth":2}"#
         try await writeRawSettings(raw, harness: harness)
@@ -71,7 +74,7 @@ struct AppSettingsPersistenceTests {
     @Test func unreadableSettingsAreNeverOverwritten() async throws {
         let suite = "diskindex-settings-\(UUID().uuidString)"
         defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = try #require(UserDefaults(suiteName: suite))
+        let defaults = TestDefaults.make()
         let harness = try StoreHarness.make()
         let raw = #"{"scanDepth":"#
         try await writeRawSettings(raw, harness: harness)
@@ -109,14 +112,17 @@ struct AppSettingsPersistenceTests {
     }
 
     @Test func runtimeCacheReadsFromDatabaseBeforeStoreOpen() async throws {
-        AppSettingsRuntimeCache.resetBootstrapForTests()
+        try await AppSettingsRuntimeCache.isolating { try await runtimeCacheReadsFromDatabaseBeforeStoreOpenBody() }
+    }
+
+    private func runtimeCacheReadsFromDatabaseBeforeStoreOpenBody() async throws {
         let harness = try StoreHarness.make()
         var snapshot = PersistedAppSettings()
         snapshot.autoSendCrashReports = true
         try await harness.store.savePersistedAppSettings(snapshot)
 
         let dbURL = harness.directory.appendingPathComponent("archive.sqlite")
-        AppSettingsRuntimeCache.bootstrapBeforeStoreOpen(databaseURL: dbURL, defaults: UserDefaults(suiteName: "unused-\(UUID())")!)
+        AppSettingsRuntimeCache.bootstrapBeforeStoreOpen(databaseURL: dbURL, defaults: TestDefaults.make())
         #expect(IssueConsent.autoSendEnabled() == true)
     }
 }

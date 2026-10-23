@@ -89,7 +89,7 @@ struct IndexPruneTests {
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
         let suite = "diskindex-prune-task-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
+        let defaults = TestDefaults.make()
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
         try await harness.store.savePersistedAppSettings(persisted)
@@ -113,7 +113,7 @@ struct IndexPruneTests {
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
         let suite = "diskindex-prune-bootstrap-\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
+        let defaults = TestDefaults.make()
         defer { defaults.removePersistentDomain(forName: suite) }
         defaults.set(Date().addingTimeInterval(-60).timeIntervalSince1970, forKey: AppState.pruneAtKey)
         var persisted = PersistedAppSettings()
@@ -144,7 +144,7 @@ struct IndexPruneTests {
 
     @Test func aSecondShrinkRestartsTheHourAndGrowingDoesNotCancelIt() async throws {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
-        let defaults = UserDefaults(suiteName: "diskindex-prune-hour-\(UUID().uuidString)")!
+        let defaults = TestDefaults.make()
         let app = AppState(defaults: defaults)
         app.armPrune(now: start)
         let first = app.pruneAt
@@ -169,7 +169,7 @@ struct IndexPruneTests {
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let suite = "diskindex-prune-restart-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = TestDefaults.make()
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
         try await harness.store.savePersistedAppSettings(persisted)
@@ -223,7 +223,7 @@ struct IndexPruneTests {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         let suite = "diskindex-prune-button-\(UUID().uuidString)"
-        let app = AppState(store: harness.store, defaults: UserDefaults(suiteName: suite)!)
+        let app = AppState(store: harness.store, defaults: TestDefaults.make())
         let root = try await harness.store.children(mediumUUID: medium.uuid, parentID: nil)
         #expect(root.isEmpty)
         try await harness.store.applyDirectory(

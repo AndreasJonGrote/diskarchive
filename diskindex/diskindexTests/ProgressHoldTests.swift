@@ -17,20 +17,20 @@ extension WindowTestGroup {
 struct ProgressHoldTests {
     @Test func shortRunReachesHundredAndHolds() async {
         let app = AppState()
-        let id = UUID(uuidString: "D1610001-0000-4000-8000-000000000161")!
+        let id = testUUID("D1610001-0000-4000-8000-000000000161")
         let start = Date(timeIntervalSince1970: 80_000)
         app.media = [medium(id: id, indexing: true)]
         app.noteIndexSample(id: id, status: .indexing, fraction: 1, now: start)
-        app.media[0].indexStatus = .indexed
+        if let index = app.media.firstIndex(where: { $0.id == id }) { app.media[index].indexStatus = .indexed }
         app.noteIndexSample(id: id, status: .indexed, fraction: 1, now: start.addingTimeInterval(0.1))
 
         #expect(near(app.displayedProgress(id, now: start.addingTimeInterval(0.3)), 0.50))
         for offset in [0.6, 0.75, 0.89] {
             let value = app.displayedProgress(id, now: start.addingTimeInterval(offset))
             #expect(value == 1, "bei \(offset) s")
-            let chip = MediumChip.presentation(app.media[0], displayedFraction: value)
+            let chip = MediumChip.presentation(firstMedium(of: app), displayedFraction: value)
             #expect(chip.text.contains("100"), "Chip bei \(offset) s: \(chip.text)")
-            let row = MenuBarConnectedMediumRow(medium: app.media[0])
+            let row = MenuBarConnectedMediumRow(medium: firstMedium(of: app))
             #expect(row.indexingProgressLabel(fraction: value ?? 0) == "100 %")
         }
         #expect(app.displayedProgress(id, now: start.addingTimeInterval(0.95)) == nil)
@@ -47,7 +47,7 @@ struct ProgressHoldTests {
 
     @Test func displayIsPure() {
         let app = AppState()
-        let id = UUID(uuidString: "D1610003-0000-4000-8000-000000000161")!
+        let id = testUUID("D1610003-0000-4000-8000-000000000161")
         let start = Date(timeIntervalSince1970: 85_000)
         app.media = [medium(id: id, indexing: true)]
         app.noteIndexSample(id: id, status: .indexing, fraction: 0.5, now: start)
@@ -59,7 +59,7 @@ struct ProgressHoldTests {
 
     @Test func slowerRealProgressWins() {
         let app = AppState()
-        let id = UUID(uuidString: "D1610002-0000-4000-8000-000000000161")!
+        let id = testUUID("D1610002-0000-4000-8000-000000000161")
         let start = Date(timeIntervalSince1970: 90_000)
         app.media = [medium(id: id, indexing: true)]
         app.noteIndexSample(id: id, status: .indexing, fraction: 0.2, now: start)

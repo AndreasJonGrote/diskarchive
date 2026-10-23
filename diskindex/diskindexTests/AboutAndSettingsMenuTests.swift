@@ -17,7 +17,7 @@ struct AboutAndSettingsMenuTests {
         let first = try #require(menu.items.first)
         #expect(first.title == LayoutCopy.menuBarAbout)
         #expect(first.action != nil)
-        #expect(menu.items.count > 2)
+        try #require(menu.items.count > 2)
         #expect(menu.items[1].isSeparatorItem)
         #expect(menu.items[2].title == LayoutCopy.menuBarShowApp)
     }

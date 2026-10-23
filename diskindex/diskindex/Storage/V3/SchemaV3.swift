@@ -42,23 +42,33 @@ nonisolated enum SchemaV3 {
         migrator.registerMigration(firstMigration) { db in
             try create(in: db)
         }
-        migrator.registerMigration(itemsGoneMigration) { db in
+        // bug.0.4.107: reine Index-Migrationen mit sofortigen Fremdschlüsselprüfungen – die Nachprüfung aller Tabellen am
+        // Ende (Dauer, Sperre durch Altverletzung) entfällt.
+        migrator.registerMigration(itemsGoneMigration, foreignKeyChecks: .immediate) { db in
             try db.execute(sql: "CREATE INDEX items_gone ON items(storageID, isFolder) WHERE status = 2")
         }
-        migrator.registerMigration(itemsSearchNaturalMigration) { db in
+        migrator.registerMigration(itemsSearchNaturalMigration, foreignKeyChecks: .immediate) { db in
             try db.execute(sql: "CREATE INDEX items_search_natural ON items (slug COLLATE \"\(NaturalOrder.collationName)\", status)")
         }
         return migrator
     }
 
     /// Jede Verbindung: Fremdschlüssel an, WAL, Journal-Grenze, Sortierfolge „natural“.
-    static func makeConfiguration() -> Configuration {
+    static func makeConfiguration(path: String? = nil) -> Configuration {
         var configuration = Configuration()
         configuration.foreignKeysEnabled = true
         configuration.busyMode = .timeout(10)
         // Die parallele Suche braucht mehrere Lese-Verbindungen (WAL erlaubt gleichzeitiges Lesen).
         configuration.maximumReaderCount = 16
         configuration.prepareDatabase { db in
+            #if DEBUG
+            // bug.0.4.144: jede Anweisung, die auf dem Hauptfaden läuft (synchroner Zugriff), wird je Datei gezählt.
+            if let path {
+                db.trace(options: .statement) { _ in
+                    if Thread.isMainThread { OpenCounter.shared.noteMainThreadStatement(path) }
+                }
+            }
+            #endif
             try NaturalOrder.register(on: db)
             try db.execute(sql: "PRAGMA foreign_keys = ON")
             guard !db.configuration.readonly else { return }
@@ -95,7 +105,7 @@ nonisolated enum SchemaV3 {
         if !FileManager.default.fileExists(atPath: fileURL.path) {
             try prepareNewFile(at: fileURL)
         }
-        let pool = try DatabasePool(path: fileURL.path, configuration: makeConfiguration())
+        let pool = try DatabasePool(path: fileURL.path, configuration: makeConfiguration(path: fileURL.path))
         if try pool.read({ try migrator.hasBeenSuperseded($0) }) {
             throw IndexStoreError.schemaSuperseded
         }
@@ -126,6 +136,13 @@ nonisolated enum SchemaV3 {
         /// Öffnungen (samt Migration) auf dem Hauptfaden – soll 0 sein (bug.0.4.086, Regel 15).
         func mainThreadCount(_ url: URL) -> Int { lock.withLock { mainCounts[url.standardizedFileURL.path] ?? 0 } }
 
+        private var mainStatements: [String: Int] = [:]
+        func noteMainThreadStatement(_ path: String) {
+            lock.withLock { mainStatements[URL(fileURLWithPath: path).standardizedFileURL.path, default: 0] += 1 }
+        }
+        /// Anweisungen der Datei, die auf dem Hauptfaden liefen (bug.0.4.144).
+        func mainThreadStatementCount(_ url: URL) -> Int { lock.withLock { mainStatements[url.standardizedFileURL.path] ?? 0 } }
+
         private var mainPoolWaits: [String: Int] = [:]
         private var migrateHooks: [String: @Sendable () -> Void] = [:]
         /// bug.0.4.093: `ArchiveDatabase.pool()` auf dem Hauptfaden, solange der Pool noch nicht offen ist.
@@ -148,7 +165,7 @@ nonisolated enum SchemaV3 {
 
     /// Nach Absturz/Beenden: `indexing` ohne laufenden Prozess → `indexed` oder `pending` (bug.0.4.028).
     /// „indiziert“ nur nach mindestens einem Lauf bis zum Ende (`firstIndexedAt`, bug.0.4.126); `lastIndexedAt`
-    /// setzt schon jede fertige Ebene.
+    /// setzt schon jede fertige Ebene. Eine später gefundene Lücke (`indexGaps`, bug.0.4.151) hält den Status auf `pending`.
     private static func normalizeInterruptedIndexingStatuses(in pool: DatabasePool) throws {
         let indexing = MediumCodecV3.code(.indexing)
         let indexed = MediumCodecV3.code(.indexed)
@@ -157,12 +174,15 @@ nonisolated enum SchemaV3 {
             try db.execute(
                 sql: """
                     UPDATE storages SET indexStatus = CASE
-                        WHEN firstIndexedAt IS NOT NULL THEN ?
+                        WHEN firstIndexedAt IS NOT NULL AND NOT EXISTS (
+                            SELECT 1 FROM storage_meta m JOIN meta_keys k ON k.id = m.keyID
+                            WHERE m.storageID = storages.id AND k.key = ?
+                        ) THEN ?
                         ELSE ?
                     END
                     WHERE indexStatus = ?
                     """,
-                arguments: [indexed, pending, indexing]
+                arguments: [IndexStoreV3.indexGapsKey, indexed, pending, indexing]
             )
         }
     }

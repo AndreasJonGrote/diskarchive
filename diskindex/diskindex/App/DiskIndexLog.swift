@@ -444,6 +444,36 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         max(0, Int(Date().timeIntervalSince(startedAt)))
     }
 
+    /// bug.0.4.113: Version, Build und Laufzeit des **abgestürzten** Laufs aus dem Protokoll: letzte Startzeile vor der
+    /// „CRASH“-Zeile (ohne Absturzzeile: letzte Startzeile), Laufzeit bis zur letzten Zeile mit Zeitstempel davor.
+    /// Fehlt etwas, bleibt das Feld `nil` (nie der Wert des neuen Laufs).
+    func previousRunInfo() -> PreviousRunInfo {
+        let lines = Self.readText(fileURL).components(separatedBy: "\n")
+        let crashIndex = lines.lastIndex { $0.hasPrefix("CRASH signal=") } ?? lines.count
+        let head = lines[..<crashIndex]
+        guard let startIndex = head.lastIndex(where: { $0.contains(" start version=") }) else {
+            return PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil)
+        }
+        func value(_ key: String, in line: String) -> String? {
+            guard let range = line.range(of: " \(key)=") else { return nil }
+            return line[range.upperBound...].split(separator: " ").first.map(String.init)
+        }
+        func stamp(_ line: String) -> Date? {
+            guard line.count >= 23 else { return nil }
+            lock.lock()
+            defer { lock.unlock() }
+            return formatter.date(from: String(line.prefix(23)))
+        }
+        let startLine = lines[startIndex]
+        var runtime: Int?
+        if let began = stamp(startLine),
+           let endLine = head[startIndex...].last(where: { stamp($0) != nil }),
+           let ended = stamp(endLine) {
+            runtime = max(0, Int(ended.timeIntervalSince(began)))
+        }
+        return PreviousRunInfo(version: value("version", in: startLine), build: value("build", in: startLine), runtimeSeconds: runtime)
+    }
+
     /// Signal und Stapel aus dem Protokoll, für den Issue-Tracker nach dem Neustart.
     func crashExcerpt() -> (signal: String, stack: [String]) {
         let text = Self.readText(fileURL)
@@ -461,42 +491,6 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     func logTail(_ limit: Int) -> [String] {
         let text = Self.readText(fileURL)
         return CrashReportText.tail(text, limit: limit)
-    }
-
-    func report(includeCrash: Bool, logLineLimit: Int, actionLimit: Int) -> String {
-        let text = Self.readText(fileURL)
-        let crashFile = Self.readText(crashFileURL)
-        let crash = includeCrash ? crashSection(in: text, fallback: crashFile) : nil
-        let actions = Array(recentBreadcrumbs().suffix(actionLimit))
-        #if DEBUG
-        let config = "Debug"
-        #else
-        let config = "Release"
-        #endif
-        var model = [CChar](repeating: 0, count: 128)
-        var size = model.count
-        sysctlbyname("hw.model", &model, &size, nil, 0)
-        let modelName = String(cString: model)
-        let databaseURL = try? IndexStoreV3.storeFileURL()
-        let bytes = databaseURL.flatMap { try? FileManager.default.attributesOfItem(atPath: $0.path)[.size] as? NSNumber }?.int64Value
-        let inventory = IndexStoreV3.inventoryLabels()
-        let runtime = String(format: "%.0f s", Date().timeIntervalSince(startedAt))
-        return CrashReportText.make(
-            version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?",
-            build: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?",
-            config: config,
-            macOS: ProcessInfo.processInfo.operatingSystemVersionString,
-            model: modelName,
-            started: formatter.string(from: startedAt),
-            runtime: runtime,
-            crashSection: crash,
-            actions: actions,
-            logLines: CrashReportText.tail(text, limit: logLineLimit),
-            databaseBytes: bytes,
-            media: inventory.media,
-            objects: inventory.objects,
-            diagnosticHead: newestDiagnosticHead()
-        )
     }
 
     @MainActor func revealInFinder() {
@@ -704,17 +698,6 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         return nil
     }
 
-    private func newestDiagnosticHead() -> String? {
-        let folder = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Logs/DiagnosticReports", isDirectory: true)
-        guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return nil }
-        let match = names.filter { $0.hasPrefix("Disk Archive") && $0.hasSuffix(".ips") }.sorted().last
-        guard let match else { return nil }
-        let text = Self.readText(folder.appendingPathComponent(match))
-        guard !text.isEmpty else { return nil }
-        return CrashReportText.tail(text, limit: 40).joined(separator: "\n")
-    }
-
     /// Entfernt Nullbytes; Zeilen, die nur aus Nullbytes bestanden (halb gelöschter Ringplatz), fallen ganz weg.
     static func withoutNullBytes(_ text: String) -> String {
         guard text.contains("\u{0}") else { return text }
@@ -730,3 +713,10 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
 }
 
 extension DiskLogCategory: CaseIterable {}
+
+/// bug.0.4.113: Angaben des abgestürzten Laufs (Startzeile im Protokoll).
+nonisolated struct PreviousRunInfo: Equatable, Sendable {
+    var version: String?
+    var build: String?
+    var runtimeSeconds: Int?
+}

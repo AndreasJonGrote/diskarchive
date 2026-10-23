@@ -96,9 +96,11 @@ actor ChangeWatcherEngine {
         let eventPaths = Set(directories.map { URL(fileURLWithPath: $0).standardizedFileURL.path })
         // bug.0.4.138: wenige Komponenten zuerst, damit neue Elternordner vor ihren Kindern gelesen werden (Bündel sind
         // ungeordnet; sonst fehlen tiefen Ordnern die Elternzeilen und es kommt zum Vollabgleich des Mediums).
+        // bug.0.4.154: die Tiefe einmal je Pfad bestimmen, nicht bei jedem Vergleich.
+        let depths = Dictionary(uniqueKeysWithValues: eventPaths.map { ($0, Self.relativeComponents($0, mount: mount).count) })
         var queue = eventPaths.sorted { lhs, rhs in
-            let left = Self.relativeComponents(lhs, mount: mount).count
-            let right = Self.relativeComponents(rhs, mount: mount).count
+            let left = depths[lhs] ?? 0
+            let right = depths[rhs] ?? 0
             return left != right ? left < right : lhs < rhs
         }
         var seen = Set<String>()
@@ -127,7 +129,7 @@ actor ChangeWatcherEngine {
                     folderID = try await store.folderID(mediumUUID: mediumID, path: relative)
                 } catch {
                     if DiskIndexLog.isOperationalFailure(error) {
-                        DiskIndexLog.shared.record(.store, .error, "store error folderID \(error)")
+                        DiskIndexLog.shared.record(.store, .error, "store error folderID \(DiskIndexLog.errorSummary(error))")
                     }
                     folderID = nil
                 }
@@ -147,7 +149,7 @@ actor ChangeWatcherEngine {
                             parentExists = try await store.folderID(mediumUUID: mediumID, path: Array(relative.dropLast())) != nil
                         } catch {
                             if DiskIndexLog.isOperationalFailure(error) {
-                                DiskIndexLog.shared.record(.store, .error, "store error folderID parent \(error)")
+                                DiskIndexLog.shared.record(.store, .error, "store error folderID parent \(DiskIndexLog.errorSummary(error))")
                             }
                             parentExists = false
                         }
@@ -193,7 +195,7 @@ actor ChangeWatcherEngine {
                 liveChildren = try await store.children(mediumUUID: mediumID, parentID: parentID)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "store error children \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "store error children \(DiskIndexLog.errorSummary(error))")
                 }
                 liveChildren = []
             }

@@ -240,6 +240,26 @@ import Testing
         #expect(failed.status == .error)
     }
 
+    /// bug.0.4.151: Der Folgelauf, der eine Lücke von oben nachliest, erkennt auch Löschungen außerhalb der Lücke.
+    @Test func gapRereadAlsoDetectsDeletionsOutsideTheGap() async throws {
+        let harness = try await ScanHarness.make()
+        let access = MemoryVolume(mountPath: "/Volumes/T")
+        access.file("bad/keep.txt")
+        access.file("ok/weg.txt")
+        access.file("ok/bleibt.txt")
+        _ = try await harness.run(access: access, maxDepth: nil)
+        access.markUnreadable("bad")
+        var fastRetries = IndexingRunLimits.standard
+        fastRetries.readRetryDelays = [.milliseconds(1)]
+        let gap = try await harness.run(access: access, maxDepth: nil, fromScratch: true, limits: fastRetries)
+        #expect(gap.status != .indexed)
+        access.remove("ok/weg.txt")
+        let again = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)
+        #expect(again.status != .indexed)
+        #expect(try await harness.item(named: "weg.txt") == nil, "Löschung außerhalb der Lücke nicht erkannt")
+        #expect(try await harness.item(named: "bleibt.txt") != nil)
+    }
+
     /// Schema V3: Was beim vollständigen Lesen fehlt, ist erst „verschwunden“ und wird am Ende des Laufs samt Favorit
     /// gelöscht; taucht die Datei später wieder auf, ist sie ein neuer Eintrag (Umbenennen erkennt 235).
     @Test func secondRunRemovesAMissingEntryWithItsFavorite() async throws {

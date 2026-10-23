@@ -26,7 +26,7 @@ struct LifecycleConcurrencyTests {
     @Test func storeFailureKeepsThePauseExpiry() async throws {
         let harness = try StoreHarness.make()
         let app = AppState(store: harness.store)
-        let defaults = try #require(UserDefaults(suiteName: "diskindex-lifecycle-\(UUID().uuidString)"))
+        let defaults = TestDefaults.make()
         let now = Date()
         app.pauseIndexing(until: now.addingTimeInterval(0.4), defaults: defaults, now: now)
         #expect(app.globalAutoIndexPaused)
@@ -323,4 +323,38 @@ nonisolated private final class CallbackGate: @unchecked Sendable {
         }
         if signal { semaphore.signal() }
     }
+}
+
+/// bug.0.4.140: Der FSEvents-Strom öffnet auf der eigenen Queue; ein Fehlschlag wird protokolliert.
+struct FSEventsOpenTests {
+    @Test func openRunsOnTheOwnQueue() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-fse-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = FSEventsChangeSource(mountPath: directory.path)
+        let stream = source.changes()
+        _ = stream
+        let opened = await waitUntil { source.openRanOnQueueForTesting != nil }
+        try #require(opened)
+        #expect(source.openRanOnQueueForTesting == true, "open lief nicht auf der eigenen Queue")
+    }
+
+    @Test func openFailureIsLogged() async throws {
+        let sink = FSEventsLogSink()
+        let source = FSEventsChangeSource(mountPath: "/tmp")
+        source.openFailsForTesting = true
+        source.logOpenFailure = { sink.add($0) }
+        var iterator = source.changes().makeAsyncIterator()
+        // Der Strom endet nach dem Fehlschlag.
+        let next = await iterator.next()
+        #expect(next == nil)
+        #expect(sink.all.contains { $0.contains("fsevents stream") })
+    }
+}
+
+private final class FSEventsLogSink: @unchecked Sendable {
+    private let lock = NSLock()
+    private var lines: [String] = []
+    func add(_ line: String) { lock.withLock { lines.append(line) } }
+    var all: [String] { lock.withLock { lines } }
 }

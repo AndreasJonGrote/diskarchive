@@ -71,7 +71,7 @@ extension WindowTestGroup {
     @Test func prepareForTerminationPersistsSettingsImmediately() async throws {
         let harness = try StoreHarness.make()
         let suite = "diskindex-term-settings-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = TestDefaults.make()
         let app = AppState(store: harness.store, defaults: defaults)
         app.attach(store: harness.store)
         await app.hydrateSettingsFromStore()
@@ -119,7 +119,7 @@ extension WindowTestGroup {
     @Test func settingsSurviveRestartAndReset() async throws {
         let harness = try StoreHarness.make()
         let suite = "diskindex-settings-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suite)!
+        let defaults = TestDefaults.make()
         defaults.removePersistentDomain(forName: suite)
         let app = AppState(defaults: defaults)
         app.attach(store: harness.store)

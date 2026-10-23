@@ -51,8 +51,11 @@ struct LiveWatchAfterFirstIndexTests {
         }
         #expect(renamedInStore)
 
+        // Regel 18: offene Spaltenansicht lädt selbst; der Test liest nur den Zwischenspeicher.
+        let session = openColumnWindow(app: rig.app, mediumID: mediumID)
+        defer { session.close() }
         let columnShowsRename = await waitUntil(timeout: 30) {
-            let names = await rig.app.indexRepository.loadChildren(mediumID: mediumID, path: []).map(\.name)
+            let names = rig.app.indexRepository.children(mediumID: mediumID, path: []).map(\.name)
             return names.contains("renamed.txt") && !names.contains("seed.txt")
         }
         #expect(columnShowsRename)

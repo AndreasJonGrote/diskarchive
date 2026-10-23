@@ -24,7 +24,7 @@ struct MediumChipTests {
         for status in IndexStatus.allCases {
             for connection in [ConnectionStatus.connected, .offline] {
                 for decision in StoredIndexDecision.allCases {
-                    var base = PreviewData.media[0]
+                    var base = previewMedium(0)
                     base.indexStatus = status
                     base.connectionStatus = connection
                     base.decision = decision
@@ -50,7 +50,7 @@ struct MediumChipTests {
     }
 
     @Test func pendingWithPartialIndexShowsPercentOffline() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.indexStatus = .pending
         medium.connectionStatus = .offline
         medium.indexingProgress = 0.47
@@ -64,7 +64,7 @@ struct MediumChipTests {
     }
 
     @Test func unplugMidRunKeepsSamePercentOnChip() {
-        var running = PreviewData.media[0]
+        var running = previewMedium(0)
         running.indexStatus = .indexing
         running.connectionStatus = .connected
         running.indexingProgress = 0.47
@@ -80,7 +80,7 @@ struct MediumChipTests {
     }
 
     @Test func indexedOnlineAndOffline() {
-        var online = PreviewData.media[1]
+        var online = previewMedium(1)
         online.connectionStatus = .connected
         online.indexStatus = .indexed
         #expect(MediumChip.presentation(online).text == "Online")
@@ -91,7 +91,7 @@ struct MediumChipTests {
     }
 
     @Test func spinnerOnlyWhileIndexingAndNotPaused() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.indexStatus = .indexing
         medium.connectionStatus = .connected
         medium.indexingProgress = 0.2
@@ -103,7 +103,7 @@ struct MediumChipTests {
     }
 
     @Test func percentUsesFloorNotRound() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.indexStatus = .indexing
         medium.indexingProgress = 0.999
         #expect(medium.indexProgressPercent == 99)

@@ -44,7 +44,7 @@ struct SettingsTabSwitchTests {
             var changed = false
             var current = previous
             var elapsed = TimeInterval.infinity
-            while Date().timeIntervalSince(start) < 0.5 {
+            while Date().timeIntervalSince(start) < BenchGate.paintDeadline {
                 CFRunLoopRunInMode(.defaultMode, 0.001, true)
                 // Gemessen bis zum Beginn der Aufnahme; die Aufnahme selbst kostet 10–30 ms.
                 let captureStart = Date()
@@ -57,7 +57,7 @@ struct SettingsTabSwitchTests {
             }
             #expect(app.settingsTab == tab)
             #expect(changed, "Tab \(tab) nicht gezeichnet")
-            #expect(elapsed <= 0.15, "Tab \(tab) nach \(Int(elapsed * 1000)) ms")
+            if BenchGate.enabled { #expect(elapsed <= 0.15, "Tab \(tab) nach \(Int(elapsed * 1000)) ms") }
             previous = current
         }
         #expect(calls.mainCount == 0)

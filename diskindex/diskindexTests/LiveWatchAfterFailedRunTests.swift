@@ -150,4 +150,49 @@ struct LiveWatchAfterFailedRunTests {
         app.versionLockState = .locked(.betaExpired)
         #expect(!service.watchesAfterFailedRun(id))
     }
+
+    /// bug.0.4.155 (Regel 18): echte Kette – der Lauf scheitert, während das Medium pausiert ist bzw. wird abgebrochen →
+    /// die Überwachung bleibt aus (Gegenprobe: `watcherStartsAfterAFailedRunAndDeliversChanges`, gleicher Aufbau ohne Pause).
+    @Test func pausedOrCancelledRunDoesNotStartTheWatcher() async throws {
+        for scenario in ["pause", "cancel"] {
+            let harness = try await ScanHarness.make()
+            let indexed = StoredMedium(
+                fsType: "apfs", volumeTotalBytes: 1_000, name: "AUS-\(scenario)", type: .usb,
+                decision: .index, indexStatus: .indexed, completedDepth: 1
+            )
+            try await harness.store.upsertMedium(indexed)
+            let volume = testVolume(path: "/Volumes/AUS-\(scenario)", name: "AUS-\(scenario)")
+            try await harness.store.recordIdentity(mediumUUID: indexed.uuid, volume.identity)
+            let inner = MemoryVolume(mountPath: volume.mountPath)
+            inner.file("hold/alt.txt")
+            let gate = RunGateAccess([inner]) { $0 == "\(volume.mountPath)/hold" }
+            let app = AppState(store: harness.store)
+            let store = harness.store
+            let box = FailedRunWatcherBox()
+            let rig = WiredRig(store: store, access: gate, app: app) { [box] id, volume in
+                guard let watcher = box.watcher else { return }
+                await LiveWiring.startWatching(id: id, volume: volume, store: store, watcher: watcher, appState: app)
+            }
+            box.watcher = rig.watcher
+            rig.watcher.makeSourceForTesting = { _ in ScriptedChangeSource() }
+            let id = indexed.uuid
+            defer { rig.coordinator.stop() }
+            if scenario == "pause" {
+                await store.setDirectoryWritesFailing(true)
+                app.globalAutoIndexPaused = true
+                await rig.coordinator.handle(.appeared(volume))
+                // Positives Signal: der Abgleich wurde angefragt und vom Dienst abgelehnt (Pause), kein Lauf.
+                try await Task.sleep(for: .milliseconds(500))
+                #expect(rig.starts(id).isEmpty, "Lauf trotz Pause gestartet")
+            } else {
+                await rig.coordinator.handle(.appeared(volume))
+                await gate.entered.wait()
+                await rig.service.cancel(mediumUUID: id)
+                await gate.open()
+                await rig.service.waitUntilIdle(id)
+                try await Task.sleep(for: .milliseconds(300))
+            }
+            #expect(!rig.watcher.isWatching(mediumID: id), "Überwachung nach \(scenario) gestartet")
+        }
+    }
 }

@@ -256,8 +256,9 @@ extension WindowTestGroup {
             name: "ghost.txt"
         )
         #expect(rows.count == 1)
-        #expect(rows[0].status == 0)
-        #expect(rows[0].id == keep.id)
+        let ghostRow = try #require(rows.first)
+        #expect(ghostRow.status == 0)
+        #expect(ghostRow.id == keep.id)
     }
 
     @Test func liveRenameFailsWhenActiveNameClashes() async throws {
@@ -363,6 +364,27 @@ extension WindowTestGroup {
         let reconciled = await waitUntil { !log.ids.isEmpty }
         #expect(reconciled)
         #expect(log.ids == [rig.medium.uuid])
+    }
+
+    /// bug.0.4.130 (b): mehrere „MustScanSubDirs“ in einem Bündel lösen höchstens einen Abgleich aus.
+    @Test func severalMustScanEventsInOneBundleStartOneReconcile() async throws {
+        let rig = try await watchRig()
+        let log = ReconcileLog()
+        rig.watcher.quietInterval = .milliseconds(400)
+        rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        for index in 1...5 {
+            rig.source.emit(VolumeChange(path: "/Volumes/DISK/A\(index)", eventID: Int64(index), mustScanSubDirs: true))
+        }
+        let reconciled = await waitUntil { !log.ids.isEmpty }
+        try #require(reconciled)
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(log.ids.count == 1, "mehrere Abgleiche aus einem Bündel: \(log.ids.count)")
+        // Nach der Ruhezeit zählt ein neues Ereignis wieder.
+        try await Task.sleep(for: .milliseconds(500))
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/B", eventID: 9, mustScanSubDirs: true))
+        let again = await waitUntil { log.ids.count >= 2 }
+        #expect(again)
     }
 
     @Test func mustScanSubDirsUnderMountStartsReconcile() async throws {

@@ -38,7 +38,7 @@ struct LiveSyncMetaTests {
     /// Aufgabe 171.4 (Layout 01): online und fertig = kein Badge, auch beim Abgleich.
     @Test @MainActor func menuBarBadgeStaysEmptyDuringSync() {
         let app = AppState()
-        var online = PreviewData.media[0]
+        var online = previewMedium(0)
         online.connectionStatus = .connected
         online.indexStatus = .indexed
         app.media = [online]

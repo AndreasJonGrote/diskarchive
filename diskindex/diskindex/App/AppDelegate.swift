@@ -86,6 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         observeSleep(appState)
         MenuBarController.shared.install(appState: appState)
         appState.onRetryIndexStoreOpen = { [weak self] in
+            ArchiveDatabase.shared.retryOpen()
             self?.startMediumRecognition()
         }
         startMediumRecognition()
@@ -303,7 +304,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleStoreFailure(_ error: Error, appState: AppState) {
-        DiskIndexLog.shared.record(.store, .error, "open \(error)")
+        DiskIndexLog.shared.record(.store, .error, "open \(DiskIndexLog.errorSummary(error))")
         recognitionLogger.error("Index konnte nicht geöffnet werden: \(error.localizedDescription, privacy: .public)")
         if appState.storeReady || appState.indexStore != nil {
             stopLiveServicesBeforeRewire()

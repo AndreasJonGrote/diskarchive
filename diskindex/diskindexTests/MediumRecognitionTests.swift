@@ -5,6 +5,7 @@
 
 import AppKit
 import Foundation
+import GRDB
 import Testing
 @testable import diskindex
 
@@ -75,6 +76,8 @@ extension WindowTestGroup {
 struct MediumCoordinatorTests {
     @Test func twoUnknownMediaEachStayUndecidedUntilChoice() async throws {
         let rig = try await RecognitionRig.make()
+        // Regel 18/119: Lage vor dem Ereignis; die Kette `requestDialog` → Panel läuft von allein.
+        rig.appState.promptPanelPlacement = .offscreen
         await rig.coordinator.handle(.appeared(rig.volume(name: "PLATTE_A", path: "/Volumes/PLATTE_A")))
         let first = try #require(rig.appState.newMediumDialogMediumID)
         await rig.coordinator.handle(.appeared(rig.volume(
@@ -85,18 +88,18 @@ struct MediumCoordinatorTests {
         )))
         #expect(rig.appState.pendingNewMediumDecisionIDs.count == 2)
         #expect(rig.indexRequests.isEmpty)
-        rig.appState.promptPanelPlacement = .offscreen
         let ids = rig.appState.pendingNewMediumDecisionIDs
         defer {
             for id in ids {
                 AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
             }
         }
-        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 2)
         rig.appState.onNewMediumChoice?(first, true, false)
         await rig.coordinator.waitForChoice()
         #expect(rig.indexRequests == [first])
+        // Wie der Dialog nach der Antwort (`NewMediumDetectedDialog`): Panel schließen, Stapel neu ordnen.
+        AppWindowPresenter.closeNewMediumPanel(mediumID: first, appState: rig.appState, userDismissed: false)
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1)
     }
@@ -119,7 +122,6 @@ struct MediumCoordinatorTests {
                 AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
             }
         }
-        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         let panels = NSApp.windows.filter { $0 is KeyablePanel && $0.isVisible }
         #expect(panels.count >= 2)
         for panel in panels {
@@ -237,6 +239,34 @@ struct MediumCoordinatorTests {
         let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
         #expect(stored.indexStatus == .pending)
         #expect(rig.indexRequests.contains(existing.uuid), "kein Erstlauf mit Fortschritt")
+        #expect(!rig.reconcileRequests.contains(existing.uuid))
+    }
+
+    /// bug.0.4.151: vollständig gewesen (`firstIndexedAt`), später Lücke → nach Fehlerstatus beim Anschließen `.pending`
+    /// und Lauf mit Nachlesen der Lücke, kein bloßer Abgleich.
+    @Test func errorAfterLaterGapResumesAsPending() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_904)
+        let uuid = "EEEEEEEE-1510-EEEE-EEEE-EEEEEEEEEEEE"
+        let existing = StoredMedium(
+            volumeUUID: uuid, volumeCreatedAt: created, fsType: "apfs", volumeTotalBytes: 1_000, name: "LUECKE",
+            type: .usb, decision: .index, rememberDecision: true, indexStatus: .error
+        )
+        try await rig.store.upsertMedium(existing)
+        let token = UUID()
+        #expect(try await rig.store.beginIndexing(mediumUUID: existing.uuid, token: token))
+        #expect(try await rig.store.finishIndexing(
+            mediumUUID: existing.uuid, token: token, status: .pending, firstIndexedAt: nil, ranToEnd: true
+        ))
+        try await rig.store.pool.write { db in
+            try db.execute(sql: "UPDATE storages SET firstIndexedAt = 1700000000, indexStatus = ? WHERE uuid = ?",
+                           arguments: [MediumCodecV3.code(.error), MediumCodecV3.data(existing.uuid)])
+        }
+        rig.access.result = .granted
+        await rig.coordinator.handle(.appeared(rig.volume(name: "LUECKE", path: "/Volumes/LUECKE", uuid: uuid, created: created)))
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.indexStatus == .pending, "Lücke durch Fehlerstatus verdeckt")
+        #expect(rig.indexRequests.contains(existing.uuid))
         #expect(!rig.reconcileRequests.contains(existing.uuid))
     }
 
@@ -555,13 +585,15 @@ struct MediumCoordinatorTests {
     /// `syncNewMediumPanels`), und die Menüleiste meldet eine offene Entscheidung.
     @Test func askedAgainMediumOpensPanel() async throws {
         let rig = try await RecognitionRig.make()
+        rig.appState.promptPanelPlacement = .offscreen
         let volume = rig.volume(name: "PANEL", path: "/Volumes/PANEL")
         await rig.coordinator.handle(.appeared(volume))
         let id = try #require(rig.appState.newMediumDialogMediumID)
         rig.appState.onNewMediumChoice?(id, true, false)
         await rig.coordinator.waitForChoice()
         #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
-        rig.appState.promptPanelPlacement = .offscreen
+        // Wie der Dialog nach der Antwort (`NewMediumDetectedDialog`): Panel schließen, Stapel neu ordnen.
+        AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
         AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 0)
         defer {
@@ -572,7 +604,6 @@ struct MediumCoordinatorTests {
         await rig.coordinator.handle(.appeared(volume))
         #expect(rig.appState.newMediumDialogMediumID == id, "erneut gefragtes Medium nicht vorne in der Warteschlange")
         #expect(rig.appState.hasPendingNewMediumDecisions)
-        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1, "kein Panel für das erneut gefragte Medium")
     }
 

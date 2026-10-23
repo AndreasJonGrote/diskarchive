@@ -102,7 +102,7 @@ struct ColumnOpenAtSelectionTests {
     private func runArrowKeys(tableMinimum: Int?) async throws {
         let tree = try await DeepFolder.make()
         try #require(tree.files.count == 300)
-        let first = tree.files[0]
+        let first = try #require(tree.files.first)
         let result = SearchResultItem(item: IndexedItem(stored: first, parentPath: ["A", "B", "C", "D"]), mediumID: tree.mediumID)
         MediumNavigation.openObject(result, appState: tree.app)
         let session = open(tree.app, tableMinimum: tableMinimum)

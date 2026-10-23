@@ -14,7 +14,7 @@ import UserNotifications
 @Suite(.serialized)
 struct PauseNoticeTextTests {
     private func posted(_ body: (AppState, UserDefaults) -> Void) -> [String] {
-        let defaults = UserDefaults(suiteName: "PauseNoticeTextTests-\(UUID().uuidString)")!
+        let defaults = TestDefaults.make()
         let app = AppState()
         app.appSettings.notificationsEnabled = true
         app.appSettings.notifySystem = true
@@ -29,7 +29,7 @@ struct PauseNoticeTextTests {
     @Test func pauseUntilTime() {
         var parts = DateComponents()
         parts.year = 2026; parts.month = 10; parts.day = 8; parts.hour = 14; parts.minute = 30
-        let until = Calendar.current.date(from: parts)!
+        let until = Calendar.current.date(from: parts) ?? Date.distantPast
         let texts = posted { app, defaults in
             app.pauseIndexing(until: until, defaults: defaults, now: until.addingTimeInterval(-3_600))
         }

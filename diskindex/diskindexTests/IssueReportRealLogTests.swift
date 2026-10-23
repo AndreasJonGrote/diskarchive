@@ -119,7 +119,7 @@ private struct RealLogHarness {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [RealLogReportStubURL.self]
         let endpoint = try #require(URL(string: "https://\(host)/api/issues/"))
-        let defaults = try #require(UserDefaults(suiteName: defaultsSuite))
+        let defaults = TestDefaults.make()
         let sink = self.sink
         let reporter = IssueReporter(
             endpoint: endpoint,

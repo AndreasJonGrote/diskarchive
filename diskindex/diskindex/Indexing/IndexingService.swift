@@ -82,12 +82,19 @@ final class IndexingService {
     private var reconcilesInterruptedByVersionLock: Set<UUID> = []
 
     func cancelAllActiveForVersionLock() async {
-        for id in activeMediumUUIDs() {
+        // bug.0.4.139: erst alle Läufe zum Anhalten bringen (merken, Task abbrechen), dann der Reihe nach aufräumen –
+        // sonst schreiben die später dran kommenden Läufe weiter, bis sie an der Reihe sind.
+        let ids = activeMediumUUIDs()
+        for id in ids {
             // Inzwischen entsperrt: nichts mehr abbrechen (sonst ginge der Abgleich verloren).
-            guard !appState.featureAccess.canWriteIndex else { break }
+            guard !appState.featureAccess.canWriteIndex else { return }
             if runFullReconcile[id] == true {
                 reconcilesInterruptedByVersionLock.insert(id)
             }
+            tasks[id]?.cancel()
+        }
+        for id in ids {
+            guard !appState.featureAccess.canWriteIndex else { return }
             await cancel(mediumUUID: id)
         }
     }
@@ -168,7 +175,7 @@ final class IndexingService {
                 storedBeforeRun = try await store.medium(uuid: mediumUUID)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "store error medium beforeRun \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "store error medium beforeRun \(DiskIndexLog.errorSummary(error))")
                 }
                 storedBeforeRun = nil
             }
@@ -210,15 +217,20 @@ final class IndexingService {
     /// bug.0.4.085 a): Medium wird ausgehängt – ein wartender Start (mit altem Volume) läuft nicht mehr an.
     func discardWaitingStart(mediumUUID: UUID) {
         startsWaitingForCancel[mediumUUID] = nil
+        // bug.0.4.152: kein Start mehr, der die Sperre „Neu indizieren“ wieder löst.
+        appState.reindexRequested.remove(mediumUUID)
     }
 
     #if DEBUG
     func hasWaitingStartForTesting(_ mediumUUID: UUID) -> Bool { startsWaitingForCancel[mediumUUID] != nil }
+    func hasPendingRerunForTesting(_ mediumUUID: UUID) -> Bool { rerunAfterFinish.contains(mediumUUID) }
     #endif
 
     func cancel(mediumUUID: UUID) async {
         let task = tasks[mediumUUID]
         guard task != nil || runs[mediumUUID] != nil else { return }
+        // bug.0.4.130 (a): ein ausstehender Nachhol-Abgleich überlebt den Abbruch nicht (Sperre, Aushängen, Pause).
+        rerunAfterFinish.remove(mediumUUID)
         // bug.0.4.129: Abbruch, bevor der Lauf „wird indiziert“ meldete (Aushängen, Sperre direkt nach dem Klick) →
         // Sperre „Neu indizieren“ freigeben; ein laufender Lauf gibt sie über `.indexing` frei.
         if appState.medium(with: mediumUUID)?.indexStatus != .indexing {
@@ -243,7 +255,7 @@ final class IndexingService {
                 interrupted: reconcileInterrupted
             )
         } catch {
-            DiskIndexLog.shared.record(.index, .error, "abbruch \(error)")
+            DiskIndexLog.shared.record(.index, .error, "abbruch \(DiskIndexLog.errorSummary(error))")
         }
         DiskIndexLog.shared.record(.index, .info, "abgebrochen medium=\(mediumUUID)")
         if runs[mediumUUID] == nil {
@@ -312,6 +324,8 @@ final class IndexingService {
 
     fileprivate func halt(for mediumUUID: UUID) -> ScanHalt {
         guard runs[mediumUUID] != nil else { return .cancel }
+        // bug.0.4.139: gesperrt (Versions-Sperre) → sofort anhalten, ohne auf den Abbruch der Reihe nach zu warten.
+        if !appState.featureAccess.canWriteIndex { return .pause }
         if pauseIDs.contains(mediumUUID) || isPaused(mediumUUID) { return .pause }
         return .none
     }
@@ -340,6 +354,8 @@ final class IndexingService {
     fileprivate func finish(_ mediumUUID: UUID, _ token: UUID, _ outcome: IndexRunOutcome) async {
         guard runs[mediumUUID] == token else { return }
         tasks[mediumUUID] = nil
+        // bug.0.4.152: der Lauf ist zu Ende (auch ein abgelehnter Beginn) – eine Sperre „Neu indizieren“ gilt nicht mehr.
+        appState.reindexRequested.remove(mediumUUID)
         appState.clearMenuBarRunIndicators(mediumUUID)
         runs[mediumUUID] = nil
         let started = runStartedAt.removeValue(forKey: mediumUUID)
@@ -349,7 +365,7 @@ final class IndexingService {
             stored = try await store.medium(uuid: mediumUUID)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "store error medium finish \(error)")
+                DiskIndexLog.shared.record(.store, .error, "store error medium finish \(DiskIndexLog.errorSummary(error))")
             }
             stored = nil
         }
@@ -434,7 +450,7 @@ final class IndexingService {
                     stored = try await store.medium(uuid: id)
                 } catch {
                     if DiskIndexLog.isOperationalFailure(error) {
-                        DiskIndexLog.shared.record(.store, .error, "store error medium resume \(error)")
+                        DiskIndexLog.shared.record(.store, .error, "store error medium resume \(DiskIndexLog.errorSummary(error))")
                     }
                     return
                 }

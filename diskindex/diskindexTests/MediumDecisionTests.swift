@@ -17,7 +17,7 @@ struct MediumDecisionUnitTests {
     }
 
     @Test func undecidedWithoutIndexIsOnlyInRegistry() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.decision = .undecided
         medium.completedDepth = 0
         medium.fileCount = 0
@@ -29,7 +29,7 @@ struct MediumDecisionUnitTests {
     }
 
     @Test func dontIndexWithoutIndexIsOnlyInRegistry() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.decision = .dontIndex
         medium.completedDepth = 0
         medium.fileCount = 0
@@ -41,7 +41,7 @@ struct MediumDecisionUnitTests {
     }
 
     @Test func dontIndexWithIndexStaysBrowsable() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.decision = .dontIndex
         medium.completedDepth = 3
         medium.fileCount = 10
@@ -58,7 +58,7 @@ struct MediumDecisionUnitTests {
     }
 
     @Test func undecidedMediumCannotReindex() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.decision = .undecided
         medium.indexStatus = .pending
         let app = AppState()
@@ -68,7 +68,7 @@ struct MediumDecisionUnitTests {
 
     @Test func menuBarBadgeFollowsPriority() {
         let app = AppState()
-        var online = PreviewData.media[0]
+        var online = previewMedium(0)
         online.connectionStatus = .connected
         online.indexStatus = .indexing
         app.media = [online]

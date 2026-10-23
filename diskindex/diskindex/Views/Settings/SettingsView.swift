@@ -11,10 +11,16 @@ struct SettingsView: View {
     @Environment(AppState.self) private var appState
 
     var body: some View {
-        HStack(spacing: 0) {
-            settingsSidebar(selected: appState.settingsTabBinding)
-            tabContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 0) {
+            // bug.0.4.153: gespeicherte Einstellungen unlesbar → Hinweis, Änderungen werden nicht gespeichert.
+            if appState.settingsUnreadable {
+                WarningBanner(text: LayoutCopy.settingsUnreadableNotice)
+            }
+            HStack(spacing: 0) {
+                settingsSidebar(selected: appState.settingsTabBinding)
+                tabContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
     }
 

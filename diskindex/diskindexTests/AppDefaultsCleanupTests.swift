@@ -38,6 +38,32 @@ struct AppDefaultsCleanupTests {
         #expect(fm.fileExists(atPath: other.path))
     }
 
+    /// bug.0.4.124: Suiten der Testhelfer (`<Präfix><pid>.<Name>`) und alte Namen ohne Prozesskennung werden aufgeräumt.
+    @Test func helperSuitesAndLegacyNamesAreRemoved() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-prefs-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let own = ProcessInfo.processInfo.processIdentifier
+        func make(_ name: String) throws -> URL {
+            let url = directory.appendingPathComponent("\(name).plist")
+            try Data("x".utf8).write(to: url)
+            return url
+        }
+        let deadHelper = try make("\(AppDefaults.testDomainPrefix)99999999.lang-\(UUID().uuidString)")
+        let ownHelper = try make("\(AppDefaults.testDomainPrefix)\(own).lang-\(UUID().uuidString)")
+        let legacy = try AppDefaults.legacyTestPrefixes.map { try make("\($0)\(UUID().uuidString)") }
+        let foreign = try make("com.apple.finder")
+        AppDefaults.removeStaleTestDomains(in: directory, ownPID: own)
+        let fm = FileManager.default
+        #expect(!fm.fileExists(atPath: deadHelper.path))
+        #expect(fm.fileExists(atPath: ownHelper.path))
+        #expect(legacy.allSatisfy { !fm.fileExists(atPath: $0.path) })
+        #expect(fm.fileExists(atPath: foreign.path))
+        // Der Helfer benennt seine Suiten nach dem Schema, das das Aufräumen versteht.
+        #expect(TestDefaults.suiteName("x").hasPrefix("\(AppDefaults.testDomainPrefix)\(own)."))
+    }
+
     @Test func runCheckKnowsOwnAndDeadProcesses() {
         #expect(AppDefaults.processIsRunning(ProcessInfo.processInfo.processIdentifier))
         #expect(!AppDefaults.processIsRunning(99_999_999))

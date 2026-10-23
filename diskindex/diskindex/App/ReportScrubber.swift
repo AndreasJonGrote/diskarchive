@@ -131,7 +131,8 @@ nonisolated enum ReportScrubber {
         for name in names {
             let folded = name.trimmingCharacters(in: .whitespacesAndNewlines)
             guard folded.count >= 4 else { continue }
-            if Self.nameExclusionList.contains(folded) { continue }
+            // bug.0.4.111: Ausschlussliste ohne Groß-/Kleinschreibung („ARCHIVE“ sperrte jeden Absturzbericht).
+            if Self.nameExclusionList.contains(where: { $0.caseInsensitiveCompare(folded) == .orderedSame }) { continue }
             if matchesWordBoundary(haystack: string, needle: folded) { return "name" }
             let nfd = folded.decomposedStringWithCanonicalMapping
             if nfd != folded, matchesWordBoundary(haystack: string, needle: nfd) { return "name" }
@@ -151,7 +152,9 @@ nonisolated enum ReportScrubber {
 
     private static func matchesWordBoundary(haystack: String, needle: String) -> Bool {
         guard !needle.isEmpty else { return false }
-        let pattern = #"\b"# + NSRegularExpression.escapedPattern(for: needle) + #"\b"#
+        // bug.0.4.111: Wortgrenze als Umgebungsprüfung (`\b` greift nicht bei Namen wie „Fotos (alt)“, die auf ein
+        // Sonderzeichen enden oder damit beginnen).
+        let pattern = #"(?<![\p{L}\p{N}_])"# + NSRegularExpression.escapedPattern(for: needle) + #"(?![\p{L}\p{N}_])"#
         guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else {
             return haystack.contains(needle)
         }

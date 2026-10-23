@@ -14,7 +14,7 @@ import UserNotifications
 @Suite(.serialized) @MainActor
 struct PauseExpiredAtLaunchTests {
     private func defaultsWithExpiredPause() throws -> UserDefaults {
-        let defaults = try #require(UserDefaults(suiteName: "PauseExpiredAtLaunch-\(UUID().uuidString)"))
+        let defaults = TestDefaults.make()
         var pause = GlobalPause()
         pause.pause(until: Date().addingTimeInterval(-3_600))
         defaults.set(try JSONEncoder().encode(pause), forKey: AppState.pauseKey)
@@ -102,7 +102,7 @@ struct PauseExpiredAtLaunchTests {
 
     /// Ablauf im Betrieb (Vergleich): dieselbe Meldung mit derselben Art.
     @Test func runtimeExpiryPostsTheSameNotice() throws {
-        let defaults = try #require(UserDefaults(suiteName: "PauseExpiredRuntime-\(UUID().uuidString)"))
+        let defaults = TestDefaults.make()
         let app = AppState(defaults: defaults)
         app.appSettings.notificationsEnabled = true
         app.appSettings.notifySystem = true

@@ -52,6 +52,24 @@ import Testing
         #expect(freeCompacted < freeBefore)
     }
 
+    /// bug.0.4.108: „Vergessen“ eines großen Mediums erhöht die Wartungsschuld, danach gibt die Wartung Seiten zurück.
+    @Test func forgettingALargeMediumAddsMaintenanceDebt() async throws {
+        let harness = try StoreHarness.make()
+        let medium = try await harness.insert(name: "Gross", fsType: "apfs", bytes: 1_000_000)
+        _ = try await harness.addRoot(
+            medium: medium,
+            entries: (0..<20_000).map { ScannedEntry(name: "f-\($0).txt", isFolder: false, sizeBytes: 1, modifiedAt: Date()) }
+        )
+        #expect(await harness.store.maintenanceDebt() < 20_000)
+        try await harness.store.deleteMedium(uuid: medium.uuid)
+        #expect(await harness.store.maintenanceDebt() >= 20_000, "Wartungsschuld nach Vergessen nicht erhöht")
+        let freeBefore = try await harness.store.pool.read { db in try DatabaseMaintenance.freelistCount(db) }
+        #expect(freeBefore > 0)
+        await harness.store.runCompactionIfNeeded()
+        let freeAfter = try await harness.store.pool.read { db in try DatabaseMaintenance.freelistCount(db) }
+        #expect(freeAfter < freeBefore, "Datei wird nach Vergessen nicht kleiner")
+    }
+
     @MainActor
     @Test func maintenanceRunsAfterLiveSyncEnds() async throws {
         let harness = try StoreHarness.make()

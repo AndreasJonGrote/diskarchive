@@ -10,7 +10,7 @@ import Testing
 
 @Suite @MainActor struct DarkChromeTests {
     @Test func darkTokensAreNeutral() {
-        let dark = NSAppearance(named: .darkAqua)!
+        let dark = testAppearance(.darkAqua)
         let toolbar = sample(DesignColor.toolbar, appearance: dark)
         let selection = sample(DesignColor.selection, appearance: dark)
         let divider = sample(DesignColor.divider, appearance: dark)
@@ -21,19 +21,19 @@ import Testing
     }
 
     @Test func lightToolbarStaysOnTheLightGround() {
-        let light = NSAppearance(named: .aqua)!
+        let light = testAppearance(.aqua)
         let toolbar = sample(DesignColor.toolbar, appearance: light)
         #expect(toolbar.0 > 200 && toolbar.1 > 200 && toolbar.2 > 200)
         #expect(neutral(toolbar))
     }
 
     @Test func hostedPixelsMatchTheDarkRoles() throws {
-        let appearance = NSAppearance(named: .darkAqua)!
-        let rep = NSBitmapImageRep(
+        let appearance = testAppearance(.darkAqua)
+        let rep = try #require(NSBitmapImageRep(
             bitmapDataPlanes: nil, pixelsWide: 40, pixelsHigh: 48,
             bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
             colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
-        )!
+        ))
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
         appearance.performAsCurrentDrawingAppearance {

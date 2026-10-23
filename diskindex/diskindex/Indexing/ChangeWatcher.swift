@@ -48,6 +48,8 @@ final class ChangeWatcher {
     private var quietTasks: [UUID: Task<Void, Never>] = [:]
     private var pending: [UUID: Set<String>] = [:]
     private var pendingItemEvents: [UUID: [ItemPathEvent]] = [:]
+    /// bug.0.4.130: je Medium höchstens ein Vollabgleich aus „MustScanSubDirs“ je Bündel.
+    private var fullReconcileRequested: Set<UUID> = []
     private var pendingSince: [UUID: ContinuousClock.Instant] = [:]
     private var cursors: [UUID: (uuid: String?, eventID: Int64)] = [:]
     private var savedCursors: [UUID: Int64] = [:]
@@ -143,7 +145,7 @@ final class ChangeWatcher {
             if savedCursors[mediumID] == cursor.eventID {
                 savedCursors[mediumID] = previous
             }
-            DiskIndexLog.shared.record(.watcher, .error, "ereignisstand \(error)")
+            DiskIndexLog.shared.record(.watcher, .error, "ereignisstand \(DiskIndexLog.errorSummary(error))")
         }
     }
 
@@ -186,6 +188,7 @@ final class ChangeWatcher {
 
     func stop(mediumID: UUID) async {
         DiskIndexLog.shared.record(.watcher, .info, "stop medium=\(mediumID)")
+        fullReconcileRequested.remove(mediumID)
         let cursor = cursors[mediumID]
         watchGenerations[mediumID, default: 0] += 1
         savedCursors[mediumID] = nil
@@ -210,7 +213,7 @@ final class ChangeWatcher {
                 )
                 savedCursors[mediumID] = cursor.eventID
             } catch {
-                DiskIndexLog.shared.record(.watcher, .error, "ereignisstand \(error)")
+                DiskIndexLog.shared.record(.watcher, .error, "ereignisstand \(DiskIndexLog.errorSummary(error))")
             }
         }
     }
@@ -240,7 +243,7 @@ final class ChangeWatcher {
                 stored = try await store.medium(uuid: id)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "store error medium pause \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "store error medium pause \(DiskIndexLog.errorSummary(error))")
                 }
                 continue
             }
@@ -280,7 +283,7 @@ final class ChangeWatcher {
             stored = try await store.medium(uuid: mediumID)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "store error medium restart \(error)")
+                DiskIndexLog.shared.record(.store, .error, "store error medium restart \(DiskIndexLog.errorSummary(error))")
             }
             return
         }
@@ -314,7 +317,18 @@ final class ChangeWatcher {
             if eventPath != mountPath, !eventPath.hasPrefix(mountPrefix) {
                 return
             }
+            // bug.0.4.130 (b): mehrere „MustScanSubDirs“ in einem Bündel lösen genau einen Abgleich aus; erst nach
+            // der Ruhezeit zählt ein weiteres Ereignis wieder.
+            guard !fullReconcileRequested.contains(mediumID) else { return }
             if let volume = volumes[mediumID] {
+                fullReconcileRequested.insert(mediumID)
+                let generation = watchGenerations[mediumID, default: 0]
+                let interval = quietInterval
+                Task { [weak self] in
+                    try? await Task.sleep(for: interval)
+                    guard let self, self.watchGenerations[mediumID, default: 0] == generation else { return }
+                    self.fullReconcileRequested.remove(mediumID)
+                }
                 onFullReconcile?(mediumID, volume)
             }
             return
@@ -529,6 +543,14 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
     /// Der Stream ist geschlossen (ohne `queue.sync` lesbar).
     var closeFinishedForTesting: Bool { testingLock.withLock { closeFinished } }
     #endif
+    #if DEBUG
+    /// Tests (bug.0.4.140): `open` lief auf der Callback-Queue; Fehlschlag erzwingen.
+    private var openRanOnQueue: Bool?
+    var openRanOnQueueForTesting: Bool? { testingLock.withLock { openRanOnQueue } }
+    var openFailsForTesting = false
+    #endif
+    /// Fehlschlag beim Öffnen des Streams (Protokoll `.watcher .error`); Tests ersetzen die Senke.
+    var logOpenFailure: @Sendable (String) -> Void = { DiskIndexLog.shared.record(.watcher, .error, $0) }
     private var stream: FSEventStreamRef?
     private var continuation: AsyncStream<VolumeChange>.Continuation?
     private var fileSystemUUID: String?
@@ -547,7 +569,9 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
     func changes() -> AsyncStream<VolumeChange> {
         AsyncStream { continuation in
             self.continuation = continuation
-            self.open()
+            // bug.0.4.140: `stat`, UUID-Abfrage und Stream-Aufbau auf der eigenen Queue, nicht auf dem aufrufenden
+            // (Haupt-)Faden – ein langsames Volume hielte sonst die Oberfläche an.
+            self.queue.async { [self] in self.open() }
             continuation.onTermination = { [weak self] _ in
                 // Nicht `sync`: ein Callback, der gerade `yield` ruft, wartete sonst auf diesen Abbruch (Verklemmung).
                 self?.closeAsync()
@@ -556,6 +580,14 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
     }
 
     private func open() {
+        #if DEBUG
+        testingLock.withLock { openRanOnQueue = DispatchQueue.getSpecific(key: queueKey) != nil }
+        if openFailsForTesting {
+            logOpenFailure("fsevents stream konnte nicht geöffnet werden (Test)")
+            continuation?.finish()
+            return
+        }
+        #endif
         var info = stat()
         let statResult = mountPath.withCString { stat($0, &info) }
         if statResult == 0, let uuid = FSEventsCopyUUIDForDevice(info.st_dev) {
@@ -584,12 +616,14 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
         }
         let since = start.sinceEventID
         guard let stream = FSEventStreamCreate(nil, Self.callback, &context, paths, since, 1.0, flags) else {
+            logOpenFailure("fsevents stream konnte nicht erzeugt werden")
             continuation?.finish()
             return
         }
         self.stream = stream
         FSEventStreamSetDispatchQueue(stream, queue)
         if !FSEventStreamStart(stream) {
+            logOpenFailure("fsevents stream konnte nicht gestartet werden")
             close()
             continuation?.finish()
         }

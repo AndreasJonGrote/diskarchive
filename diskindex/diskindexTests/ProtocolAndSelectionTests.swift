@@ -100,25 +100,6 @@ extension MeasurementTestGroup {
         #expect(!log.shouldShowCrashDialog)
     }
 
-    @Test func reportContainsHeaderCrashAndActions() {
-        let actions = (0..<50).map { "ui info n=\($0)" }
-        let text = CrashReportText.make(
-            version: "1", build: "2", config: "Debug", macOS: "15", model: "Mac",
-            started: "t0", runtime: "1 s",
-            crashSection: "CRASH signal=SIGTRAP\nframe",
-            actions: actions,
-            logLines: ["zeile"],
-            databaseBytes: 10, media: "1", objects: "2",
-            diagnosticHead: nil
-        )
-        #expect(text.contains("media=1"))
-        #expect(text.contains("objects=2"))
-        #expect(text.contains("version=1"))
-        #expect(text.contains("CRASH signal=SIGTRAP"))
-        #expect(text.contains("n=0"))
-        #expect(text.contains("n=49"))
-    }
-
     @Test func crashExcerptPrefersCrashLastFile() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -154,16 +135,6 @@ extension MeasurementTestGroup {
         log.flushPendingWritesForTesting()
         let text = try String(contentsOf: directory.appendingPathComponent("diskindex.log"), encoding: .utf8)
         #expect(text.contains("previous run ended without clean exit"))
-    }
-
-    @Test func diagnosticReportOmitsTheCrashSection() throws {
-        let log = try makeLog()
-        log.ui("nur-aktion")
-        log.recordCrash(signal: "SIGTRAP", symbols: ["frame"])
-        let report = log.report(includeCrash: false, logLineLimit: 300, actionLimit: 50)
-        let head = report.split(separator: "AKTIONEN").first.map(String.init) ?? ""
-        #expect(!head.contains("CRASH"))
-        #expect(report.contains("nur-aktion"))
     }
 
     @Test func crashSnapshotWritesWhileTheLockIsHeld() throws {

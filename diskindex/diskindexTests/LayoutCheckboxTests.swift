@@ -13,7 +13,7 @@ import Testing
 extension WindowTestGroup {
 @Suite @MainActor
 struct LayoutCheckboxTests {
-    @Test func filesCheckboxesAreLayoutSizedAndToggle() {
+    @Test func filesCheckboxesAreLayoutSizedAndToggle() throws {
         let app = AppState()
         let session = PixelProbe.open(
             SettingsGeneralTab(section: .files)
@@ -42,7 +42,7 @@ struct LayoutCheckboxTests {
             #expect(abs(ink.height - 16) <= 2, "Höhe \(ink.height)")
             #expect(accentBlueCount(in: before, rect: ink) == 0)
         }
-        let first = rows[0]
+        let first = try #require(rows.first)
         session.click(at: CGPoint(x: first.minX + 8, y: first.midY))
         #expect(app.appSettings.showFoldersRegardlessOfFilter == false)
         let after = session.bitmap()

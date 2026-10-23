@@ -363,7 +363,7 @@ final class IndexRepository {
             return
         } catch {
             guard loadGenerations[key, default: 0] == loadToken else { return }
-            DiskIndexLog.shared.record(.store, .error, "children \(error)")
+            DiskIndexLog.shared.record(.store, .error, "children \(DiskIndexLog.errorSummary(error))")
             loadErrors[key] = LayoutCopy.folderUnreadable
             if cache[key] == nil {
                 cache[key] = []

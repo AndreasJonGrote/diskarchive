@@ -134,7 +134,7 @@ final class MediumCoordinator {
             await receiveUnknown(volume)
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
-            DiskIndexLog.shared.record(.medium, .error, "erkennen \(error) pathLen=\(volume.mountPath.count)")
+            DiskIndexLog.shared.record(.medium, .error, "erkennen \(DiskIndexLog.errorSummary(error)) pathLen=\(volume.mountPath.count)")
         }
     }
 
@@ -160,7 +160,7 @@ final class MediumCoordinator {
             }
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "umbenennen \(error)")
+                DiskIndexLog.shared.record(.store, .error, "umbenennen \(DiskIndexLog.errorSummary(error))")
             }
         }
         await onMediumRenamed?(id, volume)
@@ -226,7 +226,7 @@ final class MediumCoordinator {
         fresh.lastSeenAt = Date()
         if recoveredFromError {
             // bug.0.4.126: „indiziert“ nur nach einem Lauf bis zum Ende, nicht nach der ersten fertigen Ebene.
-            fresh.indexStatus = fresh.firstIndexedAt != nil ? .indexed : .pending
+            fresh.indexStatus = await settledStatus(fresh)
         }
         if let free = volume.volumeFreeBytes {
             fresh.capacityUsedBytes = max(0, volume.volumeTotalBytes - free)
@@ -277,7 +277,7 @@ final class MediumCoordinator {
             return
         }
         if fresh.indexStatus == .indexing, isIndexingActive?(fresh.uuid) != true {
-            fresh.indexStatus = fresh.firstIndexedAt != nil ? .indexed : .pending
+            fresh.indexStatus = await settledStatus(fresh)
             try await store.updateMediumIndexStatus(uuid: fresh.uuid, fresh.indexStatus)
             publish(fresh, connection: .connected)
         }
@@ -295,6 +295,14 @@ final class MediumCoordinator {
             requestIndex(mediumID: fresh.uuid, volume: volume)
             DiskIndexLog.shared.record(.medium, .info, "index anfordern id=\(fresh.uuid)")
         }
+    }
+
+    /// bug.0.4.126/151: „indiziert“ nur nach einem Lauf bis zum Ende und ohne später gefundene Lücke.
+    private func settledStatus(_ medium: StoredMedium) async -> StoredIndexStatus {
+        guard medium.firstIndexedAt != nil else { return .pending }
+        // Lesefehler: lieber „unvollständig“ (holt den Lauf nach) als fälschlich „indiziert“.
+        guard let gaps = try? await store.indexHasGaps(mediumUUID: medium.uuid) else { return .pending }
+        return gaps ? .pending : .indexed
     }
 
     private func receiveUnknown(_ volume: VolumeInfo) async {
@@ -330,7 +338,7 @@ final class MediumCoordinator {
                 try await store.updateMediumRecognition(uuid: existing.uuid, existing)
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
-                DiskIndexLog.shared.record(.medium, .error, "updateMedium \(error)")
+                DiskIndexLog.shared.record(.medium, .error, "updateMedium \(DiskIndexLog.errorSummary(error))")
             }
             if let reprobedID, !isStillMounted(reprobedID, at: volume.mountPath) { return }
             publish(existing, connection: .connected)
@@ -359,7 +367,7 @@ final class MediumCoordinator {
             if openDialog { requestDialog(stored.uuid) }
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
-            DiskIndexLog.shared.record(.medium, .error, "speichern \(error)")
+            DiskIndexLog.shared.record(.medium, .error, "speichern \(DiskIndexLog.errorSummary(error))")
         }
     }
 
@@ -395,14 +403,14 @@ final class MediumCoordinator {
                     publish(updated, connection: .connected)
                 } catch {
                     guard DiskIndexLog.isOperationalFailure(error) else { continue }
-                    DiskIndexLog.shared.record(.medium, .error, "reprobe dontIndex \(error)")
+                    DiskIndexLog.shared.record(.medium, .error, "reprobe dontIndex \(DiskIndexLog.errorSummary(error))")
                 }
             case .index:
                 do {
                     try await connectKnown(stored, volume: volume, askAgain: false)
                 } catch {
                     guard DiskIndexLog.isOperationalFailure(error) else { continue }
-                    DiskIndexLog.shared.record(.medium, .error, "reprobe index \(error)")
+                    DiskIndexLog.shared.record(.medium, .error, "reprobe index \(DiskIndexLog.errorSummary(error))")
                 }
             }
         }
@@ -436,7 +444,7 @@ final class MediumCoordinator {
                 }
                 return
             }
-            DiskIndexLog.shared.record(.store, .error, "aushängen \(error)")
+            DiskIndexLog.shared.record(.store, .error, "aushängen \(DiskIndexLog.errorSummary(error))")
             appState.updateMedium(id: id) {
                 $0.connectionStatus = .offline
                 $0.lastSeenAt = Date()
@@ -465,7 +473,7 @@ final class MediumCoordinator {
                 stored = row
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
-                DiskIndexLog.shared.record(.medium, .error, "entscheidung \(error)")
+                DiskIndexLog.shared.record(.medium, .error, "entscheidung \(DiskIndexLog.errorSummary(error))")
                 return
             }
             let connection: ConnectionStatus = volume(for: mediumID) != nil ? .connected : .offline
@@ -549,7 +557,7 @@ final class MediumCoordinator {
             count += items.filter { $0.mediumUUID == mediumID }.count
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "favorites notice \(error)")
+                DiskIndexLog.shared.record(.store, .error, "favorites notice \(DiskIndexLog.errorSummary(error))")
             }
         }
         SystemNotice.postFavoritesOnline(name: name, favoriteCount: count, settings: appState.appSettings)

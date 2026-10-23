@@ -21,6 +21,9 @@ nonisolated final class ArchiveDatabase: @unchecked Sendable {
     private let openLock = NSLock()
     private let stateLock = NSLock()
     private var opened: DatabasePool?
+    /// bug.0.4.094: Fehler des letzten Öffnens (z. B. `schemaSuperseded`, kaputte Datei). Weitere Aufrufe melden ihn
+    /// weiter, statt die Datei erneut zu öffnen (Schreib-PRAGMAs auf eine neuere Datei), bis `retryOpen()` ihn löscht.
+    private var openError: Error?
 
     /// `fileURL`: nur Tests geben eine eigene Datei an; `nil` = `IndexStoreV3.storeFileURL()`.
     init(fileURL: URL?) {
@@ -44,15 +47,27 @@ nonisolated final class ArchiveDatabase: @unchecked Sendable {
         openLock.lock()
         defer { openLock.unlock() }
         if let openedPool { return openedPool }
-        let pool = try SchemaV3.openPool(at: fileURL())
-        stateLock.withLock { opened = pool }
-        return pool
+        if let remembered = stateLock.withLock({ openError }) { throw remembered }
+        do {
+            let pool = try SchemaV3.openPool(at: fileURL())
+            stateLock.withLock { opened = pool }
+            return pool
+        } catch {
+            stateLock.withLock { openError = error }
+            throw error
+        }
+    }
+
+    /// Ausdrücklicher neuer Versuch (Knopf „Erneut versuchen“): vergisst den gemerkten Fehler.
+    func retryOpen() {
+        stateLock.withLock { openError = nil }
     }
 
     /// Geschlossener Pool (Datei nach kaputter Integritätsprüfung weggesperrt): nicht mehr ausgeben, neu öffnen.
     func discard(_ pool: DatabasePool) {
         stateLock.withLock {
             if opened === pool { opened = nil }
+            openError = nil
         }
     }
 

@@ -11,9 +11,12 @@ import Testing
 @Suite(.serialized)
 struct AutoSendToggleTests {
     @Test func autoSendPersistsInDatabase() async throws {
-        AppSettingsRuntimeCache.resetBootstrapForTests()
+        try await AppSettingsRuntimeCache.isolating { try await autoSendPersistsInDatabaseBody() }
+    }
+
+    private func autoSendPersistsInDatabaseBody() async throws {
         let harness = try StoreHarness.make()
-        let app = AppState(defaults: UserDefaults(suiteName: "autosend-\(UUID().uuidString)")!)
+        let app = AppState(defaults: TestDefaults.make())
         app.attach(store: harness.store)
         await app.hydrateSettingsFromStore()
 
@@ -25,21 +28,20 @@ struct AutoSendToggleTests {
             return loaded?.autoSendCrashReports == true
         }
         #expect(persisted)
-        // Paralleltests können `resetBootstrapForTests` den Cache leeren — Stand aus DB zurückholen.
-        if let loaded = await harness.store.loadPersistedAppSettings() {
-            AppSettingsRuntimeCache.setAutoSend(loaded.autoSendCrashReports)
-        }
         #expect(IssueConsent.autoSendEnabled() == true)
     }
 
     @Test func autoSendToggleSurvivesHydrate() async throws {
-        AppSettingsRuntimeCache.resetBootstrapForTests()
+        try await AppSettingsRuntimeCache.isolating { try await autoSendToggleSurvivesHydrateBody() }
+    }
+
+    private func autoSendToggleSurvivesHydrateBody() async throws {
         let harness = try StoreHarness.make()
         var snapshot = PersistedAppSettings()
         snapshot.autoSendCrashReports = true
         try await harness.store.savePersistedAppSettings(snapshot)
 
-        let app = AppState(defaults: UserDefaults(suiteName: "autosend2-\(UUID().uuidString)")!)
+        let app = AppState(defaults: TestDefaults.make())
         app.attach(store: harness.store)
         await app.hydrateSettingsFromStore()
 

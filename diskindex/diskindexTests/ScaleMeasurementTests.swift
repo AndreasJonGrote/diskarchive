@@ -76,7 +76,7 @@ enum ProcessMeter {
 extension MeasurementTestGroup {
 @MainActor
 struct ScaleMeasurementTests {
-    @Test(.enabled(if: FileManager.default.fileExists(atPath: "/tmp/diskindex-scale.on")))
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["DA_SCALE"] == "1"))
     func measure() async throws {
         var lines: [String] = []
         func keep(_ line: String) throws {

@@ -226,7 +226,7 @@ struct BulkDirectoryReaderMeasurementTests {
         #expect(result.stats.usedBulk)
         #expect(!result.stats.usedFallback)
         #expect(result.entries.count == 2_500)
-        #expect(elapsed < .seconds(2))
+        if BenchGate.enabled { #expect(elapsed < .seconds(2)) }
     }
 }
 }

@@ -44,8 +44,13 @@ extension WindowTestGroup {
         let rig = try await seededTree()
         defer { rig.app.prepareForTermination() }
         rig.app.startChangeLoop()
-        _ = await rig.app.indexRepository.loadChildren(mediumID: rig.medium.uuid, path: [])
-        let generation = rig.app.indexRepository.generation
+        let session = openColumnWindow(app: rig.app, mediumID: rig.medium.uuid)
+        defer { session.close() }
+        // Die offene Spalte lädt selbst; erst wenn sie gefüllt ist, kommt die Änderung über den Store.
+        let first = await waitUntil {
+            rig.app.indexRepository.children(mediumID: rig.medium.uuid, path: []).map(\.name).contains("readme.txt")
+        }
+        try #require(first)
         let root = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: nil)
         let alpha = try #require(root.first { $0.name == "Alpha" })
         let beta = try #require(root.first { $0.name == "Beta" })
@@ -62,9 +67,8 @@ extension WindowTestGroup {
         )
         _ = alpha
         _ = beta
-        _ = await waitUntil(timeout: 30) { rig.app.indexRepository.generation != generation }
         let appeared = await waitUntil(timeout: 30) {
-            await rig.app.indexRepository.loadChildren(mediumID: rig.medium.uuid, path: []).map(\.name).contains("neu.txt")
+            rig.app.indexRepository.children(mediumID: rig.medium.uuid, path: []).map(\.name).contains("neu.txt")
         }
         #expect(appeared)
     }

@@ -12,7 +12,7 @@ import Testing
 @Suite @MainActor struct UiQuitMetaTests {
     @Test func leavingColumnBrowserClearsNavigationState() {
         let app = AppState()
-        let mediumID = UUID(uuidString: "D0070001-0000-4000-8000-000000000007")!
+        let mediumID = testUUID("D0070001-0000-4000-8000-000000000007")
         let sidebar = app.columnBrowserState.sidebarWidth
         let column = app.columnBrowserState.folderColumnWidth
         app.mainWindowDestination = .columnBrowser

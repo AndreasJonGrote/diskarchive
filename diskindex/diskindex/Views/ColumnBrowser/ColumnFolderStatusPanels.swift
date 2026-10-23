@@ -11,7 +11,7 @@ struct FolderPendingIndexingHint: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             IndexingSpinnerRing(
-                color: Color(red: 32 / 255, green: 160 / 255, blue: 78 / 255),
+                color: DesignColor.stateOnline,
                 lineWidth: 2.5
             )
             .padding(1.25)

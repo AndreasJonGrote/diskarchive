@@ -20,13 +20,18 @@ enum PixelProbe {
 
     /// Vor UI-Tests mit Mausklick: alte Fenster aus vorherigen Suites schließen.
     static func dismissStrayWindows() {
-        NSApp.appearance = NSAppearance(named: .aqua)
         for window in NSApp.windows {
             window.orderOut(nil)
             window.contentView = nil
             window.close()
         }
         probeWindowSlot = 0
+    }
+
+    /// 1×1-Platzhalter, wenn das Fenster keinen Inhalt hat (ohne `!`, Regel 20).
+    static func emptyBitmap() -> NSBitmapImageRep {
+        NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+            ?? NSBitmapImageRep()
     }
 
     private static func nextOffscreenOrigin(size: CGSize) -> CGPoint {
@@ -71,20 +76,17 @@ enum PixelProbe {
         window.isReleasedWhenClosed = false
         window.appearance = look
         window.contentView = host
-        let previousAppAppearance = NSApp.appearance
-        NSApp.appearance = look
         window.orderFrontRegardless()
         host.layoutSubtreeIfNeeded()
         try? await Task.sleep(for: .milliseconds(300))
         host.layoutSubtreeIfNeeded()
         window.display()
         let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds)
-            ?? NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+            ?? PixelProbe.emptyBitmap()
         host.cacheDisplay(in: host.bounds, to: rep)
         window.contentView = nil
         window.orderOut(nil)
         window.close()
-        NSApp.appearance = previousAppAppearance
         return rep
     }
 
@@ -92,24 +94,22 @@ enum PixelProbe {
     @MainActor
     final class Session {
         let window: NSWindow
-        private let previousAppAppearance: NSAppearance?
         private var didClose = false
 
-        fileprivate init(window: NSWindow, previousAppAppearance: NSAppearance?) {
+        fileprivate init(window: NSWindow) {
             self.window = window
-            self.previousAppAppearance = previousAppAppearance
         }
 
         func bitmap() -> NSBitmapImageRep {
             let look = window.appearance
             window.contentView?.appearance = look
             guard let host = window.contentView else {
-                return NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+                return PixelProbe.emptyBitmap()
             }
             host.layoutSubtreeIfNeeded()
             window.display()
             let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds)
-                ?? NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: 1, pixelsHigh: 1, bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
+                ?? PixelProbe.emptyBitmap()
             host.cacheDisplay(in: host.bounds, to: rep)
             return rep
         }
@@ -260,18 +260,11 @@ enum PixelProbe {
             window.orderOut(nil)
             window.contentView = nil
             window.close()
-            if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil {
-                NSApp.appearance = NSAppearance(named: .aqua)
-            } else {
-                NSApp.appearance = previousAppAppearance
-            }
         }
     }
 
     static func open<V: View>(_ view: V, size: CGSize, appearance: NSAppearance.Name = .aqua) -> Session {
         let look = NSAppearance(named: appearance)
-        let previous = NSApp.appearance
-        NSApp.appearance = look
         let host = NSHostingView(rootView: view)
         host.appearance = look
         host.frame = NSRect(origin: .zero, size: size)
@@ -290,7 +283,7 @@ enum PixelProbe {
         host.layoutSubtreeIfNeeded()
         host.layoutSubtreeIfNeeded()
         window.display()
-        return Session(window: window, previousAppAppearance: previous)
+        return Session(window: window)
     }
 
     /// Kurz warten, bis ein offenes Fenster Layout abgeschlossen hat (ohne Runloop in async-Kontext).

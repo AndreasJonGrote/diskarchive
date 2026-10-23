@@ -25,7 +25,7 @@ struct ApiQueuePersistenceTests {
         try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: payload, createdAt: 1)
         let due = try ApiQueuePersistence.fetchDue(pool, now: Date())
         #expect(due.count == 1)
-        #expect(due[0].attempts == 0)
+        #expect(try #require(due.first).attempts == 0)
     }
 
     @Test func backoffBlocksUntilDue() throws {

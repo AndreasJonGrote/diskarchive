@@ -18,7 +18,7 @@ private final class Counter: @unchecked Sendable {
 }
 
 private func freshDefaults() throws -> UserDefaults {
-    try #require(UserDefaults(suiteName: "app.diskarchive.tests.startup.\(UUID().uuidString)"))
+    TestDefaults.make()
 }
 
 @Suite(.serialized)

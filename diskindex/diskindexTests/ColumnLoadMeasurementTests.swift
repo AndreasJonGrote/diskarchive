@@ -2,7 +2,7 @@
 //  ColumnLoadMeasurementTests.swift
 //  diskindexTests
 //
-//  Aufgabe 107 — Spalten-Ladezeiten / Speicher (nur mit Flag /tmp/diskindex-column-load.on).
+//  Aufgabe 107 — Spalten-Ladezeiten / Speicher (nur mit Umgebungsvariable DA_COLUMN_LOAD=1).
 //
 
 import Darwin
@@ -14,7 +14,7 @@ extension MeasurementTestGroup {
 @MainActor
 @Suite(.serialized)
 struct ColumnLoadMeasurementTests {
-    @Test(.enabled(if: FileManager.default.fileExists(atPath: "/tmp/diskindex-column-load.on")))
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["DA_COLUMN_LOAD"] == "1"))
     func measureColumnLoadsAndShapes() async throws {
         var lines: [String] = [
             "diskindex column-load bench \(ISO8601DateFormatter().string(from: Date()))",

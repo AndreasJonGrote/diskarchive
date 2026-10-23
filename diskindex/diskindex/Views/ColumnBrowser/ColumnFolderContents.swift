@@ -59,6 +59,8 @@ struct ColumnFolderContents<Row: View>: View {
     @State private var loadStartedAt: ContinuousClock.Instant?
     /// Zuletzt ausgeführter Scroll-Auftrag (je Auftrag einmal, sobald die Zeile da ist).
     @State private var scrolledToken: Int?
+    /// Erledigter Auftrag der Tabelle; lebt hier, nicht in der (ersetzbaren) Tabellenansicht (bug.0.4.148 b).
+    @State private var scrollDone = ScrollTokenBox()
 
     private var pathKey: String {
         ([mediumID.uuidString] + path).joined(separator: "\u{0}")
@@ -70,7 +72,7 @@ struct ColumnFolderContents<Row: View>: View {
 
     /// bug.0.4.132: Ein Scroll-Auftrag steht aus und die Zeile ist geladen.
     private var pendingScroll: Bool {
-        guard let id = scrollTarget.id, scrollTarget.token != scrolledToken, !isLoading else { return false }
+        guard scrollTarget.token > 0, let id = scrollTarget.id, scrollTarget.token != scrolledToken, !isLoading else { return false }
         return filteredItems.contains { $0.id == id }
     }
 
@@ -96,7 +98,7 @@ struct ColumnFolderContents<Row: View>: View {
             } else if isLoading {
                 Color.clear
             } else if usesTableView {
-                ColumnFolderTableView(items: filteredItems, selectedIDs: selectedIDs, scrollTarget: scrollTarget, row: row)
+                ColumnFolderTableView(items: filteredItems, selectedIDs: selectedIDs, scrollTarget: scrollTarget, scrollDone: scrollDone, row: row)
                     .padding(.horizontal, 8)
             } else {
                 ScrollViewReader { proxy in

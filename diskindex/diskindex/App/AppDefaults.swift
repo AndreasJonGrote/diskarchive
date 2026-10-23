@@ -22,6 +22,12 @@ nonisolated enum AppDefaults {
 
     static let testDomainPrefix = "app.diskarchive.tests."
 
+    /// Namen früherer Testhelfer (bug.0.4.124): ohne Prozesskennung, darum beim Aufräumen immer entfernt.
+    static let legacyTestPrefixes = [
+        "app.diskarchive.tests.startup.", "PauseNoticeTextTests-", "diskindex-lang-", "diskindex-prune-",
+        "diskindex-settings-", "autosend", "diskindex-term-settings-", "diskindex-lifecycle-",
+    ]
+
     /// Löscht Test-Domänen (`app.diskarchive.tests.<pid>`) von Prozessen, die nicht mehr laufen: aus den
     /// Einstellungen und die `.plist`-Datei. Die eigene und die laufender (parallel gestarteter) Prozesse bleiben.
     static func removeStaleTestDomains(
@@ -32,8 +38,16 @@ nonisolated enum AppDefaults {
         let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
         for file in files {
             let name = file.deletingPathExtension().lastPathComponent
-            guard file.pathExtension == "plist", name.hasPrefix(testDomainPrefix),
-                  let pid = Int32(name.dropFirst(testDomainPrefix.count)),
+            guard file.pathExtension == "plist" else { continue }
+            // bug.0.4.124: Altlasten ohne Prozesskennung (frühere Testhelfer) gehen immer weg.
+            if legacyTestPrefixes.contains(where: { name.hasPrefix($0) }) {
+                UserDefaults.standard.removePersistentDomain(forName: name)
+                if WriteGuard.permitsWrite(to: file) { try? FileManager.default.removeItem(at: file) }
+                continue
+            }
+            // `app.diskarchive.tests.<pid>` und `app.diskarchive.tests.<pid>.<Name>` (Helfer `TestDefaults.make`).
+            guard name.hasPrefix(testDomainPrefix),
+                  let pid = Int32(name.dropFirst(testDomainPrefix.count).prefix { $0 != "." }),
                   pid != ownPID, !isRunning(pid)
             else { continue }
             UserDefaults.standard.removePersistentDomain(forName: name)

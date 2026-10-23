@@ -216,31 +216,18 @@ struct FilterTypeChipButton: View {
     @State private var isHovered = false
 
     var body: some View {
-        // bug.0.4.133: Innenabstand, Fläche und Rahmen im Inhalt des Knopfs (wie `FavoritesConnectionChip`), sonst ist
-        // nur der Text klickbar; Maße nach Katalog „Chips“ (10/400, 3/10, Höhe 23,5) wie `.tag` in Layout 09.
-        Button(action: action) {
-            Text(label)
-                .font(.system(size: 10, weight: .regular))
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 3)
-                .frame(minHeight: 23.5)
-                .foregroundStyle(isSelected ? DesignColor.filterSearch : DesignColor.text.opacity(0.7))
-                .background(chipBackground)
-                .overlay {
-                    RoundedRectangle(cornerRadius: DesignRadius.sm)
-                        .strokeBorder(
-                            isSelected ? DesignColor.chipBorder(DesignColor.filterSearch) : DesignColor.neutral300,
-                            lineWidth: DesignBorder.width
-                        )
-                }
-        }
-        .buttonStyle(.plainFullHit)
-            .disabled(!isEnabled)
-            .opacity(isEnabled ? 1 : 0.35)
-            .pointerCursor(isEnabled)
-            .onHover { isHovered = $0 && isEnabled }
+        // bug.0.4.133/149: das gemeinsame Chip-Rezept (`ChipButton`); hier nur Farben und Zustände.
+        ChipButton(
+            title: label,
+            foreground: isSelected ? DesignColor.filterSearch : DesignColor.text.opacity(0.7),
+            background: chipBackground,
+            border: isSelected ? DesignColor.chipBorder(DesignColor.filterSearch) : DesignColor.neutral300,
+            action: action
+        )
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.35)
+        .pointerCursor(isEnabled)
+        .onHover { isHovered = $0 && isEnabled }
     }
 
     private var chipBackground: Color {

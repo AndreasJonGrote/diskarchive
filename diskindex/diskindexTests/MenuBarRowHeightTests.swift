@@ -40,7 +40,7 @@ struct MenuBarRowHeightTests {
 
     private func medium(indexing: Bool) -> Medium {
         var medium = Medium(
-            id: UUID(uuidString: "D1590001-0000-4000-8000-000000000159")!,
+            id: testUUID("D1590001-0000-4000-8000-000000000159"),
             name: "Zeilenhalt",
             type: .ssd,
             connectionStatus: .connected,
@@ -80,7 +80,7 @@ struct MenuBarRowHeightTests {
         let ground = srgb(PixelProbe.color(in: bitmap, at: CGPoint(x: 52, y: from + 2)))
         let start = Int(from * scale)
         let end = Int(until * scale)
-        for y in start..<end {
+        for y in start..<max(start, end) {
             let color = srgb(PixelProbe.color(in: bitmap, at: CGPoint(x: 52, y: CGFloat(y) / scale)))
             if !near(color, ground) { return CGFloat(y) / scale }
         }
@@ -94,7 +94,7 @@ struct MenuBarRowHeightTests {
         let end = min(bitmap.pixelsHigh, Int(until * scale))
         var top: Int?
         var bottom = start
-        for y in start..<end {
+        for y in start..<max(start, end) {
             let color = srgb(PixelProbe.color(in: bitmap, at: CGPoint(x: 52, y: CGFloat(y) / scale)))
             if !near(color, ground) {
                 if top == nil { top = y }

@@ -32,7 +32,7 @@ extension AppState {
     var globalAutoIndexPausedBinding: Binding<Bool> {
         Binding(
             get: { self.globalAutoIndexPaused },
-            set: { self.globalAutoIndexPaused = $0 }
+            set: { self.globalAutoIndexPaused = $0 || self.settingsUnreadable }
         )
     }
 

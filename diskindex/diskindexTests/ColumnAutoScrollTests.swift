@@ -76,6 +76,8 @@ enum ColumnAutoScrollTestSupport {
         #expect(!detailTrailingFlushWithViewport(scroll))
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A", "B", "C"]).first { !$0.isFolder })
         app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
+        // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
+        app.columnScrollToken += 1
         // bug.0.3.8.007: Standard-Zeitgrenze (10 s) statt 0,5 s — positives Warten bricht beim Eintreten ab.
         let aligned = await waitUntil {
             session.window.contentView?.layoutSubtreeIfNeeded()
@@ -158,6 +160,8 @@ enum ColumnAutoScrollTestSupport {
             try #require(selected, "Klick bei \(point) wählte die Datei nicht: \(app.columnBrowserState.selection.ids)")
         } else {
             app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
+            // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
+            app.columnScrollToken += 1
         }
         let aligned = await waitUntil(timeout: 3) {
             session.window.contentView?.layoutSubtreeIfNeeded()
@@ -184,6 +188,8 @@ enum ColumnAutoScrollTestSupport {
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A"]).first { !$0.isFolder })
         let before = horizontalScrollLeadingOffset(in: session.window)
         app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 1)
+        // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
+        app.columnScrollToken += 1
         try await Task.sleep(for: .milliseconds(450))
         session.window.contentView?.layoutSubtreeIfNeeded()
         session.window.display()
@@ -205,6 +211,8 @@ enum ColumnAutoScrollTestSupport {
         _ = await app.indexRepository.loadChildren(mediumID: mediumID, path: ["A", "B", "C"])
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A", "B", "C"]).first { !$0.isFolder })
         app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
+        // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
+        app.columnScrollToken += 1
         // bug.0.3.8.007: Standard-Zeitgrenze (10 s) statt 0,5 s — positives Warten bricht beim Eintreten ab.
         let aligned = await waitUntil {
             session.window.contentView?.layoutSubtreeIfNeeded()

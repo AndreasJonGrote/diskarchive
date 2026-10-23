@@ -21,6 +21,7 @@ actor IndexStoreV3 {
     private(set) var changeGeneration = 0
     /// Tests: das nächste Schreiben einer Ebene schlägt fehl.
     var directoryWritesFail = false
+    var beginIndexingRejected = false
     /// Tests: Leseabfragen für Kinder werfen (Aufgabe 109).
     var childrenReadsFail = false
     /// Tests: `searchCount` braucht künstlich länger (Ergebnisse erscheinen vor der Zahl, 215).
@@ -127,6 +128,11 @@ actor IndexStoreV3 {
     #if DEBUG
     func setDirectoryWritesFailing(_ failing: Bool) {
         directoryWritesFail = failing
+    }
+
+    /// Tests (bug.0.4.152): `beginIndexing` lehnt ab, als wäre der Token schon verworfen.
+    func setBeginIndexingRejected(_ rejected: Bool) {
+        beginIndexingRejected = rejected
     }
 
     /// Tests: `children`/`childrenPage`/`childCount` werfen einen Speicherfehler.
@@ -309,7 +315,7 @@ actor IndexStoreV3 {
             )
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.index, .error, "index maintenance \(error)")
+                DiskIndexLog.shared.record(.index, .error, "index maintenance \(DiskIndexLog.errorSummary(error))")
             }
         }
     }
@@ -349,7 +355,7 @@ actor IndexStoreV3 {
             DiskIndexLog.shared.record(.store, .info, "updateMedium count=1")
             emit(.medium(uuid))
         } catch {
-            DiskIndexLog.shared.record(.store, .error, "updateMedium \(error)")
+            DiskIndexLog.shared.record(.store, .error, "updateMedium \(DiskIndexLog.errorSummary(error))")
             throw error
         }
     }
@@ -444,15 +450,22 @@ actor IndexStoreV3 {
         }
         do {
             let deleted = try await pool.write { db -> Bool in
+                // bug.0.4.108: die Kaskade löscht alle Zeilen des Mediums – als Wartungsschuld buchen, sonst bleibt die
+                // Datei groß (freie Seiten werden nie zurückgegeben).
+                let rows = try Int.fetchOne(
+                    db, sql: "SELECT fileCount + folderCount FROM storages WHERE uuid = ?", arguments: [MediumCodecV3.data(uuid)]
+                ) ?? 0
                 try db.execute(sql: "DELETE FROM storages WHERE uuid = ?", arguments: [MediumCodecV3.data(uuid)])
-                return db.changesCount > 0
+                let removed = db.changesCount > 0
+                if removed { try DatabaseMaintenance.addDebt(db, rows: rows) }
+                return removed
             }
             guard deleted else { return }
             DiskIndexLog.shared.record(.store, .info, "deleteMedium count=1")
             emit(.removed(uuid))
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "deleteMedium \(error)")
+                DiskIndexLog.shared.record(.store, .error, "deleteMedium \(DiskIndexLog.errorSummary(error))")
             }
             throw error
         }
@@ -541,7 +554,7 @@ actor IndexStoreV3 {
             emit(.items(mediumUUID, folderPaths: uniquePaths))
             emit(.counts(mediumUUID))
         } catch {
-            DiskIndexLog.shared.record(.store, .error, "applyDirectories \(error)")
+            DiskIndexLog.shared.record(.store, .error, "applyDirectories \(DiskIndexLog.errorSummary(error))")
             throw error
         }
     }
@@ -674,6 +687,42 @@ actor IndexStoreV3 {
         )
     }
 
+    /// bug.0.4.151: Merker „der letzte Lauf bis zum Ende fand eine Lücke“ in `storage_meta` (neuer Schlüssel, Regel 27).
+    nonisolated static let indexGapsKey = "indexGaps"
+
+    func indexHasGaps(mediumUUID: UUID) async throws -> Bool {
+        try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return false }
+            return try String.fetchOne(
+                db,
+                sql: """
+                    SELECT m.value FROM storage_meta m JOIN meta_keys k ON k.id = m.keyID
+                    WHERE m.storageID = ? AND k.key = ?
+                    """,
+                arguments: [storageID, Self.indexGapsKey]
+            ) == "1"
+        }
+    }
+
+    private nonisolated static func setIndexGaps(_ db: Database, _ storageID: Int64, _ gaps: Bool) throws {
+        let key = indexGapsKey
+        guard gaps else {
+            try db.execute(
+                sql: "DELETE FROM storage_meta WHERE storageID = ? AND keyID IN (SELECT id FROM meta_keys WHERE key = ?)",
+                arguments: [storageID, key]
+            )
+            return
+        }
+        try db.execute(sql: "INSERT OR IGNORE INTO meta_keys (key) VALUES (?)", arguments: [key])
+        try db.execute(
+            sql: """
+                INSERT OR REPLACE INTO storage_meta (storageID, keyID, value, date)
+                SELECT ?, id, '1', NULL FROM meta_keys WHERE key = ?
+                """,
+            arguments: [storageID, key]
+        )
+    }
+
     /// bug.0.4.127: Ob das Medium Ordner hat, die beim letzten Lesen nicht lesbar waren (Lücke im Index).
     func hasUnreadableFolders(mediumUUID: UUID) async throws -> Bool {
         try await pool.read { db in
@@ -711,15 +760,23 @@ actor IndexStoreV3 {
     /// Start eines Laufs. `false`, wenn `finishIndexing` den Token schon verworfen hat.
     func beginIndexing(mediumUUID: UUID, token: UUID) async throws -> Bool {
         if revokedIndexingTokens.remove(token) != nil { return false }
+        #if DEBUG
+        if beginIndexingRejected { return false }
+        #endif
         indexingToken[mediumUUID] = token
         insertedIDsDuringRun[mediumUUID] = []
         do {
-            try await pool.write { db in
+            let pending: Set<Int64> = try await pool.write { db in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
                 try db.execute(
                     sql: "UPDATE storages SET indexStatus = ? WHERE id = ?",
                     arguments: [MediumCodecV3.code(.indexing), storageID]
                 )
+                return try Self.pendingReconnectIDs(db, storageID)
+            }
+            // bug.0.4.141 (b): Zuordnung aus einem unterbrochenen Lauf bleibt bis zum nächsten vollständigen Ende.
+            if indexingToken[mediumUUID] == token, !pending.isEmpty {
+                insertedIDsDuringRun[mediumUUID, default: []].formUnion(pending)
             }
         } catch {
             if indexingToken[mediumUUID] == token { indexingToken[mediumUUID] = nil }
@@ -771,6 +828,9 @@ actor IndexStoreV3 {
                 )
             }
             if completesRun {
+                // bug.0.4.151: Lücke merken bzw. aufheben, getrennt von `firstIndexedAt` (das bleibt nach dem ersten
+                // vollständigen Lauf stehen).
+                try Self.setIndexGaps(db, storageID, status != .indexed)
                 let total = try Int.fetchOne(db, sql: "SELECT fileCount + folderCount FROM storages WHERE id = ?", arguments: [storageID]) ?? 0
                 try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
                 try Self.setScanTotalIncomplete(db, storageID, false)
@@ -787,6 +847,9 @@ actor IndexStoreV3 {
                     try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: Date(), delta: reconnectDelta)
                 }
             }
+            // bug.0.4.141 (b): unterbrochen → noch nicht zugeordnete neue Zeilen für den Folgelauf merken (der alte Ort
+            // wird vielleicht erst dort gelesen); vollständig beendet → Merker löschen.
+            try Self.storePendingReconnectIDs(db, storageID, completesRun ? [] : insertedIDs)
             if completesRun {
                 let deleted = try Self.deleteGoneItems(db, storageID: storageID)
                 if deleted > 0 {
@@ -799,6 +862,62 @@ actor IndexStoreV3 {
         }
         emit(.medium(mediumUUID))
         return true
+    }
+
+    /// bug.0.4.141: Schlüssel in `storage_meta` (neuer Schlüssel, Schema unverändert, Regel 27); Liste der Zeilen-IDs.
+    nonisolated static let pendingReconnectKey = "pendingReconnectIDs"
+    private nonisolated static let pendingReconnectLimit = 50_000
+
+    private nonisolated static func pendingReconnectIDs(_ db: Database, _ storageID: Int64) throws -> Set<Int64> {
+        let value = try String.fetchOne(
+            db,
+            sql: """
+                SELECT m.value FROM storage_meta m JOIN meta_keys k ON k.id = m.keyID
+                WHERE m.storageID = ? AND k.key = ?
+                """,
+            arguments: [storageID, pendingReconnectKey]
+        )
+        guard let value, !value.isEmpty else { return [] }
+        return Set(value.split(separator: ",").compactMap { Int64($0) })
+    }
+
+    private nonisolated static func storePendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: Set<Int64>) throws {
+        let key = pendingReconnectKey
+        var keep: [Int64] = []
+        if !ids.isEmpty {
+            // Nur noch sichtbare, nicht wiederverbundene Zeilen.
+            let all = Array(ids)
+            var offset = 0
+            while offset < all.count {
+                let chunk = Array(all[offset..<min(offset + 500, all.count)])
+                offset += 500
+                let marks = Array(repeating: "?", count: chunk.count).joined(separator: ",")
+                let found = try Int64.fetchAll(
+                    db,
+                    sql: "SELECT id FROM items WHERE storageID = ? AND status = 0 AND id IN (\(marks))",
+                    arguments: StatementArguments([storageID] + chunk)
+                )
+                keep.append(contentsOf: found)
+                if keep.count >= pendingReconnectLimit { break }
+            }
+        }
+        if keep.isEmpty {
+            try db.execute(
+                sql: "DELETE FROM storage_meta WHERE storageID = ? AND keyID IN (SELECT id FROM meta_keys WHERE key = ?)",
+                arguments: [storageID, key]
+            )
+            return
+        }
+        keep.sort()
+        let value = keep.prefix(pendingReconnectLimit).map(String.init).joined(separator: ",")
+        try db.execute(sql: "INSERT OR IGNORE INTO meta_keys (key) VALUES (?)", arguments: [key])
+        try db.execute(
+            sql: """
+                INSERT OR REPLACE INTO storage_meta (storageID, keyID, value, date)
+                SELECT ?, id, ?, NULL FROM meta_keys WHERE key = ?
+                """,
+            arguments: [storageID, value, key]
+        )
     }
 
     @discardableResult
@@ -868,7 +987,7 @@ actor IndexStoreV3 {
             DiskIndexLog.shared.record(.store, .info, "setFavorites count=\(ids.count)")
             for uuid in mediumUUIDs { emit(.counts(uuid)) }
         } catch {
-            DiskIndexLog.shared.record(.store, .error, "setFavorites \(error)")
+            DiskIndexLog.shared.record(.store, .error, "setFavorites \(DiskIndexLog.errorSummary(error))")
             throw error
         }
     }

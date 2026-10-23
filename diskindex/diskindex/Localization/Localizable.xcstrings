@@ -1671,6 +1671,22 @@
         }
       }
     },
+    "copy.settings.unreadable.notice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen konnten nicht gelesen werden – Änderungen werden nicht gespeichert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Settings could not be read – changes will not be saved."
+          }
+        }
+      }
+    },
     "copy.version_lock.banner.api" : {
       "localizations" : {
         "de" : {

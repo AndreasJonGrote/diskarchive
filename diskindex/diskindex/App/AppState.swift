@@ -69,6 +69,10 @@ final class AppState {
     var settingsTab: SettingsTab = .general
     var settingsScrollTarget: SettingsScrollTarget?
     var heldForSleep = false
+    /// bug.0.4.120: Ablauf des Starts je Instanz (Tests; kein Prozess-Zustand): Einstellungen geladen, bevor der Monitor startet.
+    @ObservationIgnored var didHydrateSettingsBeforeRecognition = false
+    /// `true`, sobald der Monitor vor `loadStoredMedia` gestartet wurde.
+    @ObservationIgnored var didStartCoordinatorBeforeLoad = false
     var indexingFailure: IndexingFailureNotice?
     var replaceMediumPrompt: ReplaceMediumPrompt?
     var ignoreConfirmationPrompt: IgnoreConfirmationPrompt?
@@ -138,7 +142,8 @@ final class AppState {
     var settingsSaveTask: Task<Void, Never>?
     var settingsReady = false
     /// bug.0.4.105: Eintrag in `settings` war nicht lesbar → nicht überschreiben (bis zum nächsten Start).
-    @ObservationIgnored var settingsUnreadable = false
+    /// bug.0.4.153: beobachtbar, das Einstellungsfenster zeigt dann den Hinweis; die Sitzung läuft wie pausiert.
+    var settingsUnreadable = false
     private var pruneDeadlineGeneration = 0
     private var pruneScheduleTask: Task<Void, Never>?
     @ObservationIgnored var pruneClock: @Sendable () -> Date = { Date() }
@@ -204,6 +209,11 @@ final class AppState {
                 columnBrowserState.selectedMediumID = nil
                 columnBrowserState.pathStack = []
                 columnBrowserState.selectedUncapturedFolderID = nil
+            }
+            // bug.0.4.135 (Regel 15): Auswahl und Pfad hier normalisieren, nicht in `onAppear` der Ansicht.
+            if mainWindowDestination == .columnBrowser {
+                ensureColumnBrowserSelection()
+                clampColumnPathToScanDepth()
             }
         }
     }
@@ -527,7 +537,7 @@ final class AppState {
             scheduleDatabaseMaintenance()
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
-            DiskIndexLog.shared.record(.index, .error, "index prune \(error)")
+            DiskIndexLog.shared.record(.index, .error, "index prune \(DiskIndexLog.errorSummary(error))")
         }
     }
 

@@ -71,7 +71,7 @@ struct StoreStartupLifecycleTests {
         let app = AppState()
         let (store, database, directory) = try makeTemporaryStore()
         defer { try? database.close(); try? FileManager.default.removeItem(at: directory) }
-        let defaults = try #require(UserDefaults(suiteName: "app.diskarchive.tests.store-lifecycle.\(UUID().uuidString)"))
+        let defaults = TestDefaults.make()
         var didWire = false
 
         await StartupSequence.run(

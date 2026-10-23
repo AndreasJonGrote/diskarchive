@@ -46,6 +46,8 @@ struct ColumnBrowserView: View {
     @Environment(\.columnTableViewMinimum) private var tableViewMinimum
     /// bug.0.4.132: zuletzt vollständig ausgeführter waagerechter Scroll-Auftrag.
     @State private var horizontalScrollDoneToken: Int?
+    /// bug.0.4.134: letzter Auftrag, für den Pfad-/Auswahländerungen waagerecht scrollten (Live-Änderungen scrollen nicht).
+    @State private var trailingScrollToken: Int?
 
     private var resolvedSelectedMedium: Medium? {
         if let id = appState.columnBrowserState.selectedMediumID,
@@ -132,10 +134,6 @@ struct ColumnBrowserView: View {
         }
         // Auswahl wird in `selectMedium` / `MediumNavigation` zurückgesetzt — hier nicht,
         // sonst ginge die Vorauswahl aus Suche/Favoriten verloren.
-        .onAppear {
-            ensureSelectedMedium()
-            clampPathToScanDepth()
-        }
         .task(id: columnLoadTaskID(mediumID: medium?.id, columns: columns, indexGeneration: indexGeneration)) {
             guard let medium else { return }
             for column in columns where column.special == nil {
@@ -162,7 +160,8 @@ struct ColumnBrowserView: View {
         let before = selection.ids
         selection.dropInvisible(Set(items.map(\.id)))
         if selection.ids != before {
-            commit(selection, column: column)
+            // bug.0.4.148 (d): Nachführen bei Live-Änderung ist keine Nutzeraktion → kein Scroll-Auftrag.
+            commit(selection, column: column, userInitiated: false)
         }
     }
 
@@ -173,10 +172,9 @@ struct ColumnBrowserView: View {
         folderListedAt: Date? = nil,
         folderUnreadable: Bool = false
     ) -> ColumnFolderOpenState {
-        ColumnFolderOpenState.resolve(
+        appState.columnFolderOpenState(
             columnIndex: columnIndex,
             medium: medium,
-            settings: appState.appSettings,
             folderName: folderName,
             folderListedAt: folderListedAt,
             folderUnreadable: folderUnreadable
@@ -398,18 +396,10 @@ struct ColumnBrowserView: View {
                     }
                 }
                 .onChange(of: appState.columnBrowserState.pathStack) { _, _ in
-                    scrollToTrailingColumn(
-                        proxy: proxy,
-                        folderColumns: folderColumns,
-                        showDetail: showDetail
-                    )
+                    scrollToTrailingColumnAfterUserAction(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
                 .onChange(of: appState.columnBrowserState.selection) { _, _ in
-                    scrollToTrailingColumn(
-                        proxy: proxy,
-                        folderColumns: folderColumns,
-                        showDetail: showDetail
-                    )
+                    scrollToTrailingColumnAfterUserAction(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
             }
         }
@@ -419,6 +409,19 @@ struct ColumnBrowserView: View {
 
     private static let legacyScrollerThickness: CGFloat =
         NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy)
+
+    /// bug.0.4.134: Pfad-/Auswahländerung scrollt nur, wenn eine Nutzeraktion (neuer Auftrag) sie ausgelöst hat – eine
+    /// Live-Änderung (Nachführen, Kürzen des Pfads) lässt die Ansicht stehen.
+    private func scrollToTrailingColumnAfterUserAction(
+        proxy: ScrollViewProxy,
+        folderColumns: [ColumnBrowserFolderColumn],
+        showDetail: Bool
+    ) {
+        let token = appState.columnScrollToken
+        guard token > 0, token != trailingScrollToken else { return }
+        trailingScrollToken = token
+        scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+    }
 
     private func scrollToTrailingColumn(
         proxy: ScrollViewProxy,
@@ -624,36 +627,11 @@ struct ColumnBrowserView: View {
         return ColumnScrollTarget(id: selection.lastClickedID ?? selection.ids.last, token: appState.columnScrollToken)
     }
 
-    private func commit(_ selection: ColumnSelection, column: ColumnBrowserFolderColumn) {
+    private func commit(_ selection: ColumnSelection, column: ColumnBrowserFolderColumn, userInitiated: Bool = true) {
         guard let medium = resolvedSelectedMedium else { return }
-        var state = appState.columnBrowserState
-        let ordered = selection.ordered(in: column.items)
-        let folder = ordered.count == 1 ? ordered[0] : nil
-        let open = folderOpenState(
-            columnIndex: column.columnIndex,
-            medium: medium,
-            folderName: folder?.name,
-            folderListedAt: folder?.listedAt,
-            folderUnreadable: folder?.unreadable ?? false
+        appState.commitColumnSelection(
+            selection, items: column.items, columnIndex: column.columnIndex, medium: medium, userInitiated: userInitiated
         )
-        let uncaptured: Bool = {
-            guard ordered.count == 1, ordered[0].isFolder else { return false }
-            if case .uncaptured = open { return true }
-            return false
-        }()
-        let effect = ColumnPathEffect.make(
-            columnIndex: column.columnIndex,
-            existingPath: state.pathStack,
-            selected: ordered,
-            uncapturedFolder: uncaptured
-        )
-        state.selection = selection
-        state.pathStack = effect.path
-        state.selectedUncapturedFolderID = effect.uncapturedID
-        appState.columnBrowserState = state
-        // bug.0.4.132: Nutzeraktion (Klick, Taste) → zur Auswahl scrollen.
-        appState.columnScrollToken += 1
-        DiskIndexLog.shared.ui("selection count=\(selection.ids.count) column=\(column.columnIndex)")
     }
 
     private func handleColumnKey(_ press: KeyPress, column: ColumnBrowserFolderColumn) -> KeyPress.Result {
@@ -671,9 +649,15 @@ struct ColumnBrowserView: View {
             return .handled
         }
         if press.key == .downArrow || press.key == .upArrow {
-            var selection = appState.columnBrowserState.selection
-            selection.move(step: press.key == .downArrow ? 1 : -1, extend: press.modifiers.contains(.shift), visible: visible.map(\.id), column: column.columnIndex)
-            commit(selection, column: column)
+            guard let medium = resolvedSelectedMedium else { return .ignored }
+            appState.moveColumnSelection(
+                step: press.key == .downArrow ? 1 : -1,
+                extend: press.modifiers.contains(.shift),
+                items: column.items,
+                visible: visible,
+                columnIndex: column.columnIndex,
+                medium: medium
+            )
             return .handled
         }
         return .ignored
@@ -790,27 +774,6 @@ struct ColumnBrowserView: View {
         appState.columnBrowserState.selection = ColumnSelection()
         appState.columnBrowserState.selectedUncapturedFolderID = nil
         DiskIndexLog.shared.ui("medium id=\(id)")
-    }
-
-    /// Nach Verringern der Scan-Tiefe (Einstellungen) keinen Pfad jenseits der Grenze offen lassen.
-    /// `indexedMaxDepth` = tiefster noch indizierter Ordner; dessen Inhalt (Kinder jenseits der Tiefe)
-    /// bleibt sichtbar — inkl. Hinweisfläche „Inhalt wird nicht indiziert“.
-    private func clampPathToScanDepth() {
-        guard let medium = resolvedSelectedMedium else { return }
-        let limit = appState.appSettings.indexedMaxDepth.map { min(medium.completedDepth, $0) } ?? medium.completedDepth
-        var state = appState.columnBrowserState
-        let maxPathLength = max(0, limit)
-        guard state.pathStack.count > maxPathLength else { return }
-        state.pathStack = Array(state.pathStack.prefix(maxPathLength))
-        state.selection = ColumnSelection()
-        state.selectedUncapturedFolderID = nil
-        appState.columnBrowserState = state
-    }
-
-    private func ensureSelectedMedium() {
-        if appState.columnBrowserState.selectedMediumID == nil {
-            appState.columnBrowserState.selectedMediumID = appState.columnBrowserMedia.first?.id
-        }
     }
 
     private var folderColumnWidthBinding: Binding<CGFloat> {

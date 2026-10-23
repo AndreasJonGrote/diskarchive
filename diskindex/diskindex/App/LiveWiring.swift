@@ -22,7 +22,7 @@ enum LiveWiring {
             stored = try await store.medium(uuid: id)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "store error medium reconcile \(error)")
+                DiskIndexLog.shared.record(.store, .error, "store error medium reconcile \(DiskIndexLog.errorSummary(error))")
             }
             stored = nil
         }
@@ -49,7 +49,7 @@ enum LiveWiring {
                 stored = try await store.medium(uuid: id)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "store error medium wake \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "store error medium wake \(DiskIndexLog.errorSummary(error))")
                 }
                 continue
             }

@@ -10,7 +10,6 @@ import Testing
 @MainActor
 struct MediumRecognitionStartupTests {
     @Test func bootstrapStartsMonitorBeforeMediaLoad() async throws {
-        MediumRecognitionStartup.resetStartupFlagsForTests()
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-startup-\(UUID().uuidString)", isDirectory: true)
         let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
@@ -25,11 +24,11 @@ struct MediumRecognitionStartupTests {
             coordinator: coordinator,
             startChangeLoop: { appState.startChangeLoop() }
         )
-        for _ in 0..<50 where !MediumRecognitionStartup.didHydrateSettingsBeforeRecognition {
-            try await Task.sleep(for: .milliseconds(20))
-        }
-        #expect(MediumRecognitionStartup.didHydrateSettingsBeforeRecognition)
-        #expect(MediumRecognitionStartup.didStartCoordinatorBeforeLoad)
+        // Auf die Bedingung warten (Frist mit Reserve), nicht eine feste Zeit.
+        let hydrated = await waitUntil(timeout: 10) { appState.didHydrateSettingsBeforeRecognition }
+        #expect(hydrated)
+        #expect(appState.didHydrateSettingsBeforeRecognition)
+        #expect(appState.didStartCoordinatorBeforeLoad)
         coordinator.stop()
     }
 

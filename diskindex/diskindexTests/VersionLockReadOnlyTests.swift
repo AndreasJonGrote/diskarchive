@@ -219,7 +219,7 @@ struct VersionLockReadOnlyTests {
         try #require(lock.app.versionLockState.isLocked)
         await lock.rig.coordinator.handle(.appeared(lock.watchVolume))
         #expect(lock.rig.coordinator.volume(for: lock.watchedID) != nil)
-        let defaults = try #require(UserDefaults(suiteName: "lock-pause-\(UUID().uuidString)"))
+        let defaults = TestDefaults.make()
         SystemNotice.$testHooks.withValue(NoticeTestHooks(post: { _, _ in })) {
             lock.app.pauseIndexing(until: nil, defaults: defaults)
             lock.app.resumeIndexing(defaults: defaults)

@@ -34,6 +34,33 @@ private func insertItem(_ db: Database, storage: Int64, parent: Int64? = nil, na
 }
 
 struct SchemaV3Tests {
+    /// bug.0.4.107: Reine Index-Migrationen prüfen nicht alle Fremdschlüssel nach dem Lauf – eine Altverletzung sperrt
+    /// den Start nicht.
+    @Test func indexMigrationsOpenDespiteOldForeignKeyViolation() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-fk-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("fk.sqlite")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let pool = try DatabasePool(path: url.path, configuration: SchemaV3.makeConfiguration())
+        try SchemaV3.migrator.migrate(pool, upTo: SchemaV3.firstMigration)
+        try pool.writeWithoutTransaction { db in
+            try db.execute(sql: "PRAGMA foreign_keys = OFF")
+            try db.execute(
+                sql: "INSERT INTO items (storageID, parentID, name, slug, isFolder) VALUES (9999, NULL, 'waise', 'waise', 0)"
+            )
+            try db.execute(sql: "PRAGMA foreign_keys = ON")
+        }
+        try pool.close()
+        let reopened = try SchemaV3.openPool(at: url)
+        defer { try? reopened.close() }
+        let indexes = try reopened.read { db in
+            Set(try String.fetchAll(db, sql: "SELECT name FROM sqlite_master WHERE type = 'index'"))
+        }
+        #expect(indexes.contains("items_gone"))
+        #expect(indexes.contains("items_search_natural"))
+    }
+
     // (1) alle 11 Tabellen und Suchhilfen, Spalten und Typen
     @Test func createsAllElevenTablesAndAllIndexes() throws {
         let (pool, directory) = try makeV3()

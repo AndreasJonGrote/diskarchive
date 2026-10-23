@@ -55,7 +55,7 @@ struct ColumnHorizontalScrollerTests {
             if let scroll = view as? NSScrollView {
                 let docW = scroll.documentView?.frame.width ?? 0
                 if docW > scroll.bounds.width + 20 {
-                    if best == nil || docW > best!.docWidth {
+                    if let current = best, docW <= current.docWidth {} else {
                         best = (scroll, docW)
                     }
                 }
@@ -420,7 +420,7 @@ struct ColumnHorizontalScrollerTests {
                 let isVertical = (scroll.documentView?.frame.height ?? 0) > scroll.bounds.height + 10
                     || scroll.hasVerticalScroller
                 if overlapsFirstColumn, isVertical || frame.width <= width + 20 {
-                    if best == nil || frame.width < (best!.convert(best!.bounds, to: host).width) {
+                    if let current = best, frame.width >= current.convert(current.bounds, to: host).width {} else {
                         best = scroll
                     }
                 }

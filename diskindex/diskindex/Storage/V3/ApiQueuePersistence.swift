@@ -22,14 +22,6 @@ nonisolated enum ApiQueuePersistence {
     static let maxRows = 50
     static let maxPayloadBytes = 5 * 1_024 * 1_024
 
-    static func openQueuePool() throws -> DatabasePool {
-        #if DEBUG
-        openQueuePoolCountTracker?.count += 1
-        #endif
-        // bug.0.4.086: derselbe Pool wie der Index, kein zweites Öffnen derselben Datei.
-        return try ArchiveDatabase.shared.pool()
-    }
-
     static func openQueuePool(at fileURL: URL) throws -> DatabasePool {
         #if DEBUG
         openQueuePoolCountTracker?.count += 1
@@ -128,6 +120,29 @@ nonisolated enum ApiQueuePersistence {
         guard let last = row.lastTryAt else { return true }
         let delay = IssueRetry.delay(afterAttempt: row.attempts)
         return now.timeIntervalSince1970 >= Double(last) + delay
+    }
+
+    /// bug.0.4.110/114: Fälligkeit der Warteschlange mit nur den vier Spalten, die dafür nötig sind (kein `SELECT *`
+    /// samt Nutzlast): ob etwas fällig ist und wann die nächste Zeile fällig wird.
+    static func schedule(_ pool: DatabasePool, now: Date) throws -> (hasDueWork: Bool, nextDue: Date?) {
+        let rows = try pool.read { db in
+            try Row.fetchAll(db, sql: "SELECT id, info, attempts, lastTryAt FROM api_queue ORDER BY id ASC")
+        }
+        var due = false
+        var next: Date?
+        for row in rows {
+            let light = ApiQueueRow(
+                id: row["id"], kind: 0, payload: nil, createdAt: 0, attempts: row["attempts"],
+                lastTryAt: row["lastTryAt"], info: row["info"]
+            )
+            if isBlocked(light) { continue }
+            if isDue(light, now: now) { due = true; continue }
+            if let last = light.lastTryAt {
+                let moment = Date(timeIntervalSince1970: Double(last) + IssueRetry.delay(afterAttempt: light.attempts))
+                if next == nil || moment < next! { next = moment }
+            }
+        }
+        return (due, next)
     }
 
     static func hasDueWork(_ pool: DatabasePool, kind: ApiQueueKind? = nil, now: Date) throws -> Bool {

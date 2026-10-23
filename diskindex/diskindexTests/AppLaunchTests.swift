@@ -11,6 +11,7 @@ import GRDB
 import Testing
 @testable import diskindex
 
+extension WindowTestGroup {
 @Suite(.serialized)
 @MainActor
 struct AppLaunchTests {
@@ -63,7 +64,25 @@ struct AppLaunchTests {
                 && NSScreen.screens.contains { $0.frame.intersects(window.frame) }
         }
         #expect(!onScreen, "Hauptfenster im sichtbaren Bereich: \(NSApp.windows.filter(\.isVisible).map { "\($0.title) \($0.frame)" })")
-        AppWindowPresenter.prepareForTermination()
+        AppWindowPresenter.closeMainWindow()
+    }
+
+    /// bug.0.4.142: Ohne gesetzte Lage (Vorgabe `nil`) öffnet der Testprozess das Hauptfenster trotzdem außerhalb des
+    /// Bildschirms und ohne Key-Fenster (Regel 19/21).
+    @Test func placementDefaultsToOffscreenInTests() {
+        #expect(AppWindowPresenter.effectivePlacement(nil) == .offscreen)
+        #expect(AppWindowPresenter.effectivePlacement(.centered) == .offscreen)
+        let app = AppState()
+        #expect(app.promptPanelPlacement == nil)
+        #expect(AppWindowPresenter.mainWindowPlacement(for: app) == .offscreen)
+        AppWindowPresenter.openMain(appState: app)
+        defer { AppWindowPresenter.closeMainWindow() }
+        let window = NSApp.windows.first { $0.title == LayoutCopy.diskIndex && $0.isVisible }
+        #expect(window != nil)
+        if let window {
+            #expect(!window.isKeyWindow)
+            #expect(!NSScreen.screens.contains { $0.frame.intersects(window.frame) })
+        }
     }
 
     /// bug.0.4.074: `start` reiht über `enqueueCheckIfDue` ein (kein Abkühl-Zähler mehr, kein TaskLocal).
@@ -88,4 +107,5 @@ struct AppLaunchTests {
         #expect(enqueued)
         #expect(try await testStore.pool.read(SystemSettingsPersistence.readLastVersionCheckAt) != nil)
     }
+}
 }

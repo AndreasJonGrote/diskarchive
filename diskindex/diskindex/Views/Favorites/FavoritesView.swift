@@ -101,23 +101,13 @@ private struct FavoritesConnectionChip: View {
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 10, weight: .regular))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 3)
-                .frame(minHeight: 23.5)
-                .foregroundStyle(isSelected ? DesignColor.filterSearch : DesignColor.text.opacity(0.55))
-                .background(isSelected ? DesignColor.chipFill(DesignColor.filterSearch) : Color.clear)
-                .overlay {
-                    RoundedRectangle(cornerRadius: DesignRadius.sm)
-                        .strokeBorder(
-                            isSelected ? DesignColor.chipBorder(DesignColor.filterSearch) : DesignColor.neutral500,
-                            lineWidth: DesignBorder.width
-                        )
-                }
-        }
-        .buttonStyle(.plainFullHit)
+        ChipButton(
+            title: title,
+            foreground: isSelected ? DesignColor.filterSearch : DesignColor.text.opacity(0.55),
+            background: isSelected ? DesignColor.chipFill(DesignColor.filterSearch) : Color.clear,
+            border: isSelected ? DesignColor.chipBorder(DesignColor.filterSearch) : DesignColor.neutral500,
+            action: action
+        )
         .pointerCursor()
     }
 }

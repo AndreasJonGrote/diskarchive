@@ -26,7 +26,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 try await store.resetCompletedDepth(mediumUUID: mediumUUID)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.index, .error, "resetCompletedDepth \(error)")
+                    DiskIndexLog.shared.record(.index, .error, "resetCompletedDepth \(DiskIndexLog.errorSummary(error))")
                 }
             }
         }
@@ -39,7 +39,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             stored = value
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "store error medium \(error)")
+                DiskIndexLog.shared.record(.store, .error, "store error medium \(DiskIndexLog.errorSummary(error))")
             }
             return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: IndexFailureReason.classify(error))
         }
@@ -48,7 +48,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             began = try await store.beginIndexing(mediumUUID: mediumUUID, token: token)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.store, .error, "store error beginIndexing \(error)")
+                DiskIndexLog.shared.record(.store, .error, "store error beginIndexing \(DiskIndexLog.errorSummary(error))")
             }
             return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: stored.firstIndexedAt, failureReason: IndexFailureReason.classify(error))
         }
@@ -103,7 +103,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 try await store.markScanTotalIncomplete(mediumUUID: mediumUUID)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "store error markScanTotalIncomplete \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "store error markScanTotalIncomplete \(DiskIndexLog.errorSummary(error))")
                 }
             }
         }
@@ -186,7 +186,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                             try await store.setScanTotal(mediumUUID: mediumUUID, total: recount.total)
                         } catch {
                             if DiskIndexLog.isOperationalFailure(error) {
-                                DiskIndexLog.shared.record(.store, .error, "store error setScanTotal \(error)")
+                                DiskIndexLog.shared.record(.store, .error, "store error setScanTotal \(DiskIndexLog.errorSummary(error))")
                             }
                         }
                     }
@@ -366,7 +366,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                                 _ = try await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .error, firstIndexedAt: nil)
                             } catch {
                                 if DiskIndexLog.isOperationalFailure(error) {
-                                    DiskIndexLog.shared.record(.index, .error, "finish nach stapel \(error)")
+                                    DiskIndexLog.shared.record(.index, .error, "finish nach stapel \(DiskIndexLog.errorSummary(error))")
                                 }
                             }
                             return IndexRunOutcome(
@@ -405,12 +405,12 @@ nonisolated struct DirectoryIndexer: Sendable {
                 guard DiskIndexLog.isOperationalFailure(error) else {
                     return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                 }
-                DiskIndexLog.shared.record(.index, .error, "ebene \(depth) \(error)")
+                DiskIndexLog.shared.record(.index, .error, "ebene \(depth) \(DiskIndexLog.errorSummary(error))")
                 do {
                     _ = try await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .error, firstIndexedAt: nil)
                 } catch {
                     if DiskIndexLog.isOperationalFailure(error) {
-                        DiskIndexLog.shared.record(.index, .error, "finish nach ebenenfehler \(error)")
+                        DiskIndexLog.shared.record(.index, .error, "finish nach ebenenfehler \(DiskIndexLog.errorSummary(error))")
                     }
                 }
                 return IndexRunOutcome(status: .error, readErrors: readErrors, progress: samples, completedDepths: completedDepths, firstIndexedAt: stored.firstIndexedAt, failureReason: IndexFailureReason.classify(error))
@@ -451,7 +451,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             )
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.index, .error, "finish \(error)")
+                DiskIndexLog.shared.record(.index, .error, "finish \(DiskIndexLog.errorSummary(error))")
             }
             committed = false
         }
@@ -491,7 +491,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 try await store.markScanTotalIncomplete(mediumUUID: mediumUUID)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "store error markScanTotalIncomplete \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "store error markScanTotalIncomplete \(DiskIndexLog.errorSummary(error))")
                 }
             }
         }
@@ -595,7 +595,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             _ = try await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .error, firstIndexedAt: nil)
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.index, .error, "finish nach stapel \(error)")
+                DiskIndexLog.shared.record(.index, .error, "finish nach stapel \(DiskIndexLog.errorSummary(error))")
             }
         }
         return IndexRunOutcome(
@@ -635,7 +635,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             )
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
-                DiskIndexLog.shared.record(.index, .error, "abbruch \(error)")
+                DiskIndexLog.shared.record(.index, .error, "abbruch \(DiskIndexLog.errorSummary(error))")
             }
         }
         let fresh = try? await store.medium(uuid: mediumUUID)

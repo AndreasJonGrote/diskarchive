@@ -18,6 +18,8 @@ nonisolated final class DirectoryWriterV3 {
     private let partialMatchingEnabled: Bool
     private var extensionIDs: [String: Int64] = [:]
     private var activePrecomputedPartials: [String: Data]?
+    /// bug.0.4.141: Teil-Prüfsumme einer Datei, die nicht vorab berechnet wurde (Wiederverbinden am Laufende), von der Platte.
+    private var activePartialFallback: ((String) throws -> Data?)?
     /// Lauf-Tracking für bug.0.4.015 (Verbindungs-Nachlauf).
     var onInsertedItemID: ((Int64) -> Void)?
 
@@ -261,6 +263,19 @@ nonisolated final class DirectoryWriterV3 {
             guard let inserted = try fetchListedRow(id: insertedID), inserted.status == 0 else { continue }
             let entry = scannedEntry(from: inserted)
             let extID = inserted.extID
+            // bug.0.4.141: ohne vorab berechnete Teil-Prüfsumme (Laufende) nur lesend von der Platte holen, und nur wenn
+            // ein Kandidat mit gespeicherter Teil-Prüfsumme sie wirklich braucht.
+            let priorFallback = activePartialFallback
+            let priorPartials = activePrecomputedPartials
+            activePrecomputedPartials = nil
+            if let mountPath, !entry.isFolder {
+                let segments = try Self.segments(db, itemID: insertedID)
+                activePartialFallback = { _ in
+                    let url = Self.fileURL(mountPath: mountPath, parentSegments: Array(segments.dropLast()), name: entry.name)
+                    return (try? PartialChecksum.compute(at: url))?.partial
+                }
+            }
+            defer { activePartialFallback = priorFallback; activePrecomputedPartials = priorPartials }
             guard let gone = try matchGoneCandidate(
                 entry: entry, parentID: inserted.parentID, extID: extID, mountPath: mountPath
             ) else { continue }
@@ -754,7 +769,8 @@ nonisolated final class DirectoryWriterV3 {
     private func incomingPartialDigest(mountPath: String, parentID: Int64?, name: String) throws -> Data? {
         _ = mountPath
         _ = parentID
-        return activePrecomputedPartials?[name]
+        if let precomputed = activePrecomputedPartials?[name] { return precomputed }
+        return try activePartialFallback?(name)
     }
 
     static func fileURL(mountPath: String, parentSegments: [String], name: String) -> URL {

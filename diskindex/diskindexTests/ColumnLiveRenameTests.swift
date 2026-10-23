@@ -62,10 +62,16 @@ struct ColumnLiveRenameTests {
             appearance: .aqua
         )
         defer { session.close() }
-        _ = await tree.app.indexRepository.loadChildren(mediumID: tree.medium.uuid, path: [])
-        _ = await tree.app.indexRepository.loadChildren(mediumID: tree.medium.uuid, path: ["Alpha"])
-        try await Task.sleep(for: .milliseconds(200))
+        // Regel 18: die Spalte lädt selbst (offenes Fenster); der Test wartet nur auf das erste sichtbare Ergebnis.
+        let loaded = await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            session.window.display()
+            return firstRowHasInk(session.bitmap())
+                && tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: []).map(\.name).contains("readme.txt")
+        }
+        try #require(loaded)
 
+        // Änderung nur über den Store: der echte Weg (Store → Änderungsmeldung → Wiederladen) liefert den neuen Namen.
         try await tree.store.applyDirectory(
             mediumUUID: tree.medium.uuid,
             parentID: nil,
@@ -76,35 +82,19 @@ struct ColumnLiveRenameTests {
             ],
             seenAt: Date()
         )
-        let generationBefore = tree.app.indexRepository.generation
-        await tree.app.scheduleIndexChange(.items(tree.medium.uuid, folderPaths: [[]]), dropped: false)
-        try await Task.sleep(for: .milliseconds(550))
-        if tree.app.indexRepository.generation == generationBefore {
-            tree.app.indexRepository.invalidate(mediumID: tree.medium.uuid, path: [])
-        }
 
-        let deadline = Date().addingTimeInterval(3)
+        let deadline = Date().addingTimeInterval(8)
         var sawNewName = false
         while Date() < deadline {
-            tree.app.indexRepository.requestLoad(mediumID: tree.medium.uuid, path: [])
             session.window.contentView?.layoutSubtreeIfNeeded()
             session.window.display()
             try await Task.sleep(for: .milliseconds(16))
-            let bitmap = session.bitmap()
-            #expect(firstRowHasInk(bitmap), "Wurzelspalte leer während Update")
-            let names = tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: [])
-            if names.map(\.name).contains("neu-name.txt") {
+            #expect(firstRowHasInk(session.bitmap()), "Wurzelspalte leer während Update")
+            let names = tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: []).map(\.name)
+            if names.contains("neu-name.txt") {
                 sawNewName = true
                 break
             }
-            if !tree.app.indexRepository.isLoading(mediumID: tree.medium.uuid, path: []) {
-                _ = await tree.app.indexRepository.loadChildren(mediumID: tree.medium.uuid, path: [])
-                if tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: []).map(\.name).contains("neu-name.txt") {
-                    sawNewName = true
-                    break
-                }
-            }
-            try await Task.sleep(for: .milliseconds(16))
         }
         #expect(sawNewName)
         #expect(!tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: []).map(\.name).contains("readme.txt"))

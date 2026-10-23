@@ -77,7 +77,7 @@ extension AppState {
                     _ = try await store.reconcileScopeToStatus(scope)
                 } catch {
                     if DiskIndexLog.isOperationalFailure(error) {
-                        DiskIndexLog.shared.record(.index, .error, "rule reconcile \(error)")
+                        DiskIndexLog.shared.record(.index, .error, "rule reconcile \(DiskIndexLog.errorSummary(error))")
                     }
                     break
                 }
@@ -167,7 +167,13 @@ extension AppState {
             if let old = previous?.first(where: { $0.isFolder && $0.name == open }), let rowID = old.rowID {
                 return items.first { $0.isFolder && $0.rowID == rowID }
             }
-            // Ohne alten Stand (Cache verworfen): der gewählte offene Ordner hat dieselbe stabile Kennung.
+            // Ohne alten Stand (Cache verworfen): die gemerkte Zeilenkennung des offenen Ordners (bug.0.4.147), auch
+            // wenn die Auswahl schon tiefer liegt …
+            if level < state.openFolderRowIDs.count {
+                let known = state.openFolderRowIDs[level]
+                if let hit = items.first(where: { $0.isFolder && $0.rowID == known }) { return hit }
+            }
+            // … sonst der gewählte Ordner dieser Spalte.
             guard state.selection.focusColumnIndex == level else { return nil }
             return items.first { $0.isFolder && state.selection.contains($0.id) }
         }()

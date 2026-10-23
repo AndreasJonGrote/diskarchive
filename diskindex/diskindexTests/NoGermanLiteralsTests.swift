@@ -26,7 +26,7 @@ struct NoGermanLiteralsTests {
             "EmptyStateView.swift",
         ])
         for base in targets {
-            let enumerator = FileManager.default.enumerator(at: base, includingPropertiesForKeys: nil)!
+            let enumerator = try #require(FileManager.default.enumerator(at: base, includingPropertiesForKeys: nil))
             for case let file as URL in enumerator where file.pathExtension == "swift" {
                 if skipFiles.contains(file.lastPathComponent) { continue }
                 if file.path.contains("/Diagnostics/") { continue }

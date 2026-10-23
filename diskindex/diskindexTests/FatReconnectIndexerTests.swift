@@ -97,6 +97,85 @@ struct FatReconnectIndexerTests {
         #expect(after.parentID == folderA.id)
     }
 
+    /// Echte Dateien unter einem Temp-Ordner (Teil-Prüfsumme wird von der Platte gelesen), Auflistung aus `MemoryVolume`.
+    private func realFileHarness(fsType: String) async throws -> (ScanHarness, MemoryVolume, URL) {
+        let harness = try await ScanHarness.make(fsType: fsType)
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-reconnect-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        return (harness, MemoryVolume(mountPath: root.path), root)
+    }
+
+    private func writeReal(_ relative: String, in root: URL, bytes: Int = 50) throws {
+        let url = root.appendingPathComponent(relative)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(repeating: 0x41, count: bytes).write(to: url)
+    }
+
+    private func moveReal(_ from: String, _ to: String, in root: URL) throws {
+        let target = root.appendingPathComponent(to)
+        try FileManager.default.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try FileManager.default.moveItem(at: root.appendingPathComponent(from), to: target)
+    }
+
+    /// bug.0.4.141 (a): Favorit mit gespeicherter Teil-Prüfsumme (FAT ohne `fileID`), Datei in anderen Ordner verschoben,
+    /// Lauf bis zum Ende → dieselbe Zeile, Favorit bleibt (Wiederverbinden am Laufende liest die Teil-Prüfsumme der Platte).
+    @Test func movedFileWithStoredPartialKeepsFavoriteID() async throws {
+        let (harness, volume, root) = try await realFileHarness(fsType: "exfat")
+        defer { try? FileManager.default.removeItem(at: root) }
+        try writeReal("B/a.txt", in: root)
+        try writeReal("C/c.txt", in: root, bytes: 9)
+        _ = volume.file("B/a.txt", size: 50).file("C/c.txt", size: 9)
+        let vol = harness.volume(at: volume.mountPath)
+        _ = try await harness.run(access: volume, maxDepth: nil, fromScratch: true, volume: vol)
+        let before = try #require(try await harness.item(named: "a.txt"))
+        try await harness.store.setFavorite(itemID: before.id, true)
+        try await harness.store.storePartialChecksum(itemID: before.id, mountPath: volume.mountPath)
+        try moveReal("B/a.txt", "A/a.txt", in: root)
+        volume.remove("B/a.txt")
+        _ = volume.file("A/a.txt", size: 50)
+        _ = try await harness.run(access: volume, maxDepth: nil, fromScratch: false, volume: vol)
+        let after = try #require(try await harness.item(named: "a.txt"))
+        #expect(after.id == before.id)
+        #expect(after.isFavorite, "Favorit mit gespeicherter Teil-Prüfsumme nach Verschieben verloren")
+    }
+
+    /// bug.0.4.141 (b): Lauf wird unterbrochen, **bevor** der alte Ordner gelesen wurde (neuer Ort eingefügt, alte Zeile
+    /// noch sichtbar) → der Folgelauf löscht die alte Zeile nicht samt Favorit.
+    @Test func interruptedBeforeOldFolderReadKeepsFavorite() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let volume = MemoryVolume(mountPath: "/Volumes/EXFAT")
+        _ = volume.file("B/a.txt", size: 50).file("C/c.txt", size: 9)
+        let vol = harness.volume(at: volume.mountPath)
+        _ = try await harness.run(access: volume, maxDepth: nil, fromScratch: true, volume: vol)
+        let before = try #require(try await harness.item(named: "a.txt"))
+        try await harness.store.setFavorite(itemID: before.id, true)
+        volume.remove("B/a.txt")
+        _ = volume.file("A/a.txt", size: 50)
+        let pool = harness.store.pool
+        let outcome = try await harness.run(
+            access: volume,
+            maxDepth: nil,
+            fromScratch: false,
+            volume: vol,
+            shouldHalt: {
+                // Anhalten, sobald der neue Ort eingefügt ist, die alte Zeile aber noch sichtbar ist.
+                let state = (try? await pool.read { db in
+                    try Row.fetchOne(db, sql: "SELECT COUNT(*) AS n, SUM(status = 0) AS visible FROM items WHERE name = 'a.txt'")
+                }) ?? nil
+                let total: Int = state?["n"] ?? 0
+                let visible: Int = state?["visible"] ?? 0
+                return (total >= 2 && visible == 2) ? .pause : .none
+            }
+        )
+        #expect(outcome.interrupted)
+        _ = try await harness.run(access: volume, maxDepth: nil, fromScratch: false, volume: vol)
+        let after = try #require(try await harness.item(named: "a.txt"))
+        #expect(after.isFavorite, "Favorit nach Unterbrechung vor dem Lesen des alten Ordners verloren")
+        let folderA = try #require(try await harness.item(named: "A"))
+        #expect(after.parentID == folderA.id)
+    }
+
     @Test func ambiguousSameSizeDoesNotReconnect() async throws {
         let (harness, volume) = try await fatHarness()
         await harness.store.setPartialMatchingEnabled(false)

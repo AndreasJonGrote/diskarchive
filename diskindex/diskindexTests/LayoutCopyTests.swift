@@ -93,7 +93,7 @@ struct LayoutCopyTests {
         guard let start = html.range(of: open) else { return nil }
         let tail = html[start.lowerBound...]
         guard let dark = tail.range(of: "data-screen-label=\"Dark Mode\"") else {
-            guard let next = tail.range(of: "<!-- ============ ", range: tail.index(tail.startIndex, offsetBy: 80)..<tail.endIndex) else {
+            guard let next = tail.range(of: "<!-- ============ ", range: tail.index(tail.startIndex, offsetBy: min(80, tail.count))..<tail.endIndex) else {
                 return String(tail)
             }
             return String(tail[..<next.lowerBound])

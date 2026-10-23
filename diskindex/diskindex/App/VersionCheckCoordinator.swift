@@ -26,7 +26,7 @@ enum VersionCheckCoordinator {
         do {
             (settings, mediaCount) = try VersionLockEvaluator.readSettingsAndIndexedMediaCount(pool: store.pool)
         } catch {
-            DiskIndexLog.shared.record(.app, .error, "version lock local read failed \(error)")
+            DiskIndexLog.shared.record(.app, .error, "version lock local read failed \(DiskIndexLog.errorSummary(error))")
             return
         }
         applyLocal(
@@ -67,12 +67,34 @@ enum VersionCheckCoordinator {
 
     /// bug.0.4.137: Lesen und Schreiben der Datenbank im Hintergrund (wartet sonst auf dem Main Actor hinter
     /// Indexer-Stapeln und `wal_checkpoint`); nur das Anwenden auf `AppState` läuft auf main.
+    /// bug.0.4.144: Lesen, Auswerten und Schreiben laufen über zwei `await`; zwei Antworten kurz nacheinander werden
+    /// deshalb der Reihe nach verarbeitet (eine Warteschlange), die spätere überschreibt nie mit älterem Stand.
+    private static var lastAPIResultTask: Task<Void, Never>?
+
     static func handleAPIResult(
         _ response: VersionCheckResponse?,
         appState: AppState,
         store: IndexStoreV3,
         now: Date = Date(),
         databaseWasNewThisLaunch: Bool? = nil
+    ) async {
+        let previous = lastAPIResultTask
+        let task = Task { @MainActor in
+            await previous?.value
+            await processAPIResult(
+                response, appState: appState, store: store, now: now, databaseWasNewThisLaunch: databaseWasNewThisLaunch
+            )
+        }
+        lastAPIResultTask = task
+        await task.value
+    }
+
+    private static func processAPIResult(
+        _ response: VersionCheckResponse?,
+        appState: AppState,
+        store: IndexStoreV3,
+        now: Date,
+        databaseWasNewThisLaunch: Bool?
     ) async {
         guard let appVersion = AppVersion.currentApp() else { return }
         let pool = store.pool

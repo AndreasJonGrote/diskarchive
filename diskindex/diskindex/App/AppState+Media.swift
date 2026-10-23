@@ -216,7 +216,13 @@ extension AppState {
         userDecisionIDs[id] = nil
         media.removeAll { $0.id == id }
         if detailMediumID == id { detailMediumID = nil }
-        if columnBrowserState.selectedMediumID == id { columnBrowserState.selectedMediumID = nil }
+        if columnBrowserState.selectedMediumID == id {
+            // bug.0.4.135: kein alter Pfad und keine alte Auswahl im nächsten Medium.
+            columnBrowserState.selectedMediumID = nil
+            columnBrowserState.pathStack = []
+            columnBrowserState.selection = ColumnSelection()
+            columnBrowserState.selectedUncapturedFolderID = nil
+        }
         let store = indexStore
         Task {
             await onMediaForgotten?([id])
@@ -224,7 +230,7 @@ extension AppState {
                 try await store?.deleteMedium(uuid: id)
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
-                DiskIndexLog.shared.record(.store, .error, "deleteMedium \(error)")
+                DiskIndexLog.shared.record(.store, .error, "deleteMedium \(DiskIndexLog.errorSummary(error))")
             }
         }
     }
@@ -260,7 +266,7 @@ extension AppState {
                     try await store?.deleteMedium(uuid: id)
                 } catch {
                     guard DiskIndexLog.isOperationalFailure(error) else { continue }
-                    DiskIndexLog.shared.record(.store, .error, "deleteMedium \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "deleteMedium \(DiskIndexLog.errorSummary(error))")
                 }
             }
         }
@@ -344,6 +350,26 @@ extension AppState {
         indexedMedia
     }
 
+    /// bug.0.4.135: ohne gewähltes Medium das erste nehmen (früher `onAppear` der Spaltenansicht).
+    func ensureColumnBrowserSelection() {
+        if columnBrowserState.selectedMediumID == nil {
+            columnBrowserState.selectedMediumID = columnBrowserMedia.first?.id
+        }
+    }
+
+    /// bug.0.4.135: keinen Pfad jenseits der Scan-Tiefe offen lassen (früher `onAppear`; Inhalt der letzten Ebene
+    /// bleibt sichtbar, inkl. Hinweisfläche „Inhalt wird nicht indiziert“).
+    func clampColumnPathToScanDepth() {
+        let selected = columnBrowserState.selectedMediumID
+        guard let medium = columnBrowserMedia.first(where: { $0.id == selected && !$0.isForgotten }) ?? columnBrowserMedia.first
+        else { return }
+        let limit = appSettings.indexedMaxDepth.map { min(medium.completedDepth, $0) } ?? medium.completedDepth
+        guard columnBrowserState.pathStack.count > max(0, limit) else { return }
+        columnBrowserState.pathStack = Array(columnBrowserState.pathStack.prefix(max(0, limit)))
+        columnBrowserState.selection = ColumnSelection()
+        columnBrowserState.selectedUncapturedFolderID = nil
+    }
+
     func loadStoredMedia() async {
         guard let indexStore else { return }
         let stored: [StoredMedium]
@@ -351,7 +377,7 @@ extension AppState {
             stored = try await indexStore.media()
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
-            DiskIndexLog.shared.record(.store, .error, "media \(error)")
+            DiskIndexLog.shared.record(.store, .error, "media \(DiskIndexLog.errorSummary(error))")
             return
         }
         let connections = Dictionary(media.map { ($0.id, $0.connectionStatus) }, uniquingKeysWith: { first, _ in first })

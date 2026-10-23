@@ -91,7 +91,7 @@ private func near(_ color: Color, dark: Bool, hex: UInt32) -> Bool {
 }
 
 private func components(_ color: Color, dark: Bool) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
-    let appearance = NSAppearance(named: dark ? .darkAqua : .aqua)!
+    let appearance = testAppearance(dark ? .darkAqua : .aqua)
     var red: CGFloat = 0
     var green: CGFloat = 0
     var blue: CGFloat = 0

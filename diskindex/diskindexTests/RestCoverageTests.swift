@@ -5,8 +5,8 @@ import Testing
 struct RestCoverageTests {
     @Test func pauseUntilTomorrowIsNine() {
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 2, hour: 18))!
+        calendar.timeZone = gmtTimeZone
+        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 2, hour: 18)) ?? Date.distantPast
         let until = GlobalPause.untilTomorrow(from: now, calendar: calendar)
         let parts = calendar.dateComponents([.day, .hour, .minute], from: until)
         #expect(parts.day == 3)
@@ -72,7 +72,7 @@ struct RestCoverageTests {
     }
 
     @Test func undecidedMediumIsHiddenUntilIndexed() {
-        var medium = PreviewData.media[0]
+        var medium = previewMedium(0)
         medium.decision = .undecided
         medium.completedDepth = 0
         medium.fileCount = 0
@@ -92,7 +92,7 @@ struct RestCoverageTests {
     @Test func databaseHealthAndNoticePermission() {
         #expect(DatabaseCare.isHealthy("ok"))
         #expect(!DatabaseCare.isHealthy("*** in database main ***"))
-        let defaults = UserDefaults(suiteName: "diskindex-notice-\(UUID().uuidString)")!
+        let defaults = TestDefaults.make()
         #expect(NoticePermission.shouldRequest(arguments: ["app"], defaults: defaults))
         #expect(!NoticePermission.shouldRequest(arguments: ["app", AppLaunch.backgroundArgument], defaults: defaults))
     }

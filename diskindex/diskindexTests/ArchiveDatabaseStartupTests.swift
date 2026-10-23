@@ -76,6 +76,28 @@ struct ArchiveDatabaseStartupTests {
         return medium
     }
 
+    /// bug.0.4.094 (a): Scheitert das Öffnen (neuere Datei), öffnet ein zweiter Aufruf nicht erneut – der Fehler bleibt
+    /// bis zum ausdrücklichen Wiederholen.
+    @Test func failedOpenIsRememberedUntilRetry() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-archive-fail-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("archive.sqlite")
+        let seed = try SchemaV3.openPool(at: url)
+        try seed.write { db in
+            try db.execute(sql: "INSERT INTO grdb_migrations (identifier) VALUES (?)", arguments: ["9.9-future"])
+        }
+        try seed.close()
+        let before = SchemaV3.OpenCounter.shared.count(url)
+        let archive = ArchiveDatabase(fileURL: url)
+        #expect(throws: IndexStoreError.self) { try archive.pool() }
+        #expect(throws: IndexStoreError.self) { try archive.pool() }
+        #expect(SchemaV3.OpenCounter.shared.count(url) == before + 1, "zweiter Aufruf öffnete die Datei erneut")
+        archive.retryOpen()
+        #expect(throws: IndexStoreError.self) { try archive.pool() }
+        #expect(SchemaV3.OpenCounter.shared.count(url) == before + 2)
+    }
+
     @Test func firstLaunchAfterMigrationOpensOnePoolAndStaysResponsive() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-archive-start-\(UUID().uuidString)", isDirectory: true)
@@ -90,7 +112,7 @@ struct ArchiveDatabaseStartupTests {
         try #require(SchemaV3.OpenCounter.shared.count(url) == 0)
 
         let archive = ArchiveDatabase(fileURL: url)
-        let defaults = try #require(UserDefaults(suiteName: suite))
+        let defaults = TestDefaults.make()
         let logDirectory = directory.appendingPathComponent("Logs", isDirectory: true)
         try FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
         let diskLog = DiskIndexLog(directory: logDirectory)

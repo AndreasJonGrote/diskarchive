@@ -157,6 +157,7 @@ nonisolated enum LayoutCopy {
     static var mediaTitle: String { L10n.string("copy.settings.media.title") }
     static var mediaText: String { L10n.string("copy.settings.media.text") }
     static var mediaWarning: String { L10n.string("copy.settings.media.warning") }
+    static var settingsUnreadableNotice: String { L10n.string("copy.settings.unreadable.notice") }
     static var forgetAll: String { L10n.string("copy.settings.media.forget_all") }
 
     static var reportsTitle: String { L10n.string("copy.settings.reports.title") }

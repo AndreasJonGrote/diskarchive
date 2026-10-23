@@ -117,7 +117,7 @@ extension AppState {
     /// gemerkten Vorher-Stand zurückspielen: schlagen mehrere Schreibvorgänge derselben Zeile fehl, stimmte die
     /// Reihenfolge nicht). Nach der Kette Kennungen neu lesen, dann Spalten-Cache, Suche und Favoriten-Seite angleichen.
     private func restoreFavoritesFromStore(objects: [ObjectContextTarget], next: Bool, error: Error) {
-        DiskIndexLog.shared.record(.store, .error, "setFavorites fehlgeschlagen, Stand aus der Datenbank count=\(objects.count) next=\(next) \(error)")
+        DiskIndexLog.shared.record(.store, .error, "setFavorites fehlgeschlagen, Stand aus der Datenbank count=\(objects.count) next=\(next) \(DiskIndexLog.errorSummary(error))")
         favoriteEditGeneration += 1
         let previousRestore = favoriteRestoreTask
         favoriteRestoreTask = Task { [weak self] in
@@ -210,7 +210,7 @@ extension AppState {
                 }
             } catch {
                 guard DiskIndexLog.isOperationalFailure(error) else { return }
-                DiskIndexLog.shared.record(.store, .error, "setFavorite \(error)")
+                DiskIndexLog.shared.record(.store, .error, "setFavorite \(DiskIndexLog.errorSummary(error))")
             }
         }
         favoriteChecksumTasks[checksumKey] = checksums
@@ -235,7 +235,7 @@ extension AppState {
                 ids = try await store.favoriteItemIDs()
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "favoriteItemIDs \(error)")
+                    DiskIndexLog.shared.record(.store, .error, "favoriteItemIDs \(DiskIndexLog.errorSummary(error))")
                 }
                 return
             }
