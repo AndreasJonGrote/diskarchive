@@ -34,8 +34,11 @@ final class IndexRepository {
     /// bug.0.4.088: Während der Regel-Warteschlange trägt die Datenbank noch alte Stände (`status` noch nicht
     /// umgestellt); neu geladene Spalten werden darum zusätzlich nach `scope` gefiltert. Setzt `AppState`.
     var hidesLoadsByScope = false
-    /// Regel-Warteschlange (234): keine neuen Spalten-Ladevorgänge starten.
-    var blocksLoadsForRuleReconcile = false
+    /// Protokollzeile bei einem Lesefehler (Aufgabe 109). Je Instanz, damit Tests eine eigene Senke setzen statt eines
+    /// Hakens am geteilten Protokoll (bug.0.4.125, Regel 20).
+    @ObservationIgnored var recordLoadError: (String) -> Void = { line in
+        DiskIndexLog.shared.record(.store, .error, line)
+    }
     private var loading: Set<String> = []
     private var loadingLoaded: [String: Int] = [:]
     private var loadingTotals: [String: Int] = [:]
@@ -116,7 +119,6 @@ final class IndexRepository {
     }
 
     func requestLoad(mediumID: UUID, path: [String]) {
-        if blocksLoadsForRuleReconcile { return }
         #if DEBUG
         requestLoadCallsForTesting += 1
         #endif
@@ -125,7 +127,12 @@ final class IndexRepository {
         let needsLoad = cache[key] == nil || stale.contains(key)
         if !needsLoad { return }
         guard store != nil, loading.insert(key).inserted else { return }
-        // Token hier binden: sonst liest `load` nach `invalidateAll` die neue Generation und schreibt trotzdem.
+        startLoad(mediumID: mediumID, path: path, key: key)
+    }
+
+    /// `loading` ist für `key` schon gesetzt: Token binden und laden. Token hier binden, sonst liest `load` nach
+    /// `invalidateAll` die neue Generation und schreibt trotzdem.
+    private func startLoad(mediumID: UUID, path: [String], key: String) {
         let loadToken = loadGenerations[key, default: 0]
         loadingOwner[key] = loadToken
         Task { await load(mediumID: mediumID, path: path, key: key, loadToken: loadToken) }
@@ -363,7 +370,7 @@ final class IndexRepository {
             return
         } catch {
             guard loadGenerations[key, default: 0] == loadToken else { return }
-            DiskIndexLog.shared.record(.store, .error, "children \(DiskIndexLog.errorSummary(error))")
+            recordLoadError("children \(DiskIndexLog.errorSummary(error))")
             loadErrors[key] = LayoutCopy.folderUnreadable
             if cache[key] == nil {
                 cache[key] = []
@@ -404,11 +411,21 @@ final class IndexRepository {
             stale.insert(key)
             bumpLoadGeneration(key)
         }
-        loading.removeAll()
+        // bug.0.4.099 (a): Eine Spalte, die gerade zum ersten Mal lädt (kein Cache), bleibt im Ladezustand und lädt
+        // sofort neu – sonst zeigt sie bis zur nächsten Anfrage der Ansicht „Ordner leer“.
+        let firstLoads = loading.filter { cache[$0] == nil }
+        loading = firstLoads
         loadingOwner.removeAll()
         loadingLoaded.removeAll()
         loadingTotals.removeAll()
         loadErrors.removeAll()
+        for key in firstLoads {
+            guard store != nil, let (mediumID, path) = Self.decodeCacheKey(key) else {
+                loading.remove(key)
+                continue
+            }
+            startLoad(mediumID: mediumID, path: path, key: key)
+        }
         generation += 1
     }
 
@@ -445,5 +462,12 @@ final class IndexRepository {
 
     private func cacheKey(_ mediumID: UUID, _ path: [String]) -> String {
         ([mediumID.uuidString] + path).joined(separator: "\u{0}")
+    }
+
+    /// Umkehrung von `cacheKey` (Dateinamen enthalten kein NUL).
+    private static func decodeCacheKey(_ key: String) -> (UUID, [String])? {
+        let parts = key.split(separator: "\u{0}", omittingEmptySubsequences: false).map(String.init)
+        guard let first = parts.first, let mediumID = UUID(uuidString: first) else { return nil }
+        return (mediumID, Array(parts.dropFirst()))
     }
 }

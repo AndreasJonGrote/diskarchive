@@ -134,6 +134,8 @@ struct FavoriteOnlineWindowTests {
             size: size
         )
         defer { session.close() }
+        // todo.0.4.043: erst nach der Ladefläche (mindestens 1 s) steht die Liste.
+        try #require(await waitUntil(timeout: 5) { !rig.app.favoritesLoading.isShowing }, "Ladefläche endet nicht")
         await PixelProbe.settleOpenWindow(session)
         #expect(!rig.app.favoriteObjects.contains { $0.name == "Rechnung.pdf" }, "online: nicht unter „Offline“")
 
@@ -178,6 +180,8 @@ struct FavoriteOnlineWindowTests {
             size: size
         )
         defer { favorites.close() }
+        // todo.0.4.043: erst nach der Ladefläche (mindestens 1 s) steht die Liste.
+        try #require(await waitUntil(timeout: 5) { !rig.app.favoritesLoading.isShowing }, "Ladefläche endet nicht")
         await PixelProbe.settleOpenWindow(favorites)
         // Zeilen nach Name: foto.jpg (1), Rechnung.pdf (2). Zeile 2 = zweites Tintenband unter dem Kopf.
         let before = inkRows(favorites.bitmap(), x0: 40, x1: 300, y0: 40, y1: 400)

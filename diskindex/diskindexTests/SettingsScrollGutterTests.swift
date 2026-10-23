@@ -61,6 +61,9 @@ struct SettingsScrollGutterTests {
             )
             defer { session.close() }
             await PixelProbe.settleOpenWindow(session)
+            // Dauerhafter Stil auch an der Scrollansicht selbst (sonst Overlay des Systems: Breite immer gleich).
+            if let root = session.window.contentView { Self.applyLegacyStyle(to: root) }
+            await PixelProbe.settleOpenWindow(session)
             try await Task.sleep(for: .milliseconds(300))
             session.window.contentView?.layoutSubtreeIfNeeded()
             let scroll = try #require(Self.largestScroll(in: session.window), "keine Scrollansicht im Dashboard")
@@ -68,7 +71,93 @@ struct SettingsScrollGutterTests {
             overflow.append((scroll.documentView?.frame.height ?? 0) > scroll.contentView.bounds.height + 1)
         }
         try #require(overflow == [false, true], "Voraussetzung (ohne/mit Überlauf): \(overflow)")
-        #expect(abs(widths[0] - widths[1]) <= 0.5, "Inhaltsbreiten \(widths)")
+        // Regel 20: kein `[i]` ohne Prüfung.
+        let first = try #require(widths.first)
+        let second = try #require(widths.dropFirst().first)
+        #expect(abs(first - second) <= 0.5, "Inhaltsbreiten \(widths)")
+    }
+
+    /// bug.0.4.150 (c): Favoriten – Inhaltsbreite mit (60 Favoriten) und ohne (2) Überlauf gleich (dauerhafter Stil).
+    @Test func favoritesContentWidthIsTheSameWithAndWithoutOverflow() async throws {
+        try await expectSameWidth { app in
+            app.mainWindowDestination = .favorites
+            return AnyView(FavoritesView())
+        } ready: { app, count in
+            !app.favoritesLoading.isShowing && app.favoriteObjects.count == count
+        }
+    }
+
+    /// bug.0.4.150 (c): Suche – Inhaltsbreite mit (60 Treffern) und ohne (2) Überlauf gleich (dauerhafter Stil).
+    @Test func searchContentWidthIsTheSameWithAndWithoutOverflow() async throws {
+        try await expectSameWidth { app in
+            app.mainWindowDestination = .search
+            app.searchState.submittedQuery = "bericht"
+            await app.runSearch()
+            return AnyView(SearchView())
+        } ready: { app, count in
+            app.searchMatch.items.count == count
+        }
+    }
+
+    /// Ein Medium mit `count` Dateien „bericht-…“ (alle Favoriten), Ansicht im dauerhaften Stil; misst die Breite der
+    /// größten Scrollansicht (Ergebnistabelle) für 2 und 60 Einträge.
+    private func expectSameWidth(
+        makeView: (AppState) async -> AnyView,
+        ready: @escaping (AppState, Int) -> Bool
+    ) async throws {
+        var widths: [CGFloat] = []
+        var overflow: [Bool] = []
+        for count in [2, 60] {
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("diskindex-gutter-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: directory) }
+            let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+            defer { try? database.close() }
+            let store = IndexStoreV3(database: database)
+            var medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Daten", decision: .index, indexStatus: .indexed, completedDepth: 3)
+            try await store.upsertMedium(medium)
+            medium = try #require(try await store.medium(uuid: medium.uuid))
+            let entries = (0..<count).map { ScannedEntry(name: "bericht-\($0).pdf", isFolder: false, sizeBytes: 1, modifiedAt: Date()) }
+            try await store.applyDirectory(mediumUUID: medium.uuid, parentID: nil, entries: entries, seenAt: Date())
+            let rows = try await store.children(mediumUUID: medium.uuid, parentID: nil)
+            try await store.setFavorites(itemIDs: rows.map(\.id), true)
+            let app = AppState()
+            app.attach(store: store)
+            defer { app.prepareForTermination() }
+            await app.loadStoredMedia()
+            let view = await makeView(app)
+            let session = PixelProbe.open(
+                view.environment(app).environment(\.scrollerStyleOverride, .legacy).frame(width: 900, height: 600),
+                size: CGSize(width: 900, height: 600),
+                appearance: .aqua
+            )
+            defer { session.close() }
+            let loaded = await waitUntil(timeout: 5) { ready(app, count) }
+            try #require(loaded, "Einträge nicht geladen (\(count))")
+            await PixelProbe.settleOpenWindow(session)
+            // Dauerhafter Stil auch an der Scrollansicht selbst (sonst Overlay des Systems: Breite immer gleich).
+            if let root = session.window.contentView { Self.applyLegacyStyle(to: root) }
+            await PixelProbe.settleOpenWindow(session)
+            try await Task.sleep(for: .milliseconds(300))
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            let scroll = try #require(Self.largestScroll(in: session.window), "keine Scrollansicht")
+            widths.append(scroll.contentView.bounds.width)
+            overflow.append((scroll.documentView?.frame.height ?? 0) > scroll.contentView.bounds.height + 1)
+        }
+        try #require(overflow == [false, true], "Voraussetzung (ohne/mit Überlauf): \(overflow)")
+        let first = try #require(widths.first)
+        let second = try #require(widths.last)
+        #expect(abs(first - second) <= 0.5, "Inhaltsbreiten \(widths)")
+    }
+
+    /// Alle Scrollansichten unter `view` auf den dauerhaften Stil setzen (wie mit angeschlossener Maus).
+    static func applyLegacyStyle(to view: NSView) {
+        if let scroll = view as? NSScrollView {
+            scroll.scrollerStyle = .legacy
+            scroll.verticalScroller?.scrollerStyle = .legacy
+        }
+        for sub in view.subviews { applyLegacyStyle(to: sub) }
     }
 
     static func largestScroll(in window: NSWindow) -> NSScrollView? {

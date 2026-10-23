@@ -311,7 +311,17 @@ extension AppState {
         }
         let sameRequest = request == lastFavoritesRequest
         favoriteObjects = objects
+        // todo.0.4.043: erste Seite da – Ladefläche endet nach ihrer Mindestdauer, dann die Liste in einem Schritt.
+        favoritesLoading.finish()
         let hasObjectFilters = request.filters.hasActiveObjectFilters
+        // bug.0.4.146 (a): Seite voll und Regel noch nicht angewendet – die Zählabfrage zählte die ausgeblendeten mit.
+        // Gezählt wird erst nach dem Filtern, also nach der Warteschlange (`resumeAfterRuleReconcile` lädt neu); bis
+        // dahin „–“.
+        if !pageComplete, filtersPendingRules || indexRepository.hidesLoadsByScope {
+            favoriteItemCount = nil
+            favoriteUnfilteredCount = nil
+            return
+        }
         if pageComplete {
             favoriteItemCount = objects.count
         } else if !sameRequest {
@@ -374,8 +384,17 @@ extension AppState {
         popoverSearchTask = Task { [weak self] in
             try? await Task.sleep(for: debounce)
             guard !Task.isCancelled, let self, generation == self.popoverGeneration else { return }
-            let page = await PopoverSearch.page(query: query, appState: self)
-            guard !Task.isCancelled, generation == self.popoverGeneration else { return }
+            // bug.0.4.146 (c): wie die Suche im Fenster erst nach der Regel-Warteschlange lesen (vorher stehen
+            // ausgeblendete Einträge noch mit `status = 0` in der Datenbank).
+            // Startet während des Lesens eine Regel-Warteschlange, ist die Seite ein Stand von davor: verwerfen, warten,
+            // neu lesen.
+            var page: PopoverSearchPage
+            repeat {
+                await self.waitForRuleReconcileIdle()
+                guard !Task.isCancelled, generation == self.popoverGeneration else { return }
+                page = await PopoverSearch.page(query: query, appState: self)
+                guard !Task.isCancelled, generation == self.popoverGeneration else { return }
+            } while self.isRuleReconcileQueueActive
             guard let request = page.pendingCount else {
                 self.popoverResults = page.results
                 NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)

@@ -188,6 +188,9 @@ struct FavoritesTableWindowTests {
         let loaded = await waitUntil(timeout: 20) {
             rig.app.favoriteObjects.count == SearchIndex.pageLimit && rig.app.favoriteItemCount == 10_000
         }
+        // todo.0.4.043: erst nach der Ladefläche (mindestens 1 s) steht die Liste.
+        let listShown = await waitUntil(timeout: 5) { !rig.app.favoritesLoading.isShowing }
+        #expect(listShown, "Ladefläche endet nicht")
         await PixelProbe.settleOpenWindow(session)
         let elapsed = started.duration(to: .now)
         let ms = Double(elapsed.components.attoseconds) / 1e15 + Double(elapsed.components.seconds) * 1000
@@ -210,6 +213,8 @@ struct FavoritesTableWindowTests {
             rig.app.favoriteObjects.count == SearchIndex.pageLimit && rig.app.favoriteItemCount == 2_000
         }
         try #require(loaded, "Ansicht lädt die Favoriten nicht")
+        // todo.0.4.043: erst nach der Ladefläche (mindestens 1 s) steht die Liste.
+        try #require(await waitUntil(timeout: 5) { !rig.app.favoritesLoading.isShowing }, "Ladefläche endet nicht")
         await PixelProbe.settleOpenWindow(session)
         let built = probe.rowBodies
         #expect(built > 5, "sichtbare Zeilen gebaut: \(built)")

@@ -95,12 +95,10 @@ struct MediumCoordinatorTests {
             }
         }
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 2)
-        rig.appState.onNewMediumChoice?(first, true, false)
+        // bug.0.4.119 (Regel 18): derselbe Einstieg wie der Knopf „Indizieren“ des Dialogs (Antwort, Panel, Stapel).
+        NewMediumDetectedDialog.applyChoice(mediumID: first, allowIndexing: true, remember: false, appState: rig.appState)
         await rig.coordinator.waitForChoice()
         #expect(rig.indexRequests == [first])
-        // Wie der Dialog nach der Antwort (`NewMediumDetectedDialog`): Panel schließen, Stapel neu ordnen.
-        AppWindowPresenter.closeNewMediumPanel(mediumID: first, appState: rig.appState, userDismissed: false)
-        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1)
     }
 
@@ -589,12 +587,11 @@ struct MediumCoordinatorTests {
         let volume = rig.volume(name: "PANEL", path: "/Volumes/PANEL")
         await rig.coordinator.handle(.appeared(volume))
         let id = try #require(rig.appState.newMediumDialogMediumID)
-        rig.appState.onNewMediumChoice?(id, true, false)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1, "kein Panel beim ersten Anschließen")
+        // bug.0.4.119 (Regel 18): derselbe Einstieg wie der Knopf „Indizieren“ des Dialogs (Antwort, Panel, Stapel).
+        NewMediumDetectedDialog.applyChoice(mediumID: id, allowIndexing: true, remember: false, appState: rig.appState)
         await rig.coordinator.waitForChoice()
-        #expect(!rig.appState.pendingNewMediumDecisionIDs.contains(id), "Koordinator beantwortet den Dialog nicht")
-        // Wie der Dialog nach der Antwort (`NewMediumDetectedDialog`): Panel schließen, Stapel neu ordnen.
-        AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
-        AppWindowPresenter.syncNewMediumPanels(appState: rig.appState)
+        #expect(rig.indexRequests == [id], "Koordinator beantwortet den Dialog nicht")
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 0)
         defer {
             AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)

@@ -326,6 +326,7 @@ nonisolated private final class CallbackGate: @unchecked Sendable {
 }
 
 /// bug.0.4.140: Der FSEvents-Strom öffnet auf der eigenen Queue; ein Fehlschlag wird protokolliert.
+@MainActor
 struct FSEventsOpenTests {
     @Test func openRunsOnTheOwnQueue() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-fse-\(UUID().uuidString)")

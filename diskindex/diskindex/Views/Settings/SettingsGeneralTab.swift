@@ -54,9 +54,9 @@ struct SettingsGeneralTab: View {
             .stableScrollbarGutter()
         }
         .onAppear {
+            // bug.0.4.135 (Regel 15): nur scrollen; das Ziel räumt `AppState` beim Wechsel von Tab oder Ansicht ab.
             guard section == .files, appState.settingsScrollTarget == .scanDepth else { return }
             scroll.scrollTo(SettingsScrollTarget.scanDepth, anchor: .top)
-            appState.settingsScrollTarget = nil
         }
         }
     }

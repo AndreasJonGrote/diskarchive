@@ -21,12 +21,20 @@ struct FavoritesView: View {
         let connection = appState.favoritesConnectionFilter
         let favoriteObjects = appState.favoriteObjects.filter { connection.includes(isOnline: online[$0.mediumID] ?? false) }
         let selectionEmpty = favoriteMedia.isEmpty && favoriteObjects.isEmpty
-        let itemCount = appState.favoriteItemCount
+        let loading = appState.favoritesLoading.isShowing
+        let itemCount = loading ? nil : appState.favoriteItemCount
 
         VStack(spacing: 0) {
             FavoritesConnectionFilterBar()
 
-            if selectionEmpty {
+            if loading {
+                // todo.0.4.043: Fläche von „Keine Favoriten“, Spinner statt Icon, ohne Untertitel.
+                EmptyStateView(
+                    title: EmptyStateCopy.favoritesLoadingTitle,
+                    message: "",
+                    iconStyle: .loading
+                )
+            } else if selectionEmpty {
                 // Aufgabe 147 — Duotone bookmarks-simple, 40 pt violett, ohne Kachel.
                 EmptyStateView(
                     title: EmptyStateCopy.noFavoritesTitle,
@@ -51,7 +59,7 @@ struct FavoritesView: View {
 
             ObjectCountFooter(
                 filtered: itemCount,
-                total: filters.hasActiveObjectFilters ? appState.favoriteUnfilteredCount : itemCount
+                total: loading ? nil : (filters.hasActiveObjectFilters ? appState.favoriteUnfilteredCount : itemCount)
             )
         }
         .task(id: favoriteRequest) {

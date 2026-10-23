@@ -160,7 +160,7 @@ struct FatReconnectIndexerTests {
             volume: vol,
             shouldHalt: {
                 // Anhalten, sobald der neue Ort eingefügt ist, die alte Zeile aber noch sichtbar ist.
-                let state = (try? await pool.read { db in
+                let state = (try? pool.read { db in
                     try Row.fetchOne(db, sql: "SELECT COUNT(*) AS n, SUM(status = 0) AS visible FROM items WHERE name = 'a.txt'")
                 }) ?? nil
                 let total: Int = state?["n"] ?? 0

@@ -152,29 +152,85 @@ struct RegressionSmokeTests {
         app.appSettings.notificationsEnabled = true
         app.appSettings.notifySystem = true
         app.mainWindowDestination = .settings
-        app.settingsTab = .advanced
+        app.settingsTab = .general
+        // bug.0.4.122: Der Hauptschalter liegt im Abschnitt „Allgemein“ (vorher „Erweitert“ – der Klick traf nie, die
+        // Prüfung war bedingt und damit immer wahr).
         let host = NSHostingView(
-            rootView: SettingsGeneralTab(section: .advanced).environment(app).frame(width: 720, height: 900)
+            rootView: SettingsGeneralTab(section: .general).environment(app)
+                .environment(\.colorScheme, .light)
+                .frame(width: 720, height: 900)
+                .background(Color.white)
         )
+        host.appearance = NSAppearance(named: .aqua)
         let window = present(host, size: NSSize(width: 720, height: 900))
+        window.appearance = NSAppearance(named: .aqua)
         window.orderFrontRegardless()
         try await pump(0.25)
-        // Hauptschalter suchen: von oben nach unten klicken, bis das Kästchen umspringt (Lage hängt vom Layout ab).
-        // Hauptschalter-Bereich rechts oben im Abschnitt (grob). Frage: die Lage des Schalters ist im Test nicht
-        // zuverlässig zu treffen (Bedienungshilfen-Suche und Rasterklick fanden ihn nicht); die Prüfung bleibt
-        // bedingt, bis der Host eine Kennung (accessibilityIdentifier) für den Hauptschalter freigibt.
-        click(window, at: NSPoint(x: 520, y: host.bounds.height - 120))
-        try await pump(0.1)
-        let wasOff = !app.notificationsToggleShown
-        click(window, at: NSPoint(x: 520, y: host.bounds.height - 120))
-        try await pump(0.1)
-        if wasOff {
-            #expect(app.notificationsToggleShown == true)
+        let master = try #require(Self.masterCheckbox(in: host), "Hauptschalter „Mitteilungen“ nicht gefunden")
+        #expect(app.notificationsToggleShown == true)
+        // Regel 19: keine echte Mitteilung aus dem Test – Drossel vorab belegen (An/Aus melden dann nichts) und Posts
+        // dieses Tasks abfangen.
+        let now = Date()
+        _ = app.noticeThrottle.allow(SystemNotice.noticesOnKind, now: now)
+        _ = app.noticeThrottle.allow(SystemNotice.noticesOffKind, now: now)
+        var posted: [String] = []
+        let hooks = NoticeTestHooks(post: { _, kind in posted.append(kind) })
+        try await SystemNotice.$testHooks.withValue(hooks) {
+            click(window, at: master)
+            let off = await waitUntil(timeout: 3) { app.notificationsToggleShown == false }
+            #expect(off, "Klick schaltet die Mitteilungen nicht aus")
+            // Aus bleibt der Schalter bedienbar: der zweite Klick schaltet wieder ein.
+            click(window, at: master)
+            let on = await waitUntil(timeout: 3) { app.notificationsToggleShown == true }
+            #expect(on, "Hauptschalter im Aus-Zustand nicht bedienbar")
+            try await pump(0.1)
         }
+        #expect(posted.isEmpty, "Test hat Mitteilungen ausgelöst: \(posted)")
         // Modell-Regeln bleiben gültig
         app.appSettings.notificationsEnabled = false
         #expect(!DiskNotice.system.allowed(by: app.appSettings))
         window.orderOut(nil)
+    }
+
+    /// Mitte des Hauptschalters (Fensterkoordinaten, Ursprung unten links): das Kästchen mit Häkchen, unter dem das
+    /// nächste Kästchen mit Häkchen um `noticeEventsLeadingInset` eingerückt steht (Zeile „System“).
+    private static func masterCheckbox(in host: NSView) -> NSPoint? {
+        host.layoutSubtreeIfNeeded()
+        guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return nil }
+        host.cacheDisplay(in: host.bounds, to: rep)
+        let scale = CGFloat(rep.pixelsWide) / max(1, host.bounds.width)
+        // Häkchen = dunkle Tinte (Steuerfarbe) in einem kleinen Kästchen; Spalten links der Mitte sind Beschreibungstext.
+        var marks: [CGPoint] = []
+        let x0 = Int(host.bounds.width * 0.5 * scale)
+        var y = 0
+        while y < rep.pixelsHigh {
+            var x = x0
+            while x < rep.pixelsWide {
+                if let color = rep.colorAt(x: x, y: y)?.usingColorSpace(.sRGB), color.alphaComponent > 0.5,
+                   0.299 * color.redComponent + 0.587 * color.greenComponent + 0.114 * color.blueComponent < 0.3 {
+                    let point = CGPoint(x: CGFloat(x) / scale, y: CGFloat(y) / scale)
+                    if !marks.contains(where: { abs($0.x - point.x) < 12 && abs($0.y - point.y) < 12 }) {
+                        marks.append(point)
+                    }
+                }
+                x += 2
+            }
+            y += 2
+        }
+        // Je Zeile nur die linke Marke (Häkchen vor dem Text der Zeile).
+        let leftmost = marks.filter { mark in !marks.contains { abs($0.y - mark.y) < 6 && $0.x < mark.x } }
+        // Die Ereigniszeilen sind eingerückt (`noticeEventsLeadingInset`, abzüglich Innenabstand der ersten Zeile).
+        let inset = SettingsGeneralTab.noticeEventsLeadingInset
+        for mark in leftmost.sorted(by: { $0.y < $1.y }) {
+            let hasIndentedBelow = leftmost.contains {
+                $0.x - mark.x > inset * 0.5 && $0.x - mark.x < inset * 1.4 && $0.y > mark.y + 10 && $0.y < mark.y + 40
+            }
+            if hasIndentedBelow {
+                // Bitmap: Ursprung oben links; Fenster: unten links.
+                return NSPoint(x: mark.x, y: host.bounds.height - mark.y)
+            }
+        }
+        return nil
     }
 
     // MARK: - (f) Dashboard height

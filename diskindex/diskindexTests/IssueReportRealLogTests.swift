@@ -412,6 +412,36 @@ struct IssueReportRealLogTests {
         #expect(stack.count < 440, "Stapel nicht gekürzt")
     }
 
+    /// bug.0.4.102 (b): Kürzungsschritt 3 – Signatur und Aktionen nahe `lineLimit`, Protokollzeilen voller Steuerzeichen
+    /// (im JSON je 6 Bytes): Stapel (Schritte 1–2) reicht nicht, also fällt das Protokoll **von vorn** (älteste Zeilen),
+    /// höchstens bis `keptLogLines`; die Aktionen bleiben vollständig, die neueste Protokollzeile bleibt.
+    @Test func logTailIsTrimmedFromTheFrontInStepThree() throws {
+        let control = String(repeating: "\u{01}", count: IssuePayload.lineLimit - 12)
+        let logTail = (0..<100).map { String(format: "log-%03d ", $0) + control }
+        let actions = (0..<50).map { String(format: "act-%03d ", $0) + control }
+        let draft = IssueDraft(
+            kind: "crash", signature: String(repeating: "\u{02}", count: IssuePayload.lineLimit), actions: actions,
+            logTail: logTail, crashSignal: "SIGSEGV", crashStack: ["0 diskindex 0x0000000100000000 main + 1"],
+            media: 0, items: 0, dbBytes: 0
+        )
+        let data = IssuePayload.json(
+            draft: draft, id: "X", version: "1", build: "1", config: "Debug", macOS: "15", model: "Mac",
+            runtimeSeconds: 0, createdAt: Date(timeIntervalSince1970: 0)
+        )
+        #expect(data.count <= IssuePayload.bodyLimit, "Körper \(data.count) Bytes")
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let tail = try #require(object["logTail"] as? [String])
+        // Schritt 3 hat gegriffen: gekürzt, aber nicht unter `keptLogLines`, und Schritt 4 war nicht nötig.
+        #expect(tail.count < 100, "Protokoll nicht gekürzt – Schritt 3 nicht erreicht")
+        #expect(tail.count >= IssuePayload.keptLogLines, "logTail: \(tail.count) Zeilen")
+        let sentActions = try #require(object["actions"] as? [String])
+        #expect(sentActions.count == 50, "Aktionen gekürzt (Schritt 4), obwohl Schritt 3 reichte: \(sentActions.count)")
+        let newest = try #require(tail.last)
+        #expect(newest.hasPrefix("log-099 "), "neueste Zeile fehlt: \(newest.prefix(8))")
+        let oldest = try #require(tail.first)
+        #expect(!oldest.hasPrefix("log-000 "), "älteste Zeile blieb – von hinten gekürzt")
+    }
+
     /// Signal und Signatur ohne Leerzeichen sind beliebig lang; der Bericht bleibt trotzdem unter 256 KB.
     @Test func hugeSignalAndSignatureStayUnderBodyLimit() throws {
         let huge = String(repeating: "S", count: 400_000)
@@ -430,8 +460,8 @@ struct IssueReportRealLogTests {
     }
 
     /// Größenbegrenzung: auch ein sehr langer Absturzteil aus dem Protokoll (Ausnahme ohne `crash-last.txt`)
-    /// bleibt unter 256 KB; Signal und Kopf des Stapels bleiben erhalten. bug.0.4.079: Der Stapel wird gekürzt, bevor
-    /// das Protokoll unter `keptLogLines` (20) Zeilen fällt; die neueste Zeile bleibt.
+    /// bleibt unter 256 KB; Signal und Kopf des Stapels bleiben erhalten. bug.0.4.083: Der Stapel wird gekürzt, bevor
+    /// das Protokoll gekürzt wird; das Protokoll fällt nie unter `keptLogLines` (20) Zeilen, die neueste bleibt.
     @Test func hugeCrashSectionFromRealLogStaysUnderBodyLimit() throws {
         let harness = try RealLogHarness()
         defer { harness.cleanUp() }
@@ -458,7 +488,8 @@ struct IssueReportRealLogTests {
         let head = try #require(stack.first)
         #expect(head.hasPrefix("0 diskindex 0x0000000100000000 frame0 "))
         #expect(stack.allSatisfy { $0.count <= IssuePayload.lineLimit })
-        // Der Stapel war zu groß und wurde von hinten gekürzt (älteste Rahmen weg), das Protokoll behält 20 Zeilen.
+        // Der Stapel war zu groß und wurde von hinten gekürzt (tiefste Rahmen weg, Rahmen 0 bleibt); das Protokoll
+        // behält mindestens `keptLogLines` Zeilen (Reihenfolge bug.0.4.083).
         #expect(stack.count < 700, "Stapel nicht gekürzt: \(stack.count)")
         let tail = try #require(object["logTail"] as? [String])
         #expect(tail.count >= IssuePayload.keptLogLines, "logTail: \(tail.count) Zeilen")

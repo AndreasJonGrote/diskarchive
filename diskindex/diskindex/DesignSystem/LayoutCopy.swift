@@ -21,6 +21,8 @@ nonisolated enum LayoutCopy {
     /// Favoriten leer (Layout 11).
     static var emptyNoFavoritesTitle: String { L10n.string("copy.empty.no_favorites.title") }
     static var emptyNoFavoritesMessage: String { L10n.string("copy.empty.no_favorites.message") }
+    /// todo.0.4.043: Ladefläche der Favoriten (Fläche von „Keine Favoriten“ mit Spinner, ohne Untertitel).
+    static var emptyFavoritesLoadingTitle: String { L10n.string("copy.empty.favorites_loading.title") }
     static var autoIndex: String { L10n.string("copy.menu.auto_index") }
     static var on: String { L10n.string("copy.menu.on") }
     static var paused: String { L10n.string("copy.menu.paused") }

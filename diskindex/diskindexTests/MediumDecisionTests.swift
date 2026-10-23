@@ -9,6 +9,7 @@ import Foundation
 import Testing
 @testable import diskindex
 
+@MainActor
 struct MediumDecisionUnitTests {
     @Test func legacyDecisionStringsMigrateToDontIndex() {
         #expect(StoredIndexDecision.resolved("ignore") == .dontIndex)

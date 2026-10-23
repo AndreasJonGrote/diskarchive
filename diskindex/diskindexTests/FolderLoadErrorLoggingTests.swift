@@ -27,15 +27,11 @@ import Testing
             seenAt: Date()
         )
 
-        let previous = DiskIndexLog.shared.onTrackedError
-        defer { DiskIndexLog.shared.onTrackedError = previous }
+        // bug.0.4.125: eigene Senke am Repository statt Haken am geteilten Protokoll.
         var tracked: [String] = []
-        DiskIndexLog.shared.onTrackedError = { _, message in
-            tracked.append(message)
-        }
-
         await store.setChildrenReadsFailing(true)
         let repository = IndexRepository(store: store)
+        repository.recordLoadError = { tracked.append($0) }
         _ = await repository.loadChildren(mediumID: medium.uuid, path: [])
 
         #expect(repository.folderLoadError(mediumID: medium.uuid, path: []) == LayoutCopy.folderUnreadable)

@@ -62,6 +62,47 @@ Kennungen: bis 233b alte Aufgabennummern; ab 12.10. `todo.<Version>.<Nr>` (Aufga
 | bug.0.4.132 | – | Treffer öffnet die Spaltenansicht an der Stelle (Tasten und Scroll-Aufträge: `148`) | 23.10. Host (seriell 929/929, parallel 3/3, 0 Warnungen, Paket 13) | A C (Prüf-Agenten) |
 | bug.0.4.133 | – | Typ-Chips ganz klickbar (Baustein doppelt: `149`) | 23.10. Host (seriell 929/929, parallel 3/3, 0 Warnungen, Paket 13) | A C (Prüf-Agenten) |
 | bug.0.4.100 | – | Rollbalken-Platz ohne leere Leiste, Sortierkopf-Tests (Reste: `150`) | 23.10. Host (seriell 929/929, parallel 3/3, 0 Warnungen, Paket 13) | A C (Prüf-Agenten) |
+| bug.0.4.094 | – | Ein Pool je Prozess: Öffnungsfehler gemerkt bis Wiederholen, Namen erst nach dem Verdrahten, toter `openQueuePool()` entfernt | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.098 | – | Rauchtest um 081, 088, 089, 091 ergänzt | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.099 | – | Ausblenden an Ort und Stelle: erstmals ladende Spalten bleiben ladend, Fokus `> cut`, Sperre entfernt; Messung 300.000 → 82 ms (Debug -O) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.101 | – | Rauchtest ohne `NSApp.activate`, Fenster außerhalb des Bildschirms | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.102 | – | Kleinkram: `searchMediumIDs` entfernt, Kürzungsschritt 3 getestet, Senke-Reihenfolge | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.107 | – | Index-Migrationen mit `foreignKeyChecks: .immediate` | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.108 | – | „Vergessen“ bucht Wartungsschuld | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.110 | – | Backoff-Termin mit Wecker, Abfrage im Hintergrund | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.111 | – | Leak-Wächter: Groß/Klein, Lookaround (Rest: `bug.0.4.162`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.112 | – | Benutzername nicht im Protokoll (Lücken im Wächter: `bug.0.4.158`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.114 | – | Warteschlange liest im Hintergrund | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.115 | – | Toter Code `DiskIndexLog.report`/`CrashReportText.make` entfernt | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.118 | – | Regel 18 in Live- und Spaltentests | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.119 | – | Regel 18 in Panel-Tests, `NewMediumDetectedDialog.applyChoice` | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.120 | – | Prozessweite Test-Schalter ersetzt (`@TaskLocal`, je `AppState`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.121 | – | Leistungsgrenzen nur unter `DA_BENCH` (`BenchGate`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.122 | – | Rauchtest Mitteilungen: Schalter im Bild, keine echte Mitteilung | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.123 | – | Regel 20 in Tests: kein `!`, `[i]` hinter `#require` (Rest: `bug.0.4.162`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.124 | – | Test-`.plist` aufgeräumt (Rest: `bug.0.4.162`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.125 | – | Positive Signale statt Warten, `IssueStub` je Test, Umgebungsvariable statt `/tmp` | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.130 | – | Kein zweiter Vollabgleich nach `cancel`, höchstens einer je Bündel (Rest: `bug.0.4.161`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.135 | – | Vergessenes Medium: Pfad und Auswahl zurückgesetzt, kein Zustand in `onAppear` | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.136 | – | Spinner „Wird indiziert“ in `DesignColor.stateOnline` (Nachweis: `bug.0.4.163`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.139 | – | Versions-Sperre bricht alle Läufe sofort ab (Test: `bug.0.4.159`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.140 | – | FSEvents-Strom öffnet im Hintergrund, Fehlschlag protokolliert (Ereignisfenster: `bug.0.4.157`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.141 | – | Favoriten verschobener Dateien nach Unterbrechung erhalten (Reste: `bug.0.4.156`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.142 | – | Testfenster immer außerhalb, Wächter | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.143 | – | `prepareForTermination` nicht mehr prozessweit | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.144 | – | Haupt-Thread-Nachweis je Anweisung, Antworten des Versions-Checks der Reihe nach | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.145 | – | Versions-Check offline zählt nicht gegen die Grenze | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.146 | – | Favoritenzahl und Suche während der Warteschlange ohne Ausgeblendetes („–“ bis danach) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.147 | – | Offener Pfad folgt: Randfall (Pixel-Nachweis: `bug.0.4.163`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.149 | – | Ein Chip-Rezept (`ChipButton`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.150 | – | Rollbalken ohne leere Leiste: Reste, Breite in Favoriten, Suche, Dashboard | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.151 | – | Lücke getrennt von `firstIndexedAt` (`indexGaps`), Status bleibt `pending` | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.152 | – | „Neu indizieren“ nicht mehr dauerhaft gesperrt | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.153 | – | Unlesbare Einstellungen: Hinweis, Sitzung wie pausiert | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.154 | – | Bündelung tiefer Ordner: Tiefe einmal je Pfad | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.155 | – | Überwachung nach Fehler: Kettentests (Test schwach: `bug.0.4.160`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| todo.0.4.043 | – | Favoriten werden geladen: Ladefläche sofort, mindestens 1 s (`MinimumLoadingIndicator`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| todo.0.4.044 | – | `MARKETING_VERSION` 0.4.0 (4 Stellen), Versions-Tests angepasst | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

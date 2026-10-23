@@ -418,46 +418,6 @@ extension IndexStoreV3 {
         return try await pool.read { db in try Self.items(db, ids: ids) }
     }
 
-    /// bug.0.4.038 (REPORT 131): Medien mit mindestens einem Treffer unter denselben Filtern, unabhängig von der
-    /// angezeigten Seite. Je Medium bricht die Prüfung beim ersten Treffer ab (`EXISTS`).
-    func searchMediumIDs(query: String, filters: SearchFilters, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> Set<UUID> {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty, !filters.hasActiveFilters { return [] }
-        let depth = scope?.maxDepth ?? maxDepth
-        let counter = nameChecks
-        return try await pool.read { db in
-            let plan = try SearchPlanV3.make(db, query: trimmed, filters: filters, maxDepth: depth)
-            let storageIDs: [Int64]
-            if let scope, scope.checksNames {
-                let cursor = try Row.fetchCursor(
-                    db,
-                    sql: "SELECT i.storageID, i.name, i.depth FROM items i WHERE \(plan.whereClause)",
-                    arguments: plan.statementArguments()
-                )
-                var found = Set<Int64>()
-                var checked = 0
-                while let row = try cursor.next() {
-                    let storageID: Int64 = row["storageID"]
-                    if found.contains(storageID) { continue }
-                    checked += 1
-                    if !scope.hides(name: row["name"], depth: row["depth"]) { found.insert(storageID) }
-                }
-                counter.add(checked)
-                storageIDs = Array(found)
-            } else {
-                storageIDs = try Int64.fetchAll(
-                    db,
-                    sql: "SELECT DISTINCT s.id FROM storages s WHERE EXISTS (SELECT 1 FROM items i WHERE i.storageID = s.id AND \(plan.whereClause))",
-                    arguments: plan.statementArguments()
-                )
-            }
-            guard !storageIDs.isEmpty else { return [] }
-            let marks = storageIDs.map { _ in "?" }.joined(separator: ",")
-            let blobs = try Data.fetchAll(db, sql: "SELECT uuid FROM storages WHERE id IN (\(marks))", arguments: StatementArguments(storageIDs))
-            return Set(blobs.compactMap(MediumCodecV3.uuid))
-        }
-    }
-
     /// Genaue Zahl der Treffer. Mit ausstehender Bereinigung (`checksNames`) prüft ein Cursor zusätzlich die Namen.
     func searchCount(query: String, filters: SearchFilters, maxDepth: Int? = nil, scope: IndexScope? = nil) async throws -> Int {
         searchCountCalls.add(1)

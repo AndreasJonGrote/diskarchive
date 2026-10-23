@@ -1235,6 +1235,22 @@
         }
       }
     },
+    "copy.empty.favorites_loading.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Favoriten werden geladen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading favorites"
+          }
+        }
+      }
+    },
     "copy.empty.no_favorites.title" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -1364,7 +1364,9 @@ actor IndexStoreV3 {
             return try DirectoryWriterV3.segments(db, itemID: parentID)
         }
         var map: [String: Data] = [:]
-        for entry in entries where !entry.isFolder {
+        // Pakete sind auf der Platte Ordner: keine Teil-Prüfsumme (das Lesen wirft, der Live-Abgleich fiel dann auf einen
+        // Vollabgleich zurück – `PackageAndTrashesWatcherTests`).
+        for entry in entries where !entry.isFolder && !entry.isPackage {
             let url = DirectoryWriterV3.fileURL(mountPath: mountPath, parentSegments: segments, name: entry.name)
             if let computed = try await PartialChecksum.computeOffActor(at: url) {
                 map[entry.name] = computed.partial

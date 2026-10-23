@@ -9,7 +9,6 @@ import SwiftUI
 
 struct MenuBarPopoverView: View {
     @Environment(AppState.self) private var appState
-    var showsPauseMenu = false
     var highlightFirstRow = false
 
     @FocusState private var searchFocused: Bool
@@ -34,9 +33,6 @@ struct MenuBarPopoverView: View {
                 appState.popoverPauseMenuOpen = false
             }
             requestPopoverLayoutUpdate()
-        }
-        .onAppear {
-            appState.popoverPauseMenuOpen = showsPauseMenu
         }
         .onDisappear {
             appState.popoverSearchText = ""

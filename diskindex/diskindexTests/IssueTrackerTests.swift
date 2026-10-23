@@ -8,40 +8,77 @@ import GRDB
 import Testing
 @testable import diskindex
 
+/// bug.0.4.125: Zustand des Test-Servers je Test (kein prozessweiter Schalter, Regel 20). `makeReporter` legt ihn an
+/// und gibt ihn zurück; die Anfragen tragen seine Kennung als Kopfzeile.
+final class IssueStub: @unchecked Sendable {
+    private let lock = NSLock()
+    private var _status = 201
+    private var _body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
+    private var _fail = false
+    private var _failCode: URLError.Code = .notConnectedToInternet
+    private var _hits = 0
+    private var _lastRequestBody: Data?
+    private var _responseDelayNanoseconds: UInt64 = 0
+
+    var status: Int { get { lock.withLock { _status } } set { lock.withLock { _status = newValue } } }
+    var body: Data { get { lock.withLock { _body } } set { lock.withLock { _body = newValue } } }
+    var fail: Bool { get { lock.withLock { _fail } } set { lock.withLock { _fail = newValue } } }
+    var failCode: URLError.Code { get { lock.withLock { _failCode } } set { lock.withLock { _failCode = newValue } } }
+    var hits: Int { get { lock.withLock { _hits } } set { lock.withLock { _hits = newValue } } }
+    var lastRequestBody: Data? { get { lock.withLock { _lastRequestBody } } set { lock.withLock { _lastRequestBody = newValue } } }
+    var responseDelayNanoseconds: UInt64 {
+        get { lock.withLock { _responseDelayNanoseconds } }
+        set { lock.withLock { _responseDelayNanoseconds = newValue } }
+    }
+}
+
 final class IssueStubURL: URLProtocol, @unchecked Sendable {
-    nonisolated(unsafe) static var status = 201
-    nonisolated(unsafe) static var body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
-    nonisolated(unsafe) static var fail = false
-    nonisolated(unsafe) static var failCode: URLError.Code = .notConnectedToInternet
-    nonisolated(unsafe) static var hits = 0
-    nonisolated(unsafe) static var lastRequestBody: Data?
-    nonisolated(unsafe) static var responseDelayNanoseconds: UInt64 = 0
+    static let header = "X-Issue-Stub"
+    /// Register der Stubs je Kennung (nur Nachschlagen, kein Schalter; jeder Test hat seinen eigenen Eintrag).
+    private static let lock = NSLock()
+    nonisolated(unsafe) private static var stubs: [String: IssueStub] = [:]
+
+    static func register(_ stub: IssueStub) -> String {
+        let id = UUID().uuidString
+        lock.withLock { stubs[id] = stub }
+        return id
+    }
+
+    private static func stub(for request: URLRequest) -> IssueStub? {
+        guard let id = request.value(forHTTPHeaderField: header) else { return nil }
+        return lock.withLock { stubs[id] }
+    }
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest {
         if let body = request.httpBody {
-            Self.lastRequestBody = body
+            stub(for: request)?.lastRequestBody = body
         }
         return request
     }
 
     override func startLoading() {
-        if Self.responseDelayNanoseconds > 0 {
-            Thread.sleep(forTimeInterval: Double(Self.responseDelayNanoseconds) / 1_000_000_000)
+        guard let stub = Self.stub(for: request) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.unsupportedURL))
+            return
         }
-        Self.hits += 1
-        Self.lastRequestBody = request.httpBody
-        if Self.fail {
-            client?.urlProtocol(self, didFailWithError: URLError(Self.failCode))
+        let delay = stub.responseDelayNanoseconds
+        if delay > 0 {
+            Thread.sleep(forTimeInterval: Double(delay) / 1_000_000_000)
+        }
+        stub.hits += 1
+        if let body = request.httpBody { stub.lastRequestBody = body }
+        if stub.fail {
+            client?.urlProtocol(self, didFailWithError: URLError(stub.failCode))
             return
         }
         guard let url = request.url,
-              let response = HTTPURLResponse(url: url, statusCode: Self.status, httpVersion: nil, headerFields: nil) else {
+              let response = HTTPURLResponse(url: url, statusCode: stub.status, httpVersion: nil, headerFields: nil) else {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: Self.body)
+        client?.urlProtocol(self, didLoad: stub.body)
         client?.urlProtocolDidFinishLoading(self)
     }
 
@@ -51,100 +88,100 @@ final class IssueStubURL: URLProtocol, @unchecked Sendable {
 @Suite(.serialized)
 struct IssueTrackerTests {
     @Test func crashReportIsSentAndLeavesTheOutbox() async throws {
-        let reporter = try makeReporter()
+        let (reporter, stub) = try makeReporter()
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         try expectQueued(reporter, 0)
     }
 
     @Test func serverErrorKeepsTheFileAndBacksOff() async throws {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
-        let reporter = try makeReporter(now: { clock.value })
-        IssueStubURL.status = 500
-        IssueStubURL.body = Data("no".utf8)
+        let (reporter, stub) = try makeReporter(now: { clock.value })
+        stub.status = 500
+        stub.body = Data("no".utf8)
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         let id = try #require(try reporter.firstQueuedIssueID())
         await reporter.flush()
         try expectQueued(reporter, 1)
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         let first = try #require(reporter.nextRetry(id: id))
         #expect(first.attempts == 1)
         #expect(abs(first.next.timeIntervalSince(clock.value) - 3_600) < 1)
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         clock.value = first.next
         await reporter.flush()
-        #expect(IssueStubURL.hits == 2)
+        #expect(stub.hits == 2)
         let second = try #require(reporter.nextRetry(id: id))
         #expect(second.attempts == 2)
         #expect(abs(second.next.timeIntervalSince(clock.value) - 7_200) < 1)
     }
 
     @Test func clientErrorDropsTheFile() async throws {
-        let reporter = try makeReporter()
-        IssueStubURL.status = 400
+        let (reporter, stub) = try makeReporter()
+        stub.status = 400
         reporter.enqueue(kind: "crash")
         await reporter.flush()
         try expectQueued(reporter, 0)
     }
 
     @Test func offlineKeepsTheFile() async throws {
-        let reporter = try makeReporter()
-        IssueStubURL.fail = true
+        let (reporter, stub) = try makeReporter()
+        stub.fail = true
         reporter.enqueue(kind: "crash")
         await reporter.flush()
         try expectQueued(reporter, 1)
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
     }
 
     /// bug.0.4.109: Zeitüberschreitung ist nicht „offline“ → Backoff: nach 61 s nicht fällig, zwei Flushes senden
     /// einmal (keine doppelten Berichte).
     @Test func timeoutBacksOffInsteadOfRetryingEveryMinute() async throws {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
-        let reporter = try makeReporter(now: { clock.value })
-        IssueStubURL.fail = true
-        IssueStubURL.failCode = .timedOut
+        let (reporter, stub) = try makeReporter(now: { clock.value })
+        stub.fail = true
+        stub.failCode = .timedOut
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         try expectQueued(reporter, 1)
         clock.value = clock.value.addingTimeInterval(61)
         let pool = try #require(reporter.queuePool)
         #expect(try ApiQueuePersistence.fetchDue(pool, now: clock.value).isEmpty)
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1, "nach 61 s erneut gesendet")
+        #expect(stub.hits == 1, "nach 61 s erneut gesendet")
     }
 
     /// bug.0.4.109: Nach 10 gescheiterten Versuchen (kein „offline“) wird der Eintrag verworfen.
     @Test func reportIsDroppedAfterTenFailedAttempts() async throws {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
-        let reporter = try makeReporter(now: { clock.value })
-        IssueStubURL.fail = true
-        IssueStubURL.failCode = .timedOut
+        let (reporter, stub) = try makeReporter(now: { clock.value })
+        stub.fail = true
+        stub.failCode = .timedOut
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         for _ in 0..<10 {
             await reporter.flush()
             clock.value = clock.value.addingTimeInterval(25 * 3_600)
         }
-        #expect(IssueStubURL.hits == 10)
+        #expect(stub.hits == 10)
         try expectQueued(reporter, 0)
     }
 
     /// bug.0.4.109: Echt offline (`notConnectedToInternet`) zählt nicht gegen die Obergrenze.
     @Test func offlineDoesNotCountTowardsTheLimit() async throws {
-        let reporter = try makeReporter()
-        IssueStubURL.fail = true
+        let (reporter, stub) = try makeReporter()
+        stub.fail = true
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         for _ in 0..<12 {
             await reporter.flush()
         }
         try expectQueued(reporter, 1)
-        #expect(IssueStubURL.hits == 12)
+        #expect(stub.hits == 12)
         // Ältere Zeile mit hohem Zähler aus der Zeit, als „offline“ jede Minute zählte: bleibt erhalten.
         let pool = try #require(reporter.queuePool)
         let row = try #require(try ApiQueuePersistence.fetchAllOrdered(pool).first)
@@ -157,9 +194,9 @@ struct IssueTrackerTests {
     /// kein Warten bis zum nächsten Ereignis (vorher bis zu 24 h statt 1/2/4 h).
     @Test func backoffDueDateArmsAWakeTimer() async throws {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
-        let reporter = try makeReporter(now: { clock.value })
-        IssueStubURL.status = 500
-        IssueStubURL.body = Data("no".utf8)
+        let (reporter, stub) = try makeReporter(now: { clock.value })
+        stub.status = 500
+        stub.body = Data("no".utf8)
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         await reporter.flush()
@@ -184,10 +221,10 @@ struct IssueTrackerTests {
     @Test func versionCheckOfflineDoesNotCountTowardsTheLimit() async throws {
         var lines: [String] = []
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
-        let reporter = try makeReporter(now: { clock.value }, log: { lines.append($0) })
+        let (reporter, stub) = try makeReporter(now: { clock.value }, log: { lines.append($0) })
         let pool = try #require(reporter.queuePool)
         try ApiQueuePersistence.enqueue(pool, kind: .versionCheck, payload: Data(), createdAt: 1)
-        IssueStubURL.fail = true
+        stub.fail = true
         for _ in 0..<20 {
             await reporter.flush()
             // Jedes Mal weit hinter den Backoff, damit die Zeile wirklich wieder fällig ist.
@@ -200,10 +237,10 @@ struct IssueTrackerTests {
 
     @Test func releaseRejectsPlainHTTP() async throws {
         var lines: [String] = []
-        let reporter = try makeReporter(release: true, log: { lines.append($0) })
+        let (reporter, stub) = try makeReporter(release: true, log: { lines.append($0) })
         reporter.enqueue(kind: "crash")
         await reporter.flush()
-        #expect(IssueStubURL.hits == 0)
+        #expect(stub.hits == 0)
         #expect(lines.contains { $0.contains("status=scheme") })
         #expect(!IssueEndpointPolicy.allows(ReportTarget.endpoint, release: true))
         #expect(IssueEndpointPolicy.allows(ReportTarget.endpoint, release: false))
@@ -213,9 +250,9 @@ struct IssueTrackerTests {
 
     /// todo.0.4.029: jedes 201 gilt als Erfolg, `id` optional (vorher: leere `id` → erneut senden).
     @Test func createdWithEmptyIDIsSuccess() async throws {
-        let reporter = try makeReporter()
-        IssueStubURL.status = 201
-        IssueStubURL.body = Data(#"{"id":""}"#.utf8)
+        let (reporter, stub) = try makeReporter()
+        stub.status = 201
+        stub.body = Data(#"{"id":""}"#.utf8)
         reporter.enqueue(kind: "crash")
         await reporter.flush()
         try expectQueued(reporter, 0)
@@ -225,30 +262,30 @@ struct IssueTrackerTests {
     @Test func createdWithoutBodyDeletesRowAndDoesNotResend() async throws {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
         var lines: [String] = []
-        let reporter = try makeReporter(now: { clock.value }, log: { lines.append($0) })
-        IssueStubURL.status = 201
-        IssueStubURL.body = Data()
+        let (reporter, stub) = try makeReporter(now: { clock.value }, log: { lines.append($0) })
+        stub.status = 201
+        stub.body = Data()
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         let id = try #require(try reporter.firstQueuedIssueID())
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         try expectQueued(reporter, 0)
         #expect(reporter.nextRetry(id: id) == nil)
         #expect(lines.contains { $0.contains("app report sent") && $0.contains("status=201") })
         clock.value = clock.value.addingTimeInterval(2 * 3_600)
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
     }
 
     @Test func sentBodyHasRequiredAPIFields() async throws {
-        let reporter = try makeReporter()
+        let (reporter, stub) = try makeReporter()
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         let fileData = try #require(try reporter.firstQueuedPayload())
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1)
-        let data = try #require(IssueStubURL.lastRequestBody ?? Optional(fileData))
+        #expect(stub.hits == 1)
+        let data = try #require(stub.lastRequestBody ?? Optional(fileData))
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
         #expect(object["schema"] as? Int == 2)
         #expect(object["kind"] as? String == "crash")
@@ -259,17 +296,17 @@ struct IssueTrackerTests {
     }
 
     @Test func legacyOKBodyRetries() async throws {
-        let reporter = try makeReporter()
-        IssueStubURL.status = 200
-        IssueStubURL.body = Data(#"{"ok":true}"#.utf8)
+        let (reporter, stub) = try makeReporter()
+        stub.status = 200
+        stub.body = Data(#"{"ok":true}"#.utf8)
         reporter.enqueue(kind: "crash")
         await reporter.flush()
         try expectQueued(reporter, 1)
     }
 
     @Test func unprocessableEntityDropsFile() async throws {
-        let reporter = try makeReporter()
-        IssueStubURL.status = 422
+        let (reporter, stub) = try makeReporter()
+        stub.status = 422
         reporter.enqueue(kind: "crash")
         await reporter.flush()
         try expectQueued(reporter, 0)
@@ -278,32 +315,32 @@ struct IssueTrackerTests {
     @Test func successWithoutOKBodyStaysAndBacksOff() async throws {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
         var lines: [String] = []
-        let reporter = try makeReporter(now: { clock.value }, log: { lines.append($0) })
+        let (reporter, stub) = try makeReporter(now: { clock.value }, log: { lines.append($0) })
         // todo.0.4.029: 201 ist immer Erfolg; „Erfolg ohne passenden Körper“ gilt nur noch für andere 2xx.
-        IssueStubURL.status = 200
-        IssueStubURL.body = Data("<html>tracker</html>".utf8)
+        stub.status = 200
+        stub.body = Data("<html>tracker</html>".utf8)
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         let id = try #require(try reporter.firstQueuedIssueID())
         await reporter.flush()
         try expectQueued(reporter, 1)
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         #expect(lines.contains { $0.contains("status=200") && $0.contains("body=nicht-ok") })
         let first = try #require(reporter.nextRetry(id: id))
         #expect(first.attempts == 1)
         #expect(abs(first.next.timeIntervalSince(clock.value) - 3_600) < 1)
         await reporter.flush()
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         clock.value = first.next
         await reporter.flush()
-        #expect(IssueStubURL.hits == 2)
+        #expect(stub.hits == 2)
         let second = try #require(reporter.nextRetry(id: id))
         #expect(second.attempts == 2)
         #expect(abs(second.next.timeIntervalSince(clock.value) - 7_200) < 1)
     }
 
     @Test func errorsAreNotSentAsReports() throws {
-        let reporter = try makeReporter()
+        let (reporter, _) = try makeReporter()
         reporter.noteError(category: "store", message: "applyDirectories /tmp/a 12")
         try expectQueued(reporter, 0)
     }
@@ -354,7 +391,7 @@ struct IssueTrackerTests {
     }
 
     @Test func payloadHasTheContractFields() throws {
-        let reporter = try makeReporter()
+        let (reporter, _) = try makeReporter()
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         let data = try #require(try reporter.firstQueuedPayload())
@@ -371,7 +408,7 @@ struct IssueTrackerTests {
     }
 
     @Test func queueIsCapped() throws {
-        let reporter = try makeReporter()
+        let (reporter, _) = try makeReporter()
         for _ in 0..<51 {
             reporter.enqueue(kind: "crash")
         }
@@ -379,38 +416,38 @@ struct IssueTrackerTests {
     }
 
     @Test func parallelFlushSendsOnce() async throws {
-        let reporter = try makeReporter()
-        IssueStubURL.responseDelayNanoseconds = 200_000_000
-        defer { IssueStubURL.responseDelayNanoseconds = 0 }
+        let (reporter, stub) = try makeReporter()
+        stub.responseDelayNanoseconds = 200_000_000
+        defer { stub.responseDelayNanoseconds = 0 }
         reporter.enqueue(kind: "crash")
         async let first: Void = reporter.flush()
         async let second: Void = reporter.flush()
         _ = await (first, second)
-        #expect(IssueStubURL.hits == 1)
+        #expect(stub.hits == 1)
         try expectQueued(reporter, 0)
     }
 
     @Test func leakBlockedRowStaysOutOfDueAndSkipsResend() async throws {
-        let reporter = try makeReporter()
+        let (reporter, stub) = try makeReporter()
         let pool = try #require(reporter.queuePool)
         let id = UUID().uuidString
         let payload = Data(#"{"schema":2,"id":"\#(id)","kind":"crash","logTail":["/Volumes/KUNDE/geheim"]}"#.utf8)
         try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: payload, createdAt: 1)
         await reporter.flush()
-        #expect(IssueStubURL.hits == 0)
+        #expect(stub.hits == 0)
         try expectQueued(reporter, 1)
         let row = try #require(try ApiQueuePersistence.fetchAllOrdered(pool).first)
         #expect(row.info?.hasPrefix("blocked:leak=") == true)
         #expect(try ApiQueuePersistence.fetchDue(pool, now: Date()).isEmpty)
-        IssueStubURL.hits = 0
+        stub.hits = 0
         await reporter.flush()
-        #expect(IssueStubURL.hits == 0)
+        #expect(stub.hits == 0)
     }
 
     /// bug.0.4.111: Ein nach dem Start angeschlossenes Medium gilt beim nächsten Senden für den Leak-Wächter.
     @Test func leakWatchReloadsMediumNamesBeforeSending() async throws {
         var logs: [String] = []
-        let reporter = try makeReporter(log: { logs.append($0) })
+        let (reporter, stub) = try makeReporter(log: { logs.append($0) })
         let pool = try #require(reporter.queuePool)
         let store = IndexStoreV3(pool: pool)
         try await store.upsertMedium(StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Steuerunterlagen"))
@@ -419,14 +456,14 @@ struct IssueTrackerTests {
         ])
         try ApiQueuePersistence.enqueue(pool, kind: .issueReport, payload: body, createdAt: Int(Date().timeIntervalSince1970))
         await reporter.flush()
-        #expect(IssueStubURL.hits == 0)
+        #expect(stub.hits == 0)
         #expect(logs.contains { $0.contains("blocked:leak=name") })
     }
 
     /// bug.0.4.012: Payload mit Pfad direkt in die Queue → flush → blocked:leak=path, kein Request.
     @Test func leakWatchBlocksQueuedPathPayload() async throws {
         var logs: [String] = []
-        let reporter = try makeReporter(log: { logs.append($0) })
+        let (reporter, stub) = try makeReporter(log: { logs.append($0) })
         reporter.knownNames = { [] }
         let leakBody = try JSONSerialization.data(withJSONObject: [
             "schema": 2,
@@ -443,11 +480,11 @@ struct IssueTrackerTests {
         )
         await reporter.flush()
         #expect(logs.contains { $0.contains("blocked:leak=path") })
-        #expect(IssueStubURL.hits == 0)
+        #expect(stub.hits == 0)
     }
 
     @Test func enqueueSurvivesConcurrentExclusiveWrite() async throws {
-        let reporter = try makeReporter()
+        let (reporter, _) = try makeReporter()
         let pool = try #require(reporter.queuePool)
         let gate = ExclusiveWriteGate()
         let writer = Task {
@@ -467,13 +504,13 @@ struct IssueTrackerTests {
 
     @Test func offlineFailureRetriesWithoutDelay() async throws {
         let clock = LockedDate(Date(timeIntervalSince1970: 1_700_000_000))
-        let reporter = try makeReporter(now: { clock.value })
-        IssueStubURL.fail = true
+        let (reporter, stub) = try makeReporter(now: { clock.value })
+        stub.fail = true
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         await reporter.flush()
         try expectQueued(reporter, 1)
-        IssueStubURL.fail = false
+        stub.fail = false
         await reporter.flush()
         try expectQueued(reporter, 0)
     }
@@ -481,7 +518,7 @@ struct IssueTrackerTests {
     @Test @MainActor func enqueueReturnsQuicklyWhileDatabaseWriteBlocks() async throws {
         let poolTracker = ApiQueuePersistence.OpenQueuePoolCountTracker()
         try await ApiQueuePersistence.$openQueuePoolCountTracker.withValue(poolTracker) { () async throws -> Void in
-            let reporter = try makeReporter()
+            let (reporter, _) = try makeReporter()
             let opensAfterSetup = poolTracker.count
             let pool = try #require(reporter.queuePool)
             let gate = ExclusiveWriteGate()
@@ -535,7 +572,7 @@ struct IssueTrackerTests {
     }
 
     @Test func discardCrashDialogDoesNotRemoveQueuedReport() async throws {
-        let reporter = try makeReporter()
+        let (reporter, _) = try makeReporter()
         reporter.enqueue(kind: "crash")
         reporter.waitForPendingEnqueuesForTesting()
         try expectQueued(reporter, 1)
@@ -555,7 +592,7 @@ struct IssueTrackerTests {
         let legacyID = UUID().uuidString
         let legacyBody = Data(#"{"schema":2,"id":"\#(legacyID)","kind":"crash"}"#.utf8)
         FileManager.default.createFile(atPath: directory.appendingPathComponent("\(legacyID).json").path, contents: legacyBody)
-        let reporter = try makeReporter(outboxDirectory: directory)
+        let (reporter, _) = try makeReporter(outboxDirectory: directory)
         reporter.migrateLegacyOutboxFiles()
         #expect(reporter.reportFiles().isEmpty)
         try expectQueued(reporter, 1)
@@ -581,14 +618,8 @@ private func makeReporter(
     now: @escaping () -> Date = { Date() },
     log: @escaping (String) -> Void = { _ in },
     outboxDirectory: URL? = nil
-) throws -> IssueReporter {
-    IssueStubURL.status = 201
-    IssueStubURL.body = Data(#"{"id":"A1B2C3D4-E5F6-7890-ABCD-EF1234567890"}"#.utf8)
-    IssueStubURL.fail = false
-    IssueStubURL.failCode = .notConnectedToInternet
-    IssueStubURL.hits = 0
-    IssueStubURL.lastRequestBody = nil
-    IssueStubURL.responseDelayNanoseconds = 0
+) throws -> (IssueReporter, IssueStub) {
+    let stub = IssueStub()
     let directory = outboxDirectory ?? FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     if outboxDirectory == nil {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -598,6 +629,7 @@ private func makeReporter(
     let defaults = TestDefaults.make()
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [IssueStubURL.self]
+    configuration.httpAdditionalHeaders = [IssueStubURL.header: IssueStubURL.register(stub)]
     let session = URLSession(configuration: configuration)
     let reporter = IssueReporter(
         directory: directory,
@@ -622,7 +654,7 @@ private func makeReporter(
         }
     )
     reporter.sendsImmediately = false
-    return reporter
+    return (reporter, stub)
 }
 
 /// Sync-Gate für `pool.write` (kein `DispatchSemaphore.wait` im async-Testpfad, bug.0.4.010).

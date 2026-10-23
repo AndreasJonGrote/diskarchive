@@ -14,6 +14,9 @@ enum EmptyStateIconStyle {
     case favorites
     /// Suche idle: Lupe + Trichter, blau, 40 pt.
     case searchAndFilter
+    /// todo.0.4.043/042: Laden – Spinner (wie „Inhalte werden geladen“, 20 pt, Textfarbe) an der Stelle der Icons, im
+    /// 40-pt-Platz der Icons, damit der Titel an seiner Stelle bleibt.
+    case loading
     case none
 }
 
@@ -61,6 +64,11 @@ struct EmptyStateView: View {
                     filterSearchIcon("IconMagnifyingGlass")
                     filterSearchIcon("IconFunnel")
                 }
+            case .loading:
+                IndexingSpinnerRing(color: DesignColor.text, lineWidth: 2.5)
+                    .padding(1.25)
+                    .frame(width: 20, height: 20)
+                    .frame(width: 40, height: 40)
             case .none:
                 EmptyView()
             }
@@ -68,11 +76,14 @@ struct EmptyStateView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(DesignColor.text.opacity(0.7))
                 .multilineTextAlignment(.center)
-            Text(message)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(DesignColor.text.opacity(0.55))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 340)
+            // Ladefläche ohne Untertitel (todo.0.4.043).
+            if !message.isEmpty {
+                Text(message)
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundStyle(DesignColor.text.opacity(0.55))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 340)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 16)
@@ -104,4 +115,5 @@ enum EmptyStateCopy {
     static var popoverNoneConnected: String { LayoutCopy.popoverNoneConnected }
     static var noFavoritesTitle: String { LayoutCopy.emptyNoFavoritesTitle }
     static var noFavoritesMessage: String { LayoutCopy.emptyNoFavoritesMessage }
+    static var favoritesLoadingTitle: String { LayoutCopy.emptyFavoritesLoadingTitle }
 }

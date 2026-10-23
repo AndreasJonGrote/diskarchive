@@ -138,14 +138,138 @@ struct ColumnIgnoreInPlaceTests {
         let app = rig.app
         await rig.store.setReconcileBatchDelay(.milliseconds(150))
         app.columnBrowserState.pathStack = ["Ceres", "geheim"]
+        // Auswahl in der Spalte des ignorierten Ordners (rechts von „Ceres“) verschwindet mit ihr (bug.0.4.099 b:
+        // Auswahl in „Ceres“ selbst bleibt, siehe unten).
         var selection = ColumnSelection()
-        selection.replace(id: UUID(), column: 1)
+        selection.replace(id: UUID(), column: 2)
         app.columnBrowserState.selection = selection
         app.requestIgnore(["geheim"], targetCount: 1)
         #expect(app.isRuleReconcileQueueActive)
         #expect(app.columnBrowserState.pathStack == ["Ceres"])
         #expect(app.columnBrowserState.selection.ids.isEmpty)
         await app.waitForRuleReconcileIdle()
+    }
+
+    /// bug.0.4.099 (a): Eine Spalte, die gerade zum ersten Mal lädt (kein Cache), bleibt bei `markAllStale` im
+    /// Ladezustand und lädt selbst neu – ohne Anfrage der Ansicht. Vorher: sofort „nicht ladend, leer“ (= „Ordner leer“).
+    @Test func firstLoadingColumnStaysLoadingAcrossMarkAllStale() async throws {
+        let rig = try await Self.makeRig(offline: false)
+        defer { rig.close() }
+        let repo = rig.app.indexRepository
+        let id = rig.id
+        let gate = MultiGate()
+        repo.loadProgressStepForTesting = { step in
+            if step == .counted { await gate.pause() }
+        }
+        // Vorbereitung (kein End-to-End-Test): erster Load der Spalte „Ceres“, angehalten nach der Zählung.
+        repo.requestLoad(mediumID: id, path: ["Ceres"])
+        try #require(await waitUntil { gate.waiting >= 1 })
+        try #require(repo.isLoading(mediumID: id, path: ["Ceres"]))
+        let startedBefore = repo.loadSessionsStartedForTesting
+        repo.markAllStale()
+        #expect(repo.isLoading(mediumID: id, path: ["Ceres"]), "erstmals ladende Spalte nach markAllStale nicht mehr ladend (zeigt „Ordner leer“)")
+        #expect(!repo.hasLoadedChildren(mediumID: id, path: ["Ceres"]))
+        let restarted = await waitUntil { repo.loadSessionsStartedForTesting > startedBefore }
+        #expect(restarted, "kein neuer Load ohne Anfrage der Ansicht")
+        repo.loadProgressStepForTesting = nil
+        gate.openAll()
+        let loaded = await waitUntil { repo.hasLoadedChildren(mediumID: id, path: ["Ceres"]) }
+        try #require(loaded)
+        #expect(repo.children(mediumID: id, path: ["Ceres"]).count == 41)
+        #expect(!repo.isLoading(mediumID: id, path: ["Ceres"]))
+    }
+
+    /// bug.0.4.099 (a) im echten Fenster: Während der Warteschlange öffnet der Nutzer einen Ordner, der zum ersten Mal
+    /// lädt. Endet die Warteschlange (`markAllStale`), zeigt die Spalte zu keinem Zeitpunkt „leer, nicht ladend“.
+    @Test func firstLoadingColumnNeverShowsEmptyWhenQueueEnds() async throws {
+        let rig = try await Self.makeRig(offline: false)
+        defer { rig.close() }
+        let app = rig.app
+        let id = rig.id
+        let repo = app.indexRepository
+        await rig.store.setReconcileBatchDelay(.milliseconds(150))
+        app.columnBrowserState.pathStack = []
+        let session = PixelProbe.open(
+            ColumnBrowserView().environment(app).environment(\.colorScheme, .light)
+                .frame(width: size.width, height: size.height).background(DesignColor.bg),
+            size: size,
+            appearance: .aqua
+        )
+        defer { session.close() }
+        await PixelProbe.settleOpenWindow(session)
+        try #require(await waitUntil { repo.hasLoadedChildren(mediumID: id, path: []) })
+        let gate = MultiGate()
+        repo.loadProgressStepForTesting = { step in
+            if step == .counted { await gate.pause() }
+        }
+        app.columnBrowserState.pathStack = ["Ceres"]
+        try #require(await waitUntil { repo.isLoading(mediumID: id, path: ["Ceres"]) })
+        let sampler = Sampler()
+        sampler.start {
+            if !repo.isLoading(mediumID: id, path: ["Ceres"]), !repo.hasLoadedChildren(mediumID: id, path: ["Ceres"]) {
+                return "leer, nicht ladend"
+            }
+            return nil
+        }
+        defer { sampler.stop() }
+        app.requestIgnore(["Vesta"], targetCount: 1)
+        await app.waitForRuleReconcileIdle()
+        // Ende der Warteschlange: `resumeAfterRuleReconcile` markiert alles veraltet, „Ceres“ lädt erneut (zweiter
+        // Load am Tor).
+        let resumed = await waitUntil { gate.waiting >= 2 }
+        try #require(resumed, "Spalte nach der Warteschlange nicht neu geladen")
+        try await Task.sleep(for: .milliseconds(300))
+        repo.loadProgressStepForTesting = nil
+        gate.openAll()
+        let loaded = await waitUntil { repo.hasLoadedChildren(mediumID: id, path: ["Ceres"]) }
+        sampler.stop()
+        #expect(loaded)
+        #expect(sampler.samples > 10)
+        #expect(sampler.violations.isEmpty, "\(sampler.violations)")
+    }
+
+    /// bug.0.4.099 (b): Ignorieren des offenen Ordners schließt seine Spalte; die Mehrfachauswahl in der Spalte, die
+    /// ihn enthält, bleibt (ohne den ignorierten Ordner selbst).
+    @Test func ignoringTheOpenFolderKeepsVisibleMultiSelectionInItsColumn() async throws {
+        let rig = try await Self.makeRig(offline: false)
+        defer { rig.close() }
+        let app = rig.app
+        let repo = app.indexRepository
+        await rig.store.setReconcileBatchDelay(.milliseconds(150))
+        // Vorbereitung: Spalte „Ceres“ geladen (kein End-to-End-Test, Regel 18 betrifft nur Ketten).
+        let items = await repo.loadChildren(mediumID: rig.id, path: ["Ceres"])
+        let geheim = try #require(items.first { $0.name == "geheim" })
+        let files = items.filter { !$0.isFolder }
+        try #require(files.count >= 2)
+        let first = try #require(files.first)
+        let second = try #require(files.dropFirst().first)
+        app.columnBrowserState.pathStack = ["Ceres", "geheim"]
+        app.columnBrowserState.selection = ColumnSelection(
+            ids: [first.id, geheim.id, second.id], anchorID: geheim.id, focusColumnIndex: 1, lastClickedID: geheim.id
+        )
+        app.requestIgnore(["geheim"], targetCount: 1)
+        #expect(app.columnBrowserState.pathStack == ["Ceres"])
+        #expect(app.columnBrowserState.selection.ids == [first.id, second.id])
+        #expect(app.columnBrowserState.selection.focusColumnIndex == 1)
+        await app.waitForRuleReconcileIdle()
+    }
+
+    /// Tor für mehrere Loads: hält jeden an, bis `openAll`.
+    @MainActor
+    private final class MultiGate {
+        private var waiters: [CheckedContinuation<Void, Never>] = []
+        private var opened = false
+        var waiting: Int { waiters.count }
+        func pause() async {
+            if opened { return }
+            await withCheckedContinuation { waiters.append($0) }
+        }
+        func openAll() {
+            opened = true
+            let all = waiters
+            waiters.removeAll()
+            all.forEach { $0.resume() }
+        }
     }
 
     private actor LoadGate {

@@ -42,7 +42,8 @@ var gmtTimeZone: TimeZone { TimeZone.gmt }
 
 /// Beispielmedium aus `PreviewData` ohne Feldzugriff außerhalb des Bereichs (leere Liste meldet „rot“ und liefert die
 /// erste Zeile, die es gibt).
-nonisolated func previewMedium(_ index: Int) -> Medium {
+@MainActor
+func previewMedium(_ index: Int) -> Medium {
     let media = PreviewData.media
     if !media.indices.contains(index) { Issue.record("PreviewData.media hat keine Zeile \(index)") }
     return media[max(0, min(index, media.count - 1))]

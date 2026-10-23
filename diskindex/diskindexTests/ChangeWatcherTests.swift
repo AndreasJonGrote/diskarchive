@@ -13,6 +13,13 @@ import Testing
 extension WindowTestGroup {
 /// Seriell: feste Quiet-Intervalle + gemeinsame Temp-/CPU-Last machen Parallel-Flakes (Aufgabe 140, bug.0.4.044).
 @Suite(.serialized) @MainActor struct ChangeWatcherTests {
+    /// bug.0.4.125: Der Wächter speichert den Ereignis-Stand erst nach einem erfolgreichen Flush.
+    static func cursorReaches(_ eventID: Int64, _ rig: WatchRig) async -> Bool {
+        await waitUntil {
+            ((try? await rig.store.medium(uuid: rig.medium.uuid))??.lastEventID ?? 0) >= eventID
+        }
+    }
+
     @Test func newFileAppearsAfterQuiet() async throws {
         let rig = try await watchRig()
         rig.access.listings["/Volumes/DISK/A"] = [ListedDirectoryEntry(name: "neu.txt", isDirectory: false, isPackage: false, isSymbolicLink: false, isHidden: false, fileSize: 3, modifiedAt: Date())]
@@ -328,8 +335,12 @@ extension WindowTestGroup {
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/._Resource", eventID: 1))
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/node_modules/index.js", eventID: 2))
-        try await Task.sleep(for: .milliseconds(150))
-        #expect(rig.access.listCountIsEmpty())
+        // bug.0.4.125: positives Signal – ein gewöhnliches Ereignis danach; ist sein Stand gespeichert (nach einem
+        // erfolgreichen Flush), sind die beiden davor verarbeitet (und verworfen).
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/B/x.txt", eventID: 3))
+        try #require(await Self.cursorReaches(3, rig), "Kontroll-Ereignis nicht verarbeitet")
+        #expect(rig.access.listCount(for: "/Volumes/DISK") == 0)
+        #expect(rig.access.listCount(for: "/Volumes/DISK/node_modules") == 0)
     }
 
     @Test func eventPastScanDepthRereadsOnlyTheLastLevel() async throws {
@@ -406,9 +417,12 @@ extension WindowTestGroup {
         rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/anderswo/X", eventID: 3, mustScanSubDirs: true))
-        try await Task.sleep(for: .milliseconds(80))
+        // bug.0.4.125: positives Signal – ein gewöhnliches Ereignis im Medium danach, sein Stand ist gespeichert.
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/B/x.txt", eventID: 4))
+        try #require(await Self.cursorReaches(4, rig), "Kontroll-Ereignis nicht verarbeitet")
         #expect(log.ids.isEmpty)
-        #expect(rig.access.listCountIsEmpty())
+        #expect(rig.access.listCount(for: "/anderswo/X") == 0)
+        #expect(rig.access.listCount(for: "/Volumes/DISK") == 0)
     }
 
     @Test func indexedMediumReconcilesUnknownDoesNot() async throws {
@@ -661,7 +675,12 @@ extension WindowTestGroup {
         rig.watcher.quietInterval = .milliseconds(30)
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         rig.source.emit(VolumeChange(path: "/Volumes/DISK/A/bleibt.txt", eventID: 1))
-        try await Task.sleep(for: .milliseconds(160))
+        // bug.0.4.125: positives Signal – der (fehlschlagende) Leseversuch hat stattgefunden; danach noch ein Ereignis
+        // in B, damit die Verarbeitung von A sicher abgeschlossen ist.
+        let attempted = await waitUntil { rig.access.listCount(for: "/Volumes/DISK/A") >= 1 }
+        try #require(attempted, "Leseversuch fand nicht statt")
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/B/x.txt", eventID: 2))
+        try #require(await Self.cursorReaches(2, rig), "Kontroll-Ereignis nicht verarbeitet")
         let names = try await rig.store.children(mediumUUID: rig.medium.uuid, parentID: parent).map(\.name)
         #expect(names == ["bleibt.txt"])
     }

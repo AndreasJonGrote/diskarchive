@@ -66,7 +66,13 @@ final class AppState {
     }
     var favoritesConnectionFilter: FavoritesConnectionFilter = .all
     var contextMenuHighlightObjectID: UUID?
-    var settingsTab: SettingsTab = .general
+    var settingsTab: SettingsTab = .general {
+        didSet {
+            // bug.0.4.135 (Regel 15): Das Scroll-Ziel gilt nur für den Tab, in den gesprungen wurde; die Ansicht scrollt
+            // beim Erscheinen und ändert selbst keinen Zustand.
+            if settingsTab != oldValue, settingsTab != .files { settingsScrollTarget = nil }
+        }
+    }
     var settingsScrollTarget: SettingsScrollTarget?
     var heldForSleep = false
     /// bug.0.4.120: Ablauf des Starts je Instanz (Tests; kein Prozess-Zustand): Einstellungen geladen, bevor der Monitor startet.
@@ -205,6 +211,7 @@ final class AppState {
             columnBrowserState.selection = ColumnSelection()
             isFilterBarVisible = false
             searchState.filters = SearchFilters()
+            if oldValue == .settings { settingsScrollTarget = nil }
             if oldValue == .columnBrowser, mainWindowDestination != .columnBrowser {
                 columnBrowserState.selectedMediumID = nil
                 columnBrowserState.pathStack = []
@@ -215,8 +222,16 @@ final class AppState {
                 ensureColumnBrowserSelection()
                 clampColumnPathToScanDepth()
             }
+            // todo.0.4.043: Beim Öffnen der Favoriten sofort die Ladefläche, mindestens 1 s (Ende: erste geladene Seite).
+            if mainWindowDestination == .favorites, !screenshotFrozenLists {
+                favoritesLoading.begin()
+            } else if oldValue == .favorites {
+                favoritesLoading.cancel()
+            }
         }
     }
+    /// todo.0.4.043: Ladeanzeige der Favoriten (gemeinsamer Baustein mit der Suche, todo.0.4.042).
+    let favoritesLoading = MinimumLoadingIndicator()
     var mainWindowDestinationBeforeSearch: MainWindowDestination?
     var isFilterBarVisible = false
     /// Hochzählen = Objekt-Suchfeld verliert den Fokus (Scaffold reagiert, Aufgabe 28).

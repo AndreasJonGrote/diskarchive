@@ -110,10 +110,16 @@ struct NewMediumDetectedDialog: View {
     }
 
     private func applyChoice(allowIndexing: Bool) {
+        Self.applyChoice(mediumID: medium.id, allowIndexing: allowIndexing, remember: rememberChoice, appState: appState)
+    }
+
+    /// Antwort des Dialogs (Knöpfe „Indizieren“/„Nicht indizieren“): Entscheidung weitergeben, Panel schließen, Stapel
+    /// neu ordnen. Eine Quelle für Knopf und Tests (bug.0.4.119, Regel 18: Tests nehmen denselben Einstieg wie der Knopf).
+    static func applyChoice(mediumID: UUID, allowIndexing: Bool, remember: Bool, appState: AppState) {
         if let onNewMediumChoice = appState.onNewMediumChoice {
-            onNewMediumChoice(medium.id, allowIndexing, rememberChoice)
+            onNewMediumChoice(mediumID, allowIndexing, remember)
         } else {
-            appState.updateMedium(id: medium.id) {
+            appState.updateMedium(id: mediumID) {
                 $0.decision = allowIndexing ? .index : .dontIndex
                 $0.allowIndexing = allowIndexing
                 if allowIndexing {
@@ -123,8 +129,8 @@ struct NewMediumDetectedDialog: View {
                 }
             }
         }
-        appState.completeNewMediumDecision(medium.id)
-        AppWindowPresenter.closeNewMediumPanel(mediumID: medium.id, appState: appState, userDismissed: false)
+        appState.completeNewMediumDecision(mediumID)
+        AppWindowPresenter.closeNewMediumPanel(mediumID: mediumID, appState: appState, userDismissed: false)
         AppWindowPresenter.syncNewMediumPanels(appState: appState)
     }
 }

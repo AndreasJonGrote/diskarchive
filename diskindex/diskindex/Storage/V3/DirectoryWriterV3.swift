@@ -268,7 +268,7 @@ nonisolated final class DirectoryWriterV3 {
             let priorFallback = activePartialFallback
             let priorPartials = activePrecomputedPartials
             activePrecomputedPartials = nil
-            if let mountPath, !entry.isFolder {
+            if let mountPath, !entry.isFolder, !entry.isPackage {
                 let segments = try Self.segments(db, itemID: insertedID)
                 activePartialFallback = { _ in
                     let url = Self.fileURL(mountPath: mountPath, parentSegments: Array(segments.dropLast()), name: entry.name)

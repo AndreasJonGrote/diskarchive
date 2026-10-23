@@ -9,6 +9,7 @@ import Foundation
 import Testing
 @testable import diskindex
 
+@MainActor
 struct MediumChipTests {
     private static let allowedTexts: Set<String> = [
         "Online",

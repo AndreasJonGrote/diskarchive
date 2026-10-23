@@ -36,7 +36,6 @@ struct IndexRepositoryInvalidateAllTests {
             while Date() < deadline {
                 // Kein globaler Load-Zähler (Paralleltests teilen ihn).
                 if repo.isLoading(mediumID: mediumID, path: []) {
-                    repo.blocksLoadsForRuleReconcile = true
                     repo.invalidateAll()
                     invalidatedDuringLoad = true
                     return
@@ -53,7 +52,6 @@ struct IndexRepositoryInvalidateAllTests {
         #expect(invalidatedDuringLoad)
         #expect(!repo.hasCachedChildren(mediumID: mediumID, path: []))
 
-        repo.blocksLoadsForRuleReconcile = false
         repo.requestLoad(mediumID: mediumID, path: [])
         let reloaded = await waitUntil(timeout: 60) {
             repo.hasCachedChildren(mediumID: mediumID, path: [])
@@ -140,7 +138,6 @@ struct IndexRepositoryInvalidateAllTests {
         // Kein neuer Load nach dem Invalidieren: geprüft wird nur, was der alte Load schreibt.
         repo.requestLoad(mediumID: mediumID, path: [])
         await gate.waitUntilLoadAtGate()
-        repo.blocksLoadsForRuleReconcile = true
         repo.invalidateAll()
         #expect(repo.loadingProgress(mediumID: mediumID, path: []) == (0, 0))
         gate.proceed()

@@ -318,6 +318,8 @@ final class MenuBarController: NSObject {
             closePanel()
         }
 
+        // bug.0.4.135 (Regel 15): Pausen-Menü beim Öffnen zu – hier statt in `onAppear` der Ansicht.
+        appState.popoverPauseMenuOpen = false
         let hosting = NSHostingController(
             rootView: MenuBarPopoverView().environment(appState)
         )

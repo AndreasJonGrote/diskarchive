@@ -71,7 +71,7 @@ struct RestCoverageTests {
         #expect(FailureModalThrottle.allowsAutomatic(shown: 3, hourStart: start, now: start.addingTimeInterval(3600)))
     }
 
-    @Test func undecidedMediumIsHiddenUntilIndexed() {
+    @Test @MainActor func undecidedMediumIsHiddenUntilIndexed() {
         var medium = previewMedium(0)
         medium.decision = .undecided
         medium.completedDepth = 0

@@ -24,7 +24,7 @@ struct AboutAndSettingsMenuTests {
 
     @Test func aboutContentComesFromTheBundleAndLinksToTheWebsite() throws {
         let content = AboutPanel.content()
-        #expect(content.version == "0.3.9")
+        #expect(content.version == "0.4.0")
         #expect(Int(content.build).map { $0 > 1 } == true)
         #expect(content.link == "https://diskarchive.app")
 

@@ -33,7 +33,6 @@ extension AppState {
         ruleReconcileTask = nil
         isRuleReconcileQueueActive = false
         ruleReconcileNeedsRerun = false
-        indexRepository.blocksLoadsForRuleReconcile = false
         indexRepository.hidesLoadsByScope = false
         resumeRuleReconcileIdleWaiters()
     }
@@ -98,7 +97,6 @@ extension AppState {
             return
         }
         isRuleReconcileQueueActive = false
-        indexRepository.blocksLoadsForRuleReconcile = false
         indexRepository.hidesLoadsByScope = false
         resumeRuleReconcileIdleWaiters()
         if emitIdle, let indexStore {
@@ -129,16 +127,25 @@ extension AppState {
         var state = columnBrowserState
         if let cut = state.pathStack.indices.first(where: { scope.shouldHide(name: state.pathStack[$0], depth: $0 + 1) }) {
             state.pathStack = Array(state.pathStack.prefix(cut))
-            if let focus = state.selection.focusColumnIndex, focus >= cut {
+            // bug.0.4.099 (b): Nur Spalten rechts der geschlossenen verlieren ihre Auswahl; in der Spalte des ignorierten
+            // Ordners bleibt die (Mehrfach-)Auswahl, soweit sie sichtbar ist.
+            if let focus = state.selection.focusColumnIndex, focus > cut {
                 state.selection = ColumnSelection()
                 state.selectedUncapturedFolderID = nil
             }
+        }
+        pruneColumnSelectionToVisibleItems(&state)
+        if state != columnBrowserState {
             columnBrowserState = state
         }
         let hides = { (item: IndexedItem) in Self.ruleHidesResult(item, by: scope) }
+        hidePopoverResultsInPlace(hides)
         let hiddenHits = searchMatch.items.filter { hides($0.item) }.count
         let hiddenFavorites = favoriteObjects.filter { hides($0.item) }.count
-        guard hiddenHits > 0 || hiddenFavorites > 0 else { return }
+        // bug.0.4.146 (a): Bei voller Favoriten-Seite liegen weitere (auch ausgeblendete) Favoriten außerhalb der Seite;
+        // die Zahl kommt erst nach der Warteschlange neu („–“ bis dahin).
+        let favoritePageWasFull = favoriteObjects.count >= SearchIndex.pageLimit
+        guard hiddenHits > 0 || hiddenFavorites > 0 || favoritePageWasFull else { return }
         withAnimation(IndexRepository.rowChangeAnimation) {
             if hiddenHits > 0 {
                 searchMatch.items.removeAll { hides($0.item) }
@@ -146,9 +153,48 @@ extension AppState {
             }
             if hiddenFavorites > 0 {
                 favoriteObjects.removeAll { hides($0.item) }
+            }
+            if favoritePageWasFull {
+                favoriteItemCount = nil
+                favoriteUnfilteredCount = nil
+            } else if hiddenFavorites > 0 {
                 favoriteItemCount = favoriteItemCount.map { max(0, $0 - hiddenFavorites) }
             }
         }
+    }
+
+    /// bug.0.4.146 (c): Treffer der Popover-Suche, die die Regel jetzt ausschließt, verschwinden sofort (wie in der
+    /// Suche im Fenster); die Zahl sinkt um die gezeigten. Neu gesucht wird nach der Warteschlange.
+    private func hidePopoverResultsInPlace(_ hides: (IndexedItem) -> Bool) {
+        var results = popoverResults
+        var removed = 0
+        results.groups = results.groups.compactMap { group in
+            let kept = group.hits.filter { hit in
+                guard let result = hit.result, hides(result.item) else { return true }
+                removed += 1
+                return false
+            }
+            return kept.isEmpty ? nil : PopoverSearchGroup(title: group.title, hits: kept)
+        }
+        guard removed > 0 else { return }
+        results.totalCount = max(0, results.totalCount - removed)
+        popoverResults = results
+        NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
+        if !popoverSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            schedulePopoverSearch()
+        }
+    }
+
+    /// bug.0.4.099 (b): Auswahl in der Fokusspalte auf die dort noch geladenen Einträge kürzen (die Regel hat sie gerade
+    /// an Ort und Stelle ausgeblendet). Nur bei geladener Spalte, sonst bliebe nach `[]` nichts übrig.
+    private func pruneColumnSelectionToVisibleItems(_ state: inout ColumnBrowserState) {
+        guard let focus = state.selection.focusColumnIndex, !state.selection.ids.isEmpty,
+              focus <= state.pathStack.count,
+              let mediumID = state.selectedMediumID ?? columnBrowserMedia.first?.id else { return }
+        let path = Array(state.pathStack.prefix(focus))
+        guard indexRepository.hasLoadedChildren(mediumID: mediumID, path: path) else { return }
+        let visible = Set(indexRepository.children(mediumID: mediumID, path: path).map(\.id))
+        state.selection.dropInvisible(visible)
     }
 
     /// bug.0.4.131: Eine neu gelesene Spalte enthält den dort offenen Ordner nicht mehr. Umbenannt (gleiche Zeile, neuer

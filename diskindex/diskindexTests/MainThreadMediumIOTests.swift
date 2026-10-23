@@ -105,10 +105,17 @@ struct MainThreadMediumIOTests {
                     gate.hold(onMain: Thread.isMainThread)
                     return late
                 },
-                logTimeout: { logged.add($0) }
+                // bug.0.4.102 (c): Senke schreibt verzögert – meldete `info` erst nach dem Fortsetzen (alte Reihenfolge),
+                // fände der Test sicher keine Meldung.
+                logTimeout: { path in
+                    Thread.sleep(forTimeInterval: 0.05)
+                    logged.add(path)
+                }
             )
             outcome.finished = true
-            gate.finish()
+            // bug.0.4.102 (c): erst schließen, wenn die Abfrage das Tor erreicht hat (unter Last startet sie evtl. erst
+            // nach der Zeitgrenze); Notfall-Grenze großzügig, dann rot statt Hängen.
+            await gate.finishAfterArrival(deadline: 10)
         }
         let report = await gate.arrived()
         try #require(report != nil, "Abfrage endete ohne Meldung")
@@ -182,10 +189,23 @@ private final class LookupHoldGate: @unchecked Sendable {
         (stream, continuation) = AsyncStream.makeStream(of: Bool.self)
     }
 
+    private let lock = NSLock()
+    private var reached = false
+
     /// Von der Abfrage aufgerufen (Hintergrund-Thread): melden, dann warten.
     func hold(onMain: Bool) {
+        lock.withLock { reached = true }
         continuation.yield(onMain)
         semaphore.wait()
+    }
+
+    /// `finish` erst, wenn die Abfrage das Tor erreicht hat, oder nach der Notfall-Grenze (bug.0.4.102 c).
+    func finishAfterArrival(deadline seconds: TimeInterval) async {
+        let end = Date().addingTimeInterval(seconds)
+        while !lock.withLock({ reached }), Date() < end {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+        finish()
     }
 
     func arrived() async -> Bool? {
