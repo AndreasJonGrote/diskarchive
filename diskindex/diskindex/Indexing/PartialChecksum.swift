@@ -95,6 +95,68 @@ nonisolated enum PartialChecksum {
     }
 }
 
+/// bug.0.4.169: Ergebnis des Lesens einer Teil-Prüfsumme außerhalb der Schreibtransaktion.
+nonisolated enum PartialReadOutcome: Sendable, Equatable {
+    case digest(Data)
+    /// Datei fehlt bzw. hat keinen Inhalt (kein Vergleich möglich).
+    case missing
+    /// Lesefehler oder Zeitgrenze überschritten – der Kandidat bleibt stehen (bug.0.4.156 b).
+    case unreadable
+}
+
+extension PartialChecksum {
+    /// bug.0.4.169: Teil-Prüfsumme auf einer Hintergrund-Queue mit Zeitgrenze; anders als `computeOffActor` zählt die
+    /// Zeitgrenze als „unlesbar“, nicht als „fehlt“.
+    static func readOffActor(
+        at fileURL: URL,
+        timeout: Duration = .seconds(5),
+        beforeRead: (@Sendable (URL) -> Void)? = nil
+    ) async -> PartialReadOutcome {
+        let path = fileURL.path
+        let seconds = Double(timeout.components.seconds) + Double(timeout.components.attoseconds) / 1e18
+        return await withCheckedContinuation { continuation in
+            let once = PartialReadOnce(continuation)
+            DispatchQueue.global(qos: .utility).async {
+                beforeRead?(fileURL)
+                guard FileManager.default.fileExists(atPath: path) else {
+                    once.resume(.missing)
+                    return
+                }
+                do {
+                    if let computed = try compute(at: fileURL) {
+                        once.resume(.digest(computed.partial))
+                    } else {
+                        once.resume(.missing)
+                    }
+                } catch {
+                    once.resume(.unreadable)
+                }
+            }
+            DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + seconds) {
+                once.resume(.unreadable)
+            }
+        }
+    }
+}
+
+nonisolated private final class PartialReadOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<PartialReadOutcome, Never>?
+
+    init(_ continuation: CheckedContinuation<PartialReadOutcome, Never>) {
+        self.continuation = continuation
+    }
+
+    func resume(_ outcome: PartialReadOutcome) {
+        let pending = lock.withLock { () -> CheckedContinuation<PartialReadOutcome, Never>? in
+            let value = continuation
+            continuation = nil
+            return value
+        }
+        pending?.resume(returning: outcome)
+    }
+}
+
 /// Setzt die Continuation höchstens einmal fort (Prüfsumme gegen Zeitgrenze, bug.0.3.8.006).
 nonisolated private final class ChecksumResumeOnce: @unchecked Sendable {
     typealias Value = (partial: Data, info: String)?

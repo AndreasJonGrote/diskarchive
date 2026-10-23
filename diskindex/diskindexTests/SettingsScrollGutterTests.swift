@@ -223,6 +223,8 @@ struct SettingsScrollGutterTests {
         host.needsLayout = true
         host.layoutSubtreeIfNeeded()
         try #require(await waitUntil { !bar.isHidden }, "Voraussetzung: neues Dokument mit Überlauf, Leiste sichtbar")
+        // bug.0.4.167 (b): deterministisch – nach Ersetzen und einem Layoutlauf beobachtet der Baustein das neue Dokument.
+        #expect(ScrollbarGutter.observedDocumentForTesting(in: scroll) === second, "Beobachtung hängt am alten documentView")
         // Nur das neue Dokument schrumpft (der Inhalt selbst nicht) → nur die Beobachtung des neuen meldet es.
         second.setFrameSize(NSSize(width: 280, height: 100))
         let hidden = await waitUntil(timeout: 3) { bar.isHidden }

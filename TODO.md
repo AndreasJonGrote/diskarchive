@@ -5,7 +5,7 @@
 | Datei | Inhalt | Wer liest |
 |---|---|---|
 | [todo/regeln.md](todo/regeln.md) | Regeln 1–31 für den Worker (verbindlich) | Worker immer, Host bei Bedarf |
-| [todo/paket-16.md](todo/paket-16.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
+| [todo/paket-17.md](todo/paket-17.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
 | [todo/backlog.md](todo/backlog.md) | nicht freigegeben, nach Zielversion | nur bei Planung |
 | `archiv/todo-stand-*.md` | alte Fassungen (Volltexte abgenommener Pakete) | nur bei Bedarf |
 
@@ -18,9 +18,9 @@
 
 ## Stand
 
-**Stand 23.10.2026 abends (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 15** (DONE.md). **Paket 16 freigegeben** ([todo/paket-16.md](todo/paket-16.md)), danach Abnahmerunde des Nutzers `todo.0.4.040`. Ein Worker zur Zeit, Pakete nacheinander.
+**Stand 23.10.2026 spätabends (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 16** außer `bug.0.4.168`, `169` (Nacharbeit). **Paket 17 freigegeben** ([todo/paket-17.md](todo/paket-17.md)), danach Abnahmerunde des Nutzers `todo.0.4.040`. Ein Worker zur Zeit, Pakete nacheinander. „Keine Schwelle“ bleibt (Nutzer 23.10. erneut bestätigt).
 
-**Prüfung Host 23.10. 19:21–19:44 (Paket 15, Stand `675fe3d` plus uncommittete Änderungen, MacBook Air macOS 15.7.3, Xcode 26.3, `Werkzeuge/pruefung.sh voll`):** Debug mit Testziel und Release 0 Warnungen, seriell **1011/1011** grün, **parallel 3/3** grün (je 1005, 6 übersprungen; `openObjectScrollsToTheFileInTable` wieder stabil), keine neuen `.ips`, Regel 23 (App 19:44:38, keine neuere `.swift`, Signatur gültig, Version 0.4.0). Drei Prüf-Agenten (Sonnet): kein hoher Befund; Reste als `bug.0.4.164`–`169` in Paket 16 (Stichproben Host bestätigt 164 a, 165 a). Alle 11 Kennungen abgenommen. Fragen des Workers entschieden: 113 c → `164 d` (`"?"`, Laufzeit weglassen), 156 „Lesen vor der Transaktion“ → `169` (umbauen), 156 schwacher 141-Test → `165 b`, 162 f → `167 a`, 163 d → `167 b` (Feld bleibt, Test deterministisch). Vorige Prüfung (Paket 14): `archiv/paket-14-abgenommen-2026-10-23.md`.
+**Prüfung Host 23.10. 22:32–22:56 (Paket 16, Stand `a590857` plus uncommittete Änderungen, MacBook Air macOS 15.7.3, Xcode 26.3, `Werkzeuge/pruefung.sh voll`):** Debug mit Testziel und Release 0 Warnungen, seriell **1021/1021** grün, **parallel 3/3** grün (je 1015, 6 übersprungen), keine neuen `.ips`, Regel 23 (App 22:56:48, Signatur gültig, Version 0.4.0). Zwei Prüf-Agenten (Sonnet), Stichproben Host: **169 nicht abgenommen** (Favorit kann verloren gehen, wenn eine Einfügung in der Transaktion keinen vorab gelesenen Wert hat; Hänger stapeln sich; Token vor dem Lesen frei), **168 nicht abgenommen** (globaler Änderungszähler → Scroll bricht während jeder Indizierung ab), beide bestätigt. 164–167 abgenommen, Reste `bug.0.4.170`–`172`. Fragen des Workers: 165 a „indiziert oder gone“ richtig; 165 d Test nötig → `171`; 166 a angenommen, Kommentar → `172 b`; 167 c → `172 a`. Vorige Prüfungen: `archiv/paket-1[45]-abgenommen-2026-10-23.md`.
 
 **Abnahmekriterien 0.4.0 (alle müssen erfüllt sein):** (1) alle Kennungen von 0.4.0 vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) Regel 23; (7) Abnahmerunde des Nutzers `todo.0.4.040`; (8) keine offene „Frage:“.
 
@@ -34,8 +34,9 @@
 | 13 | **0.4.0** | ~~`bug.0.4.116`, `117`, `105`, `104`, `103`, `126`–`129`, `137`, `138`, `109`, `093`, `095`–`097`, `131`–`133`, `100`~~ | Testfenster, Einstellungen, Status, Live, Oberfläche | **abgenommen 23.10.** |
 | 14 | **0.4.0** | alle außer `bug.0.4.113`, `134`, `148` (→ Paket 15) | Reste, Tests, Prüfbefunde 13, Version 0.4.0 → [archiv/paket-14-abgenommen-2026-10-23.md](archiv/paket-14-abgenommen-2026-10-23.md) | **abgenommen 23.10.** |
 | 15 | **0.4.0** | `bug.0.4.148`, `134`, `113`, `156`–`163` | Scroll-Regression, Absturzbericht, Prüfbefunde 14 → [archiv/paket-15-abgenommen-2026-10-23.md](archiv/paket-15-abgenommen-2026-10-23.md) | **abgenommen 23.10.** |
-| **16** | **0.4.0** | `bug.0.4.164`–`169` | Absturzbericht, Wiederverbinden, Tests, Spaltenansicht → [todo/paket-16.md](todo/paket-16.md) | **freigegeben 23.10.** |
-| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat | nach Paket 16 |
+| 16 | **0.4.0** | `bug.0.4.164`–`167` (168, 169 → Paket 17) | Absturzbericht, Wiederverbinden, Tests → [archiv/paket-16-abgenommen-2026-10-23.md](archiv/paket-16-abgenommen-2026-10-23.md) | **abgenommen 23.10.** |
+| **17** | **0.4.0** | Nacharbeit `bug.0.4.169`, `168`; `bug.0.4.170`–`172` | Teil-Prüfsumme ohne Datenverlust, Scroll während Indizierung, Reste → [todo/paket-17.md](todo/paket-17.md) | **freigegeben 23.10.** |
+| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat | nach Paket 17 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 
 ## Entscheidungen des Nutzers
@@ -52,4 +53,4 @@
 |---|---|---|
 | `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
 | `todo.0.4.042` | **Zielversion 0.4.0, wartet auf Layout (Nutzer 18.10.; vorher „Wartescreen der Suche“ in 0.5).** Regel: README Abschnitt 5, „Ladeanzeige von Suche und Favoriten“. Startet eine Suche **aus dem Leerzustand** (noch keine Treffer sichtbar; auch wenn sie auf die Warteschlange nach einer Regeländerung wartet), zeigt die Suchansicht **sofort** die ganze Fläche aus Layout 10.1 (`SearchIdlePlaceholder`/`EmptyStateView`) in gleicher Größe und Position, mit **Spinner** statt der zwei Icons und dem Titel **„Suche läuft“** (de/en), **mindestens 1 s**, auch wenn die Treffer schneller da sind; dann die Treffer in einem Schritt. Verfeinern (Tippen, Filter, Sortierung) bei sichtbaren Treffern: alte Treffer bleiben, bis die neuen da sind, kein Wartescreen. Die kleine Zeile mit Spinner in der leeren Tabelle (`SearchView.swift`, `placeholder`, `LayoutCopy.searchInProgress`) entfällt. Mindestdauer als Parameter (kein prozessweiter Schalter, Regel 20), eine gemeinsame Quelle mit `todo.0.4.043` (Regel 12). Fenstertest: Suche aus dem Leerzustand → Wartescreen sofort, nach ≥ 1 s Treffer; Verfeinern → kein Wartescreen; Pixel hell/dunkel. **Freigabe durch den Host, sobald das Layout vorliegt.** |
-| `todo.0.4.045` | Nach Paket 16 (`bug.0.4.124`, `162 c`): Löschbefehl für die rund 8.600 leeren Test-`.plist` in `~/Library/Preferences` an den Nutzer geben (Host löscht nichts außerhalb des Projekts). Danach Checkliste für `todo.0.4.040` (SD, USB, SSD gleichzeitig; vorher alle Medien neu indizieren; Gegenprobe `bug.0.4.141`). | Host → Nutzer |
+| `todo.0.4.045` | Nach Paket 17 (`bug.0.4.124`, `162 c`): Löschbefehl für die rund 8.600 leeren Test-`.plist` in `~/Library/Preferences` an den Nutzer geben (Host löscht nichts außerhalb des Projekts). Danach Checkliste für `todo.0.4.040` (SD, USB, SSD gleichzeitig; vorher alle Medien neu indizieren; Gegenprobe `bug.0.4.141`). | Host → Nutzer |

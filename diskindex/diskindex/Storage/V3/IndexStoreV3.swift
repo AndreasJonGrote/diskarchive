@@ -23,6 +23,9 @@ actor IndexStoreV3 {
     var directoryWritesFail = false
     var beginIndexingRejected = false
     #if DEBUG
+    /// bug.0.4.169: läuft synchron unmittelbar vor dem Lesen einer Teil-Prüfsumme am Laufende (auf dem lesenden Faden).
+    var partialReadHookForTesting: (@Sendable (URL) -> Void)?
+    func setPartialReadHookForTesting(_ hook: (@Sendable (URL) -> Void)?) { partialReadHookForTesting = hook }
     /// bug.0.4.156 (a): Segment-Abfragen beim Wiederverbinden am Laufende (Summe, nur Tests).
     private(set) var reconnectSegmentLookupsForTesting = 0
     #endif
@@ -523,7 +526,7 @@ actor IndexStoreV3 {
                 partialMaps.append(map)
             }
             let batchPartials = partialMaps
-            let result = try await pool.write { db -> (delta: MediumCountDelta, parentPaths: [String], inserted: [Int64]) in
+            let result = try await pool.write { db -> (delta: MediumCountDelta, parentPaths: [String], inserted: [Int64], merkerWritten: Bool) in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
                 var delta = MediumCountDelta.zero
@@ -543,11 +546,18 @@ actor IndexStoreV3 {
                 }
                 // bug.0.4.156 (c): neue Zeilen schon mit diesem Stapel merken (nicht erst am Laufende) – bricht der Lauf
                 // vorher ab, findet der Folgelauf die Zuordnung. Nur, wo wiederverbunden wird (ohne verlässliche fileID).
-                if trackInserts, !inserted.isEmpty, !writer.trustsFileID {
+                // bug.0.4.165 (a): nur, wo es etwas wiederzuverbinden gibt (verschwundene Zeilen oder schon einmal
+                // vollständig indiziert) – beim Erstindex nicht; und nur die neuen IDs anhängen.
+                var merkerWritten = false
+                if trackInserts, !inserted.isEmpty, !writer.trustsFileID, try Self.mayReconnect(db, storageID) {
                     try Self.appendPendingReconnectIDs(db, storageID, inserted)
+                    merkerWritten = true
                 }
-                return (delta, parentPaths, inserted)
+                return (delta, parentPaths, inserted, merkerWritten)
             }
+            #if DEBUG
+            if result.merkerWritten { pendingReconnectWritesForTesting += 1 }
+            #endif
             if trackInserts, !result.inserted.isEmpty {
                 insertedIDsDuringRun[mediumUUID, default: []].formUnion(result.inserted)
             }
@@ -824,6 +834,33 @@ actor IndexStoreV3 {
         let insertedIDs = insertedIDsDuringRun.removeValue(forKey: mediumUUID) ?? []
         let partialMatching = partialMatchingEnabled
         indexingToken[mediumUUID] = nil
+        // bug.0.4.169: Teil-Prüfsummen der Kandidaten **vor** der Schreibtransaktion von der Platte lesen – ein langsames
+        // oder hängendes Medium hält sonst alle anderen Schreiber auf (Live-Änderungen, Favoriten, Einstellungen).
+        var externalPartials: [Int64: PartialReadOutcome]?
+        if !insertedIDs.isEmpty, completesRun || mountPath != nil, let mountPath, partialMatching {
+            let (requests, lookups): ([(id: Int64, url: URL)], Int) = try await pool.read { db in
+                guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return ([], 0) }
+                let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
+                let requests = try writer.partialReadRequests(insertedIDs: insertedIDs, mountPath: mountPath)
+                return (requests, writer.reconnectSegmentLookups)
+            }
+            #if DEBUG
+            reconnectSegmentLookupsForTesting += lookups
+            let hook = partialReadHookForTesting
+            #else
+            _ = lookups
+            let hook: (@Sendable (URL) -> Void)? = nil
+            #endif
+            var outcomes: [Int64: PartialReadOutcome] = [:]
+            for request in requests {
+                outcomes[request.id] = await PartialChecksum.readOffActor(at: request.url, beforeRead: hook)
+            }
+            externalPartials = outcomes
+        }
+        let readPartials = externalPartials
+        #if DEBUG
+        let readHook = partialReadHookForTesting
+        #endif
         let segmentLookupsDone: Int = try await pool.write { db -> Int in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return 0 }
             try db.execute(
@@ -851,6 +888,10 @@ actor IndexStoreV3 {
             var segmentLookups = 0
             if !insertedIDs.isEmpty, completesRun || mountPath != nil {
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
+                writer.externalPartials = readPartials
+                #if DEBUG
+                writer.partialReadHook = readHook
+                #endif
                 let reconnectDelta = try writer.reconnectInsertedWithGone(
                     insertedIDs: insertedIDs, mountPath: mountPath
                 )
@@ -904,25 +945,56 @@ actor IndexStoreV3 {
         return Set(value.split(separator: ",").compactMap { Int64($0) })
     }
 
-    /// bug.0.4.156 (c): neue Zeilen an den Merker anhängen (bis zur Grenze; Abschneiden wird protokolliert).
-    private nonisolated static func appendPendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: [Int64]) throws {
-        let existing = try pendingReconnectIDs(db, storageID)
-        guard existing.count < pendingReconnectLimit else { return }
-        var merged = existing
-        var dropped = 0
-        for id in ids where !merged.contains(id) {
-            if merged.count >= pendingReconnectLimit {
-                dropped += 1
-            } else {
-                merged.insert(id)
-            }
+    /// bug.0.4.165 (a): Wiederverbinden ist möglich – das Medium hat verschwundene Zeilen (`status = 2`) oder war schon
+    /// einmal vollständig indiziert (dann kann der alte Ort einer verschobenen Datei auch erst später gelesen werden).
+    private nonisolated static func mayReconnect(_ db: Database, _ storageID: Int64) throws -> Bool {
+        if try Int64.fetchOne(db, sql: "SELECT firstIndexedAt FROM storages WHERE id = ?", arguments: [storageID]) != nil {
+            return true
         }
-        if dropped > 0 {
-            DiskIndexLog.shared.record(.index, .info, "reconnect pending truncated limit=\(pendingReconnectLimit) dropped=\(dropped)")
-        }
-        guard merged.count != existing.count else { return }
-        try writePendingReconnectIDs(db, storageID, merged.sorted())
+        return try Bool.fetchOne(
+            db,
+            sql: "SELECT EXISTS(SELECT 1 FROM items WHERE storageID = ? AND status = ?)",
+            arguments: [storageID, ItemStatus.gone.rawValue]
+        ) ?? false
     }
+
+    /// bug.0.4.156 (c)/165 (a): neue Zeilen an den Merker anhängen – nur die neuen IDs (SQL hängt an, kein Lesen und
+    /// Neuschreiben des Ganzen je Stapel). Bis zur Grenze (Länge des Werts); Abschneiden wird einmal protokolliert.
+    /// Doppelte IDs stören nicht (gelesen wird als Menge, am Laufende neu geschrieben).
+    private nonisolated static func appendPendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: [Int64]) throws {
+        let key = pendingReconnectKey
+        let piece = ids.map(String.init).joined(separator: ",")
+        try db.execute(sql: "INSERT OR IGNORE INTO meta_keys (key) VALUES (?)", arguments: [key])
+        let current = try Int.fetchOne(
+            db,
+            sql: """
+                SELECT length(m.value) FROM storage_meta m JOIN meta_keys k ON k.id = m.keyID
+                WHERE m.storageID = ? AND k.key = ?
+                """,
+            arguments: [storageID, key]
+        )
+        guard let current else {
+            try db.execute(
+                sql: "INSERT INTO storage_meta (storageID, keyID, value, date) SELECT ?, id, ?, NULL FROM meta_keys WHERE key = ?",
+                arguments: [storageID, piece, key]
+            )
+            return
+        }
+        guard current < pendingReconnectMaxLength else { return }
+        if current + piece.count + 1 >= pendingReconnectMaxLength {
+            DiskIndexLog.shared.record(.index, .info, "reconnect pending truncated limit=\(pendingReconnectLimit)")
+        }
+        try db.execute(
+            sql: """
+                UPDATE storage_meta SET value = CASE WHEN value = '' THEN ? ELSE value || ',' || ? END
+                WHERE storageID = ? AND keyID = (SELECT id FROM meta_keys WHERE key = ?)
+                """,
+            arguments: [piece, piece, storageID, key]
+        )
+    }
+
+    /// Obergrenze der Länge des Merkers (≈ `pendingReconnectLimit` IDs).
+    private nonisolated static let pendingReconnectMaxLength = pendingReconnectLimit * 8
 
     private nonisolated static func writePendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: [Int64]) throws {
         let key = pendingReconnectKey
@@ -938,6 +1010,8 @@ actor IndexStoreV3 {
     }
 
     #if DEBUG
+    /// Tests (bug.0.4.165 a): Stapel, die den Merker beschrieben haben.
+    private(set) var pendingReconnectWritesForTesting = 0
     /// Tests (bug.0.4.156 c): gemerkte Zuordnung eines Mediums.
     func pendingReconnectIDsForTesting(mediumUUID: UUID) async throws -> Set<Int64> {
         try await pool.read { db in

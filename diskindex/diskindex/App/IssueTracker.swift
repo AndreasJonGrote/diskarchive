@@ -159,14 +159,13 @@ nonisolated enum IssuePayload {
         signature: String,
         signal: String
     ) -> Data {
-        let object: [String: Any] = [
+        var object: [String: Any] = [
             "schema": 2,
             "id": id,
             "kind": "crash",
             "createdAt": timestamp(createdAt),
             "app": ["version": version, "build": build, "config": config],
             "system": ["macOS": macOS, "model": model],
-            "runtimeSeconds": runtimeSeconds.map { $0 as Any } ?? NSNull(),
             "signature": signature,
             "crash": [
                 "signal": signal,
@@ -176,6 +175,8 @@ nonisolated enum IssuePayload {
             "logTail": logTail,
             "inventory": ["media": draft.media, "items": draft.items, "dbBytes": draft.dbBytes],
         ]
+        // bug.0.4.164 (d): unbekannte Laufzeit weglassen statt `null`.
+        if let runtimeSeconds { object["runtimeSeconds"] = runtimeSeconds }
         return (try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])) ?? Data()
     }
 }
@@ -359,9 +360,10 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         let data = IssuePayload.json(
             draft: prepared,
             id: id,
-            version: draft.previousRun.map { $0.version ?? "" }
+            // bug.0.4.164 (d): fehlt der Wert des abgestürzten Laufs, „?“ (wie beim fehlenden Bundle-Wert).
+            version: draft.previousRun.map { $0.version ?? "?" }
                 ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?",
-            build: draft.previousRun.map { $0.build ?? "" }
+            build: draft.previousRun.map { $0.build ?? "?" }
                 ?? Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?",
             config: releaseBuild ? "Release" : "Debug",
             macOS: ProcessInfo.processInfo.operatingSystemVersionString,

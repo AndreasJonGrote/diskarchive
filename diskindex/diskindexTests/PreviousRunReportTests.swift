@@ -75,21 +75,93 @@ struct PreviousRunReportTests {
         #expect(!log.crashBreadcrumbs().isEmpty, "Aktionen stehen in der Absturzdatei")
     }
 
-    @Test func payloadUsesThePreviousRunInsteadOfTheBundle() throws {
-        var draft = IssueDraft(
-            kind: "crash", signature: "SIGSEGV", actions: [], logTail: [], crashSignal: "SIGSEGV", crashStack: [],
-            media: 0, items: 0, dbBytes: 0
-        )
-        draft.previousRun = PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil)
-        let data = IssuePayload.json(
-            draft: draft, id: "A", version: draft.previousRun.map { $0.version ?? "" } ?? "neu",
-            build: draft.previousRun.map { $0.build ?? "" } ?? "neu", config: "Debug", macOS: "x", model: "m",
-            runtimeSeconds: draft.previousRun?.runtimeSeconds, createdAt: Date(timeIntervalSince1970: 0)
-        )
-        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
-        let app = try #require(object["app"] as? [String: Any])
-        #expect(app["version"] as? String == "")
-        #expect(app["build"] as? String == "")
-        #expect(object["runtimeSeconds"] is NSNull)
+    // MARK: - bug.0.4.164: mehrere Läufe über die echten Wege
+
+    /// Ersetzt Version und Build der `index`-ten Startzeile (wie ein älterer Lauf vor einem Update).
+    private func setStartVersion(_ directory: URL, index: Int, version: String, build: String) throws {
+        let url = directory.appendingPathComponent(DiskIndexLog.fileName)
+        var lines = try String(contentsOf: url, encoding: .utf8).components(separatedBy: "\n")
+        let starts = lines.indices.filter { lines[$0].contains(" start version=") }
+        try #require(starts.count > index, "Startzeile \(index) fehlt")
+        let at = starts[index]
+        let line = lines[at]
+        let range = try #require(line.range(of: #" start version=\S+ build=\S+"#, options: .regularExpression))
+        lines[at] = line.replacingCharacters(in: range, with: " start version=\(version) build=\(build)")
+        try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+    }
+
+    /// (a) Absturz A ohne Signal (CRASH-Zeile im Protokoll), ein sauberer Lauf, dann Signal-Absturz B → der Bericht nach B
+    /// trägt B, nicht A.
+    @Test @MainActor func oldCrashLineDoesNotHideTheNewSignalCrash() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let runA = DiskIndexLog(directory: directory)
+        runA.start(installHandlers: false)
+        runA.recordCrash(signal: "exception NSRangeException", symbols: ["0 diskindex 0x0000000100000000 main + 1"])
+        runA.flushPendingWritesForTesting()
+        try setStartVersion(directory, index: 0, version: "0.3.0", build: "30")
+        let clean = DiskIndexLog(directory: directory)
+        clean.start(installHandlers: false)
+        await AppStartup.finishTermination(appState: AppState(), log: clean)
+        clean.flushPendingWritesForTesting()
+        let runB = DiskIndexLog(directory: directory)
+        runB.start(installHandlers: false)
+        runB.ui("click row=7")
+        runB.flushPendingWritesForTesting()
+        runB.writeCrashSnapshot(signal: SIGSEGV)
+        try setStartVersion(directory, index: 2, version: "0.3.1", build: "31")
+        let now = DiskIndexLog(directory: directory)
+        now.start(installHandlers: false)
+        now.flushPendingWritesForTesting()
+        let info = now.previousRunInfo()
+        #expect(info.version == "0.3.1", "Version eines älteren Absturzes: \(String(describing: info.version))")
+        #expect(info.build == "31")
+    }
+
+    /// (b) Ohne Absturzdatei kommt der Absturzteil aus dem Protokoll – er endet an der nächsten Startzeile, Zeilen des
+    /// neuen Laufs gehören nicht dazu.
+    @Test func crashSectionFromTheLogEndsAtTheNextStart() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let crashed = DiskIndexLog(directory: directory)
+        crashed.start(installHandlers: false)
+        crashed.ui("click row=7")
+        crashed.recordCrash(signal: "exception NSRangeException", symbols: ["0 diskindex 0x0000000100000000 main + 1"])
+        crashed.flushPendingWritesForTesting()
+        let log = DiskIndexLog(directory: directory)
+        log.start(installHandlers: false)
+        log.ui("crash dialog send")
+        log.flushPendingWritesForTesting()
+        let excerpt = log.crashExcerpt()
+        #expect(excerpt.signal == "exception")
+        #expect(!excerpt.stack.contains { $0.contains("crash dialog send") || $0.contains(" start version=") }, "\(excerpt.stack)")
+        #expect(!log.crashBreadcrumbs().contains { $0.contains("crash dialog send") })
+    }
+
+    /// (c) Die Startzeile des abgestürzten Laufs fehlt (Protokoll gekürzt), davor liegt ein sauber beendeter Lauf → Felder
+    /// leer statt der Werte des älteren Laufs.
+    @Test @MainActor func missingCrashedStartDoesNotPickAnOlderRun() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let older = DiskIndexLog(directory: directory)
+        older.start(installHandlers: false)
+        await AppStartup.finishTermination(appState: AppState(), log: older)
+        older.flushPendingWritesForTesting()
+        let crashed = DiskIndexLog(directory: directory)
+        crashed.start(installHandlers: false)
+        crashed.ui("click row=7")
+        crashed.flushPendingWritesForTesting()
+        crashed.writeCrashSnapshot(signal: SIGSEGV)
+        // Startzeile des abgestürzten Laufs entfernen (gekürztes Protokoll).
+        let url = directory.appendingPathComponent(DiskIndexLog.fileName)
+        var lines = try String(contentsOf: url, encoding: .utf8).components(separatedBy: "\n")
+        let starts = lines.indices.filter { lines[$0].contains(" start version=") }
+        let crashedStart = try #require(starts.last)
+        lines.remove(at: crashedStart)
+        try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        let now = DiskIndexLog(directory: directory)
+        now.start(installHandlers: false)
+        now.flushPendingWritesForTesting()
+        #expect(now.previousRunInfo() == PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil))
     }
 }

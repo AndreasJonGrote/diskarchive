@@ -74,6 +74,9 @@ struct IndexingSpinnerColorTests {
     @Test func spinnerHasTheStateOnlineColorInBothSchemes() async throws {
         let darkRef = try #require(await reference(appearance: .darkAqua))
         let lightRef = try #require(await reference(appearance: .aqua))
+        // bug.0.4.167 (c): Das Referenzpixel selbst lässt sich nicht gegen #5BBD74 prüfen – das Fenster zeichnet über das
+        // Farbprofil des Bildschirms (Rohwert dunkel ≈ 0,46/0,73/0,48). Den Wert des Tokens prüfen
+        // `stateOnlineTokenHasTheLayoutValues` und `ColumnFilterAndAppearanceTests` (Toleranz 0,01).
         let dark = await ringPixels(matching: darkRef, appearance: .darkAqua)
         let light = await ringPixels(matching: lightRef, appearance: .aqua)
         #expect(dark >= 100, "dunkel: Ring nicht in stateOnline (\(dark) Pixel)")

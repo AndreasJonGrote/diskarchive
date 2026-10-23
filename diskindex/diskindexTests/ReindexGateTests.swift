@@ -187,7 +187,13 @@ struct ReindexGateTests {
         let service = IndexingService(store: harness.store, access: gate, appState: app)
         // Das Aufräumen eines Laufs dauert (z. B. langsamer Abschluss): Wer erst danach den nächsten Lauf anhält, lässt
         // ihn so lange weiterschreiben.
-        service.cancelBeforeAwaitHookForTesting = { _ in try? await Task.sleep(for: .milliseconds(400)) }
+        // bug.0.4.166 (b): Reihenfolge mitschreiben – erst alle abbrechen, dann aufräumen.
+        let steps = StepLog()
+        service.versionLockCancelHookForTesting = { id in steps.add("abbruch \(id)") }
+        service.cancelBeforeAwaitHookForTesting = { id in
+            steps.add("aufräumen \(id)")
+            try? await Task.sleep(for: .milliseconds(400))
+        }
         service.start(mediumUUID: harness.mediumID, volume: harness.volume(at: "/Volumes/T"), fromScratch: true)
         service.start(mediumUUID: storedB.uuid, volume: harness.volume(at: "/Volumes/U"), fromScratch: true)
         let bothHeld = await waitUntil { await gate.heldCount() >= 2 }
@@ -205,6 +211,10 @@ struct ReindexGateTests {
         #expect(service.activeMediumUUIDs().isEmpty, "Lauf ohne Aufräumen zurückgeblieben")
         #expect(app.medium(with: harness.mediumID)?.indexStatus == .pending)
         #expect(app.medium(with: storedB.uuid)?.indexStatus == .pending)
+        let firstCleanup = steps.all.firstIndex { $0.hasPrefix("aufräumen") }
+        let cancels = steps.all.indices.filter { steps.all[$0].hasPrefix("abbruch") }
+        #expect(cancels.count == 2, "nicht beide Läufe abgebrochen: \(steps.all)")
+        #expect(cancels.allSatisfy { $0 < (firstCleanup ?? Int.max) }, "Aufräumen vor dem Abbruch aller Läufe: \(steps.all)")
     }
 
     /// bug.0.4.162 (f): „Neu indizieren“ während eines Laufs – der laufende wird abgebrochen und von vorn neu gestartet.
@@ -214,17 +224,19 @@ struct ReindexGateTests {
         let harness = try await ScanHarness.make()
         let inner = MemoryVolume(mountPath: "/Volumes/T")
         inner.file("hold/x.txt")
+        // bug.0.4.167 (a): indiziertes Medium → der laufende ist ein Abgleich, sein Status bleibt „indiziert“ (nicht
+        // „wird indiziert“); ohne Merker `scratchRestartPending` gäbe sein Abbruch die Sperre frei.
         var stored = try #require(try await harness.store.medium(uuid: harness.mediumID))
         stored.decision = .index
+        stored.indexStatus = .indexed
+        stored.completedDepth = 2
         try await harness.store.upsertMedium(stored)
         let app = AppState()
         let id = harness.mediumID
         var shown = medium(id: id, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
         shown.decision = .index
         app.media = [shown]
-        // Am Wurzelordner anhalten: der laufende Abgleich hat dann noch nicht „wird indiziert“ gemeldet (dort gäbe der
-        // Abbruch die Sperre frei).
-        let gate = RunGateAccess([inner]) { $0 == "/Volumes/T" }
+        let gate = RunGateAccess([inner]) { $0 == "/Volumes/T/hold" }
         let service = IndexingService(store: harness.store, access: gate, appState: app)
         let volume = harness.volume(at: "/Volumes/T")
         service.start(mediumUUID: id, volume: volume, fromScratch: false)
@@ -387,4 +399,10 @@ struct ReindexGateTests {
 private final class ViolationLog {
     private(set) var count = 0
     func add() { count += 1 }
+}
+
+@MainActor
+private final class StepLog {
+    private(set) var all: [String] = []
+    func add(_ step: String) { all.append(step) }
 }

@@ -114,6 +114,10 @@ Kennungen: bis 233b alte Aufgabennummern; ab 12.10. `todo.<Version>.<Nr>` (Aufga
 | bug.0.4.161 | – | Vollabgleich-Merker fällt beim Start des Abgleichs | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
 | bug.0.4.162 | – | Kleinkram aus Prüfung 14 (a–j; Nachweis f: `bug.0.4.167`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
 | bug.0.4.163 | – | Nachweise aus Paket 14 (Pixel, Chip, Mindestdauer je `AppState`; Reste b, d: `bug.0.4.167`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.164 | – | Absturzbericht: alte `CRASH`-Zeile zählt nicht, Abschnitt endet an der nächsten Startzeile, `"?"` statt leer (Rest: `bug.0.4.170`) | 23.10. Host (seriell 1021/1021, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.165 | – | Wiederverbinden: Merker nur bei Bedarf und angehängt, Positivtest, `storageID`, Datenbankfehler weitergereicht (Rest: `bug.0.4.171`) | 23.10. Host (seriell 1021/1021, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.166 | – | Tests zu 159/160: Fehler-Ende mit Pause/Sperre, Reihenfolge des Abbruchs nachgewiesen | 23.10. Host (seriell 1021/1021, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.167 | – | Nachweise: Abgleichlauf für `scratchRestartPending`, `observedDocument`, Datenschutz-Wächter mehrzeilig (Rest: `bug.0.4.172`) | 23.10. Host (seriell 1021/1021, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

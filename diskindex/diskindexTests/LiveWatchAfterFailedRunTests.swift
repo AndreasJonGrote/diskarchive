@@ -15,6 +15,13 @@ import Testing
 @MainActor
 private final class FailedRunWatcherBox {
     weak var watcher: ChangeWatcher?
+    /// Die Verdrahtung wollte die Überwachung starten (bug.0.4.166).
+    var startRequested = false
+}
+
+@MainActor
+private final class FailedRunDecision {
+    var reached = false
 }
 
 @Suite(.serialized) @MainActor
@@ -149,6 +156,57 @@ struct LiveWatchAfterFailedRunTests {
         app.updateMedium(id: id) { $0.allowIndexing = true }
         app.versionLockState = .locked(.betaExpired)
         #expect(!service.watchesAfterFailedRun(id))
+    }
+
+    /// bug.0.4.166 (a): Der Lauf scheitert (Schreibfehler); zwischen Ende und Entscheidung wird pausiert bzw. die
+    /// Versions-Sperre rastet ein → `watchesAfterFailedRun` muss Pause bzw. Sperre beachten, die Überwachung bleibt aus.
+    /// (Ein Abbruch erreicht die Entscheidung nicht: `cancel` nimmt dem Lauf den Token, `finish` entscheidet nicht.)
+    @Test(arguments: ["pause", "sperre"])
+    func failedRunWithPauseOrLockAtTheEndDoesNotWatch(scenario: String) async throws {
+        let harness = try await ScanHarness.make()
+        let indexed = StoredMedium(
+            fsType: "apfs", volumeTotalBytes: 1_000, name: "ENDE-\(scenario)", type: .usb,
+            decision: .index, indexStatus: .indexed, completedDepth: 1
+        )
+        try await harness.store.upsertMedium(indexed)
+        let volume = testVolume(path: "/Volumes/ENDE-\(scenario)", name: "ENDE-\(scenario)")
+        try await harness.store.recordIdentity(mediumUUID: indexed.uuid, volume.identity)
+        let inner = MemoryVolume(mountPath: volume.mountPath)
+        inner.file("alt.txt")
+        await harness.store.setDirectoryWritesFailing(true)
+        let app = AppState(store: harness.store)
+        let store = harness.store
+        let box = FailedRunWatcherBox()
+        let rig = WiredRig(store: store, access: inner, app: app) { [box] id, volume in
+            box.startRequested = true
+            guard let watcher = box.watcher else { return }
+            await LiveWiring.startWatching(id: id, volume: volume, store: store, watcher: watcher, appState: app)
+        }
+        box.watcher = rig.watcher
+        rig.watcher.makeSourceForTesting = { _ in ScriptedChangeSource() }
+        let id = indexed.uuid
+        defer { rig.coordinator.stop() }
+        let decided = FailedRunDecision()
+        rig.service.finishDecisionHookForTesting = { _ in
+            if scenario == "pause" {
+                app.globalAutoIndexPaused = true
+            } else {
+                app.versionLockState = .locked(.betaExpired)
+            }
+            decided.reached = true
+        }
+        await rig.coordinator.handle(.appeared(volume))
+        // Positives Signal: Lauf gestartet, gescheitert, Entscheidung erreicht.
+        let ended = await waitUntil {
+            decided.reached && !rig.service.isRunActive(id) && app.medium(with: id)?.indexStatus != .indexing
+        }
+        try #require(ended, "Lauf endete nicht bzw. Entscheidung nicht erreicht")
+        try #require(app.indexingFailure != nil || app.medium(with: id)?.indexStatus == .error, "Lauf scheiterte nicht")
+        // Der Start der Überwachung liefe nach der Entscheidung asynchron: eine Zeit lang darauf achten, dass er nicht
+        // kommt (weder angefordert noch aktiv).
+        let started = await waitUntil(timeout: 1.5) { box.startRequested || rig.watcher.isWatching(mediumID: id) }
+        #expect(!started, "Überwachung nach Fehler trotz \(scenario)")
+        #expect(!rig.service.suppressesFullReconcile(id), "Entscheidung „Überwachung nach Fehler“ getroffen")
     }
 
     /// bug.0.4.155/160 (Regel 18): echte Kette – der Lauf läuft, wird pausiert, abgebrochen bzw. scheitert bei

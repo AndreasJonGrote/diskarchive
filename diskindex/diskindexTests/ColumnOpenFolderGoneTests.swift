@@ -105,8 +105,12 @@ struct ColumnOpenFolderGoneTests {
     /// Schmales Fenster (waagerechter Überlauf), „Alpha“ offen, `a.txt` per Nutzeraktion gewählt → Details-Spalte bündig
     /// rechts; liefert das Fenster und die Scrollansicht.
     private func openAlphaFileNarrow(
-        _ tree: (app: AppState, store: IndexStoreV3, medium: StoredMedium)
+        _ tree: (app: AppState, store: IndexStoreV3, medium: StoredMedium),
+        settle: Duration = .milliseconds(100),
+        waitUntilDone: Bool = true,
+        done orders: ScrollOrdersDone? = nil
     ) async throws -> (PixelProbe.Session, NSScrollView) {
+        let done = orders ?? ScrollOrdersDone()
         tree.app.mainWindowDestination = .columnBrowser
         tree.app.columnBrowserState.selectedMediumID = tree.medium.uuid
         tree.app.columnBrowserState.pathStack = ["Alpha"]
@@ -114,6 +118,8 @@ struct ColumnOpenFolderGoneTests {
             ColumnBrowserView()
                 .environment(tree.app)
                 .environment(\.colorScheme, .light)
+                .environment(\.columnScrollSettleDelay, settle)
+                .environment(\.columnScrollOrderDone, { token in done.tokens.append(token) })
                 .frame(width: Self.narrow.width, height: Self.narrow.height),
             size: Self.narrow
         )
@@ -143,8 +149,71 @@ struct ColumnOpenFolderGoneTests {
                 && !tree.app.columnBrowserState.loadingHintVisible(mediumID: tree.medium.uuid, path: ["Alpha"])
         }
         try #require(settled, "Spalte „Alpha“ nicht fertig")
-        try await Task.sleep(for: .milliseconds(700))
+        // bug.0.4.168: positives Signal – der Auftrag des Klicks ist erledigt (statt fester Wartezeit).
+        if waitUntilDone {
+            let token = tree.app.columnScrollToken
+            try #require(await waitUntil { done.tokens.contains(token) }, "Auftrag nicht erledigt")
+        }
+        // Auch bei offenem Auftrag: die Animation des ersten Scrolls ist gelaufen, bevor der Test selbst scrollt.
+        try #require(await scrollComesToRest(scroll), "Scroll-Animation endet nicht")
         return (session, scroll)
+    }
+
+    /// bug.0.4.168: Auftrag noch offen (lange Ruhezeit), der Nutzer hat nach links gescrollt; dann wird die gewählte
+    /// Datei live umbenannt → am Ende der Ruhezeit kein Sprung nach rechts.
+    @Test func liveRenameWhileTheOrderIsOpenDoesNotScroll() async throws {
+        let mount = try makeMount()
+        try Data("x".utf8).write(to: mount.appendingPathComponent("Alpha/a.txt"))
+        let tree = try await openFolderFixture(mount: mount)
+        // Lange Ruhezeit, damit das Umbenennen sicher in den offenen Auftrag fällt (geprüft unten).
+        let settle = Duration.seconds(4)
+        let done = ScrollOrdersDone()
+        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done)
+        defer { session.close() }
+        let token = tree.app.columnScrollToken
+        try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
+        let before = scroll.documentVisibleRect.minX
+        try FileManager.default.moveItem(at: mount.appendingPathComponent("Alpha/a.txt"), to: mount.appendingPathComponent("Alpha/c.txt"))
+        let applied = try await tree.store.applyLiveRename(
+            mediumUUID: tree.medium.uuid,
+            mountPath: mount.path,
+            fromPath: mount.appendingPathComponent("Alpha/a.txt").path,
+            toPath: mount.appendingPathComponent("Alpha/c.txt").path
+        )
+        try #require(applied, "Umbenennen nicht angewendet")
+        let renamed = await waitUntil {
+            tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: ["Alpha"]).contains { $0.name == "c.txt" }
+        }
+        try #require(renamed, "Umbenennen nicht in der Spalte")
+        try #require(!done.tokens.contains(token), "Auftrag schon vor dem Umbenennen erledigt – Test prüft nichts")
+        // Positives Signal: der Auftrag endet (ohne Scroll), dann die Scroll-Animation (0,2 s).
+        try #require(await waitUntil { done.tokens.contains(token) }, "Auftrag nicht erledigt")
+        try await Task.sleep(for: .milliseconds(300))
+        session.window.contentView?.layoutSubtreeIfNeeded()
+        #expect(abs(scroll.documentVisibleRect.minX - before) <= 1, "offener Auftrag scrollte nach Live-Änderung: \(before) → \(scroll.documentVisibleRect.minX)")
+    }
+
+    /// bug.0.4.168: Auftrag noch offen, der Nutzer scrollt selbst nach links → der Auftrag endet sofort (nicht erst nach
+    /// der Ruhezeit mit einem Schlussscroll nach rechts), die Ansicht bleibt links.
+    @Test func userScrollWhileTheOrderIsOpenEndsIt() async throws {
+        let mount = try makeMount()
+        let tree = try await openFolderFixture(mount: mount)
+        let settle = Duration.seconds(2)
+        let done = ScrollOrdersDone()
+        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done)
+        defer { session.close() }
+        let token = tree.app.columnScrollToken
+        try #require(!done.tokens.contains(token), "Auftrag schon vor dem Scroll erledigt – Test prüft nichts")
+        // Wie ein Scroll mit Trackpad/Maus: Beginn des Live-Scrolls.
+        NotificationCenter.default.post(name: NSScrollView.willStartLiveScrollNotification, object: scroll)
+        // Positives Signal: der Auftrag ist sofort erledigt (die Ruhezeit von 2 s läuft noch).
+        #expect(await waitUntil(timeout: 1) { done.tokens.contains(token) }, "Nutzer-Scroll beendete den Auftrag nicht")
+        try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
+        NotificationCenter.default.post(name: NSScrollView.didEndLiveScrollNotification, object: scroll)
+        let before = scroll.documentVisibleRect.minX
+        try await Task.sleep(for: settle)
+        session.window.contentView?.layoutSubtreeIfNeeded()
+        #expect(abs(scroll.documentVisibleRect.minX - before) <= 1, "Auftrag scrollte nach Nutzer-Scroll zurück: \(before) → \(scroll.documentVisibleRect.minX)")
     }
 
     private func renameAlphaToBeta(_ tree: (app: AppState, store: IndexStoreV3, medium: StoredMedium), mount: URL) async throws {
@@ -165,7 +234,7 @@ struct ColumnOpenFolderGoneTests {
         let (session, scroll) = try await openAlphaFileNarrow(tree)
         defer { session.close() }
         // Etwas nach links (wie der Nutzer), damit ein Scroll nach rechts sichtbar würde.
-        ColumnAutoScrollTestSupport.scrollMainHorizontalToLeading(in: session.window)
+        try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
         let before = scroll.documentVisibleRect.minX
         try await renameAlphaToBeta(tree, mount: mount)
         let followed = await waitUntil { tree.app.columnBrowserState.pathStack == ["Beta"] }
@@ -190,7 +259,7 @@ struct ColumnOpenFolderGoneTests {
         tree.app.commitColumnSelection(tree.app.columnBrowserState.selection, items: items, columnIndex: 1, medium: medium)
         try #require(tree.app.columnScrollToken == tokenBefore + 1, "Klick erzeugte keinen Auftrag")
         try await Task.sleep(for: .milliseconds(600))
-        ColumnAutoScrollTestSupport.scrollMainHorizontalToLeading(in: session.window)
+        try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
         let before = scroll.documentVisibleRect.minX
         try await renameAlphaToBeta(tree, mount: mount)
         try #require(await waitUntil { tree.app.columnBrowserState.pathStack == ["Beta"] })
@@ -263,4 +332,41 @@ struct ColumnOpenFolderGoneTests {
         #expect(contents, "Spalte „Beta“ zeigt den Inhalt nicht")
     }
 }
+}
+
+/// Scrollposition ruht: über 400 ms (vier Messungen im Abstand von 100 ms) unverändert – länger als die Scroll-Animation
+/// (0,2 s). Auch ein Scroll ohne sichtbare Bewegung (Ziel = aktuelle Stelle) hält die Position während seiner Animation
+/// fest. Vor jeder Messung wird das Fenster gezeichnet – eine ausstehende Animation startet erst damit.
+@MainActor
+private func scrollComesToRest(_ scroll: NSScrollView) async -> Bool {
+    scroll.window?.display()
+    var last = scroll.documentVisibleRect.minX
+    var still = 0
+    for _ in 0..<60 {
+        try? await Task.sleep(for: .milliseconds(100))
+        scroll.window?.display()
+        let now = scroll.documentVisibleRect.minX
+        still = abs(now - last) < 0.5 ? still + 1 : 0
+        if still >= 4 { return true }
+        last = now
+    }
+    return false
+}
+
+/// Wie der Nutzer nach links scrollen. Der Test setzt die Clip-Ansicht direkt; SwiftUI holt seine gemerkte Position
+/// dabei mitunter animiert zurück (ein echter Scroll des Nutzers läuft über SwiftUI). Darum wiederholen, bis die
+/// Ansicht links ruht – erst danach kommt die Live-Änderung, deren Wirkung der Test misst.
+@MainActor
+private func scrollToLeadingAndRest(_ window: NSWindow, _ scroll: NSScrollView) async -> Bool {
+    for _ in 0..<10 {
+        ColumnAutoScrollTestSupport.scrollMainHorizontalToLeading(in: window)
+        guard await scrollComesToRest(scroll) else { return false }
+        if scroll.documentVisibleRect.minX < 1 { return true }
+    }
+    return false
+}
+
+@MainActor
+final class ScrollOrdersDone {
+    var tokens: [Int] = []
 }

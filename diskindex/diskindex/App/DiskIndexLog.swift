@@ -463,22 +463,25 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     /// Zeile mit Zeitstempel davor.
     /// Fehlt etwas, bleibt das Feld `nil` (nie der Wert des neuen Laufs).
     func previousRunInfo() -> PreviousRunInfo {
+        let empty = PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil)
         let lines = Self.readText(fileURL).components(separatedBy: "\n")
-        let end: Int
-        if let crashIndex = lines.lastIndex(where: { $0.hasPrefix("CRASH signal=") }) {
-            end = crashIndex
-        } else {
-            // Signal-Absturz: die „CRASH“-Zeile steht nur in `crash-last.txt`. Hat dieser Lauf seine Startzeile schon
-            // geschrieben, ist die letzte Startzeile die eigene – der abgestürzte Lauf endet davor.
-            lock.lock()
-            let ownStart = wroteOwnStartLine
-            lock.unlock()
-            end = ownStart ? (lines.lastIndex { $0.contains(" start version=") } ?? lines.count) : lines.count
-        }
-        let head = lines[..<end]
-        guard let startIndex = head.lastIndex(where: { $0.contains(" start version=") }) else {
-            return PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil)
-        }
+        let isStart = { (line: String) in line.contains(" start version=") }
+        // Hat dieser Lauf seine Startzeile schon geschrieben, ist die letzte Startzeile die eigene – der abgestürzte Lauf
+        // endet davor.
+        lock.lock()
+        let ownStart = wroteOwnStartLine
+        lock.unlock()
+        let ownIndex = ownStart ? (lines.lastIndex(where: isStart) ?? lines.count) : lines.count
+        let beforeOwn = lines[..<ownIndex]
+        guard let startIndex = beforeOwn.lastIndex(where: isStart) else { return empty }
+        // bug.0.4.164 (a): eine „CRASH“-Zeile zählt nur, wenn sie zu diesem Lauf gehört (nach seiner Startzeile); eine
+        // alte aus einem früheren Absturz wird übergangen.
+        let runLines = beforeOwn[startIndex...]
+        let end = runLines.firstIndex { $0.hasPrefix("CRASH signal=") } ?? ownIndex
+        let head = lines[startIndex..<end]
+        // bug.0.4.164 (c): Endete dieser Lauf sauber, ist er nicht der abgestürzte (dessen Startzeile fehlt, z. B. durch
+        // Kürzen des Protokolls) – dann Felder leer statt eines älteren Laufs.
+        if head.contains(where: { $0.contains("app terminate ok") || $0.contains("app crash reported") }) { return empty }
         func value(_ key: String, in line: String) -> String? {
             guard let range = line.range(of: " \(key)=") else { return nil }
             return line[range.upperBound...].split(separator: " ").first.map(String.init)
@@ -490,13 +493,24 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             return formatter.date(from: String(line.prefix(23)))
         }
         let startLine = lines[startIndex]
+        // bug.0.4.164 (c): Die Absturzdatei (Signal-Absturz) entstand frühestens beim Start ihres Laufs; ist sie älter
+        // als diese Startzeile, gehört die Startzeile zu einem späteren Lauf.
+        if let began = stamp(startLine), let crashDate = crashFileContentDate(), crashDate < began.addingTimeInterval(-2) {
+            return empty
+        }
         var runtime: Int?
         if let began = stamp(startLine),
-           let endLine = head[startIndex...].last(where: { stamp($0) != nil }),
+           let endLine = head.last(where: { stamp($0) != nil }),
            let ended = stamp(endLine) {
             runtime = max(0, Int(ended.timeIntervalSince(began)))
         }
         return PreviousRunInfo(version: value("version", in: startLine), build: value("build", in: startLine), runtimeSeconds: runtime)
+    }
+
+    /// Änderungszeit der Absturzdatei, wenn sie einen Absturz enthält.
+    private func crashFileContentDate() -> Date? {
+        guard Self.readText(crashFileURL).contains("CRASH") else { return nil }
+        return (try? FileManager.default.attributesOfItem(atPath: crashFileURL.path))?[.modificationDate] as? Date
     }
 
     /// bug.0.4.113: Aktionen des abgestürzten Laufs – die Krumen nach der Kopfzeile des Absturzteils (`crash-last.txt`
@@ -729,7 +743,13 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             return trimmedFile
         }
         if let range = log.range(of: "CRASH signal=", options: .backwards) {
-            return String(log[range.lowerBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+            // bug.0.4.164 (b): der Absturzteil endet an der nächsten Startzeile (der neue Lauf gehört nicht dazu).
+            var section = String(log[range.lowerBound...])
+            let lines = section.components(separatedBy: "\n")
+            if let next = lines.firstIndex(where: { $0.contains(" start version=") }) {
+                section = lines[..<next].joined(separator: "\n")
+            }
+            return section.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return nil
     }

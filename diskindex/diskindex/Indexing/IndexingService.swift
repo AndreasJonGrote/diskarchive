@@ -62,6 +62,10 @@ final class IndexingService {
     func isCancellingForTesting(_ mediumUUID: UUID) -> Bool {
         tasks[mediumUUID] != nil && runs[mediumUUID] == nil
     }
+    /// Tests (bug.0.4.166 b): ein Lauf wurde wegen der Versions-Sperre abgebrochen (vor dem Aufräumen). Je Instanz.
+    var versionLockCancelHookForTesting: (@MainActor (UUID) -> Void)?
+    /// Tests (bug.0.4.166): läuft in `finish` vor der Entscheidung über die Überwachung nach Fehler. Je Instanz.
+    var finishDecisionHookForTesting: (@MainActor (UUID) async -> Void)?
     /// Tests (bug.0.4.073): läuft in `cancel` nach dem Abmelden, vor dem Warten auf den Task. Je Instanz.
     var cancelBeforeAwaitHookForTesting: (@MainActor (UUID) async -> Void)?
     #endif
@@ -99,6 +103,9 @@ final class IndexingService {
             }
             tasks[id]?.cancel()
             stopped.append(id)
+            #if DEBUG
+            versionLockCancelHookForTesting?(id)
+            #endif
         }
         // … die schon abgebrochenen aber immer aufräumen (bug.0.4.159: sonst blieben sie ohne Ende und Status zurück).
         for id in stopped {
@@ -420,6 +427,10 @@ final class IndexingService {
         if outcome.status == .error, let medium = appState.medium(with: mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
+        #if DEBUG
+        // Tests (bug.0.4.166): Zustand ändern, nachdem der Lauf geendet hat und bevor über die Überwachung entschieden wird.
+        await finishDecisionHookForTesting?(mediumUUID)
+        #endif
         // bug.0.4.127: auch ein Lauf bis zum Ende mit nicht lesbaren Ordnern (`.pending`) startet die Überwachung.
         let finishedRun = !outcome.interrupted && (outcome.status == .indexed || outcome.ranToEnd)
         if finishedRun {

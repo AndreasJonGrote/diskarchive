@@ -54,9 +54,20 @@ struct ColumnBrowserView: View {
     @State private var horizontalScrollSettle: Task<Void, Never>?
     /// Schlussscroll nach der Ruhezeit – über `onChange`, damit er die aktuellen Spalten liest.
     @State private var horizontalScrollFinalPass = 0
-    /// Ruhezeit nach dem letzten Scroll eines offenen Auftrags, bevor er als erledigt gilt.
-    private static let horizontalScrollSettleDelay: Duration = .milliseconds(300)
-
+    /// bug.0.4.168: Signatur zum Schlussscroll – weicht sie beim Ausführen ab (Live-Änderung dazwischen), kein Scroll.
+    @State private var finalPassSignature: HorizontalScrollSignature?
+    @State private var finalPassGeneration: Int?
+    /// bug.0.4.168: Stand der Änderungsmeldungen des Speichers beim Auftrag. Kommt danach eine Meldung (Live-Änderung,
+    /// nicht das eigene Laden der Ansicht), endet der offene Auftrag ohne Scroll.
+    @State private var pendingHorizontalScrollGeneration: Int?
+    /// bug.0.4.168: Auftrag des ausstehenden Schlussscrolls (Meldung „erledigt“ erst nach dem Scroll).
+    @State private var finalPassToken: Int?
+    /// bug.0.4.168: Ruhezeit eines offenen Auftrags (Parameter je Ansicht, Tests kürzer).
+    @Environment(\.columnScrollSettleDelay) private var horizontalScrollSettleDelay
+    #if DEBUG
+    /// Tests (bug.0.4.168): ein waagerechter Auftrag ist erledigt (positives Signal statt Wartezeit).
+    @Environment(\.columnScrollOrderDone) private var columnScrollOrderDone
+    #endif
     private var resolvedSelectedMedium: Medium? {
         if let id = appState.columnBrowserState.selectedMediumID,
            let medium = appState.columnBrowserMedia.first(where: { $0.id == id }), !medium.isForgotten {
@@ -381,6 +392,12 @@ struct ColumnBrowserView: View {
                     .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { _ in
                         continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                     }
+                    // bug.0.4.168: scrollt der Nutzer selbst, endet der offene Auftrag (im Inhalt, damit die
+                    // umgebende Scrollansicht gefunden wird).
+                    .background(UserScrollObserver {
+                        guard let token = pendingHorizontalScrollToken else { return }
+                        finishHorizontalScroll(token)
+                    })
                 }
                 .scrollIndicators(.automatic)
                 .frame(
@@ -398,11 +415,27 @@ struct ColumnBrowserView: View {
                     guard token > 0, token != horizontalScrollDoneToken, token != pendingHorizontalScrollToken else { return }
                     pendingHorizontalScrollToken = token
                     pendingHorizontalScrollSignature = currentHorizontalScrollSignature
+                    pendingHorizontalScrollGeneration = appState.lastChangeGeneration
                     continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
                 .onChange(of: horizontalScrollFinalPass) { _, _ in
-                    scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+                    // bug.0.4.168: zwischen Auftrag und Ausführen keine Live-Änderung.
+                    let token = finalPassToken
+                    finalPassToken = nil
+                    if finalPassSignature == currentHorizontalScrollSignature,
+                       finalPassGeneration == appState.lastChangeGeneration {
+                        scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+                    }
+                    #if DEBUG
+                    if let token { columnScrollOrderDone?(token) }
+                    #endif
                 }
+                // bug.0.4.168: Spaltenbreite ziehen beendet den offenen Auftrag.
+                .onChange(of: columnResizePreview?.width) { _, width in
+                    guard width != nil, let token = pendingHorizontalScrollToken else { return }
+                    finishHorizontalScroll(token)
+                }
+
                 .onChange(of: HorizontalScrollKey(columns: folderColumns.count, showDetail: showDetail)) { _, _ in
                     continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
@@ -419,14 +452,14 @@ struct ColumnBrowserView: View {
     ) {
         guard let token = pendingHorizontalScrollToken else { return }
         // Pfad oder Auswahl haben sich ohne neuen Auftrag geändert (Live-Änderung): Auftrag beenden, nicht scrollen.
-        guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature else {
+        guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature, !liveChangeSinceRequest() else {
             finishHorizontalScroll(token)
             return
         }
         scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
         horizontalScrollSettle?.cancel()
         horizontalScrollSettle = Task { @MainActor in
-            try? await Task.sleep(for: Self.horizontalScrollSettleDelay)
+            try? await Task.sleep(for: horizontalScrollSettleDelay)
             // Die Spalte der Auswahl lädt noch oder zeigt ihren Ladehinweis (Mindestanzeige): danach kann noch die
             // Details-Spalte kommen – warten, ohne selbst zu scrollen (das tut ihr Erscheinen).
             var waited = Duration.zero
@@ -436,23 +469,37 @@ struct ColumnBrowserView: View {
                 waited += .milliseconds(100)
             }
             guard !Task.isCancelled, pendingHorizontalScrollToken == token else { return }
-            guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature else {
+            guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature, !liveChangeSinceRequest() else {
                 finishHorizontalScroll(token)
                 return
             }
+            finalPassSignature = currentHorizontalScrollSignature
+            finalPassGeneration = appState.lastChangeGeneration
+            finalPassToken = token
             // Der Scroll beim Melden der neuen Breite kann vor dem Layout der Scrollansicht liegen (stoppt dann an der
             // alten Breite); jetzt steht der Inhalt – noch einmal mit den aktuellen Spalten, dann erledigt.
             horizontalScrollFinalPass += 1
-            finishHorizontalScroll(token)
+            finishHorizontalScroll(token, notify: false)
         }
     }
 
-    private func finishHorizontalScroll(_ token: Int) {
+    private func finishHorizontalScroll(_ token: Int, notify: Bool = true) {
         horizontalScrollSettle?.cancel()
         horizontalScrollSettle = nil
         pendingHorizontalScrollToken = nil
         pendingHorizontalScrollSignature = nil
+        pendingHorizontalScrollGeneration = nil
         horizontalScrollDoneToken = token
+        #if DEBUG
+        if notify { columnScrollOrderDone?(token) }
+        #endif
+    }
+
+    /// bug.0.4.168: Kam seit dem Auftrag eine Änderungsmeldung des Speichers (Live-Änderung)? Das eigene Laden der
+    /// Ansicht meldet nichts, darum bleibt der Auftrag beim Laden offen.
+    private func liveChangeSinceRequest() -> Bool {
+        guard let known = pendingHorizontalScrollGeneration else { return false }
+        return appState.lastChangeGeneration != known
     }
 
     private var currentHorizontalScrollSignature: HorizontalScrollSignature {
@@ -999,4 +1046,79 @@ private struct HorizontalScrollSignature: Equatable {
 private struct HorizontalScrollKey: Equatable {
     var columns: Int
     var showDetail: Bool
+}
+
+
+/// bug.0.4.168: Ruhezeit eines offenen waagerechten Scroll-Auftrags (Parameter je Ansicht; Tests kürzer).
+private struct ColumnScrollSettleDelayKey: EnvironmentKey {
+    static let defaultValue: Duration = .milliseconds(300)
+}
+
+extension EnvironmentValues {
+    var columnScrollSettleDelay: Duration {
+        get { self[ColumnScrollSettleDelayKey.self] }
+        set { self[ColumnScrollSettleDelayKey.self] = newValue }
+    }
+}
+
+#if DEBUG
+private struct ColumnScrollOrderDoneKey: EnvironmentKey {
+    static let defaultValue: (@MainActor (Int) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// Tests (bug.0.4.168): Rückruf, wenn ein waagerechter Scroll-Auftrag erledigt ist.
+    var columnScrollOrderDone: (@MainActor (Int) -> Void)? {
+        get { self[ColumnScrollOrderDoneKey.self] }
+        set { self[ColumnScrollOrderDoneKey.self] = newValue }
+    }
+}
+#endif
+
+/// bug.0.4.168: meldet, wenn der Nutzer die umgebende Scrollansicht selbst scrollt (`willStartLiveScroll`).
+private struct UserScrollObserver: NSViewRepresentable {
+    let onUserScroll: @MainActor () -> Void
+
+    func makeNSView(context: Context) -> ObserverView {
+        let view = ObserverView()
+        view.onUserScroll = onUserScroll
+        return view
+    }
+
+    func updateNSView(_ view: ObserverView, context: Context) {
+        view.onUserScroll = onUserScroll
+    }
+
+    final class ObserverView: NSView {
+        var onUserScroll: (@MainActor () -> Void)?
+        private weak var observed: NSScrollView?
+        private var token: NSObjectProtocol?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            attach()
+        }
+
+        override func layout() {
+            super.layout()
+            attach()
+        }
+
+        private func attach() {
+            guard let scroll = enclosingScrollView, scroll !== observed else { return }
+            if let token { NotificationCenter.default.removeObserver(token) }
+            observed = scroll
+            token = NotificationCenter.default.addObserver(
+                forName: NSScrollView.willStartLiveScrollNotification, object: scroll, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.onUserScroll?() }
+            }
+        }
+
+        deinit {
+            if let token { NotificationCenter.default.removeObserver(token) }
+        }
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
 }

@@ -17,6 +17,13 @@ nonisolated final class DirectoryWriterV3 {
     let trustsFileID: Bool
     /// bug.0.4.156 (a): Segment-Abfragen beim Wiederverbinden (Zähler für Tests, kein Zeitmaß).
     private(set) var reconnectSegmentLookups = 0
+    /// bug.0.4.169: Teil-Prüfsummen der eingefügten Zeilen, außerhalb der Schreibtransaktion gelesen. Gesetzt liest das
+    /// Wiederverbinden nicht mehr selbst von der Platte; fehlt eine Zeile darin, gibt es keinen Vergleich.
+    var externalPartials: [Int64: PartialReadOutcome]?
+    #if DEBUG
+    /// Tests (bug.0.4.169): vor jedem Lesen von der Platte im Rückfall (innerhalb der Transaktion).
+    var partialReadHook: (@Sendable (URL) -> Void)?
+    #endif
     /// bug.0.4.156 (b): Kandidaten, deren Gegenstück nicht gelesen werden konnte – nicht löschen, im Folgelauf erneut.
     private(set) var unreadableGoneCandidateIDs: Set<Int64> = []
     private let partialMatchingEnabled: Bool
@@ -259,6 +266,35 @@ nonisolated final class DirectoryWriterV3 {
         return (delta, parent.path)
     }
 
+    /// bug.0.4.169: Welche eingefügten Dateien brauchen beim Wiederverbinden eine Teil-Prüfsumme von der Platte? Nur
+    /// lesend (für `pool.read`): der Abgleich mit den Kandidaten läuft wie beim Verbinden, statt zu lesen wird die Datei
+    /// vorgemerkt. Segmente werden nur für diese Dateien geholt (bug.0.4.156 a).
+    func partialReadRequests(insertedIDs: Set<Int64>, mountPath: String) throws -> [(id: Int64, url: URL)] {
+        guard !trustsFileID, !insertedIDs.isEmpty else { return [] }
+        var requests: [(id: Int64, url: URL)] = []
+        let priorFallback = activePartialFallback
+        let priorPartials = activePrecomputedPartials
+        defer { activePartialFallback = priorFallback; activePrecomputedPartials = priorPartials }
+        activePrecomputedPartials = nil
+        for insertedID in insertedIDs.sorted() {
+            guard let inserted = try fetchListedRow(id: insertedID), inserted.status == 0 else { continue }
+            let entry = scannedEntry(from: inserted)
+            guard !entry.isFolder, !entry.isPackage else { continue }
+            var recorded = false
+            activePartialFallback = { [unowned self] _ in
+                guard !recorded else { return nil }
+                recorded = true
+                self.reconnectSegmentLookups += 1
+                let segments = try Self.segments(self.db, itemID: insertedID)
+                let url = Self.fileURL(mountPath: mountPath, parentSegments: Array(segments.dropLast()), name: entry.name)
+                requests.append((insertedID, url))
+                return nil
+            }
+            _ = try matchGoneCandidate(entry: entry, parentID: inserted.parentID, extID: inserted.extID, mountPath: mountPath)
+        }
+        return requests
+    }
+
     /// Verbindet in diesem Lauf neu eingefügte Zeilen mit `status = 2` (bug.0.4.015 a), vor `deleteGoneItems`.
     func reconnectInsertedWithGone(insertedIDs: Set<Int64>, mountPath: String?) throws -> MediumCountDelta {
         guard !trustsFileID, !insertedIDs.isEmpty else { return .zero }
@@ -272,13 +308,25 @@ nonisolated final class DirectoryWriterV3 {
             let priorFallback = activePartialFallback
             let priorPartials = activePrecomputedPartials
             activePrecomputedPartials = nil
-            if let mountPath, !entry.isFolder, !entry.isPackage {
+            if let external = externalPartials, !entry.isFolder, !entry.isPackage {
+                // bug.0.4.169: vorab außerhalb der Transaktion gelesen – hier nur nachschlagen.
+                activePartialFallback = { _ in
+                    switch external[insertedID] {
+                    case .digest(let data): return data
+                    case .unreadable: throw PartialReadFailure.unreadable
+                    case .missing, nil: return nil
+                    }
+                }
+            } else if let mountPath, !entry.isFolder, !entry.isPackage {
                 // bug.0.4.156 (a): Pfad erst holen, wenn ein Kandidat die Teil-Prüfsumme wirklich braucht.
                 // (b): Lesefehler werfen (fehlt die Datei: `nil`) – der Kandidat bleibt dann stehen.
                 activePartialFallback = { [unowned self] _ in
                     self.reconnectSegmentLookups += 1
                     let segments = try Self.segments(self.db, itemID: insertedID)
                     let url = Self.fileURL(mountPath: mountPath, parentSegments: Array(segments.dropLast()), name: entry.name)
+                    #if DEBUG
+                    self.partialReadHook?(url)
+                    #endif
                     return try PartialChecksum.compute(at: url)?.partial
                 }
             }
@@ -613,9 +661,9 @@ nonisolated final class DirectoryWriterV3 {
             sql: """
                 SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
                 FROM items i LEFT JOIN item_details d ON d.itemID = i.id
-                WHERE i.id = ?
+                WHERE i.id = ? AND i.storageID = ?
                 """,
-            arguments: [id]
+            arguments: [id, storageID]
         ) else { return nil }
         return ListedRow(row)
     }
@@ -735,6 +783,9 @@ nonisolated final class DirectoryWriterV3 {
         let incoming: Data?
         do {
             incoming = try incomingPartialDigest(mountPath: mountPath, parentID: parentID, name: entry.name)
+        } catch let error as DatabaseError {
+            // bug.0.4.165 (d): Datenbankfehler weitergeben, nur Lesefehler der Datei gelten als „unlesbar“.
+            throw error
         } catch {
             unreadableGoneCandidateIDs.insert(candidate.id)
             return nil
@@ -763,6 +814,8 @@ nonisolated final class DirectoryWriterV3 {
         let digest: Data?
         do {
             digest = try incomingPartialDigest(mountPath: mountPath, parentID: parentID, name: entry.name)
+        } catch let error as DatabaseError {
+            throw error
         } catch {
             unreadableGoneCandidateIDs.formUnion(candidates.map(\.id))
             return nil
@@ -902,4 +955,9 @@ nonisolated final class DirectoryWriterV3 {
         let ext = (name as NSString).pathExtension.lowercased()
         return ext.isEmpty ? nil : ext
     }
+}
+
+/// bug.0.4.169: vorab gelesene Datei war nicht lesbar (Fehler oder Zeitgrenze).
+nonisolated enum PartialReadFailure: Error {
+    case unreadable
 }

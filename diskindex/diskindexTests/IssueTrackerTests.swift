@@ -480,6 +480,25 @@ struct IssueTrackerTests {
         #expect(logs.contains { $0.contains("blocked:leak=name") })
     }
 
+    /// bug.0.4.164 (d): Absturzbericht ohne Version/Build/Laufzeit des abgestürzten Laufs (Startzeile fehlt) → „?“ statt
+    /// des neuen Laufs bzw. eines leeren Felds, `runtimeSeconds` fehlt ganz (statt `null`). Echter Weg über `enqueue`.
+    @Test func previousRunWithoutValuesSendsQuestionMarksAndNoRuntime() throws {
+        let (reporter, _) = try makeReporter()
+        var draft = IssueDraft(
+            kind: "crash", signature: "SIGSEGV", actions: [], logTail: [], crashSignal: "SIGSEGV", crashStack: [],
+            media: 0, items: 0, dbBytes: 0
+        )
+        draft.previousRun = PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil)
+        reporter.enqueue(draft)
+        reporter.waitForPendingEnqueuesForTesting()
+        let data = try #require(try reporter.firstQueuedPayload())
+        let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let app = try #require(object["app"] as? [String: Any])
+        #expect(app["version"] as? String == "?")
+        #expect(app["build"] as? String == "?")
+        #expect(object["runtimeSeconds"] == nil, "runtimeSeconds soll fehlen, nicht null sein")
+    }
+
     /// bug.0.4.162 (a): Ein Lesefehler beim Nachladen der Mediennamen schaltet den Namens-Wächter nicht ab – die zuletzt
     /// geladenen Namen bleiben.
     @Test func knownNamesSurviveAReadError() async throws {

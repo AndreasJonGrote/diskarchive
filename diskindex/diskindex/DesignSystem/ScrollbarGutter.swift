@@ -34,6 +34,18 @@ final class ScrollerStyleMonitor {
 }
 
 enum ScrollbarGutter {
+    #if DEBUG
+    /// Tests (bug.0.4.167 b): das `documentView`, das der Baustein unter `root` gerade beobachtet (erster gefundener).
+    @MainActor
+    static func observedDocumentForTesting(in root: NSView) -> NSView? {
+        if let keeper = root as? ScrollbarGutterKeeperProbe { return keeper.observedDocumentForTesting }
+        for sub in root.subviews {
+            if let found = observedDocumentForTesting(in: sub) { return found }
+        }
+        return nil
+    }
+    #endif
+
     /// Reservierte Breite rechts für einen Stil (Overlay: 0).
     static func width(for style: NSScroller.Style) -> CGFloat {
         style == .legacy ? NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy) : 0
@@ -188,5 +200,19 @@ private struct ScrollbarGutterKeeper: NSViewRepresentable {
         }
 
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+        #if DEBUG
+        var observedDocumentForTesting: NSView? { observedDocument }
+        #endif
     }
 }
+
+#if DEBUG
+/// Tests (bug.0.4.167 b): Zugriff auf den Beobachtungsstand des Bausteins.
+@MainActor
+protocol ScrollbarGutterKeeperProbe: AnyObject {
+    var observedDocumentForTesting: NSView? { get }
+}
+
+extension ScrollbarGutterKeeper.KeeperView: ScrollbarGutterKeeperProbe {}
+#endif
