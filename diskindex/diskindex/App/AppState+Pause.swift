@@ -50,7 +50,8 @@ extension AppState {
         savePause(defaults)
         pauseExpiryTask?.cancel()
         pauseExpiryTask = nil
-        guard wasPaused else { return }
+        // bug.0.4.162 (e): unlesbare Einstellungen halten die Sitzung pausiert – keine Meldung „fortgesetzt“.
+        guard wasPaused, !settingsUnreadable else { return }
         SystemNotice.post(
             body: LayoutCopy.noticePauseResumedManual,
             settings: appSettings,
@@ -65,6 +66,7 @@ extension AppState {
         savePause(defaults)
         pauseExpiryTask?.cancel()
         pauseExpiryTask = nil
+        guard !settingsUnreadable else { return }
         SystemNotice.post(
             body: LayoutCopy.noticePauseResumedManual,
             settings: appSettings,

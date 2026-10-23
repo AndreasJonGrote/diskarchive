@@ -340,16 +340,42 @@ struct FSEventsOpenTests {
         #expect(source.openRanOnQueueForTesting == true, "open lief nicht auf der eigenen Queue")
     }
 
+    /// bug.0.4.157 (niedrig): Fehlschlag über den echten Weg – `FSEventStreamCreate` ohne Pfade liefert keinen Strom,
+    /// die echte Protokollzeile erscheint, der Strom endet.
     @Test func openFailureIsLogged() async throws {
         let sink = FSEventsLogSink()
         let source = FSEventsChangeSource(mountPath: "/tmp")
-        source.openFailsForTesting = true
+        source.watchedPathsForTesting = []
         source.logOpenFailure = { sink.add($0) }
         var iterator = source.changes().makeAsyncIterator()
         // Der Strom endet nach dem Fehlschlag.
         let next = await iterator.next()
         #expect(next == nil)
-        #expect(sink.all.contains { $0.contains("fsevents stream") })
+        #expect(sink.all.contains { $0.contains("fsevents stream konnte nicht erzeugt werden") }, "\(sink.all)")
+    }
+
+    /// bug.0.4.157: Eine Datei, die direkt nach `changes()` entsteht – vor dem (hier verzögerten) asynchronen Öffnen –,
+    /// kommt trotzdem als Ereignis an (Start ab dem Zeitpunkt von `changes()`, nicht ab dem Öffnen).
+    @Test func eventBeforeTheAsynchronousOpenArrives() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("diskindex-fse-gap-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let source = FSEventsChangeSource(mountPath: directory.path)
+        source.openDelayForTesting = 0.8
+        let seen = FSEventsLogSink()
+        let stream = source.changes()
+        let name = "frueh-\(UUID().uuidString).txt"
+        try Data("x".utf8).write(to: directory.appendingPathComponent(name))
+        let reader = Task {
+            for await change in stream {
+                seen.add(change.path)
+                if change.path.hasSuffix(name) { break }
+            }
+        }
+        defer { reader.cancel() }
+        let arrived = await waitUntil(timeout: 15) { seen.all.contains { $0.hasSuffix(name) } }
+        #expect(arrived, "Ereignis vor dem Öffnen ging verloren: \(seen.all)")
+        #expect(source.openRanOnQueueForTesting == true)
     }
 }
 

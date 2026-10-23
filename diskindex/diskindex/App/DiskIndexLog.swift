@@ -32,6 +32,8 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     private var handle: FileHandle?
     private var breadcrumbs: [String] = []
     private var startedAt = Date()
+    /// bug.0.4.113: Dieser Lauf hat seine Startzeile geschrieben (unter `lock`).
+    private var wroteOwnStartLine = false
     private(set) var shouldShowCrashDialog = false
     /// Der Lauf davor endete ohne „app terminate ok“ (Aufgabe 219: dann `quick_check`).
     private(set) var previousRunUnclean = false
@@ -188,6 +190,12 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         #endif
         let system = ProcessInfo.processInfo.operatingSystemVersionString
         record(.app, .info, "start version=\(version) build=\(build) config=\(config) macOS=\(system) pid=\(ProcessInfo.processInfo.processIdentifier)")
+        // bug.0.4.113: erst nach dem Schreiben der eigenen Startzeile gilt sie als „eigene“ (sonst hielte ein Bericht
+        // in der Lücke die Startzeile des abgestürzten Laufs für die eigene).
+        flushPendingWritesUnlessOnDiskQueue()
+        lock.lock()
+        wroteOwnStartLine = true
+        lock.unlock()
         // bug.0.4.041: Deskriptoren hier öffnen (außerhalb des Signalkontexts); der Handler öffnet nie selbst.
         if crashFD < 0 { openCrashFile() }
         openLogFDIfNeeded()
@@ -379,6 +387,12 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         writeRing(signal: signal)
     }
 
+    /// Wartet, bis die bisher eingereihten Zeilen auf der Platte stehen (nicht vom Schreiber selbst aus).
+    private func flushPendingWritesUnlessOnDiskQueue() {
+        guard !isOnDiskWriteQueue else { return }
+        diskWriteQueue.sync { }
+    }
+
     private var isOnDiskWriteQueue: Bool {
         DispatchQueue.getSpecific(key: diskQueueKey) != nil
     }
@@ -445,12 +459,23 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     /// bug.0.4.113: Version, Build und Laufzeit des **abgestürzten** Laufs aus dem Protokoll: letzte Startzeile vor der
-    /// „CRASH“-Zeile (ohne Absturzzeile: letzte Startzeile), Laufzeit bis zur letzten Zeile mit Zeitstempel davor.
+    /// „CRASH“-Zeile (ohne Absturzzeile: letzte Startzeile vor der des laufenden Protokolls), Laufzeit bis zur letzten
+    /// Zeile mit Zeitstempel davor.
     /// Fehlt etwas, bleibt das Feld `nil` (nie der Wert des neuen Laufs).
     func previousRunInfo() -> PreviousRunInfo {
         let lines = Self.readText(fileURL).components(separatedBy: "\n")
-        let crashIndex = lines.lastIndex { $0.hasPrefix("CRASH signal=") } ?? lines.count
-        let head = lines[..<crashIndex]
+        let end: Int
+        if let crashIndex = lines.lastIndex(where: { $0.hasPrefix("CRASH signal=") }) {
+            end = crashIndex
+        } else {
+            // Signal-Absturz: die „CRASH“-Zeile steht nur in `crash-last.txt`. Hat dieser Lauf seine Startzeile schon
+            // geschrieben, ist die letzte Startzeile die eigene – der abgestürzte Lauf endet davor.
+            lock.lock()
+            let ownStart = wroteOwnStartLine
+            lock.unlock()
+            end = ownStart ? (lines.lastIndex { $0.contains(" start version=") } ?? lines.count) : lines.count
+        }
+        let head = lines[..<end]
         guard let startIndex = head.lastIndex(where: { $0.contains(" start version=") }) else {
             return PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil)
         }
@@ -472,6 +497,17 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             runtime = max(0, Int(ended.timeIntervalSince(began)))
         }
         return PreviousRunInfo(version: value("version", in: startLine), build: value("build", in: startLine), runtimeSeconds: runtime)
+    }
+
+    /// bug.0.4.113: Aktionen des abgestürzten Laufs – die Krumen nach der Kopfzeile des Absturzteils (`crash-last.txt`
+    /// bzw. Protokoll), vor dem ersten Stapelrahmen. Ohne Absturzteil leer.
+    func crashBreadcrumbs() -> [String] {
+        guard let section = crashSection(in: Self.readText(fileURL), fallback: Self.readText(crashFileURL)) else { return [] }
+        let lines = section.split(separator: "\n", omittingEmptySubsequences: true).map(String.init).dropFirst()
+        let frame = try? NSRegularExpression(pattern: ReportScrubber.stackFramePattern)
+        return Array(lines.prefix { line in
+            frame?.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)) == nil
+        })
     }
 
     /// Signal und Stapel aus dem Protokoll, für den Issue-Tracker nach dem Neustart.

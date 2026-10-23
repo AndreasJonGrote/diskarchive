@@ -227,8 +227,10 @@ struct IssueReportRealLogTests {
         #expect(stack.contains { $0.hasSuffix("ui info click row=7") })
         #expect(stack.contains { $0.hasSuffix("ui info search query chars=20") })
         #expect(stack.contains { $0.contains("writeCrashSnapshot") }, "Fehlerort fehlt: \(stack)")
+        // bug.0.4.113: Aktionen des abgestürzten Laufs (Krumen aus `crash-last.txt`), nicht die des neuen Laufs.
         let actions = try #require(object["actions"] as? [String])
-        #expect(actions.contains { $0.hasSuffix("ui info crash dialog send") })
+        #expect(actions.contains { $0.hasSuffix("ui info click row=7") }, "Aktionen: \(actions)")
+        #expect(!actions.contains { $0.contains("crash dialog send") }, "Aktion des neuen Laufs im Bericht")
         #expect(object["kind"] as? String == "crash")
         #expect(raw.utf8.count <= IssuePayload.bodyLimit)
     }

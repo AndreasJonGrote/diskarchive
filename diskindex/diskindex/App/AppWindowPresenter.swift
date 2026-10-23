@@ -38,6 +38,12 @@ enum AppWindowPresenter {
         RuntimeEnvironment.isRunningTests ? .offscreen : (requested ?? .centered)
     }
 
+    /// bug.0.4.162 (g): Lage der Erkennungs-Panels – `nil` = kein Panel, sonst über `effectivePlacement` (im Test nie
+    /// auf dem Bildschirm, auch bei `.centered`).
+    static func newMediumPanelPlacement(for appState: AppState) -> PromptPanelPlacement? {
+        appState.promptPanelPlacement.map { effectivePlacement($0) }
+    }
+
     static func mainWindowPlacement(for appState: AppState) -> PromptPanelPlacement {
         effectivePlacement(appState.promptPanelPlacement)
     }
@@ -149,7 +155,7 @@ enum AppWindowPresenter {
     /// gestapelt. Lage über `appState.promptPanelPlacement` (bug.0.4.117): `nil` = kein Panel, `.offscreen` (Tests)
     /// außerhalb des Bildschirms und nie Key.
     static func syncNewMediumPanels(appState: AppState, revealDismissed: Bool = false) {
-        guard let placement = appState.promptPanelPlacement else { return }
+        guard let placement = newMediumPanelPlacement(for: appState) else { return }
         let key = ObjectIdentifier(appState)
         let activeIDs = appState.pendingNewMediumDecisionIDs.filter { id in
             guard appState.needsNewMediumDialog(id) else { return false }

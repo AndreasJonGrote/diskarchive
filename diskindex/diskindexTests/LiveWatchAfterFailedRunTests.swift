@@ -151,10 +151,13 @@ struct LiveWatchAfterFailedRunTests {
         #expect(!service.watchesAfterFailedRun(id))
     }
 
-    /// bug.0.4.155 (Regel 18): echte Kette – der Lauf scheitert, während das Medium pausiert ist bzw. wird abgebrochen →
+    /// bug.0.4.155/160 (Regel 18): echte Kette – der Lauf läuft, wird pausiert, abgebrochen bzw. scheitert bei
+    /// „Indizieren: Nein“ →
     /// die Überwachung bleibt aus (Gegenprobe: `watcherStartsAfterAFailedRunAndDeliversChanges`, gleicher Aufbau ohne Pause).
     @Test func pausedOrCancelledRunDoesNotStartTheWatcher() async throws {
-        for scenario in ["pause", "cancel"] {
+        // „aus“: „Indizieren: Nein“ während des Laufs – der Lauf scheitert (Schreibfehler), die Überwachung nach Fehler
+        // prüft `watchesAfterFailedRun` und bleibt aus. Pause und Abbruch enden unterbrochen (`watchesAfterFailure`).
+        for scenario in ["pause", "cancel", "aus"] {
             let harness = try await ScanHarness.make()
             let indexed = StoredMedium(
                 fsType: "apfs", volumeTotalBytes: 1_000, name: "AUS-\(scenario)", type: .usb,
@@ -177,21 +180,25 @@ struct LiveWatchAfterFailedRunTests {
             rig.watcher.makeSourceForTesting = { _ in ScriptedChangeSource() }
             let id = indexed.uuid
             defer { rig.coordinator.stop() }
-            if scenario == "pause" {
-                await store.setDirectoryWritesFailing(true)
-                app.globalAutoIndexPaused = true
-                await rig.coordinator.handle(.appeared(volume))
-                // Positives Signal: der Abgleich wurde angefragt und vom Dienst abgelehnt (Pause), kein Lauf.
-                try await Task.sleep(for: .milliseconds(500))
-                #expect(rig.starts(id).isEmpty, "Lauf trotz Pause gestartet")
-            } else {
-                await rig.coordinator.handle(.appeared(volume))
-                await gate.entered.wait()
-                await rig.service.cancel(mediumUUID: id)
-                await gate.open()
-                await rig.service.waitUntilIdle(id)
-                try await Task.sleep(for: .milliseconds(300))
+            // bug.0.4.160: in beiden Fällen läuft wirklich ein Lauf (am Tor angehalten), Schreiben scheitert.
+            await rig.coordinator.handle(.appeared(volume))
+            await gate.entered.wait()
+            try #require(!rig.starts(id).isEmpty, "kein Lauf gestartet")
+            await store.setDirectoryWritesFailing(true)
+            switch scenario {
+            case "pause": app.globalAutoIndexPaused = true
+            case "cancel": await rig.service.cancel(mediumUUID: id)
+            default: app.updateMedium(id: id) { $0.allowIndexing = false }
             }
+            await gate.open()
+            await rig.service.waitUntilIdle(id)
+            // Positives Signal: Lauf beendet, Ergebnis gespeichert (nicht mehr „wird indiziert“).
+            let saved = await waitUntil {
+                guard !rig.service.isRunActive(id), app.medium(with: id)?.indexStatus != .indexing else { return false }
+                let stored = try? await store.medium(uuid: id)
+                return stored != nil && stored?.indexStatus != .indexing
+            }
+            try #require(saved, "Lauf endete nicht (\(scenario))")
             #expect(!rig.watcher.isWatching(mediumID: id), "Überwachung nach \(scenario) gestartet")
         }
     }

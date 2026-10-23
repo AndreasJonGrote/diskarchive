@@ -46,8 +46,16 @@ struct ColumnBrowserView: View {
     @Environment(\.columnTableViewMinimum) private var tableViewMinimum
     /// bug.0.4.132: zuletzt vollständig ausgeführter waagerechter Scroll-Auftrag.
     @State private var horizontalScrollDoneToken: Int?
-    /// bug.0.4.134: letzter Auftrag, für den Pfad-/Auswahländerungen waagerecht scrollten (Live-Änderungen scrollen nicht).
-    @State private var trailingScrollToken: Int?
+    /// bug.0.4.148 (a): Auftrag, der noch nicht bündig steht. Solange er offen ist, wird bei wachsendem Inhalt (Details-
+    /// Spalte, geladene Spalte) nachgescrollt; erledigt ist er erst, wenn der Inhalt kurz stabil ist.
+    @State private var pendingHorizontalScrollToken: Int?
+    /// Pfad und Auswahl beim Auftrag: ändern sie sich ohne neuen Auftrag (Live-Änderung), endet er ohne Scroll.
+    @State private var pendingHorizontalScrollSignature: HorizontalScrollSignature?
+    @State private var horizontalScrollSettle: Task<Void, Never>?
+    /// Schlussscroll nach der Ruhezeit – über `onChange`, damit er die aktuellen Spalten liest.
+    @State private var horizontalScrollFinalPass = 0
+    /// Ruhezeit nach dem letzten Scroll eines offenen Auftrags, bevor er als erledigt gilt.
+    private static let horizontalScrollSettleDelay: Duration = .milliseconds(300)
 
     private var resolvedSelectedMedium: Medium? {
         if let id = appState.columnBrowserState.selectedMediumID,
@@ -369,6 +377,10 @@ struct ColumnBrowserView: View {
                         alignment: .topLeading
                     )
                     .animation(nil, value: columnResizePreview?.width)
+                    // bug.0.4.148 (a): wächst der Inhalt, während ein Auftrag offen ist, wird nachgescrollt.
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.width }) { _ in
+                        continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+                    }
                 }
                 .scrollIndicators(.automatic)
                 .frame(
@@ -377,51 +389,96 @@ struct ColumnBrowserView: View {
                     alignment: .topLeading
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                // bug.0.4.132: Öffnen über einen Treffer (Ansicht entsteht danach) und Nutzeraktionen. Erscheinen die
-                // Spalten bzw. die Details-Spalte erst nach dem Laden, wird für denselben Auftrag nachgescrollt; danach
-                // (Auftrag erledigt) scrollen Live-Änderungen nicht.
-                .onChange(
-                    of: HorizontalScrollKey(token: appState.columnScrollToken, columns: folderColumns.count, showDetail: showDetail),
-                    initial: true
-                ) { _, key in
+                // bug.0.4.132/148: Jeder neue Auftrag (`columnScrollToken`, Nutzeraktion; auch Öffnen über einen Treffer,
+                // bevor die Ansicht entsteht) scrollt nach rechts. Er bleibt offen, bis der Inhalt steht; erscheinen
+                // Spalten oder die Details-Spalte erst danach, wird nachgescrollt. Live-Änderungen (Pfad oder Auswahl
+                // ohne neuen Auftrag, bug.0.4.134) scrollen nie.
+                .onChange(of: appState.columnScrollToken, initial: true) { _, token in
                     // Token 0: noch keine Nutzeraktion (Start mit gemerktem Pfad) – nicht scrollen.
-                    guard key.token > 0, key.token != horizontalScrollDoneToken else { return }
-                    scrollToTrailingColumn(
-                        proxy: proxy,
-                        folderColumns: folderColumns,
-                        showDetail: showDetail
-                    )
-                    if showDetail || !selectionColumnPending {
-                        horizontalScrollDoneToken = key.token
-                    }
+                    guard token > 0, token != horizontalScrollDoneToken, token != pendingHorizontalScrollToken else { return }
+                    pendingHorizontalScrollToken = token
+                    pendingHorizontalScrollSignature = currentHorizontalScrollSignature
+                    continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
-                .onChange(of: appState.columnBrowserState.pathStack) { _, _ in
-                    scrollToTrailingColumnAfterUserAction(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+                .onChange(of: horizontalScrollFinalPass) { _, _ in
+                    scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
-                .onChange(of: appState.columnBrowserState.selection) { _, _ in
-                    scrollToTrailingColumnAfterUserAction(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+                .onChange(of: HorizontalScrollKey(columns: folderColumns.count, showDetail: showDetail)) { _, _ in
+                    continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
             }
         }
+    }
+
+    /// bug.0.4.148 (a): offenen Auftrag ausführen und nach der Ruhezeit als erledigt verbuchen – erst, wenn die Spalte
+    /// der Auswahl geladen ist (sonst kann noch eine Details-Spalte kommen) und kein weiterer Scroll dazwischenkam.
+    private func continueHorizontalScroll(
+        proxy: ScrollViewProxy,
+        folderColumns: [ColumnBrowserFolderColumn],
+        showDetail: Bool
+    ) {
+        guard let token = pendingHorizontalScrollToken else { return }
+        // Pfad oder Auswahl haben sich ohne neuen Auftrag geändert (Live-Änderung): Auftrag beenden, nicht scrollen.
+        guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature else {
+            finishHorizontalScroll(token)
+            return
+        }
+        scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+        horizontalScrollSettle?.cancel()
+        horizontalScrollSettle = Task { @MainActor in
+            try? await Task.sleep(for: Self.horizontalScrollSettleDelay)
+            // Die Spalte der Auswahl lädt noch oder zeigt ihren Ladehinweis (Mindestanzeige): danach kann noch die
+            // Details-Spalte kommen – warten, ohne selbst zu scrollen (das tut ihr Erscheinen).
+            var waited = Duration.zero
+            while selectionColumnPending || selectionColumnShowsHint, waited < Self.horizontalScrollPendingLimit {
+                guard !Task.isCancelled, pendingHorizontalScrollToken == token else { return }
+                try? await Task.sleep(for: .milliseconds(100))
+                waited += .milliseconds(100)
+            }
+            guard !Task.isCancelled, pendingHorizontalScrollToken == token else { return }
+            guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature else {
+                finishHorizontalScroll(token)
+                return
+            }
+            // Der Scroll beim Melden der neuen Breite kann vor dem Layout der Scrollansicht liegen (stoppt dann an der
+            // alten Breite); jetzt steht der Inhalt – noch einmal mit den aktuellen Spalten, dann erledigt.
+            horizontalScrollFinalPass += 1
+            finishHorizontalScroll(token)
+        }
+    }
+
+    private func finishHorizontalScroll(_ token: Int) {
+        horizontalScrollSettle?.cancel()
+        horizontalScrollSettle = nil
+        pendingHorizontalScrollToken = nil
+        pendingHorizontalScrollSignature = nil
+        horizontalScrollDoneToken = token
+    }
+
+    private var currentHorizontalScrollSignature: HorizontalScrollSignature {
+        HorizontalScrollSignature(
+            mediumID: appState.columnBrowserState.selectedMediumID,
+            pathStack: appState.columnBrowserState.pathStack,
+            selection: appState.columnBrowserState.selection.ids
+        )
+    }
+
+    /// Höchstens so lange bleibt ein Auftrag offen, weil die Spalte der Auswahl lädt (danach scrollen Live-Änderungen
+    /// sicher nicht mehr).
+    private static let horizontalScrollPendingLimit: Duration = .seconds(30)
+
+    /// bug.0.4.148 (a): Die Spalte der Auswahl zeigt den Ladehinweis (bleibt nach dem Laden kurz stehen).
+    private var selectionColumnShowsHint: Bool {
+        let selection = appState.columnBrowserState.selection
+        guard let medium = resolvedSelectedMedium, let column = selection.focusColumnIndex else { return false }
+        let path = Array(appState.columnBrowserState.pathStack.prefix(column))
+        return appState.columnBrowserState.loadingHintVisible(mediumID: medium.id, path: path)
     }
 
     private var horizontalScrollIndicatorInset: CGFloat { Self.legacyScrollerThickness }
 
     private static let legacyScrollerThickness: CGFloat =
         NSScroller.scrollerWidth(for: .regular, scrollerStyle: .legacy)
-
-    /// bug.0.4.134: Pfad-/Auswahländerung scrollt nur, wenn eine Nutzeraktion (neuer Auftrag) sie ausgelöst hat – eine
-    /// Live-Änderung (Nachführen, Kürzen des Pfads) lässt die Ansicht stehen.
-    private func scrollToTrailingColumnAfterUserAction(
-        proxy: ScrollViewProxy,
-        folderColumns: [ColumnBrowserFolderColumn],
-        showDetail: Bool
-    ) {
-        let token = appState.columnScrollToken
-        guard token > 0, token != trailingScrollToken else { return }
-        trailingScrollToken = token
-        scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
-    }
 
     private func scrollToTrailingColumn(
         proxy: ScrollViewProxy,
@@ -931,9 +988,15 @@ enum ColumnDetailText {
     }
 }
 
-/// bug.0.4.132: Auslöser des waagerechten Scrolls (Auftrag, Spaltenzahl, Details-Spalte).
+/// bug.0.4.148: Stand, für den ein waagerechter Auftrag gilt.
+private struct HorizontalScrollSignature: Equatable {
+    var mediumID: UUID?
+    var pathStack: [String]
+    var selection: [UUID]
+}
+
+/// bug.0.4.132/148: Nachscrollen eines offenen Auftrags, wenn Spalten oder die Details-Spalte erscheinen.
 private struct HorizontalScrollKey: Equatable {
-    var token: Int
     var columns: Int
     var showDetail: Bool
 }

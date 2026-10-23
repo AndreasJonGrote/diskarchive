@@ -52,7 +52,7 @@ enum LaunchAtLogin {
                 do {
                     try agent.register()
                 } catch {
-                    logger.error("Systemstart einschalten fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+                    logger.error("Systemstart einschalten fehlgeschlagen: \(DiskIndexLog.errorSummary(error), privacy: .public)")
                 }
             case .enabled, .requiresApproval:
                 break
@@ -63,7 +63,7 @@ enum LaunchAtLogin {
             do {
                 try agent.unregister()
             } catch {
-                logger.error("Systemstart ausschalten fehlgeschlagen: \(error.localizedDescription, privacy: .public)")
+                logger.error("Systemstart ausschalten fehlgeschlagen: \(DiskIndexLog.errorSummary(error), privacy: .public)")
             }
         }
     }

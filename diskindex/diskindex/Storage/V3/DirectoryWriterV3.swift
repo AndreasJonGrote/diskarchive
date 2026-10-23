@@ -14,7 +14,11 @@ import GRDB
 nonisolated final class DirectoryWriterV3 {
     private let db: Database
     private let storageID: Int64
-    private let trustsFileID: Bool
+    let trustsFileID: Bool
+    /// bug.0.4.156 (a): Segment-Abfragen beim Wiederverbinden (Zähler für Tests, kein Zeitmaß).
+    private(set) var reconnectSegmentLookups = 0
+    /// bug.0.4.156 (b): Kandidaten, deren Gegenstück nicht gelesen werden konnte – nicht löschen, im Folgelauf erneut.
+    private(set) var unreadableGoneCandidateIDs: Set<Int64> = []
     private let partialMatchingEnabled: Bool
     private var extensionIDs: [String: Int64] = [:]
     private var activePrecomputedPartials: [String: Data]?
@@ -269,10 +273,13 @@ nonisolated final class DirectoryWriterV3 {
             let priorPartials = activePrecomputedPartials
             activePrecomputedPartials = nil
             if let mountPath, !entry.isFolder, !entry.isPackage {
-                let segments = try Self.segments(db, itemID: insertedID)
-                activePartialFallback = { _ in
+                // bug.0.4.156 (a): Pfad erst holen, wenn ein Kandidat die Teil-Prüfsumme wirklich braucht.
+                // (b): Lesefehler werfen (fehlt die Datei: `nil`) – der Kandidat bleibt dann stehen.
+                activePartialFallback = { [unowned self] _ in
+                    self.reconnectSegmentLookups += 1
+                    let segments = try Self.segments(self.db, itemID: insertedID)
                     let url = Self.fileURL(mountPath: mountPath, parentSegments: Array(segments.dropLast()), name: entry.name)
-                    return (try? PartialChecksum.compute(at: url))?.partial
+                    return try PartialChecksum.compute(at: url)?.partial
                 }
             }
             defer { activePartialFallback = priorFallback; activePrecomputedPartials = priorPartials }
@@ -725,9 +732,14 @@ nonisolated final class DirectoryWriterV3 {
         guard partialMatchingEnabled,
               let mountPath,
               let stored = try fetchPartial(itemID: candidate.id) else { return candidate }
-        guard let incoming = try incomingPartialDigest(
-            mountPath: mountPath, parentID: parentID, name: entry.name
-        ) else { return nil }
+        let incoming: Data?
+        do {
+            incoming = try incomingPartialDigest(mountPath: mountPath, parentID: parentID, name: entry.name)
+        } catch {
+            unreadableGoneCandidateIDs.insert(candidate.id)
+            return nil
+        }
+        guard let incoming else { return nil }
         return stored == incoming ? candidate : nil
     }
 
@@ -747,12 +759,15 @@ nonisolated final class DirectoryWriterV3 {
         parentID: Int64?,
         mountPath: String?
     ) throws -> ListedRow? {
-        guard !entry.isFolder,
-              partialMatchingEnabled,
-              let mountPath,
-              let incoming = try incomingPartialDigest(
-                mountPath: mountPath, parentID: parentID, name: entry.name
-              ) else { return nil }
+        guard !entry.isFolder, partialMatchingEnabled, let mountPath else { return nil }
+        let digest: Data?
+        do {
+            digest = try incomingPartialDigest(mountPath: mountPath, parentID: parentID, name: entry.name)
+        } catch {
+            unreadableGoneCandidateIDs.formUnion(candidates.map(\.id))
+            return nil
+        }
+        guard let incoming = digest else { return nil }
         var hits: [ListedRow] = []
         for candidate in candidates {
             guard let stored = try fetchPartial(itemID: candidate.id), stored == incoming else { continue }

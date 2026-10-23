@@ -9,7 +9,7 @@ import Foundation
 import Testing
 
 struct BundleVersionTests {
-    @Test func marketingVersionIsZeroThreeNine() {
+    @Test func marketingVersionIsZeroFourZero() {
         #expect(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String == "0.4.0")
     }
 

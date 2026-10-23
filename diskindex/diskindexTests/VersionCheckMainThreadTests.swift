@@ -64,19 +64,32 @@ struct VersionCheckMainThreadTests {
         let second = first.addingTimeInterval(3_600)
         let calls = ThreadSteps()
         let response = VersionCheckResponse(version: AppVersion(major: 0, minor: 0, patch: 1))
+        let firstEntered = ThreadSteps()
         await VersionCheckTestHooks.$databaseThreadObserver.withValue({ _ in
             // Der erste Datenbankschritt des ersten Aufrufs wird aufgehalten.
-            if calls.count == 0 { Thread.sleep(forTimeInterval: 0.3) }
+            if calls.count == 0 {
+                firstEntered.add(false)
+                Thread.sleep(forTimeInterval: 0.3)
+            }
             calls.add(false)
         }) {
-            async let a: Void = VersionCheckCoordinator.handleAPIResult(
-                response, appState: appState, store: testStore.store, now: first, databaseWasNewThisLaunch: false
-            )
-            async let b: Void = VersionCheckCoordinator.handleAPIResult(
-                response, appState: appState, store: testStore.store, now: second, databaseWasNewThisLaunch: false
-            )
-            _ = await (a, b)
+            // bug.0.4.162 (d): Reihenfolge erzwingen – die zweite Antwort startet erst, wenn die erste in ihrem ersten
+            // Datenbankschritt steckt (nicht der Reihenfolge zweier `async let` überlassen).
+            let a = Task {
+                await VersionCheckCoordinator.handleAPIResult(
+                    response, appState: appState, store: testStore.store, now: first, databaseWasNewThisLaunch: false
+                )
+            }
+            _ = await waitUntil { firstEntered.count > 0 }
+            let b = Task {
+                await VersionCheckCoordinator.handleAPIResult(
+                    response, appState: appState, store: testStore.store, now: second, databaseWasNewThisLaunch: false
+                )
+            }
+            await a.value
+            await b.value
         }
+        try #require(firstEntered.count > 0, "erste Antwort erreichte die Datenbank nicht")
         let stored = try VersionLockEvaluator.readSettings(pool: testStore.pool)
         let seen = try #require(stored.apiLastSeen)
         #expect(abs(seen.timeIntervalSince(second)) < 1, "ältere Antwort überschreibt die neuere: \(seen)")

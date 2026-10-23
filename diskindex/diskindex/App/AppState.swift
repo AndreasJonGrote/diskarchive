@@ -231,7 +231,8 @@ final class AppState {
         }
     }
     /// todo.0.4.043: Ladeanzeige der Favoriten (gemeinsamer Baustein mit der Suche, todo.0.4.042).
-    let favoritesLoading = MinimumLoadingIndicator()
+    /// bug.0.4.163 (e): Mindestdauer über `init` (Standard 1 s), Tests mit kurzer Dauer.
+    let favoritesLoading: MinimumLoadingIndicator
     var mainWindowDestinationBeforeSearch: MainWindowDestination?
     var isFilterBarVisible = false
     /// Hochzählen = Objekt-Suchfeld verliert den Fokus (Scaffold reagiert, Aufgabe 28).
@@ -294,7 +295,8 @@ final class AppState {
     /// Einhängepfad eines angeschlossenen Mediums. Der Koordinator setzt das.
     var mountPath: ((UUID) -> String?)?
 
-    init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil) {
+    init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil, favoritesLoadingMinimum: Duration = .seconds(1)) {
+        favoritesLoading = MinimumLoadingIndicator(minimum: favoritesLoadingMinimum)
         indexStore = store
         indexRepository = IndexRepository(store: store)
         defer {

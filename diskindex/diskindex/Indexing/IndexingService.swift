@@ -11,7 +11,12 @@ final class IndexingService {
     #if DEBUG
     /// Tests: gestartete Läufe je Medium, Wert = `fromScratch` (Zähler, keine Steuerung).
     private(set) var startedRunsForTesting: [UUID: [Bool]] = [:]
+    /// bug.0.4.162 (i): abgelehnte Starts je Medium (positives Signal für „kein Lauf“).
+    private(set) var rejectedStartsForTesting: [UUID: Int] = [:]
     #endif
+    /// bug.0.4.162 (f): ein Neustart „von vorn“ wartet auf das Ende des laufenden Laufs – bis dahin bleibt die Sperre
+    /// „Neu indizieren“ stehen (der alte Lauf gibt sie beim Abbruch bzw. Ende nicht frei).
+    private var scratchRestartPending: Set<UUID> = []
     /// bug.0.4.095: Medien, deren letzter Lauf scheiterte (Überwachung läuft trotzdem): kein voller Abgleich.
     private var fullReconcileSuppressed: Set<UUID> = []
 
@@ -85,16 +90,18 @@ final class IndexingService {
         // bug.0.4.139: erst alle Läufe zum Anhalten bringen (merken, Task abbrechen), dann der Reihe nach aufräumen –
         // sonst schreiben die später dran kommenden Läufe weiter, bis sie an der Reihe sind.
         let ids = activeMediumUUIDs()
+        var stopped: [UUID] = []
         for id in ids {
-            // Inzwischen entsperrt: nichts mehr abbrechen (sonst ginge der Abgleich verloren).
-            guard !appState.featureAccess.canWriteIndex else { return }
+            // Inzwischen entsperrt: keine weiteren abbrechen (sonst ginge der Abgleich verloren) …
+            guard !appState.featureAccess.canWriteIndex else { break }
             if runFullReconcile[id] == true {
                 reconcilesInterruptedByVersionLock.insert(id)
             }
             tasks[id]?.cancel()
+            stopped.append(id)
         }
-        for id in ids {
-            guard !appState.featureAccess.canWriteIndex else { return }
+        // … die schon abgebrochenen aber immer aufräumen (bug.0.4.159: sonst blieben sie ohne Ende und Status zurück).
+        for id in stopped {
             await cancel(mediumUUID: id)
         }
     }
@@ -132,9 +139,11 @@ final class IndexingService {
                 rerunAfterFinish.insert(mediumUUID)
                 return
             }
+            scratchRestartPending.insert(mediumUUID)
             Task {
                 await cancel(mediumUUID: mediumUUID)
                 await waitUntilIdle(mediumUUID)
+                scratchRestartPending.remove(mediumUUID)
                 start(mediumUUID: mediumUUID, volume: volume, fromScratch: true)
             }
             return
@@ -233,7 +242,7 @@ final class IndexingService {
         rerunAfterFinish.remove(mediumUUID)
         // bug.0.4.129: Abbruch, bevor der Lauf „wird indiziert“ meldete (Aushängen, Sperre direkt nach dem Klick) →
         // Sperre „Neu indizieren“ freigeben; ein laufender Lauf gibt sie über `.indexing` frei.
-        if appState.medium(with: mediumUUID)?.indexStatus != .indexing {
+        if appState.medium(with: mediumUUID)?.indexStatus != .indexing, !scratchRestartPending.contains(mediumUUID) {
             appState.reindexRequested.remove(mediumUUID)
         }
         task?.cancel()
@@ -312,6 +321,9 @@ final class IndexingService {
     /// Start abgelehnt: Auftrag und Sperre „Neu indizieren“ freigeben (bug.0.4.129), sonst bliebe der Knopf bis zum
     /// Neustart gesperrt.
     private func rejectStart(_ mediumUUID: UUID) {
+        #if DEBUG
+        rejectedStartsForTesting[mediumUUID, default: 0] += 1
+        #endif
         coordinator?.clearIndexRequest(mediumID: mediumUUID)
         appState.reindexRequested.remove(mediumUUID)
     }
@@ -354,8 +366,11 @@ final class IndexingService {
     fileprivate func finish(_ mediumUUID: UUID, _ token: UUID, _ outcome: IndexRunOutcome) async {
         guard runs[mediumUUID] == token else { return }
         tasks[mediumUUID] = nil
-        // bug.0.4.152: der Lauf ist zu Ende (auch ein abgelehnter Beginn) – eine Sperre „Neu indizieren“ gilt nicht mehr.
-        appState.reindexRequested.remove(mediumUUID)
+        // bug.0.4.152: der Lauf ist zu Ende (auch ein abgelehnter Beginn) – eine Sperre „Neu indizieren“ gilt nicht mehr,
+        // außer der Neustart von vorn wartet schon (bug.0.4.162 f: erst der neue Lauf gibt sie frei).
+        if !scratchRestartPending.contains(mediumUUID) {
+            appState.reindexRequested.remove(mediumUUID)
+        }
         appState.clearMenuBarRunIndicators(mediumUUID)
         runs[mediumUUID] = nil
         let started = runStartedAt.removeValue(forKey: mediumUUID)

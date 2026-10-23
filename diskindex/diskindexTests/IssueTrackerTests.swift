@@ -215,6 +215,26 @@ struct IssueTrackerTests {
         let fire = try #require(timers.wakeFireDate)
         // Backoff nach dem ersten Fehlversuch: 1 h.
         #expect(abs(fire.timeIntervalSinceNow - 3_600) < 30, "Wecker in \(fire.timeIntervalSinceNow) s")
+        // bug.0.4.162 (h): den 1-h-Wecker wieder abräumen (sonst feuert er später im Testprozess).
+        reporter.stopReachabilityForTesting()
+        let cleared = await waitUntil { await MainActor.run { reporter.reachabilityTimersForTesting.wakeFireDate == nil } }
+        #expect(cleared, "Wecker nach dem Stopp nicht abgeräumt")
+    }
+
+    /// bug.0.4.162 (h): Kommt das Ergebnis des Lesens erst nach `stop()` an, legt `apply` keine Zeitgeber mehr an.
+    @Test @MainActor func lateApplyAfterStopArmsNoTimer() async throws {
+        let reachability = ApiQueueReachability()
+        let due = Date().addingTimeInterval(3_600)
+        reachability.queueSchedule = {
+            Thread.sleep(forTimeInterval: 0.1)
+            return (false, due)
+        }
+        reachability.syncPeriodicTimer()
+        reachability.stop()
+        let applied = await waitUntil { reachability.appliesForTesting >= 1 }
+        try #require(applied, "spätes apply lief nicht")
+        #expect(reachability.timersForTesting.wakeFireDate == nil, "Wecker nach stop() angelegt")
+        #expect(reachability.timersForTesting.periodic == false)
     }
 
     /// bug.0.4.145: Auch der Versions-Check wird offline nie wegen der Obergrenze verworfen (20 Versuche ohne Netz).
@@ -458,6 +478,23 @@ struct IssueTrackerTests {
         await reporter.flush()
         #expect(stub.hits == 0)
         #expect(logs.contains { $0.contains("blocked:leak=name") })
+    }
+
+    /// bug.0.4.162 (a): Ein Lesefehler beim Nachladen der Mediennamen schaltet den Namens-Wächter nicht ab – die zuletzt
+    /// geladenen Namen bleiben.
+    @Test func knownNamesSurviveAReadError() async throws {
+        let (reporter, _) = try makeReporter()
+        let pool = try #require(reporter.queuePool)
+        let store = IndexStoreV3(pool: pool)
+        try await store.upsertMedium(StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Steuerunterlagen"))
+        reporter.refreshKnownNamesInBackground()
+        reporter.waitForPendingEnqueuesForTesting()
+        try #require(reporter.knownNames().contains("Steuerunterlagen"), "Namen nicht geladen")
+        // Lesen scheitert ab jetzt (Pool geschlossen).
+        try pool.close()
+        reporter.refreshKnownNamesInBackground()
+        reporter.waitForPendingEnqueuesForTesting()
+        #expect(reporter.knownNames().contains("Steuerunterlagen"), "Namens-Wächter nach Lesefehler leer")
     }
 
     /// bug.0.4.012: Payload mit Pfad direkt in die Queue → flush → blocked:leak=path, kein Request.

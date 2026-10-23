@@ -32,12 +32,9 @@ struct SettingsUnreadableSessionTests {
 
     private func appWithSettings(_ raw: String, harness: StoreHarness) async throws -> AppState {
         try await writeRaw(raw, harness)
-        let suite = "diskindex-settings-\(UUID().uuidString)"
-        let defaults = TestDefaults.make()
-        let app = AppState(defaults: defaults)
+        let app = AppState(defaults: TestDefaults.make())
         app.attach(store: harness.store)
         await app.hydrateSettingsFromStore()
-        UserDefaults.standard.removePersistentDomain(forName: suite)
         return app
     }
 
@@ -60,7 +57,9 @@ struct SettingsUnreadableSessionTests {
             try #require(started)
             await rig.service.waitUntilIdle(scan.mediumID)
         } else {
-            try await Task.sleep(for: .milliseconds(600))
+            // bug.0.4.162 (i): positives Signal statt fester Wartezeit – der Start wurde angefragt und abgelehnt.
+            let rejected = await waitUntil { (rig.service.rejectedStartsForTesting[scan.mediumID] ?? 0) >= 1 }
+            try #require(rejected, "Start wurde weder ausgeführt noch abgelehnt")
         }
         return rig.starts(scan.mediumID)
     }
@@ -78,6 +77,28 @@ struct SettingsUnreadableSessionTests {
         app.resumeIndexing(defaults: TestDefaults.make())
         #expect(app.globalAutoIndexPaused)
         #expect(app.pauseSnapshot.isPaused == false, "gespeicherte Pause darf durch den Lesefehler nicht entstehen")
+    }
+
+    /// bug.0.4.162 (e): Solange die Einstellungen unlesbar sind, bleibt die Sitzung pausiert – „Fortsetzen“ und das Ende
+    /// einer befristeten Pause melden kein „fortgesetzt“.
+    @Test func unreadableSessionPostsNoResumeNotice() {
+        let app = AppState(defaults: TestDefaults.make())
+        app.appSettings.notificationsEnabled = true
+        app.appSettings.notifySystem = true
+        app.settingsUnreadable = true
+        var kinds: [String] = []
+        let hooks = NoticeTestHooks(post: { _, kind in kinds.append(kind) })
+        SystemNotice.$testHooks.withValue(hooks) {
+            let now = Date()
+            app.pauseIndexing(until: nil, defaults: TestDefaults.make(), now: now)
+            app.resumeIndexing(defaults: TestDefaults.make())
+            app.pauseIndexing(until: now.addingTimeInterval(60), defaults: TestDefaults.make(), now: now)
+            app.refreshGlobalPause(now: now.addingTimeInterval(120), defaults: TestDefaults.make())
+        }
+        #expect(kinds.filter { $0 == "pause-began" }.count == 2, "Voraussetzung: Meldungen kommen an (\(kinds))")
+        #expect(!kinds.contains("pause-resumed"), "„fortgesetzt“ trotz unlesbarer Einstellungen")
+        #expect(!kinds.contains("pause-expired"), "„Pause abgelaufen“ trotz unlesbarer Einstellungen")
+        #expect(app.globalAutoIndexPaused)
     }
 
     @Test func readableSettingsOnNextStartRunNormally() async throws {
@@ -128,44 +149,6 @@ struct SettingsUnreadableNoticeTests {
             LayoutCopy.settingsUnreadableNotice.contains("nicht gespeichert")
                 || LayoutCopy.settingsUnreadableNotice.contains("not be saved")
         )
-    }
-}
-}
-
-extension WindowTestGroup {
-/// bug.0.4.136: Der Spinner „Wird indiziert“ folgt dem Farbschema (dunkel ≈ #5BBD74, hell ≈ #20A04E).
-@Suite @MainActor
-struct IndexingSpinnerColorTests {
-    private func dominantInk(appearance: NSAppearance.Name) async -> NSColor? {
-        let size = CGSize(width: 260, height: 90)
-        let rep = await PixelProbe.render(
-            FolderPendingIndexingHint()
-                .environment(\.colorScheme, appearance == .darkAqua ? .dark : .light)
-                .frame(width: size.width, height: size.height, alignment: .topLeading)
-                .background(DesignColor.bg),
-            size: size,
-            appearance: appearance
-        )
-        // Der Ring liegt oben links (20 × 20 pt); die kräftigste grüne Farbe darin ist die Ringfarbe.
-        var best: NSColor?
-        var bestScore: CGFloat = 0
-        for y in stride(from: 0, to: 24, by: 1) {
-            for x in stride(from: 0, to: 26, by: 1) {
-                guard let c = PixelProbe.color(in: rep, at: CGPoint(x: x + 4, y: y)).usingColorSpace(.sRGB) else { continue }
-                let score = c.greenComponent - max(c.redComponent, c.blueComponent)
-                if score > bestScore { bestScore = score; best = c }
-            }
-        }
-        return best
-    }
-
-    /// Der Ring folgt dem Farbschema: dunkel heller als hell (stateOnline #5BBD74 gegenüber #20A04E). Die frühere feste
-    /// Farbe ergäbe in beiden Erscheinungen denselben Ring.
-    @Test func spinnerFollowsTheColorScheme() async throws {
-        let light = try #require(await dominantInk(appearance: .aqua), "kein Ring (hell)")
-        let dark = try #require(await dominantInk(appearance: .darkAqua), "kein Ring (dunkel)")
-        #expect(dark.redComponent > light.redComponent + 0.1, "hell \(light), dunkel \(dark)")
-        #expect(dark.greenComponent > 0.6 && light.greenComponent > 0.5)
     }
 }
 }

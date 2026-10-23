@@ -327,9 +327,12 @@ nonisolated final class IssueReporter: @unchecked Sendable {
                     // bug.0.4.094: nur über den schon geöffneten Pool (derselbe wie der Index). Wer hier warten würde,
                     // hielte einen Faden die ganze Migration lang fest; die Namen kommen beim nächsten Senden nach.
                     names = try pool.read { try MediumCodecV3.fetchAll($0) }.map(\.name)
+                } else {
+                    return
                 }
             } catch {
-                names = []
+                // bug.0.4.162 (a): ein kurzer Lesefehler schaltet den Namens-Wächter nicht ab – alter Stand bleibt.
+                return
             }
             self.storeCachedKnownNames(names.filter { $0.count >= 4 })
         }
@@ -384,6 +387,8 @@ nonisolated final class IssueReporter: @unchecked Sendable {
     #if DEBUG
     /// Tests (bug.0.4.110): Zeitgeber der Warteschlange nach dem Umstellen.
     var reachabilityTimersForTesting: (periodic: Bool, wakeFireDate: Date?) { reachability.timersForTesting }
+    /// Tests (bug.0.4.162 h): Netzbeobachtung und Zeitgeber dieses Reporters beenden.
+    func stopReachabilityForTesting() { reachability.stop() }
     func syncReachabilityTimerForTesting() { reachability.syncPeriodicTimer() }
 
     func waitForPendingEnqueuesForTesting() {
@@ -477,7 +482,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
                     Thread.sleep(forTimeInterval: 0.05 * Double(attempt))
                     continue
                 }
-                log("app report queue failed id=\(issueID) error=\(error.localizedDescription)")
+                log("app report queue failed id=\(issueID) error=\(DiskIndexLog.errorSummary(error))")
                 return false
             }
         }
@@ -493,7 +498,7 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             try data.write(to: url, options: .atomic)
             log("app report queued kind=crash id=\(issueID) fallback=outbox")
         } catch {
-            log("app report outbox failed id=\(issueID) error=\(error.localizedDescription)")
+            log("app report outbox failed id=\(issueID) error=\(DiskIndexLog.errorSummary(error))")
         }
     }
 
@@ -640,9 +645,9 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         return IssueDraft(
             kind: kind,
             signature: kind == "crash" ? crash.signal : kind,
-            // Die Aktionen des abgestürzten Laufs stehen im Stapel (Brotkrumen); hier nur, was der neue Lauf selbst
-            // getan hat (z. B. „Senden“ im Absturzdialog).
-            actions: log.recentBreadcrumbs(),
+            // bug.0.4.113: Ein Absturzbericht beschreibt den abgestürzten Lauf – seine Aktionen aus dem Absturzteil
+            // (fehlen sie: leer), nie die des neuen Laufs.
+            actions: kind == "crash" ? log.crashBreadcrumbs() : log.recentBreadcrumbs(),
             logTail: log.logTail(100),
             crashSignal: kind == "crash" ? crash.signal : nil,
             crashStack: kind == "crash" ? crash.stack : [],

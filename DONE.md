@@ -103,6 +103,17 @@ Kennungen: bis 233b alte Aufgabennummern; ab 12.10. `todo.<Version>.<Nr>` (Aufga
 | bug.0.4.155 | – | Überwachung nach Fehler: Kettentests (Test schwach: `bug.0.4.160`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
 | todo.0.4.043 | – | Favoriten werden geladen: Ladefläche sofort, mindestens 1 s (`MinimumLoadingIndicator`) | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
 | todo.0.4.044 | – | `MARKETING_VERSION` 0.4.0 (4 Stellen), Versions-Tests angepasst | 23.10. Host (seriell 993/993, eigene Tests parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.148 | – | Scroll-Aufträge der Spaltenansicht: Auftrag bleibt offen, bis der Inhalt steht; Regression aus Paket 14 behoben, Tastenlogik in `AppState` (Rest: `bug.0.4.168`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.134 | – | Live-Änderung scrollt nicht mehr nach rechts (Fenstertests Umbenennen/Löschen) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.113 | – | Absturzbericht: Version, Build, Laufzeit und Aktionen aus dem abgestürzten Lauf, auch bei Signal-Absturz (Rest: `bug.0.4.164`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.156 | – | Wiederverbinden: Segmente erst im Rückfall, Lesefehler behält Favorit, Merker je Stapel (Reste: `bug.0.4.165`, `169`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.157 | – | FSEvents: Ereignis-Stand synchron in `changes()`, kein Verlust vor dem Öffnen | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.158 | – | Fehlertexte in allen Log-Wegen nur als `errorSummary`, Wächter erweitert | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.159 | – | Versions-Sperre räumt alle abgebrochenen Läufe auf, Test mit zwei Medien (Rest: `bug.0.4.166`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.160 | – | Überwachung nach Fehler: Lauf startet wirklich, positives Signal (Rest: `bug.0.4.166`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.161 | – | Vollabgleich-Merker fällt beim Start des Abgleichs | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.162 | – | Kleinkram aus Prüfung 14 (a–j; Nachweis f: `bug.0.4.167`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
+| bug.0.4.163 | – | Nachweise aus Paket 14 (Pixel, Chip, Mindestdauer je `AppState`; Reste b, d: `bug.0.4.167`) | 23.10. Host (seriell 1011/1011, parallel 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

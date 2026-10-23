@@ -75,9 +75,8 @@ enum ColumnAutoScrollTestSupport {
         #expect(scroll.documentVisibleRect.minX <= 1.5)
         #expect(!detailTrailingFlushWithViewport(scroll))
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A", "B", "C"]).first { !$0.isFolder })
-        app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
-        // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
-        app.columnScrollToken += 1
+        // bug.0.4.148 (e): derselbe Weg wie Klick/Taste (`commitColumnSelection` erhöht den Auftrag), Regel 18.
+        try ColumnAutoScrollTestSupport.commitAsUser(app, fileID: file.id, column: 3)
         // bug.0.3.8.007: Standard-Zeitgrenze (10 s) statt 0,5 s — positives Warten bricht beim Eintreten ab.
         let aligned = await waitUntil {
             session.window.contentView?.layoutSubtreeIfNeeded()
@@ -159,9 +158,8 @@ enum ColumnAutoScrollTestSupport {
             let selected = await waitUntil(timeout: 3) { app.columnBrowserState.selection.ids == [file.id] }
             try #require(selected, "Klick bei \(point) wählte die Datei nicht: \(app.columnBrowserState.selection.ids)")
         } else {
-            app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
-            // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
-            app.columnScrollToken += 1
+            // bug.0.4.148 (e): derselbe Weg wie Klick/Taste (`commitColumnSelection` erhöht den Auftrag), Regel 18.
+            try ColumnAutoScrollTestSupport.commitAsUser(app, fileID: file.id, column: 3)
         }
         let aligned = await waitUntil(timeout: 3) {
             session.window.contentView?.layoutSubtreeIfNeeded()
@@ -187,9 +185,8 @@ enum ColumnAutoScrollTestSupport {
         _ = await app.indexRepository.loadChildren(mediumID: mediumID, path: ["A"])
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A"]).first { !$0.isFolder })
         let before = horizontalScrollLeadingOffset(in: session.window)
-        app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 1)
-        // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
-        app.columnScrollToken += 1
+        // bug.0.4.148 (e): derselbe Weg wie Klick/Taste (`commitColumnSelection` erhöht den Auftrag), Regel 18.
+        try ColumnAutoScrollTestSupport.commitAsUser(app, fileID: file.id, column: 1)
         try await Task.sleep(for: .milliseconds(450))
         session.window.contentView?.layoutSubtreeIfNeeded()
         session.window.display()
@@ -210,9 +207,8 @@ enum ColumnAutoScrollTestSupport {
         let mediumID = try #require(app.columnBrowserState.selectedMediumID)
         _ = await app.indexRepository.loadChildren(mediumID: mediumID, path: ["A", "B", "C"])
         let file = try #require(app.indexRepository.children(mediumID: mediumID, path: ["A", "B", "C"]).first { !$0.isFolder })
-        app.columnBrowserState.selection = ColumnSelection(ids: [file.id], focusColumnIndex: 3)
-        // Wie eine Nutzeraktion (Klick/Taste): nur sie erhöht den Scroll-Auftrag (bug.0.4.134/148).
-        app.columnScrollToken += 1
+        // bug.0.4.148 (e): derselbe Weg wie Klick/Taste (`commitColumnSelection` erhöht den Auftrag), Regel 18.
+        try ColumnAutoScrollTestSupport.commitAsUser(app, fileID: file.id, column: 3)
         // bug.0.3.8.007: Standard-Zeitgrenze (10 s) statt 0,5 s — positives Warten bricht beim Eintreten ab.
         let aligned = await waitUntil {
             session.window.contentView?.layoutSubtreeIfNeeded()
@@ -242,6 +238,19 @@ enum ColumnAutoScrollTestSupport {
         }
         walk(root)
         return found
+    }
+
+    /// bug.0.4.148 (e): Auswahl wie ein Klick auf die Zeile setzen (`commitColumnSelection`, neuer Scroll-Auftrag).
+    @MainActor
+    static func commitAsUser(_ app: AppState, fileID: UUID, column: Int) throws {
+        let mediumID = try #require(app.columnBrowserState.selectedMediumID)
+        let medium = try #require(app.media.first { $0.id == mediumID })
+        let path = Array(app.columnBrowserState.pathStack.prefix(column))
+        let items = app.indexRepository.children(mediumID: mediumID, path: path)
+        app.commitColumnSelection(
+            ColumnSelection(ids: [fileID], anchorID: fileID, focusColumnIndex: column, lastClickedID: fileID),
+            items: items, columnIndex: column, medium: medium
+        )
     }
 
     static func detailTrailingFlushWithViewport(_ scroll: NSScrollView) -> Bool {

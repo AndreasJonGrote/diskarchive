@@ -103,7 +103,8 @@ private struct FavoritesConnectionFilterBar: View {
     }
 }
 
-private struct FavoritesConnectionChip: View {
+/// bug.0.4.163 (c): `internal`, damit `ChipButtonTests` das Rezept messen kann.
+struct FavoritesConnectionChip: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void

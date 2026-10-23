@@ -197,6 +197,38 @@ struct SettingsScrollGutterTests {
         #expect(hidden, "Leiste ohne Überlauf blieb nach dem Zurücksetzen sichtbar")
     }
 
+    /// bug.0.4.150 (a) / 163 (d): Ersetzt die Ansicht das `documentView` der Scrollansicht (wie SwiftUI beim Neuaufbau),
+    /// beobachtet der Baustein danach das neue: schrumpft nur das neue Dokument unter den sichtbaren Bereich, wird die
+    /// Leiste ausgeblendet (dauerhafter Stil; Einblenden übernähme AppKit selbst, Ausblenden nur die Beobachtung).
+    @Test func replacedDocumentViewIsObserved() async throws {
+        let scroll = NSScrollView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        scroll.hasVerticalScroller = true
+        scroll.scrollerStyle = .legacy
+        let host = NSHostingView(rootView: Color.clear.frame(width: 280, height: 100)
+            .stableScrollbarGutter()
+            .environment(\.scrollerStyleOverride, .legacy))
+        host.frame = NSRect(x: 0, y: 0, width: 280, height: 100)
+        let first = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 100))
+        first.addSubview(host)
+        scroll.documentView = first
+        let window = PixelProbe.offscreenWindow(hosting: scroll, size: CGSize(width: 300, height: 200))
+        defer { window.orderOut(nil); window.close() }
+        let bar = try #require(scroll.verticalScroller)
+        try #require(await waitUntil { bar.isHidden }, "Voraussetzung: ohne Überlauf ausgeblendet")
+        // Neues, hohes Dokument; derselbe Inhalt (mit dem Baustein) zieht um; ein Layoutlauf wie nach dem Neuaufbau.
+        let second = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 1_000))
+        host.removeFromSuperview()
+        second.addSubview(host)
+        scroll.documentView = second
+        host.needsLayout = true
+        host.layoutSubtreeIfNeeded()
+        try #require(await waitUntil { !bar.isHidden }, "Voraussetzung: neues Dokument mit Überlauf, Leiste sichtbar")
+        // Nur das neue Dokument schrumpft (der Inhalt selbst nicht) → nur die Beobachtung des neuen meldet es.
+        second.setFrameSize(NSSize(width: 280, height: 100))
+        let hidden = await waitUntil(timeout: 3) { bar.isHidden }
+        #expect(hidden, "Leiste bleibt sichtbar – das neue documentView wird nicht beobachtet")
+    }
+
     /// bug.0.4.100 b: Die Abschnittstitel stehen in allen Tabs an derselben x-Position (dauerhafter Stil).
     @Test func sectionTitlesShareTheSameXInAllTabs() async throws {
         // „Speichermedien“ hat seinen Titel über der Liste, außerhalb der Scrollansicht: hier nicht vergleichbar.

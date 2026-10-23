@@ -94,7 +94,7 @@ struct ColumnOpenAtSelectionTests {
                 && Self.rowVisible(index: 249, of: 300, in: session.window)
         }
         let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window)
-        #expect(shown, "nicht an der Stelle: waagerecht \(String(describing: main?.documentVisibleRect)), Zeile sichtbar \(Self.rowVisible(index: 249, of: 300, in: session.window))")
+        #expect(shown, "nicht an der Stelle: waagerecht \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1), Zeile sichtbar \(Self.rowVisible(index: 249, of: 300, in: session.window))")
     }
 
     /// Pfeiltasten: `onKeyPress` braucht ein Key-Fenster (Regel 19/21 verbieten das, „Frage:“ im Status). Geprüft wird
@@ -112,14 +112,14 @@ struct ColumnOpenAtSelectionTests {
             return Self.rowVisible(index: 0, of: 300, in: session.window)
         }
         try #require(ready, "Spalte D nicht geladen")
-        let visibleIDs = tree.files.map { IndexedItem(stored: $0).id }
-        var selection = tree.app.columnBrowserState.selection
+        // bug.0.4.148 (e): 40× Pfeil nach unten über die Tastenlogik in `AppState` (erhöht je Schritt den Auftrag).
+        let items = tree.app.indexRepository.children(mediumID: tree.mediumID, path: ["A", "B", "C", "D"])
+        let medium = try #require(tree.app.media.first { $0.id == tree.mediumID })
         for _ in 0..<40 {
-            selection.move(step: 1, extend: false, visible: visibleIDs, column: 4)
+            tree.app.moveColumnSelection(step: 1, extend: false, items: items, visible: items, columnIndex: 4, medium: medium)
         }
-        try #require(selection.ids == [IndexedItem(stored: tree.files[40]).id])
-        tree.app.columnBrowserState.selection = selection
-        tree.app.columnScrollToken += 1
+        try #require(tree.files.count > 40)
+        try #require(tree.app.columnBrowserState.selection.ids == [IndexedItem(stored: tree.files[40]).id])
         let visible = await waitUntil(timeout: 5) {
             session.window.contentView?.layoutSubtreeIfNeeded()
             session.window.display()

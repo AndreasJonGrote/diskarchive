@@ -55,7 +55,7 @@ struct FavoritesLoadingWindowTests {
 
     @Test(arguments: [false, true])
     func withoutFavoritesLoadingIsFollowedByTheEmptyState(dark: Bool) async throws {
-        let rig = try await Self.makeRig(favorites: [])
+        let rig = try await Self.makeRig(favorites: [], minimum: .milliseconds(300))
         defer { rig.close() }
         let app = rig.app
         app.mainWindowDestination = .favorites
@@ -75,7 +75,7 @@ struct FavoritesLoadingWindowTests {
 
     /// Verlassen der Favoriten während des Ladens: Ladefläche aus; erneutes Öffnen zeigt sie wieder sofort.
     @Test func leavingAndReopeningRestartsTheLoadingSurface() async throws {
-        let rig = try await Self.makeRig(favorites: ["a.txt"])
+        let rig = try await Self.makeRig(favorites: ["a.txt"], minimum: .milliseconds(300))
         defer { rig.close() }
         let app = rig.app
         app.mainWindowDestination = .favorites
@@ -101,7 +101,7 @@ struct FavoritesLoadingWindowTests {
         }
     }
 
-    private static func makeRig(favorites: [String]) async throws -> Rig {
+    private static func makeRig(favorites: [String], minimum: Duration = .seconds(1)) async throws -> Rig {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-fav-loading-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -114,7 +114,7 @@ struct FavoritesLoadingWindowTests {
         try await store.applyDirectory(mediumUUID: medium.uuid, parentID: nil, entries: entries, seenAt: Date())
         let rows = try await store.children(mediumUUID: medium.uuid, parentID: nil).filter { favorites.contains($0.name) }
         if !rows.isEmpty { try await store.setFavorites(itemIDs: rows.map(\.id), true) }
-        let app = AppState()
+        let app = AppState(favoritesLoadingMinimum: minimum)
         app.attach(store: store)
         await app.loadStoredMedia()
         return Rig(app: app, database: database, directory: directory)

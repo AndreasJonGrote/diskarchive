@@ -22,6 +22,10 @@ actor IndexStoreV3 {
     /// Tests: das nächste Schreiben einer Ebene schlägt fehl.
     var directoryWritesFail = false
     var beginIndexingRejected = false
+    #if DEBUG
+    /// bug.0.4.156 (a): Segment-Abfragen beim Wiederverbinden am Laufende (Summe, nur Tests).
+    private(set) var reconnectSegmentLookupsForTesting = 0
+    #endif
     /// Tests: Leseabfragen für Kinder werfen (Aufgabe 109).
     var childrenReadsFail = false
     /// Tests: `searchCount` braucht künstlich länger (Ergebnisse erscheinen vor der Zahl, 215).
@@ -537,6 +541,11 @@ actor IndexStoreV3 {
                     delta = delta + step.delta
                     parentPaths.append(step.parentPath)
                 }
+                // bug.0.4.156 (c): neue Zeilen schon mit diesem Stapel merken (nicht erst am Laufende) – bricht der Lauf
+                // vorher ab, findet der Folgelauf die Zuordnung. Nur, wo wiederverbunden wird (ohne verlässliche fileID).
+                if trackInserts, !inserted.isEmpty, !writer.trustsFileID {
+                    try Self.appendPendingReconnectIDs(db, storageID, inserted)
+                }
                 return (delta, parentPaths, inserted)
             }
             if trackInserts, !result.inserted.isEmpty {
@@ -815,8 +824,8 @@ actor IndexStoreV3 {
         let insertedIDs = insertedIDsDuringRun.removeValue(forKey: mediumUUID) ?? []
         let partialMatching = partialMatchingEnabled
         indexingToken[mediumUUID] = nil
-        try await pool.write { db in
-            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
+        let segmentLookupsDone: Int = try await pool.write { db -> Int in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return 0 }
             try db.execute(
                 sql: "UPDATE storages SET indexStatus = ? WHERE id = ?",
                 arguments: [MediumCodecV3.code(status), storageID]
@@ -838,6 +847,8 @@ actor IndexStoreV3 {
             // bug.0.4.104: Wiederverbinden auch beim unterbrochenen Ende — sonst geht die Zuordnung verloren und
             // der nächste Lauf löscht die alte Zeile samt Favorit, Teil-Prüfsumme und `item_meta`.
             // Ohne Einhängepfad (Fehlerwege) keine Prüfung der Teil-Prüfsumme möglich → dort nicht wiederverbinden.
+            var unreadable: Set<Int64> = []
+            var segmentLookups = 0
             if !insertedIDs.isEmpty, completesRun || mountPath != nil {
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
                 let reconnectDelta = try writer.reconnectInsertedWithGone(
@@ -846,17 +857,29 @@ actor IndexStoreV3 {
                 if reconnectDelta != .zero {
                     try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: Date(), delta: reconnectDelta)
                 }
+                unreadable = writer.unreadableGoneCandidateIDs
+                segmentLookups = writer.reconnectSegmentLookups
             }
             // bug.0.4.141 (b): unterbrochen → noch nicht zugeordnete neue Zeilen für den Folgelauf merken (der alte Ort
-            // wird vielleicht erst dort gelesen); vollständig beendet → Merker löschen.
-            try Self.storePendingReconnectIDs(db, storageID, completesRun ? [] : insertedIDs)
+            // wird vielleicht erst dort gelesen); vollständig beendet → Merker löschen. bug.0.4.156 (b): konnte eine
+            // neue Datei nicht gelesen werden, bleibt der Merker (Folgelauf versucht es erneut).
+            try Self.storePendingReconnectIDs(db, storageID, completesRun && unreadable.isEmpty ? [] : insertedIDs)
             if completesRun {
-                let deleted = try Self.deleteGoneItems(db, storageID: storageID)
+                let deleted = try Self.deleteGoneItems(db, storageID: storageID, keeping: unreadable)
                 if deleted > 0 {
                     try DatabaseMaintenance.addDebt(db, rows: deleted)
                 }
             }
+            if !unreadable.isEmpty {
+                DiskIndexLog.shared.record(.index, .info, "reconnect unreadable kept=\(unreadable.count)")
+            }
+            return segmentLookups
         }
+        #if DEBUG
+        reconnectSegmentLookupsForTesting += segmentLookupsDone
+        #else
+        _ = segmentLookupsDone
+        #endif
         try? await pool.writeWithoutTransaction { db in
             try DatabaseMaintenance.truncateWriteAheadLog(db)
         }
@@ -880,6 +903,49 @@ actor IndexStoreV3 {
         guard let value, !value.isEmpty else { return [] }
         return Set(value.split(separator: ",").compactMap { Int64($0) })
     }
+
+    /// bug.0.4.156 (c): neue Zeilen an den Merker anhängen (bis zur Grenze; Abschneiden wird protokolliert).
+    private nonisolated static func appendPendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: [Int64]) throws {
+        let existing = try pendingReconnectIDs(db, storageID)
+        guard existing.count < pendingReconnectLimit else { return }
+        var merged = existing
+        var dropped = 0
+        for id in ids where !merged.contains(id) {
+            if merged.count >= pendingReconnectLimit {
+                dropped += 1
+            } else {
+                merged.insert(id)
+            }
+        }
+        if dropped > 0 {
+            DiskIndexLog.shared.record(.index, .info, "reconnect pending truncated limit=\(pendingReconnectLimit) dropped=\(dropped)")
+        }
+        guard merged.count != existing.count else { return }
+        try writePendingReconnectIDs(db, storageID, merged.sorted())
+    }
+
+    private nonisolated static func writePendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: [Int64]) throws {
+        let key = pendingReconnectKey
+        let value = ids.map(String.init).joined(separator: ",")
+        try db.execute(sql: "INSERT OR IGNORE INTO meta_keys (key) VALUES (?)", arguments: [key])
+        try db.execute(
+            sql: """
+                INSERT OR REPLACE INTO storage_meta (storageID, keyID, value, date)
+                SELECT ?, id, ?, NULL FROM meta_keys WHERE key = ?
+                """,
+            arguments: [storageID, value, key]
+        )
+    }
+
+    #if DEBUG
+    /// Tests (bug.0.4.156 c): gemerkte Zuordnung eines Mediums.
+    func pendingReconnectIDsForTesting(mediumUUID: UUID) async throws -> Set<Int64> {
+        try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
+            return try Self.pendingReconnectIDs(db, storageID)
+        }
+    }
+    #endif
 
     private nonisolated static func storePendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: Set<Int64>) throws {
         let key = pendingReconnectKey
@@ -909,24 +975,34 @@ actor IndexStoreV3 {
             return
         }
         keep.sort()
-        let value = keep.prefix(pendingReconnectLimit).map(String.init).joined(separator: ",")
-        try db.execute(sql: "INSERT OR IGNORE INTO meta_keys (key) VALUES (?)", arguments: [key])
-        try db.execute(
-            sql: """
-                INSERT OR REPLACE INTO storage_meta (storageID, keyID, value, date)
-                SELECT ?, id, ?, NULL FROM meta_keys WHERE key = ?
-                """,
-            arguments: [storageID, value, key]
-        )
+        if keep.count > pendingReconnectLimit || ids.count > keep.count && keep.count >= pendingReconnectLimit {
+            DiskIndexLog.shared.record(.index, .info, "reconnect pending truncated limit=\(pendingReconnectLimit) ids=\(ids.count)")
+        }
+        try writePendingReconnectIDs(db, storageID, Array(keep.prefix(pendingReconnectLimit)))
     }
 
     @discardableResult
-    private nonisolated static func deleteGoneItems(_ db: Database, storageID: Int64) throws -> Int {
+    private nonisolated static func deleteGoneItems(_ db: Database, storageID: Int64, keeping: Set<Int64> = []) throws -> Int {
+        guard !keeping.isEmpty else {
+            try db.execute(
+                sql: "DELETE FROM items WHERE storageID = ? AND status = ?",
+                arguments: [storageID, ItemStatus.gone.rawValue]
+            )
+            return db.changesCount
+        }
+        // bug.0.4.156 (b): Kandidaten mit unlesbarem Gegenstück bleiben (samt Favorit) bis zum Folgelauf.
+        try db.execute(sql: "CREATE TEMP TABLE IF NOT EXISTS keep_gone (id INTEGER PRIMARY KEY)")
+        try db.execute(sql: "DELETE FROM keep_gone")
+        for id in keeping {
+            try db.execute(sql: "INSERT OR IGNORE INTO keep_gone (id) VALUES (?)", arguments: [id])
+        }
         try db.execute(
-            sql: "DELETE FROM items WHERE storageID = ? AND status = ?",
+            sql: "DELETE FROM items WHERE storageID = ? AND status = ? AND id NOT IN (SELECT id FROM keep_gone)",
             arguments: [storageID, ItemStatus.gone.rawValue]
         )
-        return db.changesCount
+        let deleted = db.changesCount
+        try db.execute(sql: "DELETE FROM keep_gone")
+        return deleted
     }
 
     func indexingIsActive(mediumUUID: UUID, token: UUID) -> Bool {

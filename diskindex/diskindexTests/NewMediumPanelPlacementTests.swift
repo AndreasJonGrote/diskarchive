@@ -68,3 +68,18 @@ import Testing
         #expect(abs(frame.origin.x - oldX) > 1)
     }
 }
+
+/// bug.0.4.162 (g): Die Erkennungs-Panels nehmen ihre Lage über `effectivePlacement` – im Testprozess immer außerhalb
+/// des Bildschirms, auch wenn ein Test `.centered` setzt (Regel 19/21); `nil` heißt weiter „kein Panel“.
+@Suite @MainActor
+struct NewMediumPanelEffectivePlacementTests {
+    @Test func centeredRequestStaysOffscreenInTests() {
+        let app = AppState()
+        app.promptPanelPlacement = .centered
+        #expect(AppWindowPresenter.newMediumPanelPlacement(for: app) == .offscreen)
+        app.promptPanelPlacement = .offscreen
+        #expect(AppWindowPresenter.newMediumPanelPlacement(for: app) == .offscreen)
+        app.promptPanelPlacement = nil
+        #expect(AppWindowPresenter.newMediumPanelPlacement(for: app) == nil, "ohne Lage kein Panel")
+    }
+}

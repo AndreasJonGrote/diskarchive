@@ -25,7 +25,8 @@ nonisolated enum AppDefaults {
     /// Namen früherer Testhelfer (bug.0.4.124): ohne Prozesskennung, darum beim Aufräumen immer entfernt.
     static let legacyTestPrefixes = [
         "app.diskarchive.tests.startup.", "PauseNoticeTextTests-", "diskindex-lang-", "diskindex-prune-",
-        "diskindex-settings-", "autosend", "diskindex-term-settings-", "diskindex-lifecycle-",
+        "diskindex-settings-", "autosend-", "autosend2-", "diskindex-term-settings-", "diskindex-lifecycle-",
+        "diskindex-real-log-", "diskindex-archive-start-",
     ]
 
     /// Löscht Test-Domänen (`app.diskarchive.tests.<pid>`) von Prozessen, die nicht mehr laufen: aus den

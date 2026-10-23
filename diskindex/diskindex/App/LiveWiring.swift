@@ -83,15 +83,20 @@ enum LiveWiring {
             service?.isRunActive(id) ?? false
         }
         watcher.onFullReconcile = { [weak service, weak watcher, weak coordinator] id, _ in
-            guard appState.featureAccess.canWriteIndex else { return }
+            guard appState.featureAccess.canWriteIndex else {
+                watcher?.fullReconcileStarted(mediumID: id)
+                return
+            }
             // bug.0.4.095: nach einem gescheiterten Lauf kein voller Abgleich (Schleife bei dauerhaftem Schreibfehler).
             if service?.suppressesFullReconcile(id) == true {
                 DiskIndexLog.shared.record(.watcher, .info, "abgleich übersprungen nach fehler medium=\(id)")
+                watcher?.fullReconcileStarted(mediumID: id)
                 return
             }
             // Nicht mehr eingehängt → nichts starten (bug.0.4.031). Sonst gilt der aktuelle Pfad des Coordinators.
             guard let current = coordinator?.volume(for: id) else {
                 DiskIndexLog.shared.record(.watcher, .info, "abgleich übersprungen nicht eingehängt medium=\(id)")
+                watcher?.fullReconcileStarted(mediumID: id)
                 return
             }
             Task {
@@ -102,6 +107,8 @@ enum LiveWiring {
                     volume: current,
                     fromScratch: false
                 )
+                // bug.0.4.161: Abgleich gestartet (bzw. als Nachholer eingereiht) – die nächste Anforderung zählt wieder.
+                watcher?.fullReconcileStarted(mediumID: id)
             }
         }
         service.onRunIndexed = { id, volume in

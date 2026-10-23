@@ -13,6 +13,8 @@ nonisolated final class ApiQueueReachability: @unchecked Sendable {
     private let monitorQueue = DispatchQueue(label: "app.diskarchive.apiQueue.path")
     private let onlineLock = NSLock()
     private var online = false
+    /// Unter `onlineLock`: `stop()` wurde gerufen.
+    private var stopped = false
     private var periodicTimer: Timer?
     /// bug.0.4.110: Wecker für den nächsten Fälligkeitstermin (Backoff 1/2/4 h), solange nichts jetzt fällig ist.
     private var wakeTimer: Timer?
@@ -37,6 +39,8 @@ nonisolated final class ApiQueueReachability: @unchecked Sendable {
     }
 
     func stop() {
+        // bug.0.4.162 (h): ein spätes `apply` (Lesen lief noch) legt nach dem Stopp keine Zeitgeber mehr an.
+        onlineLock.withLock { stopped = true }
         monitor.cancel()
         DispatchQueue.main.async { [weak self] in
             self?.periodicTimer?.invalidate()
@@ -59,6 +63,10 @@ nonisolated final class ApiQueueReachability: @unchecked Sendable {
     }
 
     private func apply(_ schedule: (hasDueWork: Bool, nextDue: Date?), now: Date) {
+        #if DEBUG
+        appliesForTesting += 1
+        #endif
+        guard !onlineLock.withLock({ stopped }) else { return }
         if schedule.hasDueWork, periodicTimer == nil {
             periodicTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
                 self?.onFlush()
@@ -81,6 +89,8 @@ nonisolated final class ApiQueueReachability: @unchecked Sendable {
     }
 
     #if DEBUG
+    /// Tests (bug.0.4.162 h): Zahl der `apply`-Aufrufe auf main (positives Signal).
+    private(set) var appliesForTesting = 0
     /// Tests: Zustand der Zeitgeber nach `syncPeriodicTimer` (auf main lesen).
     var timersForTesting: (periodic: Bool, wakeFireDate: Date?) {
         (periodicTimer != nil, wakeTimer?.fireDate)

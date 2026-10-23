@@ -377,25 +377,40 @@ extension WindowTestGroup {
         #expect(log.ids == [rig.medium.uuid])
     }
 
-    /// bug.0.4.130 (b): mehrere „MustScanSubDirs“ in einem Bündel lösen höchstens einen Abgleich aus.
+    /// bug.0.4.130 (b)/161: mehrere „MustScanSubDirs“ lösen höchstens einen **ausstehenden** Abgleich aus; ist er
+    /// gestartet (`fullReconcileStarted`, wie die Verdrahtung nach dem Start), zählt eine neue Anforderung sofort wieder –
+    /// ohne auf eine Ruhezeit zu warten (vorher 2 s, eine Anforderung darin ging verloren).
     @Test func severalMustScanEventsInOneBundleStartOneReconcile() async throws {
         let rig = try await watchRig()
         let log = ReconcileLog()
-        rig.watcher.quietInterval = .milliseconds(400)
+        rig.access.listings["/Volumes/DISK/B"] = []
+        rig.watcher.quietInterval = .milliseconds(30)
         rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
         rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
         for index in 1...5 {
             rig.source.emit(VolumeChange(path: "/Volumes/DISK/A\(index)", eventID: Int64(index), mustScanSubDirs: true))
         }
-        let reconciled = await waitUntil { !log.ids.isEmpty }
-        try #require(reconciled)
-        try await Task.sleep(for: .milliseconds(150))
+        // Positives Signal: ein gewöhnliches Ereignis danach ist verarbeitet (Ereignis-Stand gespeichert).
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/B/x.txt", eventID: 6))
+        try #require(await Self.cursorReaches(6, rig), "Kontroll-Ereignis nicht verarbeitet")
         #expect(log.ids.count == 1, "mehrere Abgleiche aus einem Bündel: \(log.ids.count)")
-        // Nach der Ruhezeit zählt ein neues Ereignis wieder.
-        try await Task.sleep(for: .milliseconds(500))
-        rig.source.emit(VolumeChange(path: "/Volumes/DISK/B", eventID: 9, mustScanSubDirs: true))
-        let again = await waitUntil { log.ids.count >= 2 }
-        #expect(again)
+    }
+
+    /// bug.0.4.161: Ist der Abgleich gestartet, zählt eine neue „MustScanSubDirs“-Anforderung sofort wieder – auch
+    /// innerhalb der (hier langen) Ruhezeit. Vorher blieb der Merker die Ruhezeit lang stehen, die Anforderung ging verloren.
+    @Test func mustScanAfterTheReconcileStartedCountsAtOnce() async throws {
+        let rig = try await watchRig()
+        let log = ReconcileLog()
+        rig.watcher.quietInterval = .seconds(5)
+        rig.watcher.onFullReconcile = { id, _ in log.ids.append(id) }
+        rig.watcher.start(mediumID: rig.medium.uuid, volume: rig.volume, source: rig.source)
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/A", eventID: 1, mustScanSubDirs: true))
+        try #require(await waitUntil { log.ids.count == 1 }, "erste Anforderung nicht weitergegeben")
+        // Wie die Verdrahtung nach dem Start des Abgleichs.
+        rig.watcher.fullReconcileStarted(mediumID: rig.medium.uuid)
+        rig.source.emit(VolumeChange(path: "/Volumes/DISK/C", eventID: 2, mustScanSubDirs: true))
+        let again = await waitUntil(timeout: 3) { log.ids.count >= 2 }
+        #expect(again, "Anforderung nach dem Start des Abgleichs ging verloren")
     }
 
     @Test func mustScanSubDirsUnderMountStartsReconcile() async throws {

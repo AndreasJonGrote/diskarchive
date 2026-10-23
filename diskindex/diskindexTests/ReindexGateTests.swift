@@ -163,6 +163,95 @@ struct ReindexGateTests {
         #expect(!(try await harness.store.storedNames()).contains("y.txt"), "gesperrter Lauf schrieb weiter")
     }
 
+    /// bug.0.4.159: Zwei laufende Medien, die Sperre rastet ein (wie `onVersionLockEngaged`: Zustand gesperrt, dann
+    /// `cancelAllActiveForVersionLock`), während beide am Tor warten und das Tor gleich aufgeht → keiner schreibt mehr,
+    /// beide enden als „pending“ (Anhalten, kein fertiger Lauf).
+    @Test func versionLockStopsTwoRunningRunsWithoutFurtherWrites() async throws {
+        let harness = try await ScanHarness.make()
+        let first = MemoryVolume(mountPath: "/Volumes/T")
+        first.file("hold/sub/y.txt")
+        let second = MemoryVolume(mountPath: "/Volumes/U")
+        second.file("hold/sub/z.txt")
+        var storedA = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        storedA.decision = .index
+        try await harness.store.upsertMedium(storedA)
+        let storedB = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "ZWEI", type: .usb, decision: .index)
+        try await harness.store.upsertMedium(storedB)
+        let app = AppState()
+        var shownA = medium(id: harness.mediumID, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
+        shownA.decision = .index
+        var shownB = medium(id: storedB.uuid, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
+        shownB.decision = .index
+        app.media = [shownA, shownB]
+        let gate = RunGateAccess([first, second]) { $0 == "/Volumes/T/hold" || $0 == "/Volumes/U/hold" }
+        let service = IndexingService(store: harness.store, access: gate, appState: app)
+        // Das Aufräumen eines Laufs dauert (z. B. langsamer Abschluss): Wer erst danach den nächsten Lauf anhält, lässt
+        // ihn so lange weiterschreiben.
+        service.cancelBeforeAwaitHookForTesting = { _ in try? await Task.sleep(for: .milliseconds(400)) }
+        service.start(mediumUUID: harness.mediumID, volume: harness.volume(at: "/Volumes/T"), fromScratch: true)
+        service.start(mediumUUID: storedB.uuid, volume: harness.volume(at: "/Volumes/U"), fromScratch: true)
+        let bothHeld = await waitUntil { await gate.heldCount() >= 2 }
+        try #require(bothHeld, "beide Läufe am Tor")
+        let namesBefore = try await harness.store.storedNames()
+        // Sperre rastet ein; der Abbruch läuft, das Tor öffnet gleichzeitig.
+        app.versionLockState = .locked(.betaExpired)
+        let cancelling = Task { await service.cancelAllActiveForVersionLock() }
+        await gate.open()
+        await cancelling.value
+        await service.waitUntilIdle(harness.mediumID)
+        await service.waitUntilIdle(storedB.uuid)
+        let names = try await harness.store.storedNames()
+        #expect(!names.contains("y.txt") && !names.contains("z.txt"), "gesperrte Läufe schrieben weiter: \(Set(names).subtracting(namesBefore))")
+        #expect(service.activeMediumUUIDs().isEmpty, "Lauf ohne Aufräumen zurückgeblieben")
+        #expect(app.medium(with: harness.mediumID)?.indexStatus == .pending)
+        #expect(app.medium(with: storedB.uuid)?.indexStatus == .pending)
+    }
+
+    /// bug.0.4.162 (f): „Neu indizieren“ während eines Laufs – der laufende wird abgebrochen und von vorn neu gestartet.
+    /// Bis der neue Lauf gestartet ist, bleibt die Sperre stehen (kein zweiter Klick in der Lücke); danach gibt der neue
+    /// Lauf sie frei.
+    @Test func reindexGateHoldsUntilTheRestartedRunBegins() async throws {
+        let harness = try await ScanHarness.make()
+        let inner = MemoryVolume(mountPath: "/Volumes/T")
+        inner.file("hold/x.txt")
+        var stored = try #require(try await harness.store.medium(uuid: harness.mediumID))
+        stored.decision = .index
+        try await harness.store.upsertMedium(stored)
+        let app = AppState()
+        let id = harness.mediumID
+        var shown = medium(id: id, indexing: false, lastIndexedAt: Date(timeIntervalSince1970: 0))
+        shown.decision = .index
+        app.media = [shown]
+        // Am Wurzelordner anhalten: der laufende Abgleich hat dann noch nicht „wird indiziert“ gemeldet (dort gäbe der
+        // Abbruch die Sperre frei).
+        let gate = RunGateAccess([inner]) { $0 == "/Volumes/T" }
+        let service = IndexingService(store: harness.store, access: gate, appState: app)
+        let volume = harness.volume(at: "/Volumes/T")
+        service.start(mediumUUID: id, volume: volume, fromScratch: false)
+        await gate.entered.wait()
+        // Klick „Neu indizieren“ (Sperre gesetzt), der Dienst startet von vorn neu.
+        app.reindexRequested.insert(id)
+        let violations = ViolationLog()
+        let sampler = Task { @MainActor in
+            while !Task.isCancelled {
+                if (service.startedRunsForTesting[id]?.count ?? 0) < 2, !app.reindexRequested.contains(id) {
+                    violations.add()
+                }
+                try? await Task.sleep(for: .milliseconds(1))
+            }
+        }
+        defer { sampler.cancel() }
+        service.start(mediumUUID: id, volume: volume, fromScratch: true)
+        let restarted = await waitUntil { (service.startedRunsForTesting[id]?.count ?? 0) >= 2 }
+        sampler.cancel()
+        try #require(restarted, "kein Neustart von vorn")
+        #expect(service.startedRunsForTesting[id] == [false, true])
+        #expect(violations.count == 0, "Sperre „Neu indizieren“ vor dem neuen Lauf freigegeben (\(violations.count)×)")
+        await gate.open()
+        await service.waitUntilIdle(id)
+        #expect(!app.reindexRequested.contains(id), "Sperre nach dem neuen Lauf nicht freigegeben")
+    }
+
     /// bug.0.4.130 (a): Ein ausstehender Nachhol-Abgleich überlebt den Abbruch nicht.
     @Test func cancelDiscardsThePendingRerun() async throws {
         let harness = try await ScanHarness.make()
@@ -292,4 +381,10 @@ struct ReindexGateTests {
         color.usingColorSpace(.sRGB) ?? color
     }
 }
+}
+
+@MainActor
+private final class ViolationLog {
+    private(set) var count = 0
+    func add() { count += 1 }
 }

@@ -305,7 +305,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleStoreFailure(_ error: Error, appState: AppState) {
         DiskIndexLog.shared.record(.store, .error, "open \(DiskIndexLog.errorSummary(error))")
-        recognitionLogger.error("Index konnte nicht geöffnet werden: \(error.localizedDescription, privacy: .public)")
+        recognitionLogger.error("Index konnte nicht geöffnet werden: \(DiskIndexLog.errorSummary(error), privacy: .public)")
         if appState.storeReady || appState.indexStore != nil {
             stopLiveServicesBeforeRewire()
             appState.detachAfterStoreFailure()

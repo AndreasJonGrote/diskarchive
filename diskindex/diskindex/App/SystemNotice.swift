@@ -197,7 +197,7 @@ enum SystemNotice {
         logAuthorizationStatus()
         activeCenter.add(request) { error in
             if let error {
-                DiskIndexLog.shared.record(.app, .error, "notice post failed kind=\(kind) \(error.localizedDescription)")
+                DiskIndexLog.shared.record(.app, .error, "notice post failed kind=\(kind) \(DiskIndexLog.errorSummary(error))")
             } else {
                 DiskIndexLog.shared.record(.app, .info, "notice posted kind=\(kind)")
             }

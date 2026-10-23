@@ -186,6 +186,11 @@ final class ChangeWatcher {
         tasks[mediumID] != nil
     }
 
+    /// bug.0.4.161: Der angeforderte Abgleich ist gestartet (oder wurde verworfen) – eine neue Anforderung zählt wieder.
+    func fullReconcileStarted(mediumID: UUID) {
+        fullReconcileRequested.remove(mediumID)
+    }
+
     func stop(mediumID: UUID) async {
         DiskIndexLog.shared.record(.watcher, .info, "stop medium=\(mediumID)")
         fullReconcileRequested.remove(mediumID)
@@ -317,18 +322,12 @@ final class ChangeWatcher {
             if eventPath != mountPath, !eventPath.hasPrefix(mountPrefix) {
                 return
             }
-            // bug.0.4.130 (b): mehrere „MustScanSubDirs“ in einem Bündel lösen genau einen Abgleich aus; erst nach
-            // der Ruhezeit zählt ein weiteres Ereignis wieder.
+            // bug.0.4.130 (b)/161: höchstens ein ausstehender Abgleich – weitere „MustScanSubDirs“ (z. B. im selben
+            // Bündel) zählen erst wieder, wenn er gestartet oder verworfen ist (`fullReconcileStarted`); eine Anforderung
+            // während des Laufs fängt der Dienst ab (`rerunAfterFinish`).
             guard !fullReconcileRequested.contains(mediumID) else { return }
             if let volume = volumes[mediumID] {
                 fullReconcileRequested.insert(mediumID)
-                let generation = watchGenerations[mediumID, default: 0]
-                let interval = quietInterval
-                Task { [weak self] in
-                    try? await Task.sleep(for: interval)
-                    guard let self, self.watchGenerations[mediumID, default: 0] == generation else { return }
-                    self.fullReconcileRequested.remove(mediumID)
-                }
                 onFullReconcile?(mediumID, volume)
             }
             return
@@ -544,11 +543,17 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
     var closeFinishedForTesting: Bool { testingLock.withLock { closeFinished } }
     #endif
     #if DEBUG
-    /// Tests (bug.0.4.140): `open` lief auf der Callback-Queue; Fehlschlag erzwingen.
+    /// Tests (bug.0.4.140): `open` lief auf der Callback-Queue.
     private var openRanOnQueue: Bool?
     var openRanOnQueueForTesting: Bool? { testingLock.withLock { openRanOnQueue } }
-    var openFailsForTesting = false
+    /// Tests (bug.0.4.157): das Öffnen auf der Queue künstlich verzögern (je Instanz).
+    var openDelayForTesting: TimeInterval?
+    /// Tests (bug.0.4.157): andere Pfade beobachten (leer → `FSEventStreamCreate` schlägt über den echten Weg fehl).
+    var watchedPathsForTesting: [String]?
     #endif
+    /// bug.0.4.157: „Jetzt“ zum Zeitpunkt von `changes()` (synchron gelesen). Das Öffnen läuft asynchron; mit
+    /// `sinceNow` gälte „jetzt“ erst dort, Ereignisse dazwischen gingen verloren.
+    private var startEventID: FSEventStreamEventId?
     /// Fehlschlag beim Öffnen des Streams (Protokoll `.watcher .error`); Tests ersetzen die Senke.
     var logOpenFailure: @Sendable (String) -> Void = { DiskIndexLog.shared.record(.watcher, .error, $0) }
     private var stream: FSEventStreamRef?
@@ -569,6 +574,7 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
     func changes() -> AsyncStream<VolumeChange> {
         AsyncStream { continuation in
             self.continuation = continuation
+            self.startEventID = FSEventsGetCurrentEventId()
             // bug.0.4.140: `stat`, UUID-Abfrage und Stream-Aufbau auf der eigenen Queue, nicht auf dem aufrufenden
             // (Haupt-)Faden – ein langsames Volume hielte sonst die Oberfläche an.
             self.queue.async { [self] in self.open() }
@@ -582,11 +588,7 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
     private func open() {
         #if DEBUG
         testingLock.withLock { openRanOnQueue = DispatchQueue.getSpecific(key: queueKey) != nil }
-        if openFailsForTesting {
-            logOpenFailure("fsevents stream konnte nicht geöffnet werden (Test)")
-            continuation?.finish()
-            return
-        }
+        if let delay = openDelayForTesting { Thread.sleep(forTimeInterval: delay) }
         #endif
         var info = stat()
         let statResult = mountPath.withCString { stat($0, &info) }
@@ -600,7 +602,11 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
             release: nil,
             copyDescription: nil
         )
-        let paths = [mountPath] as CFArray
+        var watched = [mountPath]
+        #if DEBUG
+        if let override = watchedPathsForTesting { watched = override }
+        #endif
+        let paths = watched as CFArray
         // `WatchRoot` (bug.0.4.031 b): Umbenennen/Abziehen meldet `rootChanged`; das wird nur protokolliert, den Abgleich
         // bzw. das Offline-Setzen übernehmen `.renamed` und `.disappeared`.
         let flags = FSEventStreamCreateFlags(
@@ -614,7 +620,8 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
         if start.usesStoredCursor {
             DiskIndexLog.shared.record(.watcher, .info, "fsevents resume id=\(start.sinceEventID)")
         }
-        let since = start.sinceEventID
+        // bug.0.4.157: ohne gespeicherten Stand ab dem Zeitpunkt von `changes()`, nicht ab dem (späteren) Öffnen.
+        let since = start.usesStoredCursor ? start.sinceEventID : (startEventID ?? start.sinceEventID)
         guard let stream = FSEventStreamCreate(nil, Self.callback, &context, paths, since, 1.0, flags) else {
             logOpenFailure("fsevents stream konnte nicht erzeugt werden")
             continuation?.finish()
@@ -663,8 +670,10 @@ nonisolated final class FSEventsChangeSource: ChangeSource, @unchecked Sendable 
         let hook = testingLock.withLock { receiveHook }
         hook?()
         #endif
-        for index in paths.indices {
+        for index in paths.indices where flags.indices.contains(index) && ids.indices.contains(index) {
             let flag = flags[index]
+            // bug.0.4.157: Ende des Rückblicks (Start ab festem Stand) ist keine Änderung.
+            if flag & FSEventStreamEventFlags(kFSEventStreamEventFlagHistoryDone) != 0 { continue }
             continuation?.yield(VolumeChange(
                 path: paths[index],
                 eventID: Int64(bitPattern: UInt64(ids[index])),

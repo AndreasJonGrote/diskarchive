@@ -176,6 +176,96 @@ struct FatReconnectIndexerTests {
         #expect(after.parentID == folderA.id)
     }
 
+    /// bug.0.4.156 (a): Erstindex FAT mit vielen Dateien ohne Kandidaten → keine einzige Segment-Abfrage beim
+    /// Wiederverbinden am Laufende (Zähler, kein Zeitmaß).
+    @Test func firstIndexWithoutCandidatesQueriesNoSegments() async throws {
+        let (harness, volume) = try await fatHarness()
+        for index in 0..<300 {
+            _ = volume.file(String(format: "D%02d/f-%03d.txt", index % 7, index), size: Int64(index + 1))
+        }
+        let before = await harness.store.reconnectSegmentLookupsForTesting
+        let outcome = try await harness.run(access: volume, maxDepth: nil, fromScratch: true, volume: harness.volume(at: volume.mountPath))
+        #expect(!outcome.interrupted)
+        let lookups = await harness.store.reconnectSegmentLookupsForTesting - before
+        #expect(lookups == 0, "Segment-Abfragen beim Erstindex: \(lookups)")
+    }
+
+    /// bug.0.4.156 (b): Die verschobene Datei ist am Laufende nicht lesbar → die alte Zeile wird nicht gelöscht, der
+    /// Favorit bleibt; der Merker bleibt für den Folgelauf. Die Schritte eines Laufs über den Store (Beginn, neuer Ort
+    /// gelesen, alter Ordner leer gelesen, Laufende) mit echten Dateien für die Teil-Prüfsumme.
+    @Test func unreadableMovedFileKeepsTheFavorite() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-unreadable-\(UUID().uuidString)", isDirectory: true)
+        let moved = root.appendingPathComponent("A/a.txt")
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: moved.path)
+            try? FileManager.default.removeItem(at: root)
+        }
+        try writeReal("B/a.txt", in: root)
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("A"), withIntermediateDirectories: true)
+        try await store.applyDirectory(
+            mediumUUID: id, parentID: nil,
+            entries: [ScannedEntry(name: "A", isFolder: true), ScannedEntry(name: "B", isFolder: true)], seenAt: Date()
+        )
+        let folderA = try #require(try await store.folderID(mediumUUID: id, path: ["A"]))
+        let folderB = try #require(try await store.folderID(mediumUUID: id, path: ["B"]))
+        try await store.applyDirectory(
+            mediumUUID: id, parentID: folderB, entries: [ScannedEntry(name: "a.txt", isFolder: false, sizeBytes: 50)], seenAt: Date()
+        )
+        let before = try #require(try await store.children(mediumUUID: id, parentID: folderB).first { $0.name == "a.txt" })
+        try await store.setFavorite(itemID: before.id, true)
+        try await store.storePartialChecksum(itemID: before.id, mountPath: root.path)
+        try moveReal("B/a.txt", "A/a.txt", in: root)
+
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        // Neuer Ort zuerst (alte Zeile noch sichtbar → kein Kandidat), dann der alte Ordner leer (alte Zeile verschwunden).
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: [ScannedEntry(name: "a.txt", isFolder: false, sizeBytes: 50)], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderB, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: moved.path)
+        let finished = try await store.finishIndexing(
+            mediumUUID: id, token: token, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
+        )
+        try #require(finished)
+        let pool = store.pool
+        let oldRow: Row? = try pool.read { db in
+            try Row.fetchOne(db, sql: "SELECT id FROM items WHERE id = ?", arguments: [before.id])
+        }
+        #expect(oldRow != nil, "alte Zeile nach Lesefehler gelöscht")
+        #expect(try await store.favoriteItemIDs().contains(before.id), "Favorit nach Lesefehler gelöscht")
+        let pending = try await store.pendingReconnectIDsForTesting(mediumUUID: id)
+        #expect(!pending.isEmpty, "Merker für den Folgelauf fehlt")
+    }
+
+    /// bug.0.4.156 (c): Abbruch mitten im Lauf, **vor** `finishIndexing` (z. B. Absturz) → die Zuordnung der schon
+    /// eingefügten Zeilen steht in der Datenbank.
+    @Test func insertedRowsArePendingBeforeTheRunEnds() async throws {
+        let (harness, _) = try await fatHarness()
+        let token = UUID()
+        try #require(try await harness.store.beginIndexing(mediumUUID: harness.mediumID, token: token))
+        try await harness.store.applyDirectories(
+            mediumUUID: harness.mediumID,
+            batches: [(parentID: nil, path: "/", depth: 1, entries: [
+                ScannedEntry(name: "neu.txt", isFolder: false, sizeBytes: 3),
+                ScannedEntry(name: "auch.txt", isFolder: false, sizeBytes: 4),
+            ], finalize: false)],
+            seenAt: Date()
+        )
+        let pending = try await harness.store.pendingReconnectIDsForTesting(mediumUUID: harness.mediumID)
+        #expect(pending.count == 2, "Zuordnung vor dem Laufende nicht gespeichert: \(pending)")
+    }
+
     @Test func ambiguousSameSizeDoesNotReconnect() async throws {
         let (harness, volume) = try await fatHarness()
         await harness.store.setPartialMatchingEnabled(false)
