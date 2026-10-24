@@ -2,7 +2,7 @@
 
 Arbeite nur im Verzeichnis „/Users/jon/Projekte/Disk Index“ (kein Worktree). Der Stand ist uncommittet; Änderungen aus abgenommenen Paketen sind nicht fremd (Regel 4) – kein Grund anzuhalten. Lies `todo/regeln.md` und `todo/paket-23.md`.
 
-Paket 23 (Zielversion 0.4.0): `bug.0.4.192` zuerst, dann `193`, `194`. HALT nach 194.
+Paket 23 (Zielversion 0.4.0): `bug.0.4.192` zuerst, dann `193`, `194`, dann `todo.0.4.042`, `046` (Wartescreen von Suche und Favoriten) `047` (Updatedialog, Einstellung im Tab Erweitert) und `048` (Stapel der Erkennungsdialoge) nach dem Layout des Nutzers (Texte im Paket-File), zuletzt `bug.0.4.195` (Aufräumen aus dem Code-Audit). HALT nach 195.
 
 Antworten auf deine Fragen aus Paket 22: 189 `.git*`/`.venv` als Verwaltung – so lassen. 190 – echter Fehler, jetzt `bug.0.4.193`.
 
