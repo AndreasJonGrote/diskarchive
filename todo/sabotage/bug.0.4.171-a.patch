@@ -1,0 +1,13 @@
+# Test: FatReconnectIndexerTests/databaseErrorInTheReconnectFallbackIsPassedOn()
+--- a/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
++++ b/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
+@@ -793,9 +793,6 @@
+         let incoming: Data?
+         do {
+             incoming = try incomingPartialDigest(mountPath: mountPath, parentID: parentID, name: entry.name)
+-        } catch let error as DatabaseError {
+-            // bug.0.4.165 (d): Datenbankfehler weitergeben, nur Lesefehler der Datei gelten als „unlesbar“.
+-            throw error
+         } catch {
+             unreadableGoneCandidateIDs.insert(candidate.id)
+             return nil

@@ -138,30 +138,60 @@ struct PreviousRunReportTests {
         #expect(!log.crashBreadcrumbs().contains { $0.contains("crash dialog send") })
     }
 
-    /// (c) Die Startzeile des abgestürzten Laufs fehlt (Protokoll gekürzt), davor liegt ein sauber beendeter Lauf → Felder
-    /// leer statt der Werte des älteren Laufs.
+    /// (c) / bug.0.4.170: Vom abgestürzten Lauf B fehlt im Protokoll alles ab der Startzeile (Schreiben verloren); davor
+    /// liegt Lauf A **ohne** „app terminate ok“. Die Absturzdatei entstand lange nach der letzten Zeile von A → sie gehört
+    /// nicht zu A, die Felder bleiben leer (nicht Version und Laufzeit von A).
     @Test @MainActor func missingCrashedStartDoesNotPickAnOlderRun() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let older = DiskIndexLog(directory: directory)
         older.start(installHandlers: false)
-        await AppStartup.finishTermination(appState: AppState(), log: older)
+        older.ui("click row=3")
         older.flushPendingWritesForTesting()
+        let url = directory.appendingPathComponent(DiskIndexLog.fileName)
         let crashed = DiskIndexLog(directory: directory)
         crashed.start(installHandlers: false)
         crashed.ui("click row=7")
         crashed.flushPendingWritesForTesting()
         crashed.writeCrashSnapshot(signal: SIGSEGV)
-        // Startzeile des abgestürzten Laufs entfernen (gekürztes Protokoll).
-        let url = directory.appendingPathComponent(DiskIndexLog.fileName)
-        var lines = try String(contentsOf: url, encoding: .utf8).components(separatedBy: "\n")
+        // Alles von B im Protokoll entfernen (ab seiner Startzeile).
+        let lines = try String(contentsOf: url, encoding: .utf8).components(separatedBy: "\n")
         let starts = lines.indices.filter { lines[$0].contains(" start version=") }
+        try #require(starts.count == 2, "Startzeilen: \(starts.count)")
         let crashedStart = try #require(starts.last)
-        lines.remove(at: crashedStart)
-        try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+        try (lines[..<crashedStart].joined(separator: "\n") + "\n").write(to: url, atomically: true, encoding: .utf8)
+        // Der Absturz kam lange nach der letzten Zeile von A (B lief einen Tag; Grenze `crashAfterLastLineLimit`).
+        let crashFile = directory.appendingPathComponent("crash-last.txt")
+        try FileManager.default.setAttributes(
+            [.modificationDate: Date().addingTimeInterval(DiskIndexLog.crashAfterLastLineLimit + 18 * 3600)], ofItemAtPath: crashFile.path
+        )
         let now = DiskIndexLog(directory: directory)
         now.start(installHandlers: false)
         now.flushPendingWritesForTesting()
         #expect(now.previousRunInfo() == PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil))
+    }
+
+    /// bug.0.4.170: Ohne Absturzdatei zählt nur eine „CRASH“-Zeile des abgestürzten Laufs. Lauf A stürzte ab (Zeile im
+    /// Protokoll) und wurde gemeldet; Lauf B endete ohne sauberes Ende und ohne Absturz → nach B kein Absturzteil von A.
+    @Test @MainActor func crashSectionIgnoresACrashLineOfAnEarlierRun() async throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let runA = DiskIndexLog(directory: directory)
+        runA.start(installHandlers: false)
+        runA.ui("click row=1")
+        runA.recordCrash(signal: "exception NSRangeException", symbols: ["0 diskindex 0x0000000100000000 main + 1"])
+        runA.acknowledgeCrashDialog()
+        runA.flushPendingWritesForTesting()
+        let runB = DiskIndexLog(directory: directory)
+        runB.start(installHandlers: false)
+        runB.ui("click row=9")
+        runB.flushPendingWritesForTesting()
+        let now = DiskIndexLog(directory: directory)
+        now.start(installHandlers: false)
+        now.flushPendingWritesForTesting()
+        let text = try String(contentsOf: directory.appendingPathComponent(DiskIndexLog.fileName), encoding: .utf8)
+        try #require(text.contains("CRASH signal=exception"), "Voraussetzung: CRASH-Zeile von A im Protokoll")
+        #expect(now.crashExcerpt().signal == "unknown", "Absturz von A im Bericht nach B: \(now.crashExcerpt().signal)")
+        #expect(!now.crashBreadcrumbs().contains { $0.contains("click row=1") }, "Aktionen von A im Bericht nach B")
     }
 }

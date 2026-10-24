@@ -56,10 +56,6 @@ struct ColumnBrowserView: View {
     @State private var horizontalScrollFinalPass = 0
     /// bug.0.4.168: Signatur zum Schlussscroll – weicht sie beim Ausführen ab (Live-Änderung dazwischen), kein Scroll.
     @State private var finalPassSignature: HorizontalScrollSignature?
-    @State private var finalPassGeneration: Int?
-    /// bug.0.4.168: Stand der Änderungsmeldungen des Speichers beim Auftrag. Kommt danach eine Meldung (Live-Änderung,
-    /// nicht das eigene Laden der Ansicht), endet der offene Auftrag ohne Scroll.
-    @State private var pendingHorizontalScrollGeneration: Int?
     /// bug.0.4.168: Auftrag des ausstehenden Schlussscrolls (Meldung „erledigt“ erst nach dem Scroll).
     @State private var finalPassToken: Int?
     /// bug.0.4.168: Ruhezeit eines offenen Auftrags (Parameter je Ansicht, Tests kürzer).
@@ -415,15 +411,13 @@ struct ColumnBrowserView: View {
                     guard token > 0, token != horizontalScrollDoneToken, token != pendingHorizontalScrollToken else { return }
                     pendingHorizontalScrollToken = token
                     pendingHorizontalScrollSignature = currentHorizontalScrollSignature
-                    pendingHorizontalScrollGeneration = appState.lastChangeGeneration
                     continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
                 .onChange(of: horizontalScrollFinalPass) { _, _ in
                     // bug.0.4.168: zwischen Auftrag und Ausführen keine Live-Änderung.
                     let token = finalPassToken
                     finalPassToken = nil
-                    if finalPassSignature == currentHorizontalScrollSignature,
-                       finalPassGeneration == appState.lastChangeGeneration {
+                    if let signature = finalPassSignature, signature.match(currentHorizontalScrollSignature) == .same {
                         scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                     }
                     #if DEBUG
@@ -451,12 +445,17 @@ struct ColumnBrowserView: View {
         showDetail: Bool
     ) {
         guard let token = pendingHorizontalScrollToken else { return }
-        // Pfad oder Auswahl haben sich ohne neuen Auftrag geändert (Live-Änderung): Auftrag beenden, nicht scrollen.
-        guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature, !liveChangeSinceRequest() else {
+        // Pfad, Auswahl oder Name der Auswahl haben sich ohne neuen Auftrag geändert (Live-Änderung): Auftrag beenden,
+        // nicht scrollen.
+        let match = horizontalScrollOrderMatch()
+        guard match != .changed else {
             finishHorizontalScroll(token)
             return
         }
-        scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+        // Namen gerade unbekannt (Spalte der Auswahl lädt neu): jetzt nicht scrollen, nach dem Laden neu prüfen.
+        if match == .same {
+            scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
+        }
         horizontalScrollSettle?.cancel()
         horizontalScrollSettle = Task { @MainActor in
             try? await Task.sleep(for: horizontalScrollSettleDelay)
@@ -469,12 +468,11 @@ struct ColumnBrowserView: View {
                 waited += .milliseconds(100)
             }
             guard !Task.isCancelled, pendingHorizontalScrollToken == token else { return }
-            guard pendingHorizontalScrollSignature == currentHorizontalScrollSignature, !liveChangeSinceRequest() else {
+            guard horizontalScrollOrderMatch() == .same else {
                 finishHorizontalScroll(token)
                 return
             }
             finalPassSignature = currentHorizontalScrollSignature
-            finalPassGeneration = appState.lastChangeGeneration
             finalPassToken = token
             // Der Scroll beim Melden der neuen Breite kann vor dem Layout der Scrollansicht liegen (stoppt dann an der
             // alten Breite); jetzt steht der Inhalt – noch einmal mit den aktuellen Spalten, dann erledigt.
@@ -488,26 +486,50 @@ struct ColumnBrowserView: View {
         horizontalScrollSettle = nil
         pendingHorizontalScrollToken = nil
         pendingHorizontalScrollSignature = nil
-        pendingHorizontalScrollGeneration = nil
         horizontalScrollDoneToken = token
         #if DEBUG
         if notify { columnScrollOrderDone?(token) }
         #endif
     }
 
-    /// bug.0.4.168: Kam seit dem Auftrag eine Änderungsmeldung des Speichers (Live-Änderung)? Das eigene Laden der
-    /// Ansicht meldet nichts, darum bleibt der Auftrag beim Laden offen.
-    private func liveChangeSinceRequest() -> Bool {
-        guard let known = pendingHorizontalScrollGeneration else { return false }
-        return appState.lastChangeGeneration != known
+    /// bug.0.4.168: Gilt der offene Auftrag noch? Medium, Pfad und Auswahl unverändert, und die gewählten Einträge heißen
+    /// noch gleich (Live-Umbenennen behält die Zeile; live gelöscht = keine Namen mehr). Keine Änderungszähler:
+    /// Schreibvorgänge anderer Medien oder Ordner (laufende Indizierung) beenden den Auftrag nicht. Waren die Namen beim
+    /// Auftrag noch unbekannt (Spalte lud noch), gelten die ersten bekannten; lädt die Spalte später neu, ist der Stand
+    /// bis dahin offen (`.unknown`: nicht scrollen, nicht beenden).
+    private func horizontalScrollOrderMatch() -> HorizontalScrollSignature.Match {
+        guard let recorded = pendingHorizontalScrollSignature else { return .changed }
+        let current = currentHorizontalScrollSignature
+        let match = recorded.match(current)
+        if match == .same, recorded.selectionNames == nil, current.selectionNames != nil {
+            pendingHorizontalScrollSignature = current
+        }
+        return match
     }
 
     private var currentHorizontalScrollSignature: HorizontalScrollSignature {
         HorizontalScrollSignature(
             mediumID: appState.columnBrowserState.selectedMediumID,
             pathStack: appState.columnBrowserState.pathStack,
-            selection: appState.columnBrowserState.selection.ids
+            selection: appState.columnBrowserState.selection.ids,
+            selectionNames: selectedItemNames
         )
+    }
+
+    /// Namen der gewählten Einträge aus der geladenen Spalte der Auswahl (leer, wenn sie dort fehlen); `nil`, solange die
+    /// Spalte nicht geladen ist. Nur an den Prüfpunkten des Auftrags berechnet, nicht im `body`.
+    private var selectedItemNames: [String]? {
+        let state = appState.columnBrowserState
+        guard let mediumID = state.selectedMediumID, let column = state.selection.focusColumnIndex,
+              !state.selection.ids.isEmpty else { return nil }
+        let path = Array(state.pathStack.prefix(column))
+        guard appState.indexRepository.hasLoadedChildren(mediumID: mediumID, path: path) else { return nil }
+        let ids = Set(state.selection.ids)
+        let names = appState.indexRepository.children(mediumID: mediumID, path: path)
+            .filter { ids.contains($0.id) }
+            .map(\.name)
+        // Leer bei geladener Spalte: die gewählten Einträge sind weg (live gelöscht) – das ist eine Änderung.
+        return names.sorted()
     }
 
     /// Höchstens so lange bleibt ein Auftrag offen, weil die Spalte der Auswahl lädt (danach scrollen Live-Änderungen
@@ -1040,6 +1062,21 @@ private struct HorizontalScrollSignature: Equatable {
     var mediumID: UUID?
     var pathStack: [String]
     var selection: [UUID]
+    /// bug.0.4.168: Namen der gewählten Einträge (`nil` = Spalte noch nicht geladen, dann nicht verglichen).
+    var selectionNames: [String]?
+
+    enum Match { case same, changed, unknown }
+
+    /// Gleicher Auftrag? Namen nur vergleichen, wenn beide bekannt; waren sie bekannt und sind es gerade nicht (Spalte
+    /// lädt neu), ist es `.unknown`.
+    func match(_ current: HorizontalScrollSignature) -> Match {
+        guard mediumID == current.mediumID, pathStack == current.pathStack, selection == current.selection else { return .changed }
+        switch (selectionNames, current.selectionNames) {
+        case (nil, _): return .same
+        case (.some, nil): return .unknown
+        case let (.some(recorded), .some(now)): return recorded == now ? .same : .changed
+        }
+    }
 }
 
 /// bug.0.4.132/148: Nachscrollen eines offenen Auftrags, wenn Spalten oder die Details-Spalte erscheinen.

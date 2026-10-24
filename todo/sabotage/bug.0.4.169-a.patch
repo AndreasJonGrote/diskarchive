@@ -1,0 +1,14 @@
+# Test: FatReconnectIndexerTests/goneRowAppearingDuringTheReadKeepsItsFavorite()
+--- a/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
++++ b/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
+@@ -314,8 +314,8 @@
+                 activePartialFallback = { _ in
+                     switch external[insertedID] {
+                     case .digest(let data): return data
+-                    case .missing: return nil
+-                    case .unreadable, nil: throw PartialReadFailure.unreadable
++                    case .missing, nil: return nil
++                    case .unreadable: throw PartialReadFailure.unreadable
+                     }
+                 }
+             } else if let mountPath, !entry.isFolder, !entry.isPackage {

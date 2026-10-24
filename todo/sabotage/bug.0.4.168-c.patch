@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/ColumnOpenFolderGoneTests/userScrollWhileTheOrderIsOpenEndsIt()
+--- a/diskindex/diskindex/Views/ColumnBrowser/ColumnBrowserView.swift
++++ b/diskindex/diskindex/Views/ColumnBrowser/ColumnBrowserView.swift
+@@ -392,7 +392,7 @@
+                     // umgebende Scrollansicht gefunden wird).
+                     .background(UserScrollObserver {
+                         guard let token = pendingHorizontalScrollToken else { return }
+-                        finishHorizontalScroll(token)
++                        _ = token
+                     })
+                 }
+                 .scrollIndicators(.automatic)

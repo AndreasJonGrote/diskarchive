@@ -441,8 +441,10 @@ final class IndexingService {
         } else if Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolumes[mediumUUID] {
             // bug.0.4.084 (README: beim Anschließen Lauf und sofort Live-Überwachung): Ein gescheiterter Lauf lässt die
             // Überwachung nicht aus, solange das Medium angeschlossen, „Indizieren: Ja“, nicht pausiert und nicht
-            // gesperrt ist. Sperre, Aushängen und Beenden kommen hier nicht an (ihr Token ist weg); eine Pause erreicht
-            // `finish`, aber ohne Fehler (`interrupted`), und fällt durch `watchesAfterFailure`.
+            // gesperrt ist. Abbruch, Sperre, Aushängen und Beenden während des Laufs kommen hier nicht an (ihr Token ist
+            // weg); eine Pause während des Laufs endet unterbrochen und fällt durch `watchesAfterFailure`. Die Prüfung
+            // von Pause und Sperre in `watchesAfterFailedRun` betrifft nur Zustände, die zwischen Laufende und dieser
+            // Entscheidung eintreten (bug.0.4.166/172 b).
             // bug.0.4.095: bis zum nächsten Lauf (erfolgreich oder neu angestoßen) löst die Überwachung keinen vollen
             // Abgleich aus, nur Einzeländerungen – sonst startet jede Änderung einen Lauf, der wieder scheitert.
             fullReconcileSuppressed.insert(mediumUUID)

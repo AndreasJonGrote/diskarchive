@@ -74,18 +74,60 @@ struct LogErrorPrivacyTests {
                 continue
             }
             var text = line
-            var depth = line.filter { $0 == "(" }.count - line.filter { $0 == ")" }.count
+            var depth = Self.parenBalance(line)
             var next = index + 1
             while depth > 0, next < lines.count, next - index < 12 {
                 let more = lines[next]
                 text += " " + more
-                depth += more.filter { $0 == "(" }.count - more.filter { $0 == ")" }.count
+                depth += Self.parenBalance(more)
                 next += 1
             }
             calls.append((index, text))
             index += 1
         }
         return calls
+    }
+
+    /// bug.0.4.172 (c): Klammern einer Zeile ohne die in Zeichenketten; die Klammern einer Interpolation `\(…)` gleichen
+    /// sich aus. (Zeichenketten über mehrere Zeilen und Zeichenketten in Interpolationen werden nicht gesondert erkannt.)
+    static func parenBalance(_ line: String) -> Int {
+        var balance = 0
+        var inString = false
+        var escaped = false
+        var interpolation = 0
+        for character in line {
+            if inString, interpolation == 0 {
+                if escaped {
+                    escaped = false
+                    if character == "(" { interpolation = 1 }
+                } else if character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    inString = false
+                }
+                continue
+            }
+            switch character {
+            case "\"" where interpolation == 0: inString = true
+            case "(": if interpolation > 0 { interpolation += 1 } else { balance += 1 }
+            case ")": if interpolation > 0 { interpolation -= 1 } else { balance -= 1 }
+            default: break
+            }
+        }
+        return balance
+    }
+
+    /// bug.0.4.172 (c): Eine Klammer im Text zählt nicht – sonst hinge der Wächter die nächste (fremde) Zeile an.
+    @Test func parenthesesInStringsAreNotCounted() {
+        let source = """
+            DiskIndexLog.shared.record(.app, .info, "liste (gekürzt")
+            let probe = "\\(error)"
+            """
+        let calls = Self.logCalls(in: source)
+        #expect(calls.count == 1)
+        #expect(!calls.contains { Self.interpolatesRawError($0.1) }, "fremde Zeile angehängt: \(calls)")
+        #expect(Self.parenBalance(#"log("a \(b(c)) (")"#) == 0)
+        #expect(Self.parenBalance(#"record(.app, "x \(error)""#) == 1)
     }
 
     @Test func multiLineCallsAreJoined() {

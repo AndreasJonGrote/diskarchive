@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/ColumnOpenFolderGoneTests/liveDeleteWhileTheOrderIsOpenDoesNotScroll()
+--- a/diskindex/diskindex/Views/ColumnBrowser/ColumnBrowserView.swift
++++ b/diskindex/diskindex/Views/ColumnBrowser/ColumnBrowserView.swift
+@@ -1073,7 +1073,7 @@
+         guard mediumID == current.mediumID, pathStack == current.pathStack, selection == current.selection else { return .changed }
+         switch (selectionNames, current.selectionNames) {
+         case (nil, _): return .same
+-        case (.some, nil): return .unknown
++        case (.some, nil): return .same
+         case let (.some(recorded), .some(now)): return recorded == now ? .same : .changed
+         }
+     }

@@ -193,6 +193,35 @@ struct ColumnOpenFolderGoneTests {
         #expect(abs(scroll.documentVisibleRect.minX - before) <= 1, "offener Auftrag scrollte nach Live-Änderung: \(before) → \(scroll.documentVisibleRect.minX)")
     }
 
+    /// bug.0.4.168 (Selbstprüfung): Auftrag offen, die gewählte Datei wird live gelöscht (Ordner neu gelesen, Datei fehlt)
+    /// → am Ende der Ruhezeit kein Sprung nach rechts.
+    @Test func liveDeleteWhileTheOrderIsOpenDoesNotScroll() async throws {
+        let mount = try makeMount()
+        let tree = try await openFolderFixture(mount: mount)
+        let settle = Duration.seconds(4)
+        let done = ScrollOrdersDone()
+        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done)
+        defer { session.close() }
+        let token = tree.app.columnScrollToken
+        try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
+        let before = scroll.documentVisibleRect.minX
+        let alpha = try #require(try await tree.store.folderID(mediumUUID: tree.medium.uuid, path: ["Alpha"]))
+        try await tree.store.applyDirectories(
+            mediumUUID: tree.medium.uuid,
+            batches: [(parentID: alpha, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: mount.path
+        )
+        let gone = await waitUntil {
+            tree.app.indexRepository.hasLoadedChildren(mediumID: tree.medium.uuid, path: ["Alpha"])
+                && !tree.app.indexRepository.children(mediumID: tree.medium.uuid, path: ["Alpha"]).contains { $0.name == "a.txt" }
+        }
+        try #require(gone, "Löschen nicht in der Spalte")
+        try #require(!done.tokens.contains(token), "Auftrag schon vor dem Löschen erledigt – Test prüft nichts")
+        try #require(await waitUntil { done.tokens.contains(token) }, "Auftrag nicht erledigt")
+        try #require(await scrollComesToRest(scroll), "Scroll-Animation endet nicht")
+        #expect(abs(scroll.documentVisibleRect.minX - before) <= 1, "offener Auftrag scrollte nach Löschen: \(before) → \(scroll.documentVisibleRect.minX)")
+    }
+
     /// bug.0.4.168: Auftrag noch offen, der Nutzer scrollt selbst nach links → der Auftrag endet sofort (nicht erst nach
     /// der Ruhezeit mit einem Schlussscroll nach rechts), die Ansicht bleibt links.
     @Test func userScrollWhileTheOrderIsOpenEndsIt() async throws {

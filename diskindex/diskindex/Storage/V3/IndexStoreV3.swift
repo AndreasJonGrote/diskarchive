@@ -14,6 +14,15 @@ actor IndexStoreV3 {
     private var indexingToken: [UUID: UUID] = [:]
     private var revokedIndexingTokens: Set<UUID> = []
     private var insertedIDsDuringRun: [UUID: Set<Int64>] = [:]
+    /// bug.0.4.169 (b): Zeitgrenze je gelesener Teil-Prüfsumme am Laufende und für alle zusammen.
+    private var partialReadTimeout: Duration = .seconds(5)
+    private var partialReadBudget: Duration = .seconds(30)
+    /// Obergrenze der Länge des Merkers (≈ 50.000 IDs, Zeichen; bug.0.4.171 je Store, Tests kleiner).
+    private var pendingReconnectMaxLength = 50_000 * 8
+    /// bug.0.4.169 (c): Medien, deren Laufende gerade liest bzw. schreibt; ein neuer Lauf desselben Mediums wartet so
+    /// lange (sonst überschriebe der alte Abschluss seinen Status).
+    private var finishingMedia: Set<UUID> = []
+    private var finishWaiters: [UUID: [CheckedContinuation<Void, Never>]] = [:]
     private var pendingMetaDelta: [UUID: MediumCountDelta] = [:]
     private var lastMetaCommitTime: [UUID: Date] = [:]
     private let changesContinuation: AsyncStream<IndexChangeEvent>.Continuation
@@ -26,6 +35,13 @@ actor IndexStoreV3 {
     /// bug.0.4.169: läuft synchron unmittelbar vor dem Lesen einer Teil-Prüfsumme am Laufende (auf dem lesenden Faden).
     var partialReadHookForTesting: (@Sendable (URL) -> Void)?
     func setPartialReadHookForTesting(_ hook: (@Sendable (URL) -> Void)?) { partialReadHookForTesting = hook }
+    /// bug.0.4.169 (b): Zeitgrenzen des Lesens am Laufende (je Datei, gesamt) – Tests kürzer.
+    func setPartialReadLimitsForTesting(perFile: Duration, total: Duration) {
+        partialReadTimeout = perFile
+        partialReadBudget = total
+    }
+    /// bug.0.4.169 (c): Aufrufe von `beginIndexing` (positives Signal „Beginn ist angekommen“, nur Tests).
+    private(set) var beginIndexingCallsForTesting = 0
     /// bug.0.4.156 (a): Segment-Abfragen beim Wiederverbinden am Laufende (Summe, nur Tests).
     private(set) var reconnectSegmentLookupsForTesting = 0
     #endif
@@ -517,6 +533,7 @@ actor IndexStoreV3 {
             let forceMeta = batches.contains { $0.finalize }
             let partialMatching = partialMatchingEnabled
             let trackInserts = indexingToken[mediumUUID] != nil
+            let merkerMaxLength = pendingReconnectMaxLength
             var partialMaps: [[String: Data]?] = []
             partialMaps.reserveCapacity(batches.count)
             for batch in batches {
@@ -550,7 +567,7 @@ actor IndexStoreV3 {
                 // vollständig indiziert) – beim Erstindex nicht; und nur die neuen IDs anhängen.
                 var merkerWritten = false
                 if trackInserts, !inserted.isEmpty, !writer.trustsFileID, try Self.mayReconnect(db, storageID) {
-                    try Self.appendPendingReconnectIDs(db, storageID, inserted)
+                    try Self.appendPendingReconnectIDs(db, storageID, inserted, maxLength: merkerMaxLength)
                     merkerWritten = true
                 }
                 return (delta, parentPaths, inserted, merkerWritten)
@@ -778,6 +795,13 @@ actor IndexStoreV3 {
 
     /// Start eines Laufs. `false`, wenn `finishIndexing` den Token schon verworfen hat.
     func beginIndexing(mediumUUID: UUID, token: UUID) async throws -> Bool {
+        #if DEBUG
+        beginIndexingCallsForTesting += 1
+        #endif
+        // bug.0.4.169 (c): erst wenn das Laufende desselben Mediums geschrieben ist.
+        while finishingMedia.contains(mediumUUID) {
+            await withCheckedContinuation { finishWaiters[mediumUUID, default: []].append($0) }
+        }
         if revokedIndexingTokens.remove(token) != nil { return false }
         #if DEBUG
         if beginIndexingRejected { return false }
@@ -827,13 +851,24 @@ actor IndexStoreV3 {
         // bug.0.4.127: Lauf bis zum Ende mit nicht lesbaren Ordnern (`.pending`) räumt auf wie ein vollständiger Lauf;
         // Ordner, die nicht gelesen wurden, haben keine Kinder auf „verschwunden“ gesetzt.
         let completesRun = (status == .indexed || ranToEnd) && !interrupted
+        // Ein zweiter Abschluss desselben Laufs, während der erste noch liest/schreibt: nichts tun.
+        if finishingMedia.contains(mediumUUID) { return false }
         guard indexingToken[mediumUUID] == token else {
             revokedIndexingTokens.insert(token)
             return false
         }
         let insertedIDs = insertedIDsDuringRun.removeValue(forKey: mediumUUID) ?? []
         let partialMatching = partialMatchingEnabled
-        indexingToken[mediumUUID] = nil
+        // bug.0.4.169 (c): Lauf-Zustand erst nach dem Schreiben freigeben; bis dahin wartet ein neuer Beginn.
+        finishingMedia.insert(mediumUUID)
+        defer {
+            if indexingToken[mediumUUID] == token {
+                indexingToken[mediumUUID] = nil
+                insertedIDsDuringRun[mediumUUID] = nil
+            }
+            finishingMedia.remove(mediumUUID)
+            for waiter in finishWaiters.removeValue(forKey: mediumUUID) ?? [] { waiter.resume() }
+        }
         // bug.0.4.169: Teil-Prüfsummen der Kandidaten **vor** der Schreibtransaktion von der Platte lesen – ein langsames
         // oder hängendes Medium hält sonst alle anderen Schreiber auf (Live-Änderungen, Favoriten, Einstellungen).
         var externalPartials: [Int64: PartialReadOutcome]?
@@ -851,15 +886,33 @@ actor IndexStoreV3 {
             _ = lookups
             let hook: (@Sendable (URL) -> Void)? = nil
             #endif
+            // bug.0.4.169 (b): Zeitgrenze je Datei und gesamt; nach der ersten Zeitüberschreitung (Medium hängt) kein
+            // weiteres Lesen – die übrigen Kandidaten gelten als unlesbar und bleiben.
             var outcomes: [Int64: PartialReadOutcome] = [:]
+            let clock = ContinuousClock()
+            let deadline = clock.now + partialReadBudget
+            var stopped = false
             for request in requests {
-                outcomes[request.id] = await PartialChecksum.readOffActor(at: request.url, beforeRead: hook)
+                let remaining = deadline - clock.now
+                guard !stopped, remaining > .zero else {
+                    outcomes[request.id] = .unreadable
+                    continue
+                }
+                let read = await PartialChecksum.readOffActor(
+                    at: request.url, mountPath: mountPath, timeout: min(partialReadTimeout, remaining), beforeRead: hook
+                )
+                outcomes[request.id] = read.outcome
+                if read.timedOut {
+                    stopped = true
+                    DiskIndexLog.shared.record(.index, .info, "reconnect read timeout remaining=\(requests.count - outcomes.count)")
+                }
             }
             externalPartials = outcomes
         }
         let readPartials = externalPartials
         #if DEBUG
         let readHook = partialReadHookForTesting
+        let lookupHook = partialLookupHookForTesting
         #endif
         let segmentLookupsDone: Int = try await pool.write { db -> Int in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return 0 }
@@ -891,6 +944,7 @@ actor IndexStoreV3 {
                 writer.externalPartials = readPartials
                 #if DEBUG
                 writer.partialReadHook = readHook
+                writer.partialLookupHook = lookupHook
                 #endif
                 let reconnectDelta = try writer.reconnectInsertedWithGone(
                     insertedIDs: insertedIDs, mountPath: mountPath
@@ -961,9 +1015,10 @@ actor IndexStoreV3 {
     /// bug.0.4.156 (c)/165 (a): neue Zeilen an den Merker anhängen – nur die neuen IDs (SQL hängt an, kein Lesen und
     /// Neuschreiben des Ganzen je Stapel). Bis zur Grenze (Länge des Werts); Abschneiden wird einmal protokolliert.
     /// Doppelte IDs stören nicht (gelesen wird als Menge, am Laufende neu geschrieben).
-    private nonisolated static func appendPendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: [Int64]) throws {
+    private nonisolated static func appendPendingReconnectIDs(
+        _ db: Database, _ storageID: Int64, _ ids: [Int64], maxLength pendingReconnectMaxLength: Int
+    ) throws {
         let key = pendingReconnectKey
-        let piece = ids.map(String.init).joined(separator: ",")
         try db.execute(sql: "INSERT OR IGNORE INTO meta_keys (key) VALUES (?)", arguments: [key])
         let current = try Int.fetchOne(
             db,
@@ -973,16 +1028,20 @@ actor IndexStoreV3 {
                 """,
             arguments: [storageID, key]
         )
-        guard let current else {
+        // bug.0.4.171: nur so viele IDs, wie bis zur Grenze passen (nicht den ganzen Stapel darüber hinaus).
+        let room = pendingReconnectMaxLength - (current.map { $0 + 1 } ?? 0)
+        guard room > 0 else { return }  // schon voll (einmal protokolliert, als die Grenze erreicht wurde)
+        let (piece, cut) = fittingPiece(ids, room: room)
+        guard !piece.isEmpty else { return }
+        if cut {
+            DiskIndexLog.shared.record(.index, .info, "reconnect pending truncated limit=\(pendingReconnectMaxLength)")
+        }
+        guard current != nil else {
             try db.execute(
                 sql: "INSERT INTO storage_meta (storageID, keyID, value, date) SELECT ?, id, ?, NULL FROM meta_keys WHERE key = ?",
                 arguments: [storageID, piece, key]
             )
             return
-        }
-        guard current < pendingReconnectMaxLength else { return }
-        if current + piece.count + 1 >= pendingReconnectMaxLength {
-            DiskIndexLog.shared.record(.index, .info, "reconnect pending truncated limit=\(pendingReconnectLimit)")
         }
         try db.execute(
             sql: """
@@ -993,8 +1052,20 @@ actor IndexStoreV3 {
         )
     }
 
-    /// Obergrenze der Länge des Merkers (≈ `pendingReconnectLimit` IDs).
-    private nonisolated static let pendingReconnectMaxLength = pendingReconnectLimit * 8
+
+    /// bug.0.4.171: so viele IDs (kommagetrennt), wie in `room` Zeichen passen; `cut`: nicht alle passten.
+    private nonisolated static func fittingPiece(_ ids: [Int64], room: Int) -> (piece: String, cut: Bool) {
+        var parts: [String] = []
+        var length = 0
+        for id in ids {
+            let text = String(id)
+            let added = (parts.isEmpty ? 0 : 1) + text.utf8.count
+            guard length + added <= room else { return (parts.joined(separator: ","), true) }
+            parts.append(text)
+            length += added
+        }
+        return (parts.joined(separator: ","), false)
+    }
 
     private nonisolated static func writePendingReconnectIDs(_ db: Database, _ storageID: Int64, _ ids: [Int64]) throws {
         let key = pendingReconnectKey
@@ -1013,6 +1084,25 @@ actor IndexStoreV3 {
     /// Tests (bug.0.4.165 a): Stapel, die den Merker beschrieben haben.
     private(set) var pendingReconnectWritesForTesting = 0
     /// Tests (bug.0.4.156 c): gemerkte Zuordnung eines Mediums.
+    /// Tests (bug.0.4.171): Länge des gespeicherten Merkers (Zeichen).
+    func pendingReconnectValueLengthForTesting(mediumUUID: UUID) async throws -> Int {
+        try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return 0 }
+            return try Int.fetchOne(
+                db,
+                sql: """
+                    SELECT length(m.value) FROM storage_meta m JOIN meta_keys k ON k.id = m.keyID
+                    WHERE m.storageID = ? AND k.key = ?
+                    """,
+                arguments: [storageID, Self.pendingReconnectKey]
+            ) ?? 0
+        }
+    }
+    /// Tests (bug.0.4.171): Obergrenze des Merkers (Zeichen) kleiner setzen.
+    func setPendingReconnectMaxLengthForTesting(_ length: Int) { pendingReconnectMaxLength = length }
+    /// Tests (bug.0.4.171): läuft vor jedem Nachschlagen einer vorab gelesenen Teil-Prüfsumme in der Transaktion.
+    func setPartialLookupHookForTesting(_ hook: (@Sendable () throws -> Void)?) { partialLookupHookForTesting = hook }
+    private var partialLookupHookForTesting: (@Sendable () throws -> Void)?
     func pendingReconnectIDsForTesting(mediumUUID: UUID) async throws -> Set<Int64> {
         try await pool.read { db in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }

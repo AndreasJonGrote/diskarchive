@@ -465,15 +465,10 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     func previousRunInfo() -> PreviousRunInfo {
         let empty = PreviousRunInfo(version: nil, build: nil, runtimeSeconds: nil)
         let lines = Self.readText(fileURL).components(separatedBy: "\n")
-        let isStart = { (line: String) in line.contains(" start version=") }
-        // Hat dieser Lauf seine Startzeile schon geschrieben, ist die letzte Startzeile die eigene – der abgestürzte Lauf
-        // endet davor.
-        lock.lock()
-        let ownStart = wroteOwnStartLine
-        lock.unlock()
-        let ownIndex = ownStart ? (lines.lastIndex(where: isStart) ?? lines.count) : lines.count
+        guard let run = crashedRunRange(lines) else { return empty }
+        let startIndex = run.lowerBound
+        let ownIndex = run.upperBound
         let beforeOwn = lines[..<ownIndex]
-        guard let startIndex = beforeOwn.lastIndex(where: isStart) else { return empty }
         // bug.0.4.164 (a): eine „CRASH“-Zeile zählt nur, wenn sie zu diesem Lauf gehört (nach seiner Startzeile); eine
         // alte aus einem früheren Absturz wird übergangen.
         let runLines = beforeOwn[startIndex...]
@@ -503,8 +498,29 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
            let endLine = head.last(where: { stamp($0) != nil }),
            let ended = stamp(endLine) {
             runtime = max(0, Int(ended.timeIntervalSince(began)))
+            // bug.0.4.170: Die Absturzdatei entstand lange nach der letzten Zeile dieses Laufs → ein späterer Lauf ist
+            // abgestürzt, dessen Zeilen fehlen; dann Felder leer statt der Werte dieses Laufs.
+            if let crashDate = crashFileContentDate(), crashDate > ended.addingTimeInterval(Self.crashAfterLastLineLimit) {
+                return empty
+            }
         }
         return PreviousRunInfo(version: value("version", in: startLine), build: value("build", in: startLine), runtimeSeconds: runtime)
+    }
+
+    /// bug.0.4.170: So lange darf ein Signal-Absturz nach der letzten Protokollzeile seines Laufs liegen (Leerlauf ohne
+    /// Zeilen, z. B. über Nacht im Ruhezustand); liegt er später, gehört er zu einem anderen Lauf, dessen Zeilen fehlen.
+    nonisolated static let crashAfterLastLineLimit: TimeInterval = 6 * 3600
+
+    /// bug.0.4.170: Zeilen des abgestürzten Laufs – von der letzten Startzeile vor der eigenen bis vor die eigene (hat
+    /// dieser Lauf seine Startzeile noch nicht geschrieben: bis zum Ende).
+    private func crashedRunRange(_ lines: [String]) -> Range<Int>? {
+        let isStart = { (line: String) in line.contains(" start version=") }
+        lock.lock()
+        let ownStart = wroteOwnStartLine
+        lock.unlock()
+        let ownIndex = ownStart ? (lines.lastIndex(where: isStart) ?? lines.count) : lines.count
+        guard let startIndex = lines[..<ownIndex].lastIndex(where: isStart) else { return nil }
+        return startIndex..<ownIndex
     }
 
     /// Änderungszeit der Absturzdatei, wenn sie einen Absturz enthält.
@@ -742,16 +758,16 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             }
             return trimmedFile
         }
-        if let range = log.range(of: "CRASH signal=", options: .backwards) {
-            // bug.0.4.164 (b): der Absturzteil endet an der nächsten Startzeile (der neue Lauf gehört nicht dazu).
-            var section = String(log[range.lowerBound...])
-            let lines = section.components(separatedBy: "\n")
-            if let next = lines.firstIndex(where: { $0.contains(" start version=") }) {
-                section = lines[..<next].joined(separator: "\n")
-            }
-            return section.trimmingCharacters(in: .whitespacesAndNewlines)
+        // bug.0.4.164 (b) / 170: nur eine „CRASH“-Zeile des abgestürzten Laufs; der Absturzteil endet vor der nächsten
+        // Startzeile (der neue Lauf gehört nicht dazu).
+        let lines = log.components(separatedBy: "\n")
+        guard let run = crashedRunRange(lines),
+              let crashIndex = lines[run].lastIndex(where: { $0.hasPrefix("CRASH signal=") }) else { return nil }
+        var section = lines[crashIndex..<run.upperBound]
+        if let next = section.dropFirst().firstIndex(where: { $0.contains(" start version=") }) {
+            section = lines[crashIndex..<next]
         }
-        return nil
+        return section.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Entfernt Nullbytes; Zeilen, die nur aus Nullbytes bestanden (halb gelöschter Ringplatz), fallen ganz weg.

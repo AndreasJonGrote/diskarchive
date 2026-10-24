@@ -426,3 +426,364 @@ private final class ReadBlocker: @unchecked Sendable {
     }
     func release() { semaphore.signal() }
 }
+
+// MARK: - bug.0.4.169 Nacharbeit: Lesen vor der Transaktion ohne Datenverlust, Hänger, Wiedereintritt
+
+extension FatReconnectIndexerTests {
+    /// Echte Dateien unter `root`: je Name `B/<name>` (Größe aus der Liste), im Store als Favorit mit gespeicherter
+    /// Teil-Prüfsumme; danach auf der Platte nach `A/<name>` verschoben. Liefert Ordner A, B und die alten Zeilen.
+    fileprivate static func seedMovedFiles(
+        store: IndexStoreV3, id: UUID, root: URL, files: [(name: String, bytes: Int)]
+    ) async throws -> (folderA: Int64, folderB: Int64, rows: [StoredItem]) {
+        for file in files {
+            let url = root.appendingPathComponent("B/\(file.name)")
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(repeating: 0x41, count: file.bytes).write(to: url)
+        }
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("A"), withIntermediateDirectories: true)
+        try await store.applyDirectory(
+            mediumUUID: id, parentID: nil,
+            entries: [ScannedEntry(name: "A", isFolder: true), ScannedEntry(name: "B", isFolder: true)], seenAt: Date()
+        )
+        let folderA = try #require(try await store.folderID(mediumUUID: id, path: ["A"]))
+        let folderB = try #require(try await store.folderID(mediumUUID: id, path: ["B"]))
+        try await store.applyDirectory(
+            mediumUUID: id, parentID: folderB,
+            entries: files.map { ScannedEntry(name: $0.name, isFolder: false, sizeBytes: Int64($0.bytes)) }, seenAt: Date()
+        )
+        let children = try await store.children(mediumUUID: id, parentID: folderB)
+        var rows: [StoredItem] = []
+        for file in files {
+            let row = try #require(children.first { $0.name == file.name })
+            try await store.setFavorite(itemID: row.id, true)
+            try await store.storePartialChecksum(itemID: row.id, mountPath: root.path)
+            try FileManager.default.moveItem(
+                at: root.appendingPathComponent("B/\(file.name)"), to: root.appendingPathComponent("A/\(file.name)")
+            )
+            rows.append(row)
+        }
+        return (folderA, folderB, rows)
+    }
+
+    /// bug.0.4.169 (a): Zum Lesezeitpunkt hat die eingefügte Datei `c.txt` keinen Kandidaten (ihr alter Ordner C ist
+    /// noch nicht neu gelesen, die alte Zeile sichtbar). Während das Lesen von `a.txt` hängt, wird C leer gelesen → die
+    /// alte Zeile von `c.txt` wird `status = 2` mit Teil-Prüfsumme. In der Transaktion fehlt ihr der vorab gelesene Wert
+    /// → wie „unlesbar“: alte Zeile und Favorit bleiben (nicht wie „Datei fehlt“ gelöscht), Merker bleibt.
+    @Test func goneRowAppearingDuringTheReadKeepsItsFavorite() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-gone-during-read-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (folderA, folderB, rows) = try await Self.seedMovedFiles(store: store, id: id, root: root, files: [("a.txt", 50)])
+        // c.txt lag in C, liegt jetzt (auf der Platte) in A.
+        try await store.applyDirectory(mediumUUID: id, parentID: nil, entries: [
+            ScannedEntry(name: "A", isFolder: true), ScannedEntry(name: "B", isFolder: true), ScannedEntry(name: "C", isFolder: true),
+        ], seenAt: Date())
+        let folderC = try #require(try await store.folderID(mediumUUID: id, path: ["C"]))
+        let cURL = root.appendingPathComponent("C/c.txt")
+        try FileManager.default.createDirectory(at: cURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data(repeating: 0x43, count: 70).write(to: cURL)
+        try await store.applyDirectory(
+            mediumUUID: id, parentID: folderC, entries: [ScannedEntry(name: "c.txt", isFolder: false, sizeBytes: 70)], seenAt: Date()
+        )
+        let oldC = try #require(try await store.children(mediumUUID: id, parentID: folderC).first { $0.name == "c.txt" })
+        try await store.setFavorite(itemID: oldC.id, true)
+        try await store.storePartialChecksum(itemID: oldC.id, mountPath: root.path)
+        try FileManager.default.moveItem(at: cURL, to: root.appendingPathComponent("A/c.txt"))
+
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: [
+                ScannedEntry(name: "a.txt", isFolder: false, sizeBytes: 50), ScannedEntry(name: "c.txt", isFolder: false, sizeBytes: 70),
+            ], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try await store.applyDirectories(
+            mediumUUID: id, batches: [(parentID: folderB, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        let blocker = ReadBlocker()
+        await store.setPartialReadHookForTesting { _ in blocker.blockOnce() }
+        let finishing = Task {
+            try await store.finishIndexing(
+                mediumUUID: id, token: token, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
+            )
+        }
+        try #require(await waitUntil { blocker.entered }, "Lesen am Laufende fand nicht statt")
+        // Während des Lesens: C wird leer gelesen (Live-Änderung) → alte Zeile von c.txt verschwunden.
+        try await store.applyDirectories(
+            mediumUUID: id, batches: [(parentID: folderC, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        blocker.release()
+        try #require(try await finishing.value)
+        let pool = store.pool
+        let oldRow: Row? = try pool.read { db in try Row.fetchOne(db, sql: "SELECT id FROM items WHERE id = ?", arguments: [oldC.id]) }
+        #expect(oldRow != nil, "alte Zeile von c.txt gelöscht, obwohl ihre Teil-Prüfsumme nie gelesen wurde")
+        #expect(try await store.favoriteItemIDs().contains(oldC.id), "Favorit von c.txt verloren")
+        #expect(try await store.favoriteItemIDs().contains(try #require(rows.first).id), "Favorit von a.txt verloren")
+        #expect(!(try await store.pendingReconnectIDsForTesting(mediumUUID: id)).isEmpty, "Merker für den Folgelauf fehlt")
+    }
+
+    /// bug.0.4.169 (b): Drei verschobene Dateien, das erste Lesen hängt (Medium hängt) → nach der Zeitgrenze kein
+    /// weiteres Lesen (Zähler der gestarteten Lesevorgänge), `finishIndexing` endet, alle drei alten Zeilen bleiben
+    /// (unlesbar = behalten).
+    @Test func hangingReadStopsFurtherReadsAndEndsInTime() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-hanging-read-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files: [(name: String, bytes: Int)] = [("a.txt", 50), ("b.txt", 60), ("c.txt", 70)]
+        let (folderA, folderB, rows) = try await Self.seedMovedFiles(store: store, id: id, root: root, files: files)
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: files.map {
+                ScannedEntry(name: $0.name, isFolder: false, sizeBytes: Int64($0.bytes))
+            }, finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try await store.applyDirectories(
+            mediumUUID: id, batches: [(parentID: folderB, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        let blocker = ReadBlocker()
+        let started = ReadCounter()
+        await store.setPartialReadLimitsForTesting(perFile: .milliseconds(300), total: .seconds(20))
+        await store.setPartialReadHookForTesting { _ in
+            started.increment()
+            blocker.blockOnce()
+        }
+        defer { blocker.release() }
+        let clock = ContinuousClock()
+        let begin = clock.now
+        try #require(try await store.finishIndexing(
+            mediumUUID: id, token: token, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
+        ))
+        let elapsed = clock.now - begin
+        #expect(started.value == 1, "nach der Zeitüberschreitung weiter gelesen: \(started.value) Lesevorgänge")
+        #expect(elapsed < .seconds(5), "finishIndexing endete erst nach \(elapsed)")
+        let favorites = try await store.favoriteItemIDs()
+        for row in rows {
+            #expect(favorites.contains(row.id), "Favorit von \(row.name) nach hängendem Lesen verloren")
+        }
+    }
+
+    /// bug.0.4.169 (b): Gesamtgrenze – jedes Lesen dauert 100 ms (hängt nicht), die Grenze für alle reicht für etwa
+    /// zwei → danach kein weiteres Lesen, übrige Kandidaten unlesbar (bleiben samt Favorit).
+    @Test func readBudgetStopsFurtherReads() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-read-budget-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let files: [(name: String, bytes: Int)] = [("a.txt", 50), ("b.txt", 60), ("c.txt", 70), ("d.txt", 80), ("e.txt", 90)]
+        let (folderA, folderB, rows) = try await Self.seedMovedFiles(store: store, id: id, root: root, files: files)
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: files.map {
+                ScannedEntry(name: $0.name, isFolder: false, sizeBytes: Int64($0.bytes))
+            }, finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try await store.applyDirectories(
+            mediumUUID: id, batches: [(parentID: folderB, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        let started = ReadCounter()
+        await store.setPartialReadLimitsForTesting(perFile: .seconds(3), total: .milliseconds(250))
+        await store.setPartialReadHookForTesting { _ in
+            started.increment()
+            Thread.sleep(forTimeInterval: 0.1)
+        }
+        try #require(try await store.finishIndexing(
+            mediumUUID: id, token: token, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
+        ))
+        #expect(started.value < files.count, "Gesamtgrenze wirkungslos: \(started.value) von \(files.count) gelesen")
+        let favorites = try await store.favoriteItemIDs()
+        for row in rows {
+            #expect(favorites.contains(row.id), "Favorit von \(row.name) verloren")
+        }
+    }
+
+    /// bug.0.4.169 (Selbstprüfung): Das Medium wird während des Lesens ausgeworfen (Einhängepunkt fehlt) → die Datei
+    /// fehlt nicht „wirklich“; die alte Zeile bleibt samt Favorit (unlesbar statt fehlt).
+    @Test func ejectedMediumDuringTheReadKeepsTheFavorite() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-ejected-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (folderA, folderB, rows) = try await Self.seedMovedFiles(store: store, id: id, root: root, files: [("a.txt", 50)])
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: [ScannedEntry(name: "a.txt", isFolder: false, sizeBytes: 50)], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try await store.applyDirectories(
+            mediumUUID: id, batches: [(parentID: folderB, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        // Auswerfen: der ganze Einhängepunkt verschwindet vor dem Lesen am Laufende.
+        await store.setPartialReadHookForTesting { _ in try? FileManager.default.removeItem(at: root) }
+        try #require(try await store.finishIndexing(
+            mediumUUID: id, token: token, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
+        ))
+        let old = try #require(rows.first)
+        #expect(try await store.favoriteItemIDs().contains(old.id), "Favorit nach Auswerfen während des Lesens gelöscht")
+    }
+
+    /// bug.0.4.169 (c): Während das Lesen am Laufende hängt, beginnt ein neuer Lauf desselben Mediums → der alte
+    /// Abschluss überschreibt ihn nicht: danach ist der neue Lauf aktiv und der Status „indiziert gerade“.
+    @Test func beginIndexingDuringTheReadKeepsTheNewRunsStatus() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-begin-during-read-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (folderA, folderB, _) = try await Self.seedMovedFiles(store: store, id: id, root: root, files: [("a.txt", 50)])
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: [ScannedEntry(name: "a.txt", isFolder: false, sizeBytes: 50)], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try await store.applyDirectories(
+            mediumUUID: id, batches: [(parentID: folderB, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        let blocker = ReadBlocker()
+        await store.setPartialReadHookForTesting { _ in blocker.blockOnce() }
+        let finishing = Task {
+            try await store.finishIndexing(
+                mediumUUID: id, token: token, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
+            )
+        }
+        try #require(await waitUntil { blocker.entered }, "Lesen am Laufende fand nicht statt")
+        let next = UUID()
+        let callsBefore = await store.beginIndexingCallsForTesting
+        let beginning = Task { try await store.beginIndexing(mediumUUID: id, token: next) }
+        // Positives Signal: der neue Beginn ist im Store angekommen (während das Lesen noch hängt).
+        try #require(await waitUntil { await store.beginIndexingCallsForTesting > callsBefore }, "Beginn kam nicht an")
+        blocker.release()
+        _ = try await finishing.value
+        let begun = try await beginning.value
+        #expect(begun, "neuer Lauf abgewiesen")
+        #expect(await store.indexingIsActive(mediumUUID: id, token: next), "neuer Lauf nicht aktiv")
+        let status = try #require(try await store.medium(uuid: id)).indexStatus
+        #expect(status == .indexing, "Status \(status) statt „indiziert gerade“ – alter Abschluss überschrieb den neuen Lauf")
+    }
+}
+
+/// bug.0.4.169 (b): zählt gestartete Lesevorgänge (auf dem lesenden Faden).
+private final class ReadCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var value: Int { lock.withLock { count } }
+    func increment() { lock.withLock { count += 1 } }
+}
+
+// MARK: - bug.0.4.171: Datenbankfehler beim Wiederverbinden, Merker an der Grenze
+
+extension FatReconnectIndexerTests {
+    /// bug.0.4.171: Ein Datenbankfehler im Rückfall der Teil-Prüfsumme (Nachschlagen in der Transaktion) ist kein
+    /// „unlesbar“ → `finishIndexing` gibt ihn weiter, nichts wird gelöscht, der Merker bleibt.
+    @Test func databaseErrorInTheReconnectFallbackIsPassedOn() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-db-error-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (folderA, folderB, rows) = try await Self.seedMovedFiles(store: store, id: id, root: root, files: [("a.txt", 50)])
+        // Das Medium war schon einmal vollständig indiziert (sonst schreibt der Lauf keinen Merker).
+        let first = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: first))
+        try #require(try await store.finishIndexing(mediumUUID: id, token: first, status: .indexed, firstIndexedAt: Date()))
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: [ScannedEntry(name: "a.txt", isFolder: false, sizeBytes: 50)], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        try await store.applyDirectories(
+            mediumUUID: id, batches: [(parentID: folderB, path: nil, depth: nil, entries: [], finalize: true)],
+            seenAt: Date(), mountPath: root.path
+        )
+        let merkerBefore = try await store.pendingReconnectIDsForTesting(mediumUUID: id)
+        try #require(!merkerBefore.isEmpty, "Voraussetzung: Merker aus dem Lauf")
+        await store.setPartialLookupHookForTesting { throw DatabaseError(resultCode: .SQLITE_IOERR) }
+        var thrown: Error?
+        do {
+            _ = try await store.finishIndexing(
+                mediumUUID: id, token: token, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
+            )
+        } catch {
+            thrown = error
+        }
+        #expect(thrown is DatabaseError, "Datenbankfehler nicht weitergegeben: \(String(describing: thrown))")
+        let old = try #require(rows.first)
+        let pool = store.pool
+        let oldRow: Row? = try pool.read { db in try Row.fetchOne(db, sql: "SELECT id FROM items WHERE id = ?", arguments: [old.id]) }
+        #expect(oldRow != nil, "alte Zeile trotz Datenbankfehler gelöscht")
+        #expect(try await store.favoriteItemIDs().contains(old.id), "Favorit trotz Datenbankfehler gelöscht")
+        #expect(try await store.pendingReconnectIDsForTesting(mediumUUID: id) == merkerBefore, "Merker verändert")
+    }
+
+    /// bug.0.4.171: Der Merker wird an der Grenze gekürzt, nicht um den ganzen Stapel überschritten.
+    @Test func pendingMerkerIsCutAtTheLimit() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        // Eine verschwundene Zeile, damit das Medium wiederverbinden kann (Merker wird geschrieben).
+        try await store.applyDirectory(mediumUUID: id, parentID: nil, entries: [
+            ScannedEntry(name: "A", isFolder: true), ScannedEntry(name: "B", isFolder: true),
+        ], seenAt: Date())
+        let folderA = try #require(try await store.folderID(mediumUUID: id, path: ["A"]))
+        let folderB = try #require(try await store.folderID(mediumUUID: id, path: ["B"]))
+        try await store.applyDirectory(
+            mediumUUID: id, parentID: folderB, entries: [ScannedEntry(name: "alt.txt", isFolder: false, sizeBytes: 5)], seenAt: Date()
+        )
+        try await store.applyDirectory(mediumUUID: id, parentID: folderB, entries: [], seenAt: Date())
+        let limit = 30
+        await store.setPendingReconnectMaxLengthForTesting(limit)
+        let token = UUID()
+        try #require(try await store.beginIndexing(mediumUUID: id, token: token))
+        // Erster Stapel kurz (unter der Grenze), zweiter lang (würde sie weit überschreiten).
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderA, path: nil, depth: nil, entries: (1...2).map {
+                ScannedEntry(name: "kurz-\($0).txt", isFolder: false, sizeBytes: Int64($0))
+            }, finalize: true)],
+            seenAt: Date()
+        )
+        let first = try await store.pendingReconnectValueLengthForTesting(mediumUUID: id)
+        try #require(first > 0 && first < limit, "Voraussetzung: erster Stapel unter der Grenze (\(first))")
+        try await store.applyDirectories(
+            mediumUUID: id,
+            batches: [(parentID: folderB, path: nil, depth: nil, entries: (1...30).map {
+                ScannedEntry(name: "lang-\($0).txt", isFolder: false, sizeBytes: Int64(100 + $0))
+            }, finalize: true)],
+            seenAt: Date()
+        )
+        let length = try await store.pendingReconnectValueLengthForTesting(mediumUUID: id)
+        #expect(length <= limit, "Merker \(length) Zeichen, Grenze \(limit)")
+        #expect(length > first, "zweiter Stapel gar nicht angehängt (\(first) → \(length))")
+    }
+}

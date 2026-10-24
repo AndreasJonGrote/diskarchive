@@ -1,9 +1,1 @@
-⚠ Worker: Rolle Worker. Minimum Sonnet 5.5 Medium – läuft die Sitzung darunter, sofort melden und anhalten.
-
-Du bist Worker (AGENTS.md). Lies nur: `todo/regeln.md` (verbindlich, **neu gefasst: 15 Regeln** – vor allem neu: Regel 9 Sabotage als Patch, Regel 12 Selbstprüfung mit fünf Fragen, Regel 6 Invarianten) und `todo/paket-17.md` (dein Auftrag). TODO.md nur als Index; README nur gezielt an den genannten Stellen; Volltexte von Paket 16 bei Bedarf in `archiv/paket-16-abgenommen-2026-10-23.md`.
-
-Arbeite Paket 17 in der Reihenfolge aus `todo/paket-17.md` ab: zuerst die Nacharbeit `bug.0.4.169` (Favorit kann verloren gehen, Hänger, Wiedereintritt) und `bug.0.4.168` (Scroll bricht während jeder Indizierung ab), dann `bug.0.4.170`, `171`, `172`. Je Aufgabe: rot → Fix → grün, Sabotage-Patch nach `todo/sabotage/` (Regel 9), betroffene Suites, Selbstprüfung per Subagent mit den fünf Fragen (Regel 12), mittlere und hohe Befunde vor „Bereit“ beheben. Status je Aufgabe in `todo/paket-17.md` unter dem Block (höchstens 5 Zeilen). Kann ein Test nicht rot werden: „Frage:“, nicht „Bereit“. Abweichungen von der Akzeptanz nur als „Frage:“, nie still. HALT nach `bug.0.4.172`.
-
-Am Paketende: Debug mit Testziel und Release 0 Warnungen (selbst gezählt), Gesamtlauf seriell, Parallellauf dreimal mit festem Befehl `xcodebuild test-without-building -project diskindex.xcodeproj -scheme diskindex -destination 'platform=macOS,arch=arm64' -derivedDataPath <Ordner> -only-testing:diskindexTests -parallel-testing-enabled YES -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120` (alle drei grün, sonst nicht fertig), keine neuen `Disk Archive*.ips`, zum Schluss die App des Nutzers bauen (Regel 14). Hilfe: `Werkzeuge/pruefung.sh schnell <Suite>` darfst du nutzen, aber nicht ändern. Kein Git außer lesend.
-
-Zum Schluss: Bericht mit Prompt für den Host und Commit-Nachricht (Regel 15); dann diese Datei durch die Kurzmeldung `Erledigt (Bereit zur Prüfung): … Offen/blockiert: … HALT.` ersetzen.
+Erledigt (Bereit zur Prüfung): bug.0.4.169, 168, 170, 171, 172. Offen/blockiert: Frage 170 (Grenze 6 h nach der letzten Protokollzeile). HALT.

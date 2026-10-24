@@ -1,0 +1,12 @@
+# Test: PreviousRunReportTests/crashSectionIgnoresACrashLineOfAnEarlierRun()
+--- a/diskindex/diskindex/App/DiskIndexLog.swift
++++ b/diskindex/diskindex/App/DiskIndexLog.swift
+@@ -762,7 +762,7 @@
+         // Startzeile (der neue Lauf gehört nicht dazu).
+         let lines = log.components(separatedBy: "\n")
+         guard let run = crashedRunRange(lines),
+-              let crashIndex = lines[run].lastIndex(where: { $0.hasPrefix("CRASH signal=") }) else { return nil }
++              let crashIndex = lines[..<run.upperBound].lastIndex(where: { $0.hasPrefix("CRASH signal=") }) else { return nil }
+         var section = lines[crashIndex..<run.upperBound]
+         if let next = section.dropFirst().firstIndex(where: { $0.contains(" start version=") }) {
+             section = lines[crashIndex..<next]

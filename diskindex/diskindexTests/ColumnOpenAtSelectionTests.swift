@@ -17,6 +17,7 @@ private struct DeepFolder {
     let app: AppState
     let mediumID: UUID
     let files: [StoredItem]
+    let store: IndexStoreV3
 
     /// Pfad A/B/C/D, in D 300 Dateien.
     static func make() async throws -> DeepFolder {
@@ -42,7 +43,7 @@ private struct DeepFolder {
         let app = AppState()
         app.attach(store: store)
         await app.loadStoredMedia()
-        return DeepFolder(app: app, mediumID: stored.uuid, files: files)
+        return DeepFolder(app: app, mediumID: stored.uuid, files: files, store: store)
     }
 }
 
@@ -95,6 +96,49 @@ struct ColumnOpenAtSelectionTests {
         }
         let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window)
         #expect(shown, "nicht an der Stelle: waagerecht \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1), Zeile sichtbar \(Self.rowVisible(index: 249, of: 300, in: session.window))")
+    }
+
+    /// bug.0.4.168: Ein anderes Medium schreibt fortlaufend Stapel (laufende Indizierung, Meldungen kommen in der App an);
+    /// ein Treffer öffnet die Spaltenansicht → der Auftrag bleibt offen, bis die Spalte steht: Details-Spalte bündig,
+    /// Zeile sichtbar. Fremde Meldungen beenden den Auftrag nicht.
+    @Test func openObjectWhileAnotherMediumIndexesScrollsToTheFile() async throws {
+        let tree = try await DeepFolder.make()
+        try #require(tree.files.count == 300)
+        tree.app.startChangeLoop()
+        let other = StoredMedium(fsType: "apfs", volumeTotalBytes: 10, name: "Andere", decision: .index, indexStatus: .indexing, completedDepth: 0)
+        try await tree.store.upsertMedium(other)
+        let store = tree.store
+        let otherID = other.uuid
+        let writer = Task {
+            var batch = 0
+            while !Task.isCancelled {
+                batch += 1
+                try? await store.applyDirectory(
+                    mediumUUID: otherID, parentID: nil,
+                    entries: [ScannedEntry(name: "stapel-\(batch).txt", isFolder: false, sizeBytes: 1)], seenAt: Date()
+                )
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+        }
+        defer { writer.cancel() }
+        // Positives Signal: die Meldungen des anderen Mediums kommen in der App an.
+        let start = tree.app.lastChangeGeneration
+        try #require(await waitUntil { tree.app.lastChangeGeneration > start + 2 }, "keine Meldungen des anderen Mediums")
+        let target = tree.files[249]
+        let result = SearchResultItem(item: IndexedItem(stored: target, parentPath: ["A", "B", "C", "D"]), mediumID: tree.mediumID)
+        MediumNavigation.openObject(result, appState: tree.app)
+        let session = open(tree.app, tableMinimum: 10)
+        defer { session.close() }
+        let shown = await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            session.window.display()
+            guard let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window) else { return false }
+            return ColumnAutoScrollTestSupport.detailTrailingFlushWithViewport(main)
+                && main.documentVisibleRect.minX > 1.5
+                && Self.rowVisible(index: 249, of: 300, in: session.window)
+        }
+        let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window)
+        #expect(shown, "Auftrag brach während fremder Schreibvorgänge ab: waagerecht \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1)")
     }
 
     /// Pfeiltasten: `onKeyPress` braucht ein Key-Fenster (Regel 19/21 verbieten das, „Frage:“ im Status). Geprüft wird

@@ -106,12 +106,15 @@ nonisolated enum PartialReadOutcome: Sendable, Equatable {
 
 extension PartialChecksum {
     /// bug.0.4.169: Teil-Prüfsumme auf einer Hintergrund-Queue mit Zeitgrenze; anders als `computeOffActor` zählt die
-    /// Zeitgrenze als „unlesbar“, nicht als „fehlt“.
+    /// Zeitgrenze als „unlesbar“, nicht als „fehlt“. `timedOut`: die Zeitgrenze lief ab (das Lesen hängt womöglich
+    /// weiter auf seinem Faden – der Aufrufer startet dann kein weiteres Lesen auf demselben Medium).
+    /// `mountPath`: fehlt mit der Datei auch der Einhängepunkt (Medium ausgeworfen), ist das „unlesbar“, nicht „fehlt“.
     static func readOffActor(
         at fileURL: URL,
+        mountPath: String? = nil,
         timeout: Duration = .seconds(5),
         beforeRead: (@Sendable (URL) -> Void)? = nil
-    ) async -> PartialReadOutcome {
+    ) async -> (outcome: PartialReadOutcome, timedOut: Bool) {
         let path = fileURL.path
         let seconds = Double(timeout.components.seconds) + Double(timeout.components.attoseconds) / 1e18
         return await withCheckedContinuation { continuation in
@@ -119,21 +122,25 @@ extension PartialChecksum {
             DispatchQueue.global(qos: .utility).async {
                 beforeRead?(fileURL)
                 guard FileManager.default.fileExists(atPath: path) else {
-                    once.resume(.missing)
+                    if let mountPath, !FileManager.default.fileExists(atPath: mountPath) {
+                        once.resume((.unreadable, false))
+                    } else {
+                        once.resume((.missing, false))
+                    }
                     return
                 }
                 do {
                     if let computed = try compute(at: fileURL) {
-                        once.resume(.digest(computed.partial))
+                        once.resume((.digest(computed.partial), false))
                     } else {
-                        once.resume(.missing)
+                        once.resume((.missing, false))
                     }
                 } catch {
-                    once.resume(.unreadable)
+                    once.resume((.unreadable, false))
                 }
             }
             DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + seconds) {
-                once.resume(.unreadable)
+                once.resume((.unreadable, true))
             }
         }
     }
@@ -141,14 +148,15 @@ extension PartialChecksum {
 
 nonisolated private final class PartialReadOnce: @unchecked Sendable {
     private let lock = NSLock()
-    private var continuation: CheckedContinuation<PartialReadOutcome, Never>?
+    typealias Value = (outcome: PartialReadOutcome, timedOut: Bool)
+    private var continuation: CheckedContinuation<Value, Never>?
 
-    init(_ continuation: CheckedContinuation<PartialReadOutcome, Never>) {
+    init(_ continuation: CheckedContinuation<Value, Never>) {
         self.continuation = continuation
     }
 
-    func resume(_ outcome: PartialReadOutcome) {
-        let pending = lock.withLock { () -> CheckedContinuation<PartialReadOutcome, Never>? in
+    func resume(_ outcome: Value) {
+        let pending = lock.withLock { () -> CheckedContinuation<Value, Never>? in
             let value = continuation
             continuation = nil
             return value

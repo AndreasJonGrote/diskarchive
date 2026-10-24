@@ -1,0 +1,12 @@
+# Test: FatReconnectIndexerTests/hangingReadStopsFurtherReadsAndEndsInTime()
+--- a/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
++++ b/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
+@@ -898,7 +898,7 @@
+                 )
+                 outcomes[request.id] = read.outcome
+                 if read.timedOut {
+-                    stopped = true
++                    _ = stopped
+                     DiskIndexLog.shared.record(.index, .info, "reconnect read timeout remaining=\(requests.count - outcomes.count)")
+                 }
+             }

@@ -18,11 +18,14 @@ nonisolated final class DirectoryWriterV3 {
     /// bug.0.4.156 (a): Segment-Abfragen beim Wiederverbinden (Zähler für Tests, kein Zeitmaß).
     private(set) var reconnectSegmentLookups = 0
     /// bug.0.4.169: Teil-Prüfsummen der eingefügten Zeilen, außerhalb der Schreibtransaktion gelesen. Gesetzt liest das
-    /// Wiederverbinden nicht mehr selbst von der Platte; fehlt eine Zeile darin, gibt es keinen Vergleich.
+    /// Wiederverbinden nicht mehr selbst von der Platte; fehlt eine gebrauchte Zeile darin, gilt sie als unlesbar.
     var externalPartials: [Int64: PartialReadOutcome]?
     #if DEBUG
     /// Tests (bug.0.4.169): vor jedem Lesen von der Platte im Rückfall (innerhalb der Transaktion).
     var partialReadHook: (@Sendable (URL) -> Void)?
+    /// Tests (bug.0.4.171): vor jedem Nachschlagen einer vorab gelesenen Teil-Prüfsumme; darf werfen (z. B. einen
+    /// Datenbankfehler).
+    var partialLookupHook: (@Sendable () throws -> Void)?
     #endif
     /// bug.0.4.156 (b): Kandidaten, deren Gegenstück nicht gelesen werden konnte – nicht löschen, im Folgelauf erneut.
     private(set) var unreadableGoneCandidateIDs: Set<Int64> = []
@@ -309,12 +312,19 @@ nonisolated final class DirectoryWriterV3 {
             let priorPartials = activePrecomputedPartials
             activePrecomputedPartials = nil
             if let external = externalPartials, !entry.isFolder, !entry.isPackage {
-                // bug.0.4.169: vorab außerhalb der Transaktion gelesen – hier nur nachschlagen.
+                // bug.0.4.169: vorab außerhalb der Transaktion gelesen – hier nur nachschlagen. Fehlt der Wert (beim Lesen
+                // gab es noch keinen Kandidaten, er entstand erst danach): wie unlesbar – der Kandidat bleibt.
+                #if DEBUG
+                let lookupHook = partialLookupHook
+                #endif
                 activePartialFallback = { _ in
+                    #if DEBUG
+                    try lookupHook?()
+                    #endif
                     switch external[insertedID] {
                     case .digest(let data): return data
-                    case .unreadable: throw PartialReadFailure.unreadable
-                    case .missing, nil: return nil
+                    case .missing: return nil
+                    case .unreadable, nil: throw PartialReadFailure.unreadable
                     }
                 }
             } else if let mountPath, !entry.isFolder, !entry.isPackage {

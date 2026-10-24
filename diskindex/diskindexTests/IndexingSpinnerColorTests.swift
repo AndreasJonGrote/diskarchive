@@ -3,9 +3,9 @@
 //  diskindexTests
 //
 //  bug.0.4.136 / bug.0.4.163 (b): Der Spinner „Wird indiziert“ hat die Farbe `DesignColor.stateOnline` – dunkel
-//  #5BBD74, hell #20A04E. Pixel im echten Fenster (Regel 10/19), verglichen mit einer Fläche in derselben Farbe auf
-//  demselben Weg gezeichnet (die Darstellung rechnet Farben um; Toleranz 0,06 je Kanal). Eigene Suite (vorher in
-//  `SettingsUnreadableSessionTests`).
+//  #5BBD74, hell #20A04E. Pixel im echten Fenster (Regel 10), verglichen mit einer Fläche in der festen Layoutfarbe auf
+//  demselben Weg gezeichnet (die Darstellung rechnet Farben um; Toleranz 0,02 je Kanal, bug.0.4.172 a). Eigene Suite
+//  (vorher in `SettingsUnreadableSessionTests`).
 //
 
 import AppKit
@@ -30,22 +30,29 @@ struct IndexingSpinnerColorTests {
         return session.bitmap()
     }
 
-    /// Farbe einer Fläche in `stateOnline`, gezeichnet wie der Spinner.
+    /// bug.0.4.172 (a): Referenzfläche in der **festen** Layoutfarbe (sRGB #5BBD74 dunkel, #20A04E hell), gezeichnet auf
+    /// demselben Weg wie der Spinner. Gleiche Zeichenkette → gleiche Umrechnung; so prüft der Vergleich den Hexwert, nicht
+    /// das Token gegen sich selbst.
     private func reference(appearance: NSAppearance.Name) async -> NSColor? {
-        let rep = await bitmap(Rectangle().fill(DesignColor.stateOnline), appearance: appearance, size: CGSize(width: 40, height: 40))
+        let hex = appearance == .darkAqua ? 0x5BBD74 : 0x20A04E
+        let fill = Color(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255
+        )
+        let rep = await bitmap(Rectangle().fill(fill), appearance: appearance, size: CGSize(width: 40, height: 40))
         return PixelProbe.color(in: rep, at: CGPoint(x: 20, y: 20)).usingColorSpace(.sRGB)
     }
 
-    /// Pixel im Ringbereich oben links, die `target` tragen (je Kanal höchstens 0,06 daneben). Der Ring hat mehrere
+    /// Pixel im Ringbereich oben links, die `target` tragen (je Kanal höchstens `tolerance` daneben). Der Ring hat mehrere
     /// hundert davon; geglättete Kantenpixel einer anderen Farbe nur vereinzelt.
-    private func ringPixels(matching target: NSColor, appearance: NSAppearance.Name) async -> Int {
+    private func ringPixels(matching target: NSColor, appearance: NSAppearance.Name, tolerance: CGFloat = 0.02) async -> Int {
         let rep = await bitmap(FolderPendingIndexingHint(), appearance: appearance, size: CGSize(width: 260, height: 90))
         var hits = 0
         for y in stride(from: 0.0, to: 24.0, by: 0.5) {
             for x in stride(from: 0.0, to: 26.0, by: 0.5) {
                 guard let c = PixelProbe.color(in: rep, at: CGPoint(x: x + 4, y: y)).usingColorSpace(.sRGB) else { continue }
-                if abs(c.redComponent - target.redComponent) <= 0.06, abs(c.greenComponent - target.greenComponent) <= 0.06,
-                   abs(c.blueComponent - target.blueComponent) <= 0.06 {
+                if abs(c.redComponent - target.redComponent) <= tolerance, abs(c.greenComponent - target.greenComponent) <= tolerance,
+                   abs(c.blueComponent - target.blueComponent) <= tolerance {
                     hits += 1
                 }
             }
@@ -74,9 +81,10 @@ struct IndexingSpinnerColorTests {
     @Test func spinnerHasTheStateOnlineColorInBothSchemes() async throws {
         let darkRef = try #require(await reference(appearance: .darkAqua))
         let lightRef = try #require(await reference(appearance: .aqua))
-        // bug.0.4.167 (c): Das Referenzpixel selbst lässt sich nicht gegen #5BBD74 prüfen – das Fenster zeichnet über das
-        // Farbprofil des Bildschirms (Rohwert dunkel ≈ 0,46/0,73/0,48). Den Wert des Tokens prüfen
-        // `stateOnlineTokenHasTheLayoutValues` und `ColumnFilterAndAppearanceTests` (Toleranz 0,01).
+        // bug.0.4.172 (a): Die Referenz ist die feste Layoutfarbe auf demselben Zeichenweg. Ein Vergleich mit dem Hexwert
+        // direkt geht nicht: das Fenster zeichnet im Profil des Bildschirms, `cacheDisplay` liefert diese Werte aber als
+        // „kalibriertes RGB“ beschriftet – die Umrechnung nach sRGB verschiebt sie (dunkel roh 0,46/0,73/0,48, nicht
+        // Halbtransparenz oder P3).
         let dark = await ringPixels(matching: darkRef, appearance: .darkAqua)
         let light = await ringPixels(matching: lightRef, appearance: .aqua)
         #expect(dark >= 100, "dunkel: Ring nicht in stateOnline (\(dark) Pixel)")
