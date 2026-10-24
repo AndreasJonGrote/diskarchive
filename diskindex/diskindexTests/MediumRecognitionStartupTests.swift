@@ -65,6 +65,8 @@ struct MediumRecognitionStartupTests {
 }
 
 private final class ScriptedAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     var result: MediumAccessResult = .granted
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { result }
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] { [] }

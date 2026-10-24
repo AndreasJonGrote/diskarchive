@@ -811,7 +811,7 @@ extension FatReconnectIndexerTests {
 extension FatReconnectIndexerTests {
     /// Lauf über die Store-Schritte: `a.txt` von B nach A verschoben (Favorit, Teil-Prüfsumme), A mit `a.txt` gelesen,
     /// B leer gelesen; dann `finishIndexing` mit `finishMountPath`. Liefert die alte Zeile.
-    fileprivate static func runMovedFileFinish(
+    static func runMovedFileFinish(
         store: IndexStoreV3, id: UUID, root: URL, finishMountPath: String, beforeFinish: () throws -> Void = {}
     ) async throws -> StoredItem {
         let (folderA, folderB, rows) = try await seedMovedFiles(store: store, id: id, root: root, files: [("a.txt", 50)])
@@ -1021,5 +1021,39 @@ extension FatReconnectIndexerTests {
             mediumUUID: id, token: third, status: .indexed, firstIndexedAt: Date(), mountPath: root.path, ranToEnd: true
         ))
         #expect(started.value == 2, "nach der Rückkehr des hängenden Lesens las Lauf 3 nicht: \(started.value)")
+    }
+}
+
+// MARK: - bug.0.4.180 (c, d): Aufräumen beim Vergessen des Mediums
+
+extension FatReconnectIndexerTests {
+    /// (c) Ein widerrufenes Token, dessen Beginn nie kommt, bleibt nicht für immer liegen: Vergessen räumt es ab.
+    @Test func forgettingTheMediumClearsRevokedTokens() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let id = harness.mediumID
+        // Abschluss eines unbekannten Tokens widerruft es (sein Beginn kommt nie).
+        _ = try await store.finishIndexing(mediumUUID: id, token: UUID(), status: .pending, firstIndexedAt: nil)
+        try #require(await store.revokedIndexingTokensForTesting(mediumUUID: id) == 1, "Voraussetzung: Token widerrufen")
+        try await store.forgetMedium(uuid: id)
+        #expect(await store.revokedIndexingTokensForTesting(mediumUUID: id) == 0, "widerrufenes Token blieb nach dem Vergessen")
+    }
+
+    /// (d) Ein noch hängender Lesevorgang wird beim Vergessen des Mediums nicht mehr gezählt.
+    @Test func forgettingTheMediumClearsHangingReads() async throws {
+        let harness = try await ScanHarness.make(fsType: "exfat")
+        let store = harness.store
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-forget-hanging-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        await store.setMountCheckForTesting { _, _ in true }
+        let blocker = ReadBlocker()
+        defer { blocker.release() }
+        await store.setPartialReadLimitsForTesting(perFile: .milliseconds(300), total: .seconds(20))
+        await store.setPartialReadHookForTesting { _ in blocker.blockOnce() }
+        _ = try await Self.runMovedFileFinish(store: store, id: harness.mediumID, root: root, finishMountPath: root.path)
+        try #require(await store.hangingPartialReadsForTesting(mediumUUID: harness.mediumID) == 1, "Voraussetzung: Lesen hängt")
+        try await store.forgetMedium(uuid: harness.mediumID)
+        #expect(await store.hangingPartialReadsForTesting(mediumUUID: harness.mediumID) == 0, "hängender Lesevorgang nach dem Vergessen gezählt")
     }
 }

@@ -298,6 +298,11 @@ nonisolated struct DirectoryIndexer: Sendable {
                     let url = directoryURL(mountPath: volume.mountPath, itemPath: parent.path)
                     // bug.0.4.056 (REPORT 97): Pfad je Ordner, nicht je Block/Eintrag.
                     let parentPath = IgnoreMatcher.storedPathSegments(parent.path)
+                    // bug.0.4.177: bisherige Namen der Wurzel vor dem Lesen (Vergleich „fehlt alles Bisherige?“).
+                    var previousRootNames: Set<String>?
+                    if parent.id == nil {
+                        previousRootNames = (try? await store.children(mediumUUID: mediumUUID, parentID: nil)).map { Set($0.map(\.name)) }
+                    }
                     do {
                         var folderEntries: [ScannedEntry] = []
                         try await readFolderWithRetry(
@@ -305,7 +310,9 @@ nonisolated struct DirectoryIndexer: Sendable {
                             onAttemptBegin: { folderEntries.removeAll(keepingCapacity: true) }
                         ) { chunk in
                             let entries = scannedEntries(from: chunk, matcher: matcher, parentPath: parentPath)
-                            if !entries.isEmpty {
+                            // bug.0.4.177: die Wurzel erst nach der Prüfung schreiben (ein fremdes Medium unter dem Pfad
+                            // käme sonst schon stückweise in den Index); sie geht als ein Stapel unten in `batch`.
+                            if !entries.isEmpty, parent.id != nil {
                                 do {
                                     try await store.applyDirectories(
                                         mediumUUID: mediumUUID,
@@ -323,6 +330,18 @@ nonisolated struct DirectoryIndexer: Sendable {
                             if let halt = await stopped(shouldHalt), halt != .none {
                                 throw DirectoryIndexInterrupted(halt: halt)
                             }
+                        }
+                        // bug.0.4.177: Liest ein Ordner leer, der Inhalt hatte (bzw. fehlt in der Wurzel alles Bisherige),
+                        // erst prüfen, ob das Medium noch eingehängt ist – ein leerer Einhängeordner nach dem Auswerfen
+                        // würde sonst den Index samt Favoriten als entfernt markieren. Nicht eingehängt: Lauf endet wie
+                        // beim Aushängen, nichts wird entfernt.
+                        if await mediumVanished(
+                            folderEntries: folderEntries, parentID: parent.id, previousRootNames: previousRootNames,
+                            store: store, access: access, mediumUUID: mediumUUID, stored: stored, mountPath: volume.mountPath
+                        ) {
+                            DiskIndexLog.shared.record(.index, .error, "medium nicht mehr eingehängt medium=\(mediumUUID)")
+                            try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
+                            return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
                         }
                         if !folderEntries.isEmpty {
                             batch.append((parentID: parent.id, path: parent.path ?? "/", depth: depth, entries: folderEntries, finalize: true))
@@ -434,6 +453,13 @@ nonisolated struct DirectoryIndexer: Sendable {
         }
 
         if needsCounting { await countWholeTree() }
+        // bug.0.4.177 (b): vor dem Abschluss eines bis zum Ende gelaufenen Laufs (danach wird Verschwundenes gelöscht)
+        // noch einmal prüfen, ob das Medium eingehängt ist; sonst endet der Lauf wie beim Aushängen.
+        if !(await access.mediumIsMounted(stored, mountPath: volume.mountPath)) {
+            DiskIndexLog.shared.record(.index, .error, "medium vor dem abschluss nicht eingehängt medium=\(mediumUUID)")
+            try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
+            return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
+        }
         await noteIndexing(finished: true)
         let stamped = Date()
         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
@@ -647,6 +673,33 @@ nonisolated struct DirectoryIndexer: Sendable {
             firstIndexedAt: fresh?.firstIndexedAt ?? stored.firstIndexedAt,
             interrupted: interrupted
         )
+    }
+
+    /// bug.0.4.177 (a): Nur im Fall „leer gelesen, hatte Inhalt“ (bzw. in der Wurzel „kein bisheriger Eintrag mehr
+    /// da“) wird das Medium geprüft – nicht je Ordner. Ist der bisherige Inhalt nicht lesbar, wird vorsichtshalber geprüft.
+    private func mediumVanished(
+        folderEntries: [ScannedEntry],
+        parentID: Int64?,
+        previousRootNames: Set<String>?,
+        store: IndexStoreV3,
+        access: any MediumAccess,
+        mediumUUID: UUID,
+        stored: StoredMedium,
+        mountPath: String
+    ) async -> Bool {
+        if folderEntries.isEmpty {
+            let previous = try? await store.children(mediumUUID: mediumUUID, parentID: parentID, limit: 1)
+            if let previous, previous.isEmpty { return false }
+        } else if parentID == nil {
+            guard let previous = previousRootNames else {
+                return !(await access.mediumIsMounted(stored, mountPath: mountPath))
+            }
+            let names = Set(folderEntries.map(\.name))
+            guard !previous.isEmpty, previous.isDisjoint(with: names) else { return false }
+        } else {
+            return false
+        }
+        return !(await access.mediumIsMounted(stored, mountPath: mountPath))
     }
 
     private func stopped(_ shouldHalt: @Sendable () async -> ScanHalt) async -> ScanHalt? {

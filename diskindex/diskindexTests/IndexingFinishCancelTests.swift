@@ -147,6 +147,8 @@ import Testing
 }
 
 private final class GateUntilReleaseAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     let inner: MemoryVolume
     private let state = FinishCancelGateState()
     let entered = FinishCancelSignal()
@@ -174,6 +176,8 @@ private final class GateUntilReleaseAccess: MediumAccess, @unchecked Sendable {
 }
 
 private final class CountingHoldAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     let inner: MemoryVolume
     private let state = FinishCancelHoldState()
     let entered = FinishCancelSignal()

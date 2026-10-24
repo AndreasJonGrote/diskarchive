@@ -22,6 +22,8 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
     private let lock = NSLock()
     private(set) var listed: [String] = []
     private var rootError: Error?
+    private var ejected = false
+    private var foreign = false
     private var slowFromDepth: Int?
 
     init(mountPath: String) {
@@ -102,6 +104,31 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
 
+    /// bug.0.4.177: Medium ausgeworfen, der Einhängepunkt bleibt als leerer Ordner stehen – die Wurzel liest leer,
+    /// alles darunter fehlt, und die Prüfung „dieses Medium ist eingehängt“ sagt nein.
+    func eject() {
+        lock.lock()
+        defer { lock.unlock() }
+        ejected = true
+    }
+
+    private var isEjected: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return ejected
+    }
+
+    /// bug.0.4.177: unter dem Pfad ist ein anderes Medium eingehängt (eigener Inhalt, die Prüfung sagt nein).
+    func markForeign() {
+        lock.lock()
+        defer { lock.unlock() }
+        foreign = true
+    }
+
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool {
+        lock.withLock { !ejected && !foreign }
+    }
+
     /// Das Lesen des Wurzelordners schlägt mit genau diesem Fehler fehl (Fehlergrund-Tests, 202).
     func failRoot(with error: Error) {
         lock.lock()
@@ -138,6 +165,10 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
         let node = recordListing(path)
         if path == URL(fileURLWithPath: mountPath).standardizedFileURL.path, let injected = injectedRootError() {
             throw injected
+        }
+        if isEjected {
+            if path == URL(fileURLWithPath: mountPath).standardizedFileURL.path { return [] }
+            throw CocoaError(.fileReadNoSuchFile)
         }
         guard let node else { throw CocoaError(.fileReadNoSuchFile) }
         if node.unreadable { throw CocoaError(.fileReadNoPermission) }

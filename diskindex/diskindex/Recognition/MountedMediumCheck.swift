@@ -11,11 +11,22 @@ import Darwin
 import Foundation
 
 nonisolated enum MountedMediumCheck {
-    static func isMounted(_ medium: StoredMedium, at path: String, timeout: TimeInterval = VolumeLookup.defaultTimeout) async -> Bool {
-        let url = URL(fileURLWithPath: path, isDirectory: true)
-        let info = await VolumeLookup.info(at: url, timeout: timeout, lookup: { url in
+    /// `lookup` (nur Tests ersetzen ihn) läuft auf einer Hintergrund-Queue; `completion` meldet, wann er wirklich
+    /// zurückkehrt (bug.0.4.179: eine hängende Prüfung zählt wie ein hängender Lesevorgang des Mediums).
+    static func isMounted(
+        _ medium: StoredMedium,
+        at path: String,
+        timeout: TimeInterval = VolumeLookup.defaultTimeout,
+        lookup: @escaping @Sendable (URL) -> VolumeInfo? = { url in
             guard isMountPoint(url.path) else { return nil }
             return VolumeLookup.infoSyncForFlights(at: url)
+        },
+        completion: PartialReadCompletion? = nil
+    ) async -> Bool {
+        let url = URL(fileURLWithPath: path, isDirectory: true)
+        let info = await VolumeLookup.info(at: url, timeout: timeout, lookup: { url in
+            defer { completion?.finish() }
+            return lookup(url)
         })
         guard let info else { return false }
         return MediumCodecV3.match(stored: medium, identity: info.identity) != nil

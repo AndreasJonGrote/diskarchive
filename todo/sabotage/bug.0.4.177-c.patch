@@ -1,0 +1,12 @@
+# Test: FatReconnectIndexerTests/ejectDuringThePartialReadWithAnEmptyMountFolderKeepsTheFavorite()
+--- a/diskindex/diskindex/Indexing/PartialChecksum.swift
++++ b/diskindex/diskindex/Indexing/PartialChecksum.swift
+@@ -129,7 +129,7 @@
+                 guard FileManager.default.fileExists(atPath: path) else {
+                     // bug.0.4.177 (c): fehlt die Datei, nur dann „fehlt“, wenn der Einhängepunkt noch einer ist (nach dem
+                     // Auswerfen bleibt oft ein leerer Ordner stehen).
+-                    if let mountPath, !isMountPoint(mountPath) {
++                    if let mountPath, !FileManager.default.fileExists(atPath: mountPath) {
+                         once.resume((.unreadable, false))
+                     } else {
+                         once.resume((.missing, false))

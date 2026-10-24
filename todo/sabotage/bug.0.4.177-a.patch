@@ -1,0 +1,11 @@
+# Test: EjectDuringRunTests/ejectedMediumReadingEmptyRemovesNothing()
+--- a/diskindex/diskindex/Indexing/DirectoryIndexer.swift
++++ b/diskindex/diskindex/Indexing/DirectoryIndexer.swift
+@@ -679,6 +679,7 @@
+         stored: StoredMedium,
+         mountPath: String
+     ) async -> Bool {
++        if !mountPath.isEmpty { return false }
+         if folderEntries.isEmpty {
+             let previous = try? await store.children(mediumUUID: mediumUUID, parentID: parentID, limit: 1)
+             if let previous, previous.isEmpty { return false }

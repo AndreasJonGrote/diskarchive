@@ -1,0 +1,12 @@
+# Test: EjectDuringRunTests/foreignMediumAtThePathIsNotTakenIntoTheIndex()
+--- a/diskindex/diskindex/Indexing/DirectoryIndexer.swift
++++ b/diskindex/diskindex/Indexing/DirectoryIndexer.swift
+@@ -695,7 +695,7 @@
+                 return !(await access.mediumIsMounted(stored, mountPath: mountPath))
+             }
+             let names = Set(folderEntries.map(\.name))
+-            guard !previous.isEmpty, previous.isDisjoint(with: names) else { return false }
++            guard !previous.isEmpty, previous.isDisjoint(with: names), names.isEmpty else { return false }
+         } else {
+             return false
+         }

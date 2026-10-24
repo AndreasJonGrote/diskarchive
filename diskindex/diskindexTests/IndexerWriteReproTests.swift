@@ -78,6 +78,8 @@ import Testing
 }
 
 private final class PauseAfterFirstListVolume: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     let mountPath: String
     private let inner: MemoryVolume
     private(set) var shouldPause = false
@@ -100,6 +102,8 @@ private final class PauseAfterFirstListVolume: MediumAccess, @unchecked Sendable
 }
 
 private final class HungListVolume: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     let mountPath: String
     private let inner: MemoryVolume
 

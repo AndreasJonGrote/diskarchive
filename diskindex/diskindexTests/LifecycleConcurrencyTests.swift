@@ -229,6 +229,8 @@ struct LifecycleConcurrencyTests {
 
 /// Zugriff mit anhaltbarer Probe (Zustand je Test).
 nonisolated private final class GatedProbeAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     private let lock = NSLock()
     private var result: MediumAccessResult = .granted
     private var holdNext = false

@@ -1072,7 +1072,9 @@ private struct HorizontalScrollSignature: Equatable {
     /// zwischengespeicherten Spalte) gilt als unbekannt; „live gelöscht“ ist erst der Wechsel von nicht leer zu leer.
     var recordable: HorizontalScrollSignature {
         var copy = self
-        if copy.selectionNames?.isEmpty == true { copy.selectionNames = nil }
+        // bug.0.4.180 (b): nur vollständig aufzeichnen – fehlt ein Teil einer Mehrfachauswahl noch im Cache, gilt die
+        // Liste als unbekannt (sonst wäre das spätere Neuladen mit allen Namen ein „geändert“).
+        if let names = copy.selectionNames, names.isEmpty || names.count < copy.selection.count { copy.selectionNames = nil }
         return copy
     }
 

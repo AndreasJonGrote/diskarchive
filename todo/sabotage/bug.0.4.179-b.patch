@@ -1,0 +1,13 @@
+# Test: MountedMediumCheckTests/hangingMountCheckCountsAsHangingAccess()
+--- a/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
++++ b/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
+@@ -1039,9 +1039,6 @@
+             mounted = await MountedMediumCheck.isMounted(stored, at: mountPath, timeout: mountLookupTimeout, lookup: lookup, completion: completion)
+         } else {
+             mounted = await MountedMediumCheck.isMounted(stored, at: mountPath, timeout: mountLookupTimeout, completion: completion)
+-        }
+-        if completion.markHanging(onEnd: { Task { await self.partialReadReturned(mediumUUID) } }) {
+-            hangingPartialReads[mediumUUID, default: 0] += 1
+         }
+         return mounted
+     }

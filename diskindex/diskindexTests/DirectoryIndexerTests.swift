@@ -363,7 +363,7 @@ import Testing
 
         let harness = try await ScanHarness.make()
         let outcome = try await harness.run(
-            access: DirectMediumAccess(),
+            access: DirectMediumAccess(mountCheck: { _, _ in true }),
             maxDepth: nil,
             volume: harness.volume(at: root.path)
         )
@@ -396,7 +396,7 @@ import Testing
         let harness = try await ScanHarness.make()
         let started = ContinuousClock.now
         let outcome = try await harness.run(
-            access: DirectMediumAccess(),
+            access: DirectMediumAccess(mountCheck: { _, _ in true }),
             maxDepth: nil,
             volume: harness.volume(at: root.path)
         )

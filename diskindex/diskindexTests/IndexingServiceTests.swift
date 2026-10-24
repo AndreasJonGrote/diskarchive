@@ -69,6 +69,8 @@ import Testing
 
 
 private final class BlockingAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     let entered = Signal()
     let release = Signal()
     private let lock = NSLock()

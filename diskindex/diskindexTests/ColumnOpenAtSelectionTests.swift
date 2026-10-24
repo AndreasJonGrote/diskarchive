@@ -52,9 +52,10 @@ extension WindowTestGroup {
 struct ColumnOpenAtSelectionTests {
     private static let size = CGSize(width: 1040, height: 600)
 
-    private func open(_ app: AppState, tableMinimum: Int?) -> PixelProbe.Session {
+    private func open(_ app: AppState, tableMinimum: Int?, settle: Duration = .milliseconds(300)) -> PixelProbe.Session {
         let view = ColumnBrowserView()
             .environment(app)
+            .environment(\.columnScrollSettleDelay, settle)
             .environment(\.columnTableViewMinimum, tableMinimum ?? ColumnFolderListThreshold.tableViewMinimum)
             .environment(\.colorScheme, .light)
             .frame(width: Self.size.width, height: Self.size.height)
@@ -161,7 +162,8 @@ struct ColumnOpenAtSelectionTests {
                      "Voraussetzung: Datei fehlt im Cache")
         let result = SearchResultItem(item: IndexedItem(stored: added, parentPath: path), mediumID: tree.mediumID)
         MediumNavigation.openObject(result, appState: tree.app)
-        let session = open(tree.app, tableMinimum: 10)
+        // bug.0.4.180 (a): Ruhezeit großzügig – das Neuladen unten fällt sicher in den offenen Auftrag.
+        let session = open(tree.app, tableMinimum: 10, settle: .seconds(5))
         defer { session.close() }
         // Positives Signal: die Ansicht steht mit der alten Spalte (Auftrag läuft), dann lädt D neu.
         try #require(await waitUntil {
@@ -179,6 +181,46 @@ struct ColumnOpenAtSelectionTests {
         }
         let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window)
         #expect(shown, "nach dem Neuladen nicht an der Stelle: waagerecht \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1)")
+    }
+
+    /// bug.0.4.180 (b): Mehrfachauswahl, von der nur ein Teil in der zwischengespeicherten Spalte steht – der Auftrag
+    /// merkt sich die unvollständige Namensliste nicht; nach dem Neuladen (beide da) wird zur Stelle gescrollt.
+    @Test func multiSelectionPartlyMissingInTheCachedColumnScrollsAfterReload() async throws {
+        let tree = try await DeepFolder.make()
+        try #require(tree.files.count == 300)
+        let path = ["A", "B", "C", "D"]
+        _ = await tree.app.indexRepository.loadChildren(mediumID: tree.mediumID, path: path)
+        let folderD = try #require(try await tree.store.folderID(mediumUUID: tree.mediumID, path: path))
+        let names = (1...300).map { String(format: "datei-%03d.txt", $0) } + ["datei-301.txt"]
+        try await tree.store.applyDirectory(
+            mediumUUID: tree.mediumID, parentID: folderD,
+            entries: names.map { ScannedEntry(name: $0, isFolder: false, sizeBytes: 1, modifiedAt: Date()) }, seenAt: Date()
+        )
+        let added = try #require(try await tree.store.children(mediumUUID: tree.mediumID, parentID: folderD).first { $0.name == "datei-301.txt" })
+        let present = try #require(tree.files.last)
+        let result = SearchResultItem(item: IndexedItem(stored: added, parentPath: path), mediumID: tree.mediumID)
+        MediumNavigation.openObject(result, appState: tree.app)
+        // Zweite Datei (im Cache vorhanden) dazu: Auswahl aus einer fehlenden und einer vorhandenen Zeile.
+        let addedID = IndexedItem(stored: added, parentPath: path).id
+        let presentID = IndexedItem(stored: present, parentPath: path).id
+        tree.app.columnBrowserState.selection = ColumnSelection(
+            ids: [presentID, addedID], anchorID: presentID, focusColumnIndex: path.count, lastClickedID: addedID
+        )
+        let session = open(tree.app, tableMinimum: 10, settle: .seconds(5))
+        defer { session.close() }
+        try #require(await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            return ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window) != nil
+        })
+        tree.app.indexRepository.invalidate(mediumID: tree.mediumID, path: path)
+        let shown = await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            session.window.display()
+            guard let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window) else { return false }
+            return ColumnAutoScrollTestSupport.detailTrailingFlushWithViewport(main) && main.documentVisibleRect.minX > 1.5
+        }
+        let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window)
+        #expect(shown, "Mehrfachauswahl: nach dem Neuladen nicht an der Stelle: \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1)")
     }
 
     /// Pfeiltasten: `onKeyPress` braucht ein Key-Fenster (Regel 19/21 verbieten das, „Frage:“ im Status). Geprüft wird

@@ -10,6 +10,8 @@ import Foundation
 @testable import diskindex
 
 final class RunGateAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     private let volumes: [MemoryVolume]
     private let holds: @Sendable (String) -> Bool
     private let state = RunGateState()

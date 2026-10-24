@@ -98,7 +98,13 @@ extension IndexStoreV3 {
         let filtered: [StoredItem]
         if let scope {
             if scope.checksNames { nameChecks.add(rows.count) }
-            filtered = rows.filter { !scope.hides(name: $0.name, depth: $0.depth) }
+            // bug.0.4.178: die Tiefe gilt immer (wie in `childCount`), nicht erst, wenn der Regelabgleich die Zeilen
+            // umgestellt hat – sonst zeigt eine neu geladene Spalte jenseits einer verkleinerten Scan-Tiefe kurz Inhalt.
+            let maxDepth = scope.maxDepth
+            filtered = rows.filter { row in
+                if let maxDepth, row.depth > maxDepth { return false }
+                return !scope.hides(name: row.name, depth: row.depth)
+            }
         } else {
             filtered = rows
         }

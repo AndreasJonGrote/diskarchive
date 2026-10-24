@@ -11,6 +11,8 @@ import Testing
 @testable import diskindex
 
 struct SyntheticMediumAccess: MediumAccess {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     var foldersPerDirectory: Int
     var filesPerDirectory: Int
     var maxDepth: Int

@@ -105,7 +105,7 @@ import Testing
         try await harness.store.upsertMedium(stored)
         let app = AppState()
         app.media = [bulkTestMedium(from: stored)]
-        let access = DirectMediumAccess()
+        let access = DirectMediumAccess(mountCheck: { _, _ in true })
         let service = IndexingService(store: harness.store, access: access, appState: app)
         let volume = harness.volume(at: root.path)
         DiskIndexLog.shared.record(.index, .info, "MARK bulk2000")

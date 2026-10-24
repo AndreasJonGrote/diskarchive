@@ -99,7 +99,7 @@ struct LiveWatchRig {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
         let store = IndexStoreV3(database: database)
-        let access = DirectMediumAccess()
+        let access = DirectMediumAccess(mountCheck: { _, _ in true })
         let app = AppState(store: store)
         let service = IndexingService(store: store, access: access, appState: app)
         let coordinator = MediumCoordinator(store: store, access: access, appState: app)

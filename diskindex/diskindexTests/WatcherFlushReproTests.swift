@@ -112,6 +112,8 @@ struct WatcherFlushReproTests {
 }
 
 private final class GatedMapAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     var listings: [String: [ListedDirectoryEntry]] = [:]
     private var listCountStorage: [String: Int] = [:]
     private let lock = NSLock()

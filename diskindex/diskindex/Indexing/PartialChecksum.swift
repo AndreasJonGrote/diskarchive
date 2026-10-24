@@ -108,13 +108,15 @@ extension PartialChecksum {
     /// bug.0.4.169: Teil-Prüfsumme auf einer Hintergrund-Queue mit Zeitgrenze; anders als `computeOffActor` zählt die
     /// Zeitgrenze als „unlesbar“, nicht als „fehlt“. `timedOut`: die Zeitgrenze lief ab (das Lesen hängt womöglich
     /// weiter auf seinem Faden – der Aufrufer startet dann kein weiteres Lesen auf demselben Medium).
-    /// `mountPath`: fehlt mit der Datei auch der Einhängepunkt (Medium ausgeworfen), ist das „unlesbar“, nicht „fehlt“.
+    /// `mountPath`: ist er mit der fehlenden Datei kein Einhängepunkt mehr (Medium ausgeworfen), ist das „unlesbar“,
+    /// nicht „fehlt“.
     static func readOffActor(
         at fileURL: URL,
         mountPath: String? = nil,
         timeout: Duration = .seconds(5),
         beforeRead: (@Sendable (URL) -> Void)? = nil,
-        afterRead: (@Sendable () -> Void)? = nil
+        afterRead: (@Sendable () -> Void)? = nil,
+        isMountPoint: @escaping @Sendable (String) -> Bool = { MountedMediumCheck.isMountPoint($0) }
     ) async -> (outcome: PartialReadOutcome, timedOut: Bool) {
         let path = fileURL.path
         let seconds = Double(timeout.components.seconds) + Double(timeout.components.attoseconds) / 1e18
@@ -125,7 +127,9 @@ extension PartialChecksum {
                 defer { afterRead?() }
                 beforeRead?(fileURL)
                 guard FileManager.default.fileExists(atPath: path) else {
-                    if let mountPath, !FileManager.default.fileExists(atPath: mountPath) {
+                    // bug.0.4.177 (c): fehlt die Datei, nur dann „fehlt“, wenn der Einhängepunkt noch einer ist (nach dem
+                    // Auswerfen bleibt oft ein leerer Ordner stehen).
+                    if let mountPath, !isMountPoint(mountPath) {
                         once.resume((.unreadable, false))
                     } else {
                         once.resume((.missing, false))

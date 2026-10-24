@@ -146,6 +146,8 @@ private func wakeMedium(from stored: StoredMedium) -> Medium {
 }
 
 private final class WakeGateAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     let inner: MemoryVolume
     private let state = WakeGateState()
     let entered = WakeSignal()

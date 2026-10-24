@@ -12,11 +12,14 @@ import GRDB
 actor IndexStoreV3 {
     nonisolated let pool: DatabasePool
     private var indexingToken: [UUID: UUID] = [:]
-    private var revokedIndexingTokens: Set<UUID> = []
+    /// Widerrufene Tokens → ihr Medium (bug.0.4.180 c: beim Vergessen des Mediums aufräumen).
+    private var revokedIndexingTokens: [UUID: UUID] = [:]
     private var insertedIDsDuringRun: [UUID: Set<Int64>] = [:]
     /// bug.0.4.169 (b): Zeitgrenze je gelesener Teil-Prüfsumme am Laufende und für alle zusammen.
     private var partialReadTimeout: Duration = .seconds(5)
     private var partialReadBudget: Duration = .seconds(30)
+    /// bug.0.4.179: Zeitgrenze der Prüfung „dieses Medium ist eingehängt“ (Tests kürzer).
+    private var mountLookupTimeout: TimeInterval = VolumeLookup.defaultTimeout
     /// Obergrenze der Länge des Merkers (≈ 50.000 IDs, Zeichen; bug.0.4.171 je Store, Tests kleiner).
     private var pendingReconnectMaxLength = 50_000 * 8
     /// bug.0.4.169 (c): Medien, deren Laufende gerade liest bzw. schreibt; ein neuer Lauf desselben Mediums wartet so
@@ -462,6 +465,7 @@ actor IndexStoreV3 {
     }
 
     func forgetMedium(uuid: UUID) async throws {
+        clearRunLeftovers(uuid)
         try await pool.write { db in
             guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }
             try MediumCodecV3.setMeta(db, id, .isForgotten, value: "1")
@@ -473,6 +477,7 @@ actor IndexStoreV3 {
         if deleteMediumFailUUIDs.contains(uuid) {
             throw CocoaError(.fileWriteUnknown)
         }
+        clearRunLeftovers(uuid)
         do {
             let deleted = try await pool.write { db -> Bool in
                 // bug.0.4.108: die Kaskade löscht alle Zeilen des Mediums – als Wartungsschuld buchen, sonst bleibt die
@@ -808,7 +813,7 @@ actor IndexStoreV3 {
         while finishingMedia.contains(mediumUUID) {
             await withCheckedContinuation { finishWaiters[mediumUUID, default: []].append($0) }
         }
-        if revokedIndexingTokens.remove(token) != nil { return false }
+        if revokedIndexingTokens.removeValue(forKey: token) != nil { return false }
         #if DEBUG
         if beginIndexingRejected { return false }
         #endif
@@ -861,11 +866,11 @@ actor IndexStoreV3 {
         // anderes Token (wartender Nachhol-Lauf, abgebrochen) wird widerrufen, damit `beginIndexing` nach dem Warten
         // abbricht (bug.0.4.174).
         if finishingMedia.contains(mediumUUID) {
-            if indexingToken[mediumUUID] != token { revokedIndexingTokens.insert(token) }
+            if indexingToken[mediumUUID] != token { revokedIndexingTokens[token] = mediumUUID }
             return false
         }
         guard indexingToken[mediumUUID] == token else {
-            revokedIndexingTokens.insert(token)
+            revokedIndexingTokens[token] = mediumUUID
             return false
         }
         let insertedIDs = insertedIDsDuringRun.removeValue(forKey: mediumUUID) ?? []
@@ -899,6 +904,14 @@ actor IndexStoreV3 {
             #endif
             // bug.0.4.169 (b): Zeitgrenze je Datei und gesamt; nach der ersten Zeitüberschreitung (Medium hängt) kein
             // weiteres Lesen – die übrigen Kandidaten gelten als unlesbar und bleiben.
+            #if DEBUG
+            let testFolderCheck: @Sendable (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+            let realCheck: @Sendable (String) -> Bool = { MountedMediumCheck.isMountPoint($0) }
+            let mountPointCheck: @Sendable (String) -> Bool = mountPointCheckForTesting
+                ?? (mountCheckForTesting != nil ? testFolderCheck : realCheck)
+            #else
+            let mountPointCheck: @Sendable (String) -> Bool = { MountedMediumCheck.isMountPoint($0) }
+            #endif
             var outcomes: [Int64: PartialReadOutcome] = [:]
             let clock = ContinuousClock()
             let deadline = clock.now + partialReadBudget
@@ -906,27 +919,13 @@ actor IndexStoreV3 {
             // Datei nichts (leerer Einhängepunkt nach Absturz, anderes Medium unter demselben Pfad): alle unlesbar.
             var stopped = false
             if !requests.isEmpty {
-                let mounted: Bool
-                if let stored {
-                    #if DEBUG
-                    if let check = mountCheckForTesting {
-                        mounted = await check(mountPath, stored)
-                    } else {
-                        mounted = await MountedMediumCheck.isMounted(stored, at: mountPath)
-                    }
-                    #else
-                    mounted = await MountedMediumCheck.isMounted(stored, at: mountPath)
-                    #endif
-                } else {
-                    mounted = false
-                }
-                if !mounted {
-                    stopped = true
-                    DiskIndexLog.shared.record(.index, .info, "reconnect medium not mounted candidates=\(requests.count)")
-                } else if hangingPartialReads[mediumUUID, default: 0] > 0 {
-                    // bug.0.4.176 (b): ein früherer Lesevorgang hängt noch – keinen weiteren starten.
+                if hangingPartialReads[mediumUUID, default: 0] > 0 {
+                    // bug.0.4.176 (b)/179: ein früherer Zugriff (Lesen oder Prüfung) hängt noch – keinen weiteren starten.
                     stopped = true
                     DiskIndexLog.shared.record(.index, .info, "reconnect earlier read still hanging candidates=\(requests.count)")
+                } else if !(await mediumIsMounted(stored, mountPath: mountPath, mediumUUID: mediumUUID)) {
+                    stopped = true
+                    DiskIndexLog.shared.record(.index, .info, "reconnect medium not mounted candidates=\(requests.count)")
                 }
             }
             for request in requests {
@@ -938,7 +937,7 @@ actor IndexStoreV3 {
                 let completion = PartialReadCompletion()
                 let read = await PartialChecksum.readOffActor(
                     at: request.url, mountPath: mountPath, timeout: min(partialReadTimeout, remaining), beforeRead: hook,
-                    afterRead: { completion.finish() }
+                    afterRead: { completion.finish() }, isMountPoint: mountPointCheck
                 )
                 outcomes[request.id] = read.outcome
                 if read.timedOut {
@@ -1025,6 +1024,40 @@ actor IndexStoreV3 {
         }
         emit(.medium(mediumUUID))
         return true
+    }
+
+    /// bug.0.4.175/179: Ist unter dem Pfad dieses Medium eingehängt? Hängt die Prüfung über ihre Zeitgrenze hinaus, zählt
+    /// sie als hängender Zugriff des Mediums (wie ein Lesevorgang, bug.0.4.176 b).
+    private func mediumIsMounted(_ stored: StoredMedium?, mountPath: String, mediumUUID: UUID) async -> Bool {
+        guard let stored else { return false }
+        #if DEBUG
+        if let check = mountCheckForTesting { return await check(mountPath, stored) }
+        let lookup = mountLookupForTesting
+        #else
+        let lookup: (@Sendable (URL) -> VolumeInfo?)? = nil
+        #endif
+        let completion = PartialReadCompletion()
+        let mounted: Bool
+        if let lookup {
+            mounted = await MountedMediumCheck.isMounted(stored, at: mountPath, timeout: mountLookupTimeout, lookup: lookup, completion: completion)
+        } else {
+            mounted = await MountedMediumCheck.isMounted(stored, at: mountPath, timeout: mountLookupTimeout, completion: completion)
+        }
+        if completion.markHanging(onEnd: { Task { await self.partialReadReturned(mediumUUID) } }) {
+            hangingPartialReads[mediumUUID, default: 0] += 1
+        }
+        return mounted
+    }
+
+    /// bug.0.4.180 (c, d): Reste früherer Läufe eines vergessenen oder gelöschten Mediums – widerrufene Tokens, deren
+    /// Beginn nie kommt, und noch hängende Zugriffe – nicht mehr führen.
+    private func clearRunLeftovers(_ mediumUUID: UUID) {
+        // Wartet noch ein Beginn auf den Abschluss dieses Mediums, braucht er seinen Widerruf (bug.0.4.174) – dann bleibt
+        // er stehen und wird beim Beginn verbraucht.
+        if !finishingMedia.contains(mediumUUID), finishWaiters[mediumUUID, default: []].isEmpty {
+            revokedIndexingTokens = revokedIndexingTokens.filter { $0.value != mediumUUID }
+        }
+        hangingPartialReads[mediumUUID] = nil
     }
 
     /// bug.0.4.176 (b): ein hängender Lesevorgang ist zurückgekehrt.
@@ -1140,6 +1173,10 @@ actor IndexStoreV3 {
     #if DEBUG
     /// Tests (bug.0.4.165 a): Stapel, die den Merker beschrieben haben.
     private(set) var pendingReconnectWritesForTesting = 0
+    /// Tests (bug.0.4.180 c): widerrufene Tokens eines Mediums, deren Beginn noch aussteht.
+    func revokedIndexingTokensForTesting(mediumUUID: UUID) -> Int {
+        revokedIndexingTokens.values.filter { $0 == mediumUUID }.count
+    }
     /// Tests (bug.0.4.176 b): Lesevorgänge des Mediums, die noch über ihre Zeitgrenze hinaus hängen.
     func hangingPartialReadsForTesting(mediumUUID: UUID) -> Int { hangingPartialReads[mediumUUID] ?? 0 }
     /// Tests (bug.0.4.171): Länge des gespeicherten Merkers (Zeichen).
@@ -1160,6 +1197,16 @@ actor IndexStoreV3 {
     /// ein eingehängtes Medium).
     func setMountCheckForTesting(_ check: (@Sendable (String, StoredMedium) async -> Bool)?) { mountCheckForTesting = check }
     private var mountCheckForTesting: (@Sendable (String, StoredMedium) async -> Bool)?
+    /// Tests (bug.0.4.177 c): ersetzt die Prüfung „der Einhängepunkt ist noch einer“ beim Lesen (lesender Faden). Ohne
+    /// diesen Haken, aber mit `mountCheckForTesting`, gilt der Testordner als Einhängepunkt, solange es ihn gibt.
+    func setMountPointCheckForTesting(_ check: (@Sendable (String) -> Bool)?) { mountPointCheckForTesting = check }
+    private var mountPointCheckForTesting: (@Sendable (String) -> Bool)?
+    /// Tests (bug.0.4.179): ersetzt nur die Volume-Abfrage der echten Prüfung (mit eigener Zeitgrenze).
+    func setMountLookupForTesting(_ lookup: (@Sendable (URL) -> VolumeInfo?)?, timeout: TimeInterval) {
+        mountLookupForTesting = lookup
+        mountLookupTimeout = timeout
+    }
+    private var mountLookupForTesting: (@Sendable (URL) -> VolumeInfo?)?
     /// Tests (bug.0.4.171): Obergrenze des Merkers (Zeichen) kleiner setzen.
     func setPendingReconnectMaxLengthForTesting(_ length: Int) { pendingReconnectMaxLength = length }
     /// Tests (bug.0.4.171): läuft vor jedem Nachschlagen einer vorab gelesenen Teil-Prüfsumme in der Transaktion.

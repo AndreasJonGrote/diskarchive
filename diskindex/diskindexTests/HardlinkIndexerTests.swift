@@ -22,7 +22,7 @@ struct HardlinkIndexerTests {
 
         let harness = try await ScanHarness.make(fsType: "apfs")
         let volume = harness.volume(at: root.path)
-        let access = DirectMediumAccess()
+        let access = DirectMediumAccess(mountCheck: { _, _ in true })
         _ = try await harness.run(access: access, maxDepth: nil, fromScratch: true, volume: volume)
         let firstA = try #require(try await harness.item(named: "a.txt"))
         let firstB = try #require(try await harness.item(named: "b.txt"))

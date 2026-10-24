@@ -227,6 +227,8 @@ func watchRig() async throws -> WatchRig {
 }
 
 final class MapAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     var listings: [String: [ListedDirectoryEntry]] = [:]
     private var listCountStorage: [String: Int] = [:]
     var failing: Set<String> = []
@@ -268,6 +270,8 @@ final class ReconcileLog: @unchecked Sendable {
 }
 
 final class BlockingListAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     let entered = SurfaceAsyncSignal()
     let release = SurfaceAsyncSignal()
     private let lock = NSLock()
@@ -309,6 +313,8 @@ actor SurfaceAsyncSignal {
 }
 
 final class GrantedAccess: MediumAccess, @unchecked Sendable {
+    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] { [] }
 }
