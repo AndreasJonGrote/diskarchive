@@ -1,0 +1,21 @@
+# Paket 18 — Zielversion 0.4.0 (freigegeben 24.10.2026)
+
+Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Invarianten in `konzept/architektur.md`). Volltexte von Paket 17: [archiv/paket-17-abgenommen-2026-10-24.md](../archiv/paket-17-abgenommen-2026-10-24.md).
+
+**Für jede Aufgabe gilt:** Test vor dem Fix rot (im Status belegen), danach grün; **Sabotage als Patch** unter `todo/sabotage/` (Regel 9); Selbstprüfung mit den fünf Fragen (Regel 12); Zeilenangaben sind Richtwerte (Regel 3).
+
+**Reihenfolge (HALT am Ende):** `bug.0.4.175` (schwer, zuerst), `174`, `173`, `176`. **HALT.**
+
+## Prüfbefunde Paket 17 (Host 24.10., zwei Prüf-Agenten, Stichprobe Host)
+
+- **bug.0.4.175 — Fehlende Datei bei nicht eingehängtem Medium gilt als „fehlt“ (mittel, Datenverlust, Invariante 1).** `PartialChecksum.swift` Z. ~124–131 wertet „Datei fehlt“ nur dann als unlesbar, wenn der Einhängepunkt selbst fehlt. Bleibt der Einhängepunkt als leerer Ordner in `/Volumes` stehen (nach Absturz oder unsauberem Auswerfen) oder liegt das Medium inzwischen unter einem anderen Pfad, wird eine fehlende Datei `.missing`; `verifyPartialMatch` gibt `nil` zurück und `deleteGoneItems` löscht den Kandidaten samt Favorit. **Fix:** vor dem Lesen feststellen, dass unter dem Pfad wirklich **dieses** Medium eingehängt ist (Einhängepunkt ist ein Mount, Volume-UUID bzw. Fingerabdruck wie bei der Erkennung, `VolumeLookup`); sonst alle Kandidaten des Laufs `.unreadable`. **Gegenprobe-Tests:** (a) Einhängepunkt als leerer Ordner, Medium nicht eingehängt → Favorit bleibt; (b) anderes Medium unter demselben Pfad → Favorit bleibt; (c) richtiges Medium, Datei wirklich weg → Kandidat wird gelöscht (der normale Weg bleibt). Je Patch rot ✓.
+  **Status:**
+
+- **bug.0.4.174 — Abbruch während des Abschlusses widerruft den nächsten Lauf nicht (mittel).** `IndexStoreV3.swift` Z. ~855: `if finishingMedia.contains(mediumUUID) { return false }` steht vor `revokedIndexingTokens.insert(token)`. Ablauf: Lauf T1 im Abschluss (bis ~35 s), Nachhol-Lauf T2 wartet in `beginIndexing`; der Nutzer wirft aus, sperrt oder pausiert → `cancel()` → `finishIndexing(T2)` gibt `false` zurück, ohne T2 zu widerrufen; danach setzt `beginIndexing(T2)` Token und Status `.indexing` für einen abgebrochenen Lauf. **Fix:** nur der Abschluss **desselben** Tokens gibt still `false`; ein anderes Token wird vorher widerrufen, sodass `beginIndexing(T2)` nach dem Warten abbricht. Test über Instanz-Haken (T1 im Abschluss angehalten, T2 wartet, `cancel`) → Status nie `.indexing`, kein Token für T2; Patch rot ✓.
+  **Status:**
+
+- **bug.0.4.173 — Spaltenansicht: Auswahl fehlt in der zwischengespeicherten Spalte (niedrig bis mittel, Rest von 168).** `ColumnBrowserView.swift` `selectedItemNames` Z. ~521–533 liefert `[]`, wenn die Spalte geladen ist, die gewählte ID aber (noch) fehlt – z. B. Suchtreffer auf eine Datei, die während einer Indizierung neu hinzukam, der Ordner liegt aber schon im Cache. Der Auftrag merkt sich `[]`; lädt die Spalte neu und enthält die Datei, gilt das als `.changed`, und der Scroll zur Details-Spalte bleibt aus. **Fix:** beim Beginn des Auftrags `[]` wie `nil` behandeln (nur nicht leere Namen aufzeichnen; „live gelöscht“ ist der Wechsel von nicht leer zu leer). Dazu den Kommentar „nach dem Laden neu prüfen“ in `continueHorizontalScroll` berichtigen bzw. nach dem Warten erneut prüfen. Test: Ordner im Cache ohne die Datei, Treffer öffnen, Ordner lädt neu mit Datei → Details-Spalte bündig; Patch rot ✓.
+  **Status:**
+
+- **bug.0.4.176 — Kleinkram aus Prüfung 17 (niedrig, höchstens 5 Punkte).** (a) `IndexStoreV3.storePendingReconnectIDs`/`writePendingReconnectIDs` am Laufende schreiben ohne die Grenze `pendingReconnectMaxLength` → gleiche Kürzung wie beim Anhängen. (b) Hängt auf einem Medium noch ein Lesevorgang aus einem früheren Lauf, startet ein neuer Lauf dort keine weiteren Lesevorgänge (Merker je Medium), damit sich über Läufe keine Threads anhäufen. (c) `trackInserts` während der Abschlussphase (Z. ~535/579): IDs aus `applyDirectories` in dieser Zeit nicht verlieren (in den Merker übernehmen) oder nachweisen, dass niemand schreibt (dann Kommentar). (d) `crashSection`: tote Prüfung der zweiten Startzeile entfernen. (e) Spinner-Pixeltest auch für hell (`0x20A04E`) mit eigenem Patch. Je Verhaltensänderung Test und Patch.
+  **Status:**
