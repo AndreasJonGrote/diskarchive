@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/IndexingSpinnerColorTests/spinnerHasTheStateOnlineColorInBothSchemes()
+--- a/diskindex/diskindex/DesignSystem/DesignTokens.swift
++++ b/diskindex/diskindex/DesignSystem/DesignTokens.swift
+@@ -13,7 +13,7 @@
+ nonisolated enum DesignColor {
+     // Rollenfarben. Hell bleibt der bisherige Wert, Dunkel folgt der Tabelle in Aufgabe 48.
+     static let control = pair(light: 0x1F1F1F, dark: 0xEAE9E9)
+-    static let stateOnline = pair(light: 0x20A04E, dark: 0x5BBD74)
++    static let stateOnline = pair(light: 0x20A070, dark: 0x5BBD74)
+     static let stateError = pair(light: 0xE04830, dark: 0xF57050)
+     static let stateIgnored = pair(light: 0xEDA12D, dark: 0xEDA12D)
+     static let filterSearch = pair(light: 0x3986E4, dark: 0x65A7FA)

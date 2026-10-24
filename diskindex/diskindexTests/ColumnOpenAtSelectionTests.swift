@@ -141,6 +141,46 @@ struct ColumnOpenAtSelectionTests {
         #expect(shown, "Auftrag brach während fremder Schreibvorgänge ab: waagerecht \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1)")
     }
 
+    /// bug.0.4.173: Der Ordner D liegt schon im Cache, die Datei des Treffers kam erst danach hinzu (laufende Indizierung)
+    /// → beim Öffnen fehlt sie in der zwischengespeicherten Spalte. D lädt neu und enthält sie → Details-Spalte bündig,
+    /// Zeile sichtbar (der Auftrag merkt sich keine leere Namensliste).
+    @Test func openObjectOfAFileMissingInTheCachedColumnScrollsAfterReload() async throws {
+        let tree = try await DeepFolder.make()
+        try #require(tree.files.count == 300)
+        let path = ["A", "B", "C", "D"]
+        _ = await tree.app.indexRepository.loadChildren(mediumID: tree.mediumID, path: path)
+        try #require(tree.app.indexRepository.hasLoadedChildren(mediumID: tree.mediumID, path: path), "D nicht im Cache")
+        let folderD = try #require(try await tree.store.folderID(mediumUUID: tree.mediumID, path: path))
+        let names = (1...300).map { String(format: "datei-%03d.txt", $0) } + ["datei-301.txt"]
+        try await tree.store.applyDirectory(
+            mediumUUID: tree.mediumID, parentID: folderD,
+            entries: names.map { ScannedEntry(name: $0, isFolder: false, sizeBytes: 1, modifiedAt: Date()) }, seenAt: Date()
+        )
+        let added = try #require(try await tree.store.children(mediumUUID: tree.mediumID, parentID: folderD).first { $0.name == "datei-301.txt" })
+        try #require(!tree.app.indexRepository.children(mediumID: tree.mediumID, path: path).contains { $0.name == "datei-301.txt" },
+                     "Voraussetzung: Datei fehlt im Cache")
+        let result = SearchResultItem(item: IndexedItem(stored: added, parentPath: path), mediumID: tree.mediumID)
+        MediumNavigation.openObject(result, appState: tree.app)
+        let session = open(tree.app, tableMinimum: 10)
+        defer { session.close() }
+        // Positives Signal: die Ansicht steht mit der alten Spalte (Auftrag läuft), dann lädt D neu.
+        try #require(await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            return ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window) != nil
+        })
+        tree.app.indexRepository.invalidate(mediumID: tree.mediumID, path: path)
+        let shown = await waitUntil {
+            session.window.contentView?.layoutSubtreeIfNeeded()
+            session.window.display()
+            guard let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window) else { return false }
+            return ColumnAutoScrollTestSupport.detailTrailingFlushWithViewport(main)
+                && main.documentVisibleRect.minX > 1.5
+                && Self.rowVisible(index: 300, of: 301, in: session.window)
+        }
+        let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window)
+        #expect(shown, "nach dem Neuladen nicht an der Stelle: waagerecht \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1)")
+    }
+
     /// Pfeiltasten: `onKeyPress` braucht ein Key-Fenster (Regel 19/21 verbieten das, „Frage:“ im Status). Geprüft wird
     /// der Weg dahinter wie in `commit`: neue Auswahl in der Spalte + Scroll-Auftrag → Zeile 40 sichtbar.
     private func runArrowKeys(tableMinimum: Int?) async throws {

@@ -669,5 +669,19 @@ struct RegressionSmokeRows {
     @Test func sortHeaderWholeWidthRow() async throws {
         try await SearchSortHeaderWindowTests().everySortableHeaderTogglesAcrossItsWholeWidth(dark: false, style: .system)
     }
+
+    /// bug.0.4.169/175: Favorit bleibt, wenn die Teil-Prüfsumme nicht sicher gelesen werden kann (neuer Kandidat während
+    /// des Lesens; leerer Einhängepunkt ohne Medium).
+    @Test func reconnectKeepsTheFavoriteOnUncertaintyRow() async throws {
+        try await FatReconnectIndexerTests().goneRowAppearingDuringTheReadKeepsItsFavorite()
+        try await FatReconnectIndexerTests().emptyMountFolderKeepsTheFavorite()
+    }
+
+    /// bug.0.4.168/173: Scroll-Auftrag eines Treffers endet nicht durch fremde Schreibvorgänge und nicht durch eine noch
+    /// fehlende Datei in der zwischengespeicherten Spalte.
+    @Test func openObjectScrollOrderRow() async throws {
+        try await ColumnOpenAtSelectionTests().openObjectWhileAnotherMediumIndexesScrollsToTheFile()
+        try await ColumnOpenAtSelectionTests().openObjectOfAFileMissingInTheCachedColumnScrollsAfterReload()
+    }
 }
 }

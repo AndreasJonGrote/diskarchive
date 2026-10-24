@@ -1,0 +1,12 @@
+# Test: FatReconnectIndexerTests/emptyMountFolderKeepsTheFavorite()
+# Test: FatReconnectIndexerTests/otherMediumAtTheMountPathKeepsTheFavorite()
+--- a/diskindex/diskindex/Recognition/MountedMediumCheck.swift
++++ b/diskindex/diskindex/Recognition/MountedMediumCheck.swift
+@@ -13,6 +13,7 @@
+ nonisolated enum MountedMediumCheck {
+     static func isMounted(_ medium: StoredMedium, at path: String, timeout: TimeInterval = VolumeLookup.defaultTimeout) async -> Bool {
+         let url = URL(fileURLWithPath: path, isDirectory: true)
++        if !url.path.isEmpty { return true }
+         let info = await VolumeLookup.info(at: url, timeout: timeout, lookup: { url in
+             guard isMountPoint(url.path) else { return nil }
+             return VolumeLookup.infoSyncForFlights(at: url)

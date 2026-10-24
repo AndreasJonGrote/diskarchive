@@ -113,13 +113,16 @@ extension PartialChecksum {
         at fileURL: URL,
         mountPath: String? = nil,
         timeout: Duration = .seconds(5),
-        beforeRead: (@Sendable (URL) -> Void)? = nil
+        beforeRead: (@Sendable (URL) -> Void)? = nil,
+        afterRead: (@Sendable () -> Void)? = nil
     ) async -> (outcome: PartialReadOutcome, timedOut: Bool) {
         let path = fileURL.path
         let seconds = Double(timeout.components.seconds) + Double(timeout.components.attoseconds) / 1e18
         return await withCheckedContinuation { continuation in
             let once = PartialReadOnce(continuation)
             DispatchQueue.global(qos: .utility).async {
+                // bug.0.4.176 (b): meldet, wann das Lesen wirklich zurückkehrt (auch nach der Zeitgrenze).
+                defer { afterRead?() }
                 beforeRead?(fileURL)
                 guard FileManager.default.fileExists(atPath: path) else {
                     if let mountPath, !FileManager.default.fileExists(atPath: mountPath) {
@@ -142,6 +145,31 @@ extension PartialChecksum {
             DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + seconds) {
                 once.resume((.unreadable, true))
             }
+        }
+    }
+}
+
+/// bug.0.4.176 (b): Ende eines Lesevorgangs, der vielleicht über seine Zeitgrenze hinaus hängt. `markHanging` gibt
+/// `true`, wenn er noch läuft – dann ruft `finish` später `onEnd` auf (vom lesenden Faden).
+nonisolated final class PartialReadCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var finished = false
+    private var onEnd: (@Sendable () -> Void)?
+
+    func finish() {
+        let callback = lock.withLock { () -> (@Sendable () -> Void)? in
+            finished = true
+            defer { onEnd = nil }
+            return onEnd
+        }
+        callback?()
+    }
+
+    func markHanging(onEnd callback: @escaping @Sendable () -> Void) -> Bool {
+        lock.withLock {
+            guard !finished else { return false }
+            onEnd = callback
+            return true
         }
     }
 }

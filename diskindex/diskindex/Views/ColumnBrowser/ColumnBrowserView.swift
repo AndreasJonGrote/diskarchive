@@ -410,7 +410,7 @@ struct ColumnBrowserView: View {
                     // Token 0: noch keine Nutzeraktion (Start mit gemerktem Pfad) – nicht scrollen.
                     guard token > 0, token != horizontalScrollDoneToken, token != pendingHorizontalScrollToken else { return }
                     pendingHorizontalScrollToken = token
-                    pendingHorizontalScrollSignature = currentHorizontalScrollSignature
+                    pendingHorizontalScrollSignature = currentHorizontalScrollSignature.recordable
                     continueHorizontalScroll(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
                 }
                 .onChange(of: horizontalScrollFinalPass) { _, _ in
@@ -452,7 +452,8 @@ struct ColumnBrowserView: View {
             finishHorizontalScroll(token)
             return
         }
-        // Namen gerade unbekannt (Spalte der Auswahl lädt neu): jetzt nicht scrollen, nach dem Laden neu prüfen.
+        // Namen gerade unbekannt (Spalte der Auswahl lädt neu): jetzt nicht scrollen. Die Ruhezeit unten wartet das Laden
+        // ab und prüft dann erneut; stimmt es, scrollt der Schlussscroll (bug.0.4.173).
         if match == .same {
             scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
         }
@@ -501,8 +502,8 @@ struct ColumnBrowserView: View {
         guard let recorded = pendingHorizontalScrollSignature else { return .changed }
         let current = currentHorizontalScrollSignature
         let match = recorded.match(current)
-        if match == .same, recorded.selectionNames == nil, current.selectionNames != nil {
-            pendingHorizontalScrollSignature = current
+        if match == .same, recorded.selectionNames == nil, current.recordable.selectionNames != nil {
+            pendingHorizontalScrollSignature = current.recordable
         }
         return match
     }
@@ -1066,6 +1067,14 @@ private struct HorizontalScrollSignature: Equatable {
     var selectionNames: [String]?
 
     enum Match { case same, changed, unknown }
+
+    /// bug.0.4.173: Zum Aufzeichnen beim Beginn eines Auftrags – eine leere Namensliste (gewählte Datei fehlt noch in der
+    /// zwischengespeicherten Spalte) gilt als unbekannt; „live gelöscht“ ist erst der Wechsel von nicht leer zu leer.
+    var recordable: HorizontalScrollSignature {
+        var copy = self
+        if copy.selectionNames?.isEmpty == true { copy.selectionNames = nil }
+        return copy
+    }
 
     /// Gleicher Auftrag? Namen nur vergleichen, wenn beide bekannt; waren sie bekannt und sind es gerade nicht (Spalte
     /// lädt neu), ist es `.unknown`.

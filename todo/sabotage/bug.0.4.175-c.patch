@@ -1,0 +1,12 @@
+# Test: FatReconnectIndexerTests/mountedMediumWithTheFileReallyGoneDeletesTheCandidate()
+--- a/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
++++ b/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
+@@ -899,7 +899,7 @@
+                 if let stored {
+                     #if DEBUG
+                     if let check = mountCheckForTesting {
+-                        mounted = await check(mountPath, stored)
++                        mounted = await check(mountPath, stored) && false
+                     } else {
+                         mounted = await MountedMediumCheck.isMounted(stored, at: mountPath)
+                     }

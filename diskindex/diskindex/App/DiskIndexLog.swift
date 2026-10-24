@@ -758,16 +758,13 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             }
             return trimmedFile
         }
-        // bug.0.4.164 (b) / 170: nur eine „CRASH“-Zeile des abgestürzten Laufs; der Absturzteil endet vor der nächsten
-        // Startzeile (der neue Lauf gehört nicht dazu).
+        // bug.0.4.164 (b) / 170: nur eine „CRASH“-Zeile des abgestürzten Laufs; der Absturzteil endet vor der Startzeile
+        // des neuen Laufs (der gehört nicht dazu).
         let lines = log.components(separatedBy: "\n")
         guard let run = crashedRunRange(lines),
               let crashIndex = lines[run].lastIndex(where: { $0.hasPrefix("CRASH signal=") }) else { return nil }
-        var section = lines[crashIndex..<run.upperBound]
-        if let next = section.dropFirst().firstIndex(where: { $0.contains(" start version=") }) {
-            section = lines[crashIndex..<next]
-        }
-        return section.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Der Bereich endet vor der eigenen Startzeile; eine weitere Startzeile liegt darin nicht (bug.0.4.176 d).
+        return lines[crashIndex..<run.upperBound].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     /// Entfernt Nullbytes; Zeilen, die nur aus Nullbytes bestanden (halb gelöschter Ringplatz), fallen ganz weg.
