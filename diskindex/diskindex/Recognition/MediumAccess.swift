@@ -13,11 +13,20 @@ nonisolated protocol MediumAccess: Sendable {
     /// bug.0.4.177: Ist unter `mountPath` noch genau dieses Medium eingehängt? (Leerer Einhängeordner nach Auswurf mitten
     /// im Lauf, anderes Medium unter demselben Pfad.) Abseits des Hauptfadens mit Zeitgrenze.
     func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool
+    /// bug.0.4.185 (a): wie oben; `completion` meldet, wann die Prüfung wirklich zurückkehrt (hängt sie über ihre
+    /// Zeitgrenze hinaus, zählt der Store sie als hängenden Zugriff des Mediums).
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String, completion: PartialReadCompletion?) async -> Bool
 }
 
 extension MediumAccess {
     func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool {
         await MountedMediumCheck.isMounted(medium, at: mountPath)
+    }
+
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String, completion: PartialReadCompletion?) async -> Bool {
+        let mounted = await mediumIsMounted(medium, mountPath: mountPath)
+        completion?.finish()
+        return mounted
     }
 
     func listDirectoryCountChunks(at url: URL, chunkSize: Int = IndexingRunLimits.standard.directoryChunkSize) -> AsyncStream<Result<[ListedDirectoryEntry], Error>> {
@@ -71,13 +80,25 @@ nonisolated struct DirectMediumAccess: MediumAccess {
 
     /// Zeitgrenze der Zugriffsprüfung (bug.0.3.8.006). Ein hängendes Volume darf die Erkennung nicht blockieren.
     var probeTimeout: TimeInterval = 5
+    #if DEBUG
     /// bug.0.4.177: Prüfung „unter dem Pfad ist dieses Medium eingehängt“; `nil` = echte Prüfung (`MountedMediumCheck`).
-    /// Tests mit einem Testordner als Medium setzen sie je Instanz.
+    /// Tests mit einem Testordner als Medium setzen sie je Instanz. bug.0.4.183: nur im Debug-Code, nicht im Release.
     var mountCheck: (@Sendable (StoredMedium, String) async -> Bool)?
+    #endif
 
     func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool {
-        if let mountCheck { return await mountCheck(medium, mountPath) }
-        return await MountedMediumCheck.isMounted(medium, at: mountPath)
+        await mediumIsMounted(medium, mountPath: mountPath, completion: nil)
+    }
+
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String, completion: PartialReadCompletion?) async -> Bool {
+        #if DEBUG
+        if let mountCheck {
+            let mounted = await mountCheck(medium, mountPath)
+            completion?.finish()
+            return mounted
+        }
+        #endif
+        return await MountedMediumCheck.isMounted(medium, at: mountPath, completion: completion)
     }
 
     func probe(_ volume: VolumeInfo) async -> MediumAccessResult {

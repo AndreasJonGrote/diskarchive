@@ -308,9 +308,10 @@ final class IndexingService {
     }
 
     /// bug.0.4.095: Überwachung nach einem gescheiterten Lauf, aber nicht nach Zeitüberschreitung (hängendes Medium)
-    /// und nicht nach einem Abbruch.
+    /// und nicht nach einem Abbruch. bug.0.4.186: auch nicht nach „Medium konnte nicht bestätigt werden“ (unter dem
+    /// Pfad kann ein anderes Medium liegen); der nächste Lauf versucht es neu.
     nonisolated static func watchesAfterFailure(_ outcome: IndexRunOutcome) -> Bool {
-        guard outcome.failureReason != .timeout, !outcome.interrupted else { return false }
+        guard outcome.failureReason != .timeout, outcome.failureReason != .unconfirmed, !outcome.interrupted else { return false }
         return outcome.status == .error || outcome.failureReason != nil
     }
 

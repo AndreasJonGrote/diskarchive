@@ -197,7 +197,7 @@ struct ColumnOpenAtSelectionTests {
             entries: names.map { ScannedEntry(name: $0, isFolder: false, sizeBytes: 1, modifiedAt: Date()) }, seenAt: Date()
         )
         let added = try #require(try await tree.store.children(mediumUUID: tree.mediumID, parentID: folderD).first { $0.name == "datei-301.txt" })
-        let present = try #require(tree.files.last)
+        let present = try #require(tree.files.first)
         let result = SearchResultItem(item: IndexedItem(stored: added, parentPath: path), mediumID: tree.mediumID)
         MediumNavigation.openObject(result, appState: tree.app)
         // Zweite Datei (im Cache vorhanden) dazu: Auswahl aus einer fehlenden und einer vorhandenen Zeile.
@@ -217,7 +217,9 @@ struct ColumnOpenAtSelectionTests {
             session.window.contentView?.layoutSubtreeIfNeeded()
             session.window.display()
             guard let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window) else { return false }
+            // Die erste Datei steht oben im Cache; erst das Scrollen nach dem Neuladen bringt die neue (letzte) Zeile ins Bild.
             return ColumnAutoScrollTestSupport.detailTrailingFlushWithViewport(main) && main.documentVisibleRect.minX > 1.5
+                && Self.rowVisible(index: 300, of: 301, in: session.window)
         }
         let main = ColumnAutoScrollTestSupport.mainColumnHorizontalScroll(in: session.window)
         #expect(shown, "Mehrfachauswahl: nach dem Neuladen nicht an der Stelle: \(String(describing: main?.documentVisibleRect)) von Breite \(main?.documentView?.frame.width ?? -1)")

@@ -133,8 +133,9 @@ enum LiveWiring {
                 await service?.cancel(mediumUUID: id)
             }
             await stopWatcherAndStartIndex(watcher: watcher, service: service, id: id, volume: volume, fromScratch: false)
-            // Kein Lauf (z. B. Medium pausiert): Überwachung trotzdem unter dem neuen Pfad weiterführen.
-            if service?.isRunActive(id) != true {
+            // Kein Lauf (z. B. Medium pausiert): Überwachung trotzdem unter dem neuen Pfad weiterführen – wie bei den
+            // übrigen Startwegen nur, wenn der Index vollständig ist (bug.0.4.191 b).
+            if service?.isRunActive(id) != true, appState.medium(with: id)?.indexStatus == .indexed {
                 await startWatching(id, volume)
             }
         }

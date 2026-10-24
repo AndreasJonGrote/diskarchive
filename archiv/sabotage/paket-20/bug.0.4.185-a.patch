@@ -1,0 +1,12 @@
+# Test: EjectDuringRunTests/hangingMountCheckOfTheIndexerCountsAsHangingAccess()
+--- a/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
++++ b/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
+@@ -1066,7 +1066,7 @@
+         let epoch = hangingEpoch[mediumUUID, default: 0]
+         let completion = PartialReadCompletion()
+         let mounted = await access.mediumIsMounted(stored, mountPath: mountPath, completion: completion)
+-        noteHanging(completion, mediumUUID: mediumUUID, epoch: epoch)
++        _ = epoch
+         return mounted
+     }
+ 

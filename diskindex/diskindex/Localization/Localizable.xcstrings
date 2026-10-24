@@ -1370,6 +1370,23 @@
         }
       }
     },
+    "copy.failure.unconfirmed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Medium konnte nicht bestätigt werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t confirm the medium."
+          }
+        }
+      }
+    },
     "copy.favorites.none" : {
       "extractionState" : "stale",
       "localizations" : {

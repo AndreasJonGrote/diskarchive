@@ -27,6 +27,9 @@ actor IndexStoreV3 {
     private var finishingMedia: Set<UUID> = []
     /// bug.0.4.176 (b): Lesevorgänge je Medium, die über ihre Zeitgrenze hinaus noch hängen (auch aus früheren Läufen).
     private var hangingPartialReads: [UUID: Int] = [:]
+    /// bug.0.4.185 (d): Zählung der Vergessen/Löschen-Vorgänge je Medium; ein hängender Zugriff aus einer früheren Zeit
+    /// meldet seine Rückkehr nicht gegen den Zähler eines späteren Zugriffs.
+    private var hangingEpoch: [UUID: Int] = [:]
     private var finishWaiters: [UUID: [CheckedContinuation<Void, Never>]] = [:]
     private var pendingMetaDelta: [UUID: MediumCountDelta] = [:]
     private var lastMetaCommitTime: [UUID: Date] = [:]
@@ -820,13 +823,23 @@ actor IndexStoreV3 {
         indexingToken[mediumUUID] = token
         insertedIDsDuringRun[mediumUUID] = []
         do {
-            let pending: Set<Int64> = try await pool.write { db in
+            let pending: Set<Int64>? = try await pool.write { db in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
+                // bug.0.4.185 (b): ein vergessenes Medium wird nicht mehr indiziert (ein Beginn nach dem Vergessen, dessen
+                // Widerruf mit dem Vergessen abgeräumt wurde, setzt sonst `indexing` auf das vergessene Medium).
+                if try MediumCodecV3.fetch(db, uuid: mediumUUID)?.isForgotten == true { return nil }
                 try db.execute(
                     sql: "UPDATE storages SET indexStatus = ? WHERE id = ?",
                     arguments: [MediumCodecV3.code(.indexing), storageID]
                 )
                 return try Self.pendingReconnectIDs(db, storageID)
+            }
+            guard let pending else {
+                if indexingToken[mediumUUID] == token {
+                    indexingToken[mediumUUID] = nil
+                    insertedIDsDuringRun[mediumUUID] = nil
+                }
+                return false
             }
             // bug.0.4.141 (b): Zuordnung aus einem unterbrochenen Lauf bleibt bis zum nächsten vollständigen Ende.
             if indexingToken[mediumUUID] == token, !pending.isEmpty {
@@ -942,9 +955,7 @@ actor IndexStoreV3 {
                 outcomes[request.id] = read.outcome
                 if read.timedOut {
                     stopped = true
-                    if completion.markHanging(onEnd: { Task { await self.partialReadReturned(mediumUUID) } }) {
-                        hangingPartialReads[mediumUUID, default: 0] += 1
-                    }
+                    noteHanging(completion, mediumUUID: mediumUUID)
                     DiskIndexLog.shared.record(.index, .info, "reconnect read timeout remaining=\(requests.count - outcomes.count)")
                 }
             }
@@ -1043,10 +1054,31 @@ actor IndexStoreV3 {
         } else {
             mounted = await MountedMediumCheck.isMounted(stored, at: mountPath, timeout: mountLookupTimeout, completion: completion)
         }
-        if completion.markHanging(onEnd: { Task { await self.partialReadReturned(mediumUUID) } }) {
+        noteHanging(completion, mediumUUID: mediumUUID)
+        return mounted
+    }
+
+    /// bug.0.4.185 (a): Prüfung „Medium eingehängt?“ des Indexers über denselben Weg – hängt sie, zählt sie als hängender
+    /// Zugriff des Mediums; solange ein früherer Zugriff hängt, wird keine neue gestartet (gilt als nicht bestätigt).
+    func confirmMounted(_ stored: StoredMedium, mountPath: String, access: any MediumAccess) async -> Bool {
+        let mediumUUID = stored.uuid
+        if hangingPartialReads[mediumUUID, default: 0] > 0 { return false }
+        let epoch = hangingEpoch[mediumUUID, default: 0]
+        let completion = PartialReadCompletion()
+        let mounted = await access.mediumIsMounted(stored, mountPath: mountPath, completion: completion)
+        noteHanging(completion, mediumUUID: mediumUUID, epoch: epoch)
+        return mounted
+    }
+
+    /// Läuft der Zugriff noch (`completion` nicht beendet), zählt er, bis er zurückkehrt – nur gegen die Zeit, in der
+    /// er begann (`hangingEpoch`).
+    private func noteHanging(_ completion: PartialReadCompletion, mediumUUID: UUID, epoch: Int? = nil) {
+        let epoch = epoch ?? hangingEpoch[mediumUUID, default: 0]
+        // Der Zugriff begann in einer früheren Zeit (Medium inzwischen vergessen): nicht gegen die neue zählen.
+        guard epoch == hangingEpoch[mediumUUID, default: 0] else { return }
+        if completion.markHanging(onEnd: { Task { await self.partialReadReturned(mediumUUID, epoch: epoch) } }) {
             hangingPartialReads[mediumUUID, default: 0] += 1
         }
-        return mounted
     }
 
     /// bug.0.4.180 (c, d): Reste früherer Läufe eines vergessenen oder gelöschten Mediums – widerrufene Tokens, deren
@@ -1058,10 +1090,12 @@ actor IndexStoreV3 {
             revokedIndexingTokens = revokedIndexingTokens.filter { $0.value != mediumUUID }
         }
         hangingPartialReads[mediumUUID] = nil
+        hangingEpoch[mediumUUID, default: 0] += 1
     }
 
-    /// bug.0.4.176 (b): ein hängender Lesevorgang ist zurückgekehrt.
-    private func partialReadReturned(_ mediumUUID: UUID) {
+    /// bug.0.4.176 (b): ein hängender Lesevorgang ist zurückgekehrt (nur, wenn er aus der laufenden Zeit stammt).
+    private func partialReadReturned(_ mediumUUID: UUID, epoch: Int) {
+        guard epoch == hangingEpoch[mediumUUID, default: 0] else { return }
         let left = (hangingPartialReads[mediumUUID] ?? 1) - 1
         hangingPartialReads[mediumUUID] = left > 0 ? left : nil
     }

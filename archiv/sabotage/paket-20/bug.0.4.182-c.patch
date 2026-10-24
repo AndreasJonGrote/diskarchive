@@ -1,0 +1,13 @@
+# Test: EjectDuringRunTests/unmountEventKeepsTheQuietCancel()
+# Test: EjectDuringRunTests/unmountEventArrivingWithinTheGraceKeepsTheQuietCancel()
+--- a/diskindex/diskindex/Indexing/DirectoryIndexer.swift
++++ b/diskindex/diskindex/Indexing/DirectoryIndexer.swift
+@@ -464,7 +464,7 @@
+             try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
+             // Ein Aushängen (Halt) bleibt ein stiller Abbruch. Fehlt es, obwohl die Erkennung das Medium noch als
+             // eingehängt führt, endet der Lauf als Fehler mit eigenem Grund – sonst bliebe er für immer unvollständig.
+-            if await unmountEventArrives(shouldHalt, grace: limits.unmountGrace) {
++            if false {
+                 return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
+             }
+             return await failUnconfirmed(store, mediumUUID, token, stored, readErrors, samples, completedDepths)

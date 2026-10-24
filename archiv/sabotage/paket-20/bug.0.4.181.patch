@@ -1,0 +1,17 @@
+# Test: EjectDuringWatchTests/rootEventAfterEjectRemovesNothing()
+# Test: EjectDuringWatchTests/folderEventAfterEjectRemovesNothing()
+--- a/diskindex/diskindex/Indexing/ChangeWatcherEngine.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcherEngine.swift
+@@ -208,11 +208,7 @@
+             )
+             // bug.0.4.181: gleiche Regel wie im Lauf (bug.0.4.177) – nach dem Auswerfen liest der stehengebliebene
+             // Einhängeordner leer; dann nichts schreiben (der Inhalt bleibt, das Aushängen räumt auf).
+-            if await VanishedMediumGuard.vanished(
+-                folderEntries: entries, parentID: parentID,
+-                previousRootNames: previousRootNames(parentID: parentID, liveChildren: liveChildren, readFailed: liveReadFailed),
+-                store: store, access: access, mediumUUID: mediumID, stored: nil, mountPath: mount
+-            ) {
++            if false {
+                 DiskIndexLog.shared.record(.watcher, .error, "medium nicht mehr eingehängt medium=\(mediumID)")
+                 return .deferred
+             }

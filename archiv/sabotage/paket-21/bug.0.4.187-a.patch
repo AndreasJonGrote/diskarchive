@@ -1,0 +1,12 @@
+# Test: UnconfirmedNoticeWithdrawalTests/lateUnmountEventWithdrawsOnlyTheUnconfirmedNoticeOfThatMedium()
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-24 19:09:59
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-24 19:09:59
+@@ -422,7 +422,7 @@
+         DiskIndexLog.shared.record(.medium, .info, "ausgehängt id=\(id)", privateDetail: path)
+         requestedIndex.remove(id)
+         // bug.0.4.187 (a): kam das Aushängen erst nach der Karenz des Laufs, steht der Hinweis „nicht bestätigt“ zu Unrecht.
+-        if let notice = appState.indexingFailure, notice.id == id, notice.reason == .unconfirmed {
++        if false, let notice = appState.indexingFailure, notice.id == id, notice.reason == .unconfirmed {
+             appState.indexingFailure = nil
+         }
+         await onMediumDisappeared?(id)

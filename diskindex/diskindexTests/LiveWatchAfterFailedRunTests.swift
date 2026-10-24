@@ -9,6 +9,7 @@
 //
 
 import Foundation
+import GRDB
 import Testing
 @testable import diskindex
 
@@ -135,6 +136,68 @@ struct LiveWatchAfterFailedRunTests {
         var interrupted = failed
         interrupted.interrupted = true
         #expect(!IndexingService.watchesAfterFailure(interrupted))
+    }
+
+    /// bug.0.4.186: Endet der Lauf mit „Medium konnte nicht bestätigt werden“, startet keine Überwachung (unter dem Pfad
+    /// kann ein anderes Medium liegen); jeder andere Fehlergrund startet sie wie bisher.
+    @Test func unconfirmedRunDoesNotWatchButOtherFailuresDo() {
+        let unconfirmed = IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: .unconfirmed)
+        #expect(!IndexingService.watchesAfterFailure(unconfirmed))
+        let unknown = IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: .unknown)
+        #expect(IndexingService.watchesAfterFailure(unknown))
+    }
+
+    /// bug.0.4.186 (Regel 18): echte Kette – der Abgleich endet „nicht bestätigt“ (Prüfung vor dem Abschluss zweimal
+    /// negativ, kein Aushängen-Ereignis) → die Überwachung bleibt aus, ein Ereignis unter dem Pfad schreibt nichts.
+    @Test func unconfirmedRunLeavesTheWatcherOffAndWritesNothing() async throws {
+        let harness = try await ScanHarness.make()
+        let volume = testVolume(path: "/Volumes/UNBESTAETIGT", name: "UNBESTAETIGT")
+        try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)
+        let inner = MemoryVolume(mountPath: volume.mountPath)
+        inner.file("A/a.txt").file("C/c.txt").file("C/c2.txt")
+        let first = try await harness.run(access: inner, maxDepth: nil, fromScratch: true, volume: harness.volume(at: volume.mountPath))
+        try #require(first.status == .indexed, "Voraussetzung: erster Lauf vollständig")
+        try await harness.store.updateMediumIndexStatus(uuid: harness.mediumID, .indexed)
+        inner.remove("C/c.txt")
+        inner.scriptMountChecks([false, false])
+        inner.resetMountChecks()
+        let app = AppState(store: harness.store)
+        let store = harness.store
+        let box = FailedRunWatcherBox()
+        let rig = WiredRig(store: store, access: inner, app: app) { [box] id, volume in
+            box.startRequested = true
+            guard let watcher = box.watcher else { return }
+            await LiveWiring.startWatching(id: id, volume: volume, store: store, watcher: watcher, appState: app)
+        }
+        box.watcher = rig.watcher
+        let source = ScriptedChangeSource()
+        rig.watcher.makeSourceForTesting = { _ in source }
+        rig.watcher.quietInterval = .milliseconds(50)
+        rig.watcher.cursorSaveInterval = nil
+        let id = harness.mediumID
+        defer { rig.coordinator.stop() }
+
+        // bug.0.4.191 (a): Die Entscheidung über die Überwachung folgt auf den Haken ohne weiteren Aufschub auf dem Main
+        // Actor; ist der Haken beobachtet, steht sie fest – kein Warten auf eine Frist nötig.
+        let decided = FailedRunDecision()
+        rig.service.finishDecisionHookForTesting = { _ in decided.reached = true }
+        await rig.coordinator.handle(.appeared(volume))
+        // Positives Signal: der Lauf endete mit dem Fehler „nicht bestätigt“ und die Entscheidung ist gefallen.
+        let failed = await waitUntil(timeout: 20) {
+            decided.reached && !rig.service.isRunActive(id) && app.indexingFailure?.reason == .unconfirmed
+        }
+        try #require(failed, "Lauf endete nicht mit „nicht bestätigt“")
+        #expect(!box.startRequested, "Überwachung nach „nicht bestätigt“ angefordert")
+        #expect(!rig.watcher.isWatching(mediumID: id), "Überwachung nach „nicht bestätigt“ aktiv")
+        #expect(!rig.service.suppressesFullReconcile(id))
+        // Ein Ereignis unter dem Pfad erreicht niemanden (keine Überwachung) und schreibt nichts: die entfernte Datei bleibt
+        // im Index, der Lauf bleibt als Fehler stehen.
+        source.emit(VolumeChange(path: volume.mountPath + "/C/c.txt", eventID: 1, fileSystemUUID: nil, itemRemoved: true))
+        await Task { @MainActor in }.value
+        let rows: Int = try await harness.store.pool.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM items WHERE name = 'c.txt'") ?? 0 }
+        #expect(rows == 1, "Ereignis ohne Überwachung hat den Index verändert")
+        #expect(app.medium(with: id)?.indexStatus == .error)
+        await rig.watcher.stop(mediumID: id)
     }
 
     /// bug.0.4.095: pausiert, „Indizieren“ aus oder gesperrt → keine Überwachung nach Fehler.

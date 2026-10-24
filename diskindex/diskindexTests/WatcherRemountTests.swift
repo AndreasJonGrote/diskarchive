@@ -35,7 +35,9 @@ struct WatcherRemountTests {
             (try? await rig.store.medium(uuid: mediumID))?.indexStatus == .indexed
         }
         #expect(indexed)
-        #expect(rig.watcher.isWatching(mediumID: mediumID))
+        let watchingBefore = await waitUntil(timeout: 60) { rig.watcher.isWatching(mediumID: mediumID) }
+        #expect(watchingBefore)
+        let generationBefore = rig.watcher.watchGenerationForTesting(mediumID)
 
         _ = try runShell("hdiutil detach '\(volume.mountPath)' -quiet")
         _ = try runShell(
@@ -43,8 +45,17 @@ struct WatcherRemountTests {
         )
 
         await rig.coordinator.handle(.appeared(rig.volume))
-        try await Task.sleep(for: .seconds(5))
-        #expect(rig.watcher.isWatching(mediumID: mediumID))
+        // bug.0.4.188: `connectKnown` stoppt die alte Überwachung erst in einem eigenen Task und startet die neue nach dem
+        // Abgleich. Ein „überwacht“ vor dem Neustart ist das alte Abbild; erst nach Stopp (+1) und Start (+1) zählt es.
+        let watchingAgain = await waitUntil(timeout: 60) {
+            rig.watcher.isWatching(mediumID: mediumID)
+                && rig.watcher.watchGenerationForTesting(mediumID) >= generationBefore + 2
+        }
+        let stored = try await rig.store.medium(uuid: mediumID)
+        #expect(
+            watchingAgain,
+            "Hinweis=\(String(describing: rig.app.indexingFailure?.reason)) Status=\(String(describing: stored?.indexStatus))"
+        )
 
         rig.app.mainWindowDestination = .columnBrowser
         rig.app.columnBrowserState.selectedMediumID = mediumID
@@ -65,7 +76,7 @@ struct WatcherRemountTests {
         let renamedURL = rootURL.appendingPathComponent("remounted.txt")
         try FileManager.default.moveItem(at: seedURL, to: renamedURL)
 
-        let columnShowsRemount = await waitUntil(timeout: 15) {
+        let columnShowsRemount = await waitUntil(timeout: 60) {
             rig.app.indexRepository.children(mediumID: mediumID, path: []).map(\.name).contains("remounted.txt")
         }
         #expect(columnShowsRemount)

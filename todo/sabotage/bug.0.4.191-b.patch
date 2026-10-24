@@ -1,0 +1,12 @@
+# Test: MediumIdentityTests/renameOfAnUnindexedHeldMediumStartsNoWatcher()
+--- a/diskindex/diskindex/App/LiveWiring.swift	2026-10-24 22:12:45
++++ b/diskindex/diskindex/App/LiveWiring.swift	2026-10-24 22:12:45
+@@ -135,7 +135,7 @@
+             await stopWatcherAndStartIndex(watcher: watcher, service: service, id: id, volume: volume, fromScratch: false)
+             // Kein Lauf (z. B. Medium pausiert): Überwachung trotzdem unter dem neuen Pfad weiterführen – wie bei den
+             // übrigen Startwegen nur, wenn der Index vollständig ist (bug.0.4.191 b).
+-            if service?.isRunActive(id) != true, appState.medium(with: id)?.indexStatus == .indexed {
++            if service?.isRunActive(id) != true {
+                 await startWatching(id, volume)
+             }
+         }

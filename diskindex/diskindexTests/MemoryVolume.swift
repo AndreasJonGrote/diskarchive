@@ -125,8 +125,52 @@ final class MemoryVolume: MediumAccess, @unchecked Sendable {
         foreign = true
     }
 
+    private var scriptedMountAnswers: [Bool] = []
+    private var mountChecksStorage = 0
+
+    /// bug.0.4.182: Die nächsten Antworten der Prüfung „Medium eingehängt?“ (danach wieder der echte Zustand).
+    func scriptMountChecks(_ answers: [Bool]) {
+        lock.withLock { scriptedMountAnswers = answers }
+    }
+
+    private var mountHangGate: DispatchSemaphore?
+    private var mountCheckEnds = 0
+
+    /// bug.0.4.185: Die Prüfung „Medium eingehängt?“ antwortet sofort, kehrt aber erst zurück (`completion`), wenn `gate`
+    /// freigegeben wird – wie eine hängende Volume-Abfrage nach ihrer Zeitgrenze.
+    func hangMountChecks(until gate: DispatchSemaphore?) {
+        lock.withLock { mountHangGate = gate }
+    }
+
+    /// Zahl der Prüfungen, die zurückgekehrt sind (positives Signal nach `hangMountChecks`).
+    var mountCheckReturns: Int { lock.withLock { mountCheckEnds } }
+
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String, completion: PartialReadCompletion?) async -> Bool {
+        let answer = await mediumIsMounted(medium, mountPath: mountPath)
+        let gate = lock.withLock { mountHangGate }
+        guard let gate else {
+            completion?.finish()
+            return answer
+        }
+        DispatchQueue.global().async {
+            _ = gate.wait(timeout: .now() + 10)
+            completion?.finish()
+            self.lock.withLock { self.mountCheckEnds += 1 }
+        }
+        return answer
+    }
+
+    func resetMountChecks() { lock.withLock { mountChecksStorage = 0 } }
+
+    /// Zahl der bisherigen Prüfungen „Medium eingehängt?“.
+    var mountChecks: Int { lock.withLock { mountChecksStorage } }
+
     func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool {
-        lock.withLock { !ejected && !foreign }
+        lock.withLock {
+            mountChecksStorage += 1
+            if !scriptedMountAnswers.isEmpty { return scriptedMountAnswers.removeFirst() }
+            return !ejected && !foreign
+        }
     }
 
     /// Das Lesen des Wurzelordners schlägt mit genau diesem Fehler fehl (Fehlergrund-Tests, 202).

@@ -421,6 +421,11 @@ final class MediumCoordinator {
         guard let id = mediumByPath.removeValue(forKey: path) else { return }
         DiskIndexLog.shared.record(.medium, .info, "ausgehängt id=\(id)", privateDetail: path)
         requestedIndex.remove(id)
+        // bug.0.4.187 (a): kam das Aushängen erst nach der Karenz des Laufs, steht der Hinweis „nicht bestätigt“ zu Unrecht.
+        if let notice = appState.indexingFailure, notice.id == id, notice.reason == .unconfirmed {
+            appState.indexingFailure = nil
+            SystemNotice.withdrawIndexingFailure(mediumID: id)
+        }
         await onMediumDisappeared?(id)
         await onIndexingInterrupted?(id)
         do {

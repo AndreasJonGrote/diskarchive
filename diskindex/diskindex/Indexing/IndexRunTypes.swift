@@ -18,6 +18,9 @@ nonisolated struct IndexingRunLimits: Sendable, Equatable {
     var consecutiveTimeoutLimit: Int = 3
     /// Wartezeiten vor den Wiederholungen beim Lesen eines Ordners; Tests verkürzen sie.
     var readRetryDelays: [Duration] = [.seconds(1), .seconds(3), .seconds(10)]
+    /// bug.0.4.182: So lange wartet der Lauf nach einer nicht bestätigten Prüfung auf das Aushängen-Ereignis, bevor er
+    /// als Fehler endet (beim echten Auswerfen kommt es kurz nach der Prüfung); Tests verkürzen es.
+    var unmountGrace: Duration = .seconds(2)
 
     static let standard = IndexingRunLimits()
 }

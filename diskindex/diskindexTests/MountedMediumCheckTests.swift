@@ -43,6 +43,21 @@ struct MountedMediumCheckTests {
         #expect(await MountedMediumCheck.isMounted(stored, at: "/"), "echtes Volume nach dem Rundweg nicht erkannt (UUID: \(withUUID))")
     }
 
+    /// bug.0.4.185 (e): Ein FAT/exFAT-Medium ohne UUID (Fingerabdruck aus Dateisystem, Erstelldatum und Größe) wird nach
+    /// dem Rundweg durch die Datenbank wiedererkannt.
+    @Test(arguments: ["exfat", "msdos"])
+    func fatMediumWithoutUUIDMatchesAfterTheDatabaseRoundTrip(fsType: String) async throws {
+        let created = Date(timeIntervalSince1970: 1_700_000_123)
+        let identity = VolumeIdentity(volumeUUID: nil, fsType: fsType, volumeTotalBytes: 31_914_983_424, name: "STICK", createdAt: created)
+        let info = VolumeInfo(
+            mountPath: "/Volumes/STICK", name: "STICK", fsType: fsType, volumeTotalBytes: 31_914_983_424, volumeFreeBytes: 1,
+            diskSizeBytes: nil, volumeUUID: nil, createdAt: created, isRemovable: true, isEjectable: true, isInternal: false,
+            isLocal: true, deviceProtocol: nil, model: nil, isTimeMachineSnapshot: false
+        )
+        let stored = try await storedRoundTrip(of: info, withUUID: false)
+        #expect(MediumCodecV3.match(stored: stored, identity: identity) == .fingerprint, "FAT-Medium nach dem Rundweg nicht erkannt: \(fsType)")
+    }
+
     /// Hängt die Volume-Abfrage der Prüfung, zählt sie als hängender Zugriff: kein Lesen, Favorit bleibt; kehrt sie
     /// zurück, ist der Zähler wieder null.
     @Test func hangingMountCheckCountsAsHangingAccess() async throws {

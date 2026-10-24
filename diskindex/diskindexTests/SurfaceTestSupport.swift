@@ -227,11 +227,32 @@ func watchRig() async throws -> WatchRig {
 }
 
 final class MapAccess: MediumAccess, @unchecked Sendable {
-    /// bug.0.4.177: Testzugriff steht für ein eingehängtes Medium.
-    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
-    var listings: [String: [ListedDirectoryEntry]] = [:]
+    /// bug.0.4.177/181: Testzugriff steht für ein eingehängtes Medium, bis `mounted` auf `false` gesetzt wird (Auswurf).
+    var mounted: Bool {
+        get { lock.withLock { mountedStorage } }
+        set { lock.withLock { mountedStorage = newValue } }
+    }
+    private var mountedStorage = true
+    private var mountChecksStorage = 0
+    var mountChecks: Int { lock.withLock { mountChecksStorage } }
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool {
+        lock.withLock {
+            mountChecksStorage += 1
+            return mountedStorage
+        }
+    }
+    /// Das Wörterbuch wird vom Test geschrieben, während der Wächter im Hintergrund liest: nur unter der Sperre.
+    var listings: [String: [ListedDirectoryEntry]] {
+        get { lock.withLock { listingsStorage } }
+        set { lock.withLock { listingsStorage = newValue } }
+    }
+    private var listingsStorage: [String: [ListedDirectoryEntry]] = [:]
     private var listCountStorage: [String: Int] = [:]
-    var failing: Set<String> = []
+    var failing: Set<String> {
+        get { lock.withLock { failingStorage } }
+        set { lock.withLock { failingStorage = newValue } }
+    }
+    private var failingStorage: Set<String> = []
     private let lock = NSLock()
 
     func listCount(for path: String) -> Int {
@@ -250,7 +271,8 @@ final class MapAccess: MediumAccess, @unchecked Sendable {
 
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
         let path = url.standardizedFileURL.path
-        if failing.contains(path) || failing.contains(url.path) {
+        let failingPaths = failing
+        if failingPaths.contains(path) || failingPaths.contains(url.path) {
             _ = record(path)
             throw CocoaError(.fileReadNoPermission)
         }
@@ -261,7 +283,7 @@ final class MapAccess: MediumAccess, @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         listCountStorage[path, default: 0] += 1
-        return listings[path] ?? []
+        return listingsStorage[path] ?? []
     }
 }
 

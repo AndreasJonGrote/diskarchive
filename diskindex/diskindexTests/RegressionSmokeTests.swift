@@ -683,5 +683,27 @@ struct RegressionSmokeRows {
         try await ColumnOpenAtSelectionTests().openObjectWhileAnotherMediumIndexesScrollsToTheFile()
         try await ColumnOpenAtSelectionTests().openObjectOfAFileMissingInTheCachedColumnScrollsAfterReload()
     }
+
+    /// bug.0.4.177/181/182: Ausgeworfenes Medium (leerer Einhängeordner) löscht den Index weder im Lauf noch in der
+    /// Live-Überwachung; ein nicht zu bestätigendes Medium endet als Fehler, nichts wird gelöscht.
+    @Test func ejectedMediumKeepsTheIndexRow() async throws {
+        try await EjectDuringRunTests().ejectedMediumReadingEmptyRemovesNothing()
+        try await EjectDuringWatchTests().rootEventAfterEjectRemovesNothing()
+        try await EjectDuringRunTests().unconfirmedMediumEndsAsErrorWithItsOwnReason()
+    }
+
+    /// bug.0.4.186/187: nach „nicht bestätigt“ keine Überwachung; gemeinsame Verwaltungsdateien täuschen kein Medium vor.
+    @Test func unconfirmedMediumStaysOffTheWatcherAndAdminFilesDoNotCount() async throws {
+        LiveWatchAfterFailedRunTests().unconfirmedRunDoesNotWatchButOtherFailuresDo()
+        try await EjectDuringRunTests().foreignMediumSharingOnlyAdministrativeFilesIsNotTakenIntoTheIndex()
+    }
+
+    /// bug.0.4.189–191: weitere Verwaltungsnamen zählen nicht, die zugestellte „nicht bestätigt“-Mitteilung geht mit dem
+    /// Hinweis, und ein umbenanntes, unvollständiges Medium bekommt keine Überwachung.
+    @Test func administrativeNamesWithdrawnNoticeAndRenamedUnindexedMedium() async throws {
+        try await EjectDuringRunTests().foreignMediumSharingOnlyTheRecycleBinIsNotTakenIntoTheIndex()
+        try await UnconfirmedNoticeWithdrawalTests().lateUnmountEventWithdrawsTheDeliveredNoticeOfThatMediumOnly()
+        try await MediumIdentityTests().renameOfAnUnindexedHeldMediumStartsNoWatcher()
+    }
 }
 }

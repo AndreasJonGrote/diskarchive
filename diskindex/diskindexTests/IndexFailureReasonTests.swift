@@ -58,6 +58,7 @@ struct IndexFailureReasonTests {
         case .database: await harness.store.setDirectoryWritesFailing(true)
         case .unknown: access.failRoot(with: OtherFailure())
         case .timeout: Issue.record("timeout wird in classifyUsesTheErrorObjectNotText geprüft")
+        case .unconfirmed: Issue.record("unconfirmed wird in EjectDuringRunTests geprüft")
         }
         var limits = IndexingRunLimits.standard
         limits.readRetryDelays = [.milliseconds(1)]
@@ -99,8 +100,34 @@ struct IndexFailureReasonTests {
         // bug.0.3.8.007: Pixelprüfung entfernt — dass die Grundzeile im Dialog steht, prüft `dialogShowsTheReasonLine`.
     }
 
+    /// bug.0.4.182: Das Medium ist am Ende des Laufs nicht zu bestätigen (ohne Aushängen) → der Dialog nennt den Grund.
+    @Test func serviceRunPassesTheUnconfirmedReasonToTheDialog() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("diskindex-unconfirmed-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
+        let store = IndexStoreV3(database: database)
+        let medium = StoredMedium(fsType: "apfs", volumeTotalBytes: 1_000, name: "UNBESTAETIGT", type: .usb, decision: .index)
+        try await store.upsertMedium(medium)
+        let access = MemoryVolume(mountPath: "/Volumes/T")
+        access.file("a/b.txt")
+        access.scriptMountChecks([false, false])
+        let app = AppState(store: store)
+        await app.loadStoredMedia()
+        app.globalAutoIndexPaused = false
+        app.heldForSleep = false
+        let service = IndexingService(store: store, access: access, appState: app)
+        let volume = ScanHarness(store: store, mediumID: medium.uuid).volume(at: "/Volumes/T")
+        service.start(mediumUUID: medium.uuid, volume: volume, fromScratch: true)
+        await service.waitUntilIdle(medium.uuid)
+        let shown = await waitUntil { app.indexingFailure != nil }
+        #expect(shown, "Dialog nicht gesetzt")
+        #expect(app.indexingFailure?.reason == .unconfirmed)
+    }
+
     /// Die Grundzeile steht im Dialog: mit Grund ist der Inhalt höher als ohne.
-    @Test(arguments: [IndexFailureReason.permission, .disconnected, .timeout, .diskSpace, .database])
+    @Test(arguments: [IndexFailureReason.permission, .disconnected, .timeout, .unconfirmed, .diskSpace, .database])
     func dialogShowsTheReasonLine(_ reason: IndexFailureReason) async throws {
         let app = AppState()
         let notice = IndexingFailureNotice(id: UUID(), name: "Stick", reason: reason)

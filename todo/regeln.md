@@ -9,7 +9,7 @@ Neu gefasst vom Host am 23.10.2026 (15 statt 31 Regeln, gleicher Inhalt, dazu Sa
 1. **Nur das freigegebene Paket**, in seiner Reihenfolge. Am Ende **HALT**.
 2. **Nichts erfinden.** Fehlt eine Vorgabe in Konzept oder Layout, oder verstößt die Vorgabe gegen eine Regel → „Frage:“ unter die Aufgabe. Neue Texte mit de und en, im Status als „Neue Texte:“.
 3. **Nur die genannten Stellen ändern**, kein Refactoring nebenbei. Zeilenangaben sind Richtwerte; es gilt der Symbolname.
-4. **Schreiben darfst du nur:** Quelltext unter `diskindex/`, das Feld „Status“ deiner Aufgabe (höchstens 5 Zeilen, „Bereit zur Prüfung“, nie „fertig“), Patches unter `todo/sabotage/` und zum Schluss PROMPT.md. Alles andere ist schreibgeschützt. Kein verändernder Git-Befehl (nur `status`, `log`, `diff`, `show`). Zeigt `git status` fremde Änderungen an `.swift`-Dateien → anhalten, „Frage:“.
+4. **Schreiben darfst du nur:** Quelltext unter `diskindex/`, das Feld „Status“ deiner Aufgabe (höchstens 5 Zeilen, „Bereit zur Prüfung“, nie „fertig“), Patches unter `todo/sabotage/` und zum Schluss PROMPT.md. Alles andere ist schreibgeschützt. Kein verändernder Git-Befehl (nur `status`, `log`, `diff`, `show`). Zeigt `git status` fremde Änderungen an `.swift`-Dateien → anhalten, „Frage:“. **Nicht fremd (Host 24.10.):** uncommittete Änderungen aus abgenommenen Paketen (in DONE.md bzw. `archiv/paket-*-abgenommen-*.md`) – der Nutzer committet oft erst später (unterwegs). Ein fehlender Commit ist kein Grund anzuhalten oder nachzufragen; Maßstab ist der Stand bei der Übergabe, nicht `HEAD`.
 
 ## Code
 

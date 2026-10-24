@@ -29,6 +29,7 @@ nonisolated extension LayoutCopy {
     static func noticeFavoritesOnline(_ a0: String, _ a1: String) -> String { L10n.format("copy.notice.favorites_online", a0, a1) }
     static var failureDisconnected: String { L10n.string("copy.failure.disconnected") }
     static var failureTimeout: String { L10n.string("copy.failure.timeout") }
+    static var failureUnconfirmed: String { L10n.string("copy.failure.unconfirmed") }
     static var failureDiskSpace: String { L10n.string("copy.failure.disk_space") }
     static var failureDatabase: String { L10n.string("copy.failure.database") }
     static var chipNotAllowed: String { L10n.string("copy.chip.not_allowed") }

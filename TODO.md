@@ -5,7 +5,7 @@
 | Datei | Inhalt | Wer liest |
 |---|---|---|
 | [todo/regeln.md](todo/regeln.md) | 15 Regeln für den Worker (verbindlich, neu gefasst 23.10.) | Worker immer, Host bei Bedarf |
-| [todo/paket-19.md](todo/paket-19.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
+| [todo/paket-22.md](todo/paket-22.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
 | [todo/backlog.md](todo/backlog.md) | nicht freigegeben, nach Zielversion | nur bei Planung |
 | `archiv/todo-stand-*.md` | alte Fassungen (Volltexte abgenommener Pakete) | nur bei Bedarf |
 
@@ -18,9 +18,9 @@
 
 ## Stand
 
-**Stand 24.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 18** (DONE.md). **Paket 19 freigegeben** ([todo/paket-19.md](todo/paket-19.md), 4 Kennungen), danach Abnahmerunde des Nutzers `todo.0.4.040`. „Keine Schwelle“ bleibt (Nutzer 23.10.). **Verfahren neu ab Paket 17 (Host 23.10., auf Wunsch des Nutzers):** `todo/regeln.md` auf 15 Regeln gekürzt (verlorene Selbstprüfung als Regel 12 zurück, mit fünf Fragen), Sabotage als Patch mit automatischer Prüfung (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (höchstens 8 Kennungen, eine schwere zuerst; `archiv/abnahme-ablauf.md` 2a).
+**Stand 24.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 21** (DONE.md; 180 b über 184, 185 c entfällt). **Paket 22 freigegeben** ([todo/paket-22.md](todo/paket-22.md), 4 Kennungen), danach Abnahmerunde des Nutzers `todo.0.4.040`. „Keine Schwelle“ bleibt (Nutzer 23.10.). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
 
-**Prüfung Host 24.10. 10:14–10:42 (Paket 18, Commit `0ed4db3`, MacBook Air macOS 15.7.3, Xcode 26.3, `Werkzeuge/pruefung.sh voll`):** Debug mit Testziel und Release 0 Warnungen, seriell **1041/1041** grün, parallel 2× grün, **1× rot** (nur `folderAtScanBoundaryIsUncapturedWhileRowsRemain`, unverändert und außerhalb des Pakets → `bug.0.4.178`), keine neuen `.ips`, **Sabotage 9/9 rot ✓**, App des Nutzers aktuell (10:42:12, Version 0.4.0). Zwei Prüf-Agenten (Sonnet): kein hoher Befund im Paket; neu `bug.0.4.177` (Medium mitten im Lauf ausgeworfen, leerer Einhängepunkt kann den Index löschen; vom Host nachvollzogen), `178`–`180`. Alle 4 Kennungen abgenommen. Vorige Prüfungen: `archiv/paket-1[4-8]-abgenommen-*.md`.
+**Prüfung Host 24.10. 21:07–21:35 (Paket 21, Arbeitsbaum auf `72c42e4`, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`, Last ~2,5):** Debug mit Testziel und Release 0 Warnungen, seriell **1074/1074** grün, Parallel 2 und 3 grün, **Parallel 1 ein Test rot** (`renameAfterRemountWithoutDisappeared` → `bug.0.4.188`), keine neuen `.ips`, Sabotage **3/3 rot ✓**, App des Nutzers aktuell (21:34:53, Version 0.4.0). Zwei Prüf-Agenten (Sonnet): kein hoher Befund; neu `bug.0.4.188`–`191`. Abgenommen: `186`, `187`. Vorige Prüfungen: `archiv/paket-1[4-9]-abgenommen-*.md`, `archiv/paket-2[01]-abgenommen-*.md`.
 
 **Abnahmekriterien 0.4.0 (alle müssen erfüllt sein):** (1) alle Kennungen von 0.4.0 vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) App des Nutzers aktuell (Regel 14); (7) Abnahmerunde des Nutzers `todo.0.4.040`; (8) keine offene „Frage:“; (9) alle Sabotage-Patches rot (ab Paket 17).
 
@@ -37,8 +37,11 @@
 | 16 | **0.4.0** | `bug.0.4.164`–`167` (168, 169 → Paket 17) | Absturzbericht, Wiederverbinden, Tests → [archiv/paket-16-abgenommen-2026-10-23.md](archiv/paket-16-abgenommen-2026-10-23.md) | **abgenommen 23.10.** |
 | 17 | **0.4.0** | `bug.0.4.169`, `168`, `170`–`172` | Teil-Prüfsumme ohne Datenverlust, Scroll während Indizierung, Reste → [archiv/paket-17-abgenommen-2026-10-24.md](archiv/paket-17-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
 | 18 | **0.4.0** | `bug.0.4.175`, `174`, `173`, `176` | Einhängepunkt ohne Medium, Abbruch im Abschluss, Spalten-Cache, Kleinkram → [archiv/paket-18-abgenommen-2026-10-24.md](archiv/paket-18-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
-| **19** | **0.4.0** | `bug.0.4.177`–`180` | Auswurf mitten im Lauf, roter Parallellauf, Medienprüfung, Kleinkram → [todo/paket-19.md](todo/paket-19.md) | **freigegeben 24.10.** |
-| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat | nach Paket 19 |
+| 19 | **0.4.0** | `bug.0.4.177`–`180` (180 b → Paket 20) | Auswurf mitten im Lauf, roter Parallellauf, Medienprüfung, Kleinkram → [archiv/paket-19-abgenommen-2026-10-24.md](archiv/paket-19-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
+| 20 | **0.4.0** | `bug.0.4.181`–`185` (185 c entfällt) | Live-Überwachung nach Auswurf, sichtbarer Abbruch, Testhaken, Beweis 180 b, Kleinkram → [archiv/paket-20-abgenommen-2026-10-24.md](archiv/paket-20-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
+| 21 | **0.4.0** | `bug.0.4.186`, `187` | Keine Überwachung nach „nicht bestätigt“, Kleinkram → [archiv/paket-21-abgenommen-2026-10-24.md](archiv/paket-21-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
+| **22** | **0.4.0** | `bug.0.4.188`–`191` | Roter Parallellauf nach Wiedereinhängen, Verwaltungsdateien, Systemmitteilung, Kleinkram → [todo/paket-22.md](todo/paket-22.md) | **freigegeben 24.10.** |
+| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat | nach Paket 22 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 
 ## Entscheidungen des Nutzers
@@ -55,4 +58,4 @@
 |---|---|---|
 | `todo.0.3.2.001` | Layout **02** (Erkennungs-Dialog mit Stapel/Warteschlange) und **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
 | `todo.0.4.042` | **Zielversion 0.4.0, wartet auf Layout (Nutzer 18.10.; vorher „Wartescreen der Suche“ in 0.5).** Regel: README Abschnitt 5, „Ladeanzeige von Suche und Favoriten“. Startet eine Suche **aus dem Leerzustand** (noch keine Treffer sichtbar; auch wenn sie auf die Warteschlange nach einer Regeländerung wartet), zeigt die Suchansicht **sofort** die ganze Fläche aus Layout 10.1 (`SearchIdlePlaceholder`/`EmptyStateView`) in gleicher Größe und Position, mit **Spinner** statt der zwei Icons und dem Titel **„Suche läuft“** (de/en), **mindestens 1 s**, auch wenn die Treffer schneller da sind; dann die Treffer in einem Schritt. Verfeinern (Tippen, Filter, Sortierung) bei sichtbaren Treffern: alte Treffer bleiben, bis die neuen da sind, kein Wartescreen. Die kleine Zeile mit Spinner in der leeren Tabelle (`SearchView.swift`, `placeholder`, `LayoutCopy.searchInProgress`) entfällt. Mindestdauer als Parameter (kein prozessweiter Schalter, Regel 11), eine gemeinsame Quelle mit `todo.0.4.043` (Regel 7). Fenstertest: Suche aus dem Leerzustand → Wartescreen sofort, nach ≥ 1 s Treffer; Verfeinern → kein Wartescreen; Pixel hell/dunkel. **Freigabe durch den Host, sobald das Layout vorliegt.** |
-| `todo.0.4.045` | Nach Paket 19 (`bug.0.4.124`, `162 c`): Löschbefehl für die rund 8.600 leeren Test-`.plist` in `~/Library/Preferences` an den Nutzer geben (Host löscht nichts außerhalb des Projekts). Danach Checkliste für `todo.0.4.040` (SD, USB, SSD gleichzeitig; vorher alle Medien neu indizieren; Gegenprobe `bug.0.4.141`). | Host → Nutzer |
+| `todo.0.4.045` | Nach Paket 22 (`bug.0.4.124`, `162 c`): Löschbefehl für die rund 8.600 leeren Test-`.plist` in `~/Library/Preferences` an den Nutzer geben (Host löscht nichts außerhalb des Projekts). Danach Checkliste für `todo.0.4.040` (SD, USB, SSD gleichzeitig; vorher alle Medien neu indizieren; Gegenprobe `bug.0.4.141`). | Host → Nutzer |

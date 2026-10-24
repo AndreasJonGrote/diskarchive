@@ -191,9 +191,11 @@ actor ChangeWatcherEngine {
                 return Self.scanned(entry)
             }
             var liveChildren: [StoredItem] = []
+            var liveReadFailed = false
             do {
                 liveChildren = try await store.children(mediumUUID: mediumID, parentID: parentID)
             } catch {
+                liveReadFailed = true
                 if DiskIndexLog.isOperationalFailure(error) {
                     DiskIndexLog.shared.record(.store, .error, "store error children \(DiskIndexLog.errorSummary(error))")
                 }
@@ -204,6 +206,16 @@ actor ChangeWatcherEngine {
                     .filter(\.isFolder)
                     .map(\.name)
             )
+            // bug.0.4.181: gleiche Regel wie im Lauf (bug.0.4.177) – nach dem Auswerfen liest der stehengebliebene
+            // Einhängeordner leer; dann nichts schreiben (der Inhalt bleibt, das Aushängen räumt auf).
+            if await VanishedMediumGuard.vanished(
+                folderEntries: entries, parentID: parentID,
+                previousRootNames: previousRootNames(parentID: parentID, liveChildren: liveChildren, readFailed: liveReadFailed),
+                store: store, access: access, mediumUUID: mediumID, stored: nil, mountPath: mount
+            ) {
+                DiskIndexLog.shared.record(.watcher, .error, "medium nicht mehr eingehängt medium=\(mediumID)")
+                return .deferred
+            }
             do {
                 if await store.hasActiveIndexingToken(mediumUUID: mediumID) {
                     return .deferred
@@ -234,6 +246,12 @@ actor ChangeWatcherEngine {
             }
         }
         return .ok
+    }
+
+    /// Namen der bisherigen Wurzel für `VanishedMediumGuard` (nur dort gebraucht); `nil` = nicht lesbar.
+    private func previousRootNames(parentID: Int64?, liveChildren: [StoredItem], readFailed: Bool) -> Set<String>? {
+        guard parentID == nil else { return [] }
+        return readFailed ? nil : Set(liveChildren.map(\.name))
     }
 
     private static func directoryURL(mount: String, components: [String]) -> URL {

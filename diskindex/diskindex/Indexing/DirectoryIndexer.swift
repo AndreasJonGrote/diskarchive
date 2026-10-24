@@ -335,7 +335,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         // erst prüfen, ob das Medium noch eingehängt ist – ein leerer Einhängeordner nach dem Auswerfen
                         // würde sonst den Index samt Favoriten als entfernt markieren. Nicht eingehängt: Lauf endet wie
                         // beim Aushängen, nichts wird entfernt.
-                        if await mediumVanished(
+                        if await VanishedMediumGuard.vanished(
                             folderEntries: folderEntries, parentID: parent.id, previousRootNames: previousRootNames,
                             store: store, access: access, mediumUUID: mediumUUID, stored: stored, mountPath: volume.mountPath
                         ) {
@@ -455,10 +455,19 @@ nonisolated struct DirectoryIndexer: Sendable {
         if needsCounting { await countWholeTree() }
         // bug.0.4.177 (b): vor dem Abschluss eines bis zum Ende gelaufenen Laufs (danach wird Verschwundenes gelöscht)
         // noch einmal prüfen, ob das Medium eingehängt ist; sonst endet der Lauf wie beim Aushängen.
-        if !(await access.mediumIsMounted(stored, mountPath: volume.mountPath)) {
+        // bug.0.4.182: einmal wiederholen (Zeitgrenze, kurzes Stocken eines langsamen Mediums), bevor es als
+        // „nicht eingehängt“ gilt.
+        var confirmed = await store.confirmMounted(stored, mountPath: volume.mountPath, access: access)
+        if !confirmed { confirmed = await store.confirmMounted(stored, mountPath: volume.mountPath, access: access) }
+        if !confirmed {
             DiskIndexLog.shared.record(.index, .error, "medium vor dem abschluss nicht eingehängt medium=\(mediumUUID)")
             try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
-            return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
+            // Ein Aushängen (Halt) bleibt ein stiller Abbruch. Fehlt es, obwohl die Erkennung das Medium noch als
+            // eingehängt führt, endet der Lauf als Fehler mit eigenem Grund – sonst bliebe er für immer unvollständig.
+            if await unmountEventArrives(shouldHalt, grace: limits.unmountGrace) {
+                return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
+            }
+            return await failUnconfirmed(store, mediumUUID, token, stored, readErrors, samples, completedDepths)
         }
         await noteIndexing(finished: true)
         let stamped = Date()
@@ -604,6 +613,33 @@ nonisolated struct DirectoryIndexer: Sendable {
         throw lastError
     }
 
+    /// bug.0.4.182: Nichts wird gelöscht (`completesRun` bleibt aus); der Lauf endet als Fehler mit eigenem Grund.
+    private func failUnconfirmed(
+        _ store: IndexStoreV3,
+        _ mediumUUID: UUID,
+        _ token: UUID,
+        _ stored: StoredMedium,
+        _ readErrors: Int,
+        _ samples: [Double],
+        _ completedDepths: [Int]
+    ) async -> IndexRunOutcome {
+        do {
+            _ = try await store.finishIndexing(mediumUUID: mediumUUID, token: token, status: .error, firstIndexedAt: nil)
+        } catch {
+            if DiskIndexLog.isOperationalFailure(error) {
+                DiskIndexLog.shared.record(.index, .error, "finish nach unbestätigt \(DiskIndexLog.errorSummary(error))")
+            }
+        }
+        return IndexRunOutcome(
+            status: .error,
+            readErrors: readErrors,
+            progress: samples,
+            completedDepths: completedDepths,
+            firstIndexedAt: stored.firstIndexedAt,
+            failureReason: .unconfirmed
+        )
+    }
+
     private func failWrite(
         _ error: Error,
         _ store: IndexStoreV3,
@@ -675,31 +711,16 @@ nonisolated struct DirectoryIndexer: Sendable {
         )
     }
 
-    /// bug.0.4.177 (a): Nur im Fall „leer gelesen, hatte Inhalt“ (bzw. in der Wurzel „kein bisheriger Eintrag mehr
-    /// da“) wird das Medium geprüft – nicht je Ordner. Ist der bisherige Inhalt nicht lesbar, wird vorsichtshalber geprüft.
-    private func mediumVanished(
-        folderEntries: [ScannedEntry],
-        parentID: Int64?,
-        previousRootNames: Set<String>?,
-        store: IndexStoreV3,
-        access: any MediumAccess,
-        mediumUUID: UUID,
-        stored: StoredMedium,
-        mountPath: String
-    ) async -> Bool {
-        if folderEntries.isEmpty {
-            let previous = try? await store.children(mediumUUID: mediumUUID, parentID: parentID, limit: 1)
-            if let previous, previous.isEmpty { return false }
-        } else if parentID == nil {
-            guard let previous = previousRootNames else {
-                return !(await access.mediumIsMounted(stored, mountPath: mountPath))
-            }
-            let names = Set(folderEntries.map(\.name))
-            guard !previous.isEmpty, previous.isDisjoint(with: names) else { return false }
-        } else {
-            return false
+    /// bug.0.4.182: Meldet sich innerhalb der Karenz ein Halt (Aushängen, Abbruch, Pause)? Bedingung, kein fester Schlaf:
+    /// alle 50 ms nachfragen, höchstens bis zum Ablauf.
+    private func unmountEventArrives(_ shouldHalt: @Sendable () async -> ScanHalt, grace: Duration) async -> Bool {
+        let clock = ContinuousClock()
+        let deadline = clock.now + grace
+        while true {
+            if await stopped(shouldHalt) != nil { return true }
+            if clock.now >= deadline { return false }
+            try? await Task.sleep(for: .milliseconds(50))
         }
-        return !(await access.mediumIsMounted(stored, mountPath: mountPath))
     }
 
     private func stopped(_ shouldHalt: @Sendable () async -> ScanHalt) async -> ScanHalt? {

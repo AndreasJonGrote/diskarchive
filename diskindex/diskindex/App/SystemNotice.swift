@@ -75,10 +75,17 @@ extension UNUserNotificationCenter: NoticePosting {}
 final class NoticeTestHooks {
     let center: NoticePosting?
     let post: ((UNNotificationRequest, String) -> Void)?
+    /// bug.0.4.190: fängt das Zurückziehen zugestellter Mitteilungen ab (Kennung).
+    let withdraw: ((String) -> Void)?
 
-    init(center: NoticePosting? = nil, post: ((UNNotificationRequest, String) -> Void)? = nil) {
+    init(
+        center: NoticePosting? = nil,
+        post: ((UNNotificationRequest, String) -> Void)? = nil,
+        withdraw: ((String) -> Void)? = nil
+    ) {
         self.center = center
         self.post = post
+        self.withdraw = withdraw
     }
 }
 #endif
@@ -164,6 +171,24 @@ enum SystemNotice {
         post(body: body, settings: settings, event: .favorites, kind: "favorites")
     }
 
+    nonisolated static func indexingFailureIdentifier(mediumID: UUID) -> String {
+        "diskindex.indexing-failure-\(mediumID.uuidString)"
+    }
+
+    /// bug.0.4.190: Der Hinweis wurde zurückgenommen – die schon zugestellte Mitteilung dieses Mediums auch.
+    @MainActor
+    static func withdrawIndexingFailure(mediumID: UUID) {
+        let identifier = indexingFailureIdentifier(mediumID: mediumID)
+        #if DEBUG
+        if let withdraw = testHooks?.withdraw {
+            withdraw(identifier)
+            return
+        }
+        if testHooks?.post != nil { return }
+        #endif
+        (activeCenter as? UNUserNotificationCenter)?.removeDeliveredNotifications(withIdentifiers: [identifier])
+    }
+
     @MainActor
     static func postIndexingFailure(mediumID: UUID, name: String, reason: IndexFailureReason, settings: AppSettings) {
         guard DiskNotice.system.allowed(by: settings) else { return }
@@ -178,7 +203,7 @@ enum SystemNotice {
             DiskIndexNotificationUserInfoKey.failureReason: reason.notificationCode,
         ]
         let request = UNNotificationRequest(
-            identifier: "diskindex.indexing-failure-\(mediumID.uuidString)",
+            identifier: indexingFailureIdentifier(mediumID: mediumID),
             content: content,
             trigger: nil
         )
@@ -252,6 +277,8 @@ nonisolated enum IndexFailureReason: Equatable {
     case permission
     case disconnected
     case timeout
+    /// bug.0.4.182: Das Medium war am Ende des Laufs nicht zu bestätigen, ohne dass es ausgehängt wurde.
+    case unconfirmed
     case diskSpace
     case database
     case unknown
@@ -261,6 +288,7 @@ nonisolated enum IndexFailureReason: Equatable {
         case .permission: "permission"
         case .disconnected: "disconnected"
         case .timeout: "timeout"
+        case .unconfirmed: "unconfirmed"
         case .diskSpace: "diskSpace"
         case .database: "database"
         case .unknown: "unknown"
@@ -272,6 +300,7 @@ nonisolated enum IndexFailureReason: Equatable {
         case "permission": self = .permission
         case "disconnected": self = .disconnected
         case "timeout": self = .timeout
+        case "unconfirmed": self = .unconfirmed
         case "diskSpace": self = .diskSpace
         case "database": self = .database
         case "unknown": self = .unknown
@@ -287,6 +316,8 @@ nonisolated enum IndexFailureReason: Equatable {
             return LayoutCopy.failureDisconnected
         case .timeout:
             return LayoutCopy.failureTimeout
+        case .unconfirmed:
+            return LayoutCopy.failureUnconfirmed
         case .diskSpace:
             return LayoutCopy.failureDiskSpace
         case .database:

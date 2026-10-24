@@ -1059,7 +1059,7 @@ enum ColumnDetailText {
 }
 
 /// bug.0.4.148: Stand, für den ein waagerechter Auftrag gilt.
-private struct HorizontalScrollSignature: Equatable {
+struct HorizontalScrollSignature: Equatable {
     var mediumID: UUID?
     var pathStack: [String]
     var selection: [UUID]

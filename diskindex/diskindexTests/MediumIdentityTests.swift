@@ -107,6 +107,46 @@ struct MediumIdentityTests {
         await rig.watcher.stop(mediumID: id)
     }
 
+    /// bug.0.4.191 (b): Ein umbenanntes Medium, dessen Abgleich nicht startet (hier: Rechner schläft, `heldForSleep`) und das nicht
+    /// „indiziert“ ist, bekommt unter dem neuen Pfad keine Überwachung – wie bei den übrigen Startwegen.
+    @Test func renameOfAnUnindexedHeldMediumStartsNoWatcher() async throws {
+        let harness = try await ScanHarness.make()
+        let id = harness.mediumID
+        let shared = UUID().uuidString
+        let before = testVolume(path: "/Volumes/OLD", name: "TEST", uuid: shared)
+        let oldMount = MemoryVolume(mountPath: "/Volumes/OLD")
+        oldMount.file("a.txt")
+        let newMount = MemoryVolume(mountPath: "/Volumes/NEU")
+        newMount.file("a.txt")
+        _ = try await harness.run(access: oldMount, maxDepth: nil, fromScratch: true, volume: before)
+        try await harness.store.recordIdentity(mediumUUID: id, before.identity)
+
+        let sources = WatchSources()
+        let app = AppState(store: harness.store)
+        var rigRef: WiredRig?
+        let rig = WiredRig(store: harness.store, access: RunGateAccess([oldMount, newMount]) { _ in false }, app: app) { mediumID, volume in
+            rigRef?.startScripted(mediumID, volume, sources: sources)
+        }
+        rigRef = rig
+        await rig.coordinator.handle(.appeared(before))
+        let settled = await waitUntil { sources.paths(for: id) == ["/Volumes/OLD"] && !rig.service.isRunActive(id) }
+        try #require(settled, "Voraussetzung: Überwachung unter dem alten Pfad")
+        await rig.watcher.stop(mediumID: id)
+
+        // Jetzt: unvollständig und gehalten – der Abgleich unter dem neuen Pfad wird abgelehnt.
+        try await harness.store.updateMediumIndexStatus(uuid: id, .pending)
+        app.updateMedium(id: id) { $0.indexStatus = .pending }
+        app.heldForSleep = true
+        let after = testVolume(path: "/Volumes/NEU", name: "NEU", uuid: shared)
+        await rig.coordinator.handle(.renamed(oldPath: "/Volumes/OLD", volume: after))
+        try #require(rig.coordinator.volume(for: id)?.mountPath == "/Volumes/NEU", "Umbenennung nicht verarbeitet")
+        try #require(app.medium(with: id)?.indexStatus == .pending, "Voraussetzung: unvollständig")
+        // `handle(.renamed)` kehrt erst zurück, wenn die Verdrahtung über die Überwachung entschieden hat.
+        #expect(rig.starts(id) == [false], "Abgleich trotz Halt gestartet: \(rig.starts(id))")
+        #expect(sources.paths(for: id) == ["/Volumes/OLD"], "Überwachung unter dem neuen Pfad trotz unvollständigem Index: \(sources.paths(for: id))")
+        await rig.watcher.stop(mediumID: id)
+    }
+
     /// Abziehen: `rootChanged` kommt, solange das Medium noch eingehängt ist (vor dem Aushängen) → kein Abgleich,
     /// Status nicht „Fehler“; danach `.disappeared` → offline.
     @Test func rootChangedWhilePullingStartsNoReconcile() async throws {

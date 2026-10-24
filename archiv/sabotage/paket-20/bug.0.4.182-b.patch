@@ -1,0 +1,13 @@
+# Test: EjectDuringRunTests/unconfirmedMediumEndsAsErrorWithItsOwnReason()
+# Test: WindowTestGroup/IndexFailureReasonTests/serviceRunPassesTheUnconfirmedReasonToTheDialog()
+--- a/diskindex/diskindex/Indexing/DirectoryIndexer.swift
++++ b/diskindex/diskindex/Indexing/DirectoryIndexer.swift
+@@ -467,7 +467,7 @@
+             if await stopped(shouldHalt) != nil {
+                 return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
+             }
+-            return await failUnconfirmed(store, mediumUUID, token, stored, readErrors, samples, completedDepths)
++            return await stop(store, mediumUUID, token, .cancel, fullReconcile, stored, readErrors, samples, completedDepths, volume.mountPath)
+         }
+         await noteIndexing(finished: true)
+         let stamped = Date()
