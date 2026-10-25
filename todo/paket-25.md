@@ -7,6 +7,11 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln). V
 ## Entscheidung des Nutzers 25.10.
 
 - **bug.0.4.198 — Text der Einstellung „Auf Updates hinweisen“ ohne „in der Menüleiste“ (niedrig).** Der Hinweis auf eine neue Version ist der Dialog im Hauptfenster (`todo.0.4.047`), nicht die Menüleiste. Im `Localizable.xcstrings` den Schlüssel `copy.settings.updates.text` ändern: de **„Disk Archive weist dich darauf hin, sobald eine neue Version verfügbar ist.“**, en **„Disk Archive lets you know as soon as a new version is available.“** Sonst nichts ändern (Titel UPDATES, Schalter, Lage im Tab Erweitert bleiben). Konzept: `konzept/datenbank.md` (Update-Modal). **Test:** ein bestehender oder neuer Texttest prüft beide Sprachen wortgleich (vorher rot im Status belegen); Pixeltests des Tabs Erweitert, falls vorhanden, nachziehen. Kein Patch nötig (nur Text; im Status begründen).
-  **Status:**
+  **Status:** Bereit zur Prüfung. Neuer Test `L10nTests/updatesSettingTextDoesNotMentionTheMenuBar` prüft de und en wortgleich, vorher rot (13:45, 2 Befunde: alter Wortlaut mit „Menüleiste“/„menu bar“). Danach `copy.settings.updates.text` in `Localizable.xcstrings` geändert (sonst nichts) → grün; mit grün sind `UpdateDialogTests/advancedTabTogglesTheSameSetting` hell/dunkel und `LayoutCopyTests` (13:50). Der Tab Erweitert hat keinen Pixeltest auf den Text, im Layout steht der Satz nicht.
+  Debug und Release 0 Warnungen; App des Nutzers 13:56:38, Signatur gültig, 0.4.0, neuer Text de/en im Bundle. Kein Patch: nur Text, der Texttest ist der Nachweis. Kein Gesamtlauf (Vorgabe).
 
-**Paketende:** 0 Warnungen Debug und Release, seriell grün, parallel 3× grün, keine neuen `.ips`, App des Nutzers gebaut. Ist ein Lauf nur unter hoher Systemlast rot, Last und Testnamen im Status nennen.
+**Paketende (Host 25.10., nur Text, Nutzer spielt nebenher):** 0 Warnungen Debug und Release, die betroffenen Tests (Texttest, Tab Erweitert) grün, App des Nutzers gebaut. **Keinen Gesamtlauf** (seriell/parallel) – den macht der Host später auf ruhigem Rechner.
+
+## Vorprüfung Host 25.10. (13:58–14:01, Nutzer spielt)
+
+Diff gelesen: nur `copy.settings.updates.text` (de/en) und ein neuer Test in `L10nTests`, alter Wortlaut nirgends mehr im Code, Konzept oder Layout. `pruefung.sh schnell`: Debug 0 Warnungen; `L10nTests`, `LayoutCopyTests`, `WindowTestGroup/UpdateDialogTests` grün. **Offen für die Abnahme:** `pruefung.sh voll` auf ruhigem Rechner.

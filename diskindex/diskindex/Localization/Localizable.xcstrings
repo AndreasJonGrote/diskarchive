@@ -132,13 +132,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disk Archive weist dich in der Menüleiste darauf hin, sobald eine neue Version verfügbar ist."
+            "value" : "Disk Archive weist dich darauf hin, sobald eine neue Version verfügbar ist."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disk Archive lets you know in the menu bar as soon as a new version is available."
+            "value" : "Disk Archive lets you know as soon as a new version is available."
           }
         }
       }

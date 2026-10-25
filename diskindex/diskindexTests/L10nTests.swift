@@ -27,4 +27,12 @@ import Testing
         #expect(L10n.string("copy.settings.language.german", language: .german) == "Deutsch")
         #expect(L10n.string("copy.settings.language.english", language: .english) == "English")
     }
+
+    /// bug.0.4.198: Der Hinweis auf eine neue Version ist der Dialog im Hauptfenster, nicht die Menüleiste.
+    @Test func updatesSettingTextDoesNotMentionTheMenuBar() {
+        #expect(L10n.string("copy.settings.updates.text", language: .german)
+            == "Disk Archive weist dich darauf hin, sobald eine neue Version verfügbar ist.")
+        #expect(L10n.string("copy.settings.updates.text", language: .english)
+            == "Disk Archive lets you know as soon as a new version is available.")
+    }
 }
