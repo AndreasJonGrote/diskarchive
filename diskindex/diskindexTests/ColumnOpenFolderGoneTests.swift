@@ -108,7 +108,8 @@ struct ColumnOpenFolderGoneTests {
         _ tree: (app: AppState, store: IndexStoreV3, medium: StoredMedium),
         settle: Duration = .milliseconds(100),
         waitUntilDone: Bool = true,
-        done orders: ScrollOrdersDone? = nil
+        done orders: ScrollOrdersDone? = nil,
+        gate: SurfaceAsyncSignal? = nil
     ) async throws -> (PixelProbe.Session, NSScrollView) {
         let done = orders ?? ScrollOrdersDone()
         tree.app.mainWindowDestination = .columnBrowser
@@ -120,6 +121,7 @@ struct ColumnOpenFolderGoneTests {
                 .environment(\.colorScheme, .light)
                 .environment(\.columnScrollSettleDelay, settle)
                 .environment(\.columnScrollOrderDone, { token in done.tokens.append(token) })
+                .environment(\.columnScrollSettleGate, gate.map { gate -> @Sendable () async -> Void in { @Sendable in await gate.wait() } })
                 .frame(width: Self.narrow.width, height: Self.narrow.height),
             size: Self.narrow
         )
@@ -165,11 +167,13 @@ struct ColumnOpenFolderGoneTests {
         let mount = try makeMount()
         try Data("x".utf8).write(to: mount.appendingPathComponent("Alpha/a.txt"))
         let tree = try await openFolderFixture(mount: mount)
-        // Lange Ruhezeit, damit das Umbenennen sicher in den offenen Auftrag fällt (geprüft unten).
-        let settle = Duration.seconds(4)
+        // bug.0.4.192: Der Auftrag bleibt hinter dem Tor offen, bis das Umbenennen in der Spalte steht (statt auf eine
+        // lange Ruhezeit zu hoffen, die unter Last vorher ablief).
+        let gate = SurfaceAsyncSignal()
         let done = ScrollOrdersDone()
-        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done)
+        let (session, scroll) = try await openAlphaFileNarrow(tree, waitUntilDone: false, done: done, gate: gate)
         defer { session.close() }
+        defer { Task { await gate.signal() } }
         let token = tree.app.columnScrollToken
         try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
         let before = scroll.documentVisibleRect.minX
@@ -186,6 +190,7 @@ struct ColumnOpenFolderGoneTests {
         }
         try #require(renamed, "Umbenennen nicht in der Spalte")
         try #require(!done.tokens.contains(token), "Auftrag schon vor dem Umbenennen erledigt – Test prüft nichts")
+        await gate.signal()
         // Positives Signal: der Auftrag endet (ohne Scroll), dann die Scroll-Animation (0,2 s).
         try #require(await waitUntil { done.tokens.contains(token) }, "Auftrag nicht erledigt")
         try await Task.sleep(for: .milliseconds(300))
@@ -198,10 +203,12 @@ struct ColumnOpenFolderGoneTests {
     @Test func liveDeleteWhileTheOrderIsOpenDoesNotScroll() async throws {
         let mount = try makeMount()
         let tree = try await openFolderFixture(mount: mount)
-        let settle = Duration.seconds(4)
+        // bug.0.4.192: Tor statt langer Ruhezeit (siehe Umbenennen).
+        let gate = SurfaceAsyncSignal()
         let done = ScrollOrdersDone()
-        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done)
+        let (session, scroll) = try await openAlphaFileNarrow(tree, waitUntilDone: false, done: done, gate: gate)
         defer { session.close() }
+        defer { Task { await gate.signal() } }
         let token = tree.app.columnScrollToken
         try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
         let before = scroll.documentVisibleRect.minX
@@ -217,6 +224,7 @@ struct ColumnOpenFolderGoneTests {
         }
         try #require(gone, "Löschen nicht in der Spalte")
         try #require(!done.tokens.contains(token), "Auftrag schon vor dem Löschen erledigt – Test prüft nichts")
+        await gate.signal()
         try #require(await waitUntil { done.tokens.contains(token) }, "Auftrag nicht erledigt")
         try #require(await scrollComesToRest(scroll), "Scroll-Animation endet nicht")
         #expect(abs(scroll.documentVisibleRect.minX - before) <= 1, "offener Auftrag scrollte nach Löschen: \(before) → \(scroll.documentVisibleRect.minX)")
@@ -227,10 +235,14 @@ struct ColumnOpenFolderGoneTests {
     @Test func userScrollWhileTheOrderIsOpenEndsIt() async throws {
         let mount = try makeMount()
         let tree = try await openFolderFixture(mount: mount)
+        // bug.0.4.192: Das Tor hält den Auftrag offen (vorher 2 s Ruhezeit, unter Last vor dem Scroll abgelaufen). Ohne
+        // Nutzer-Scroll bliebe er offen; endet er, war es der Scroll.
         let settle = Duration.seconds(2)
+        let gate = SurfaceAsyncSignal()
         let done = ScrollOrdersDone()
-        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done)
+        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done, gate: gate)
         defer { session.close() }
+        defer { Task { await gate.signal() } }
         let token = tree.app.columnScrollToken
         try #require(!done.tokens.contains(token), "Auftrag schon vor dem Scroll erledigt – Test prüft nichts")
         // Wie ein Scroll mit Trackpad/Maus: Beginn des Live-Scrolls.

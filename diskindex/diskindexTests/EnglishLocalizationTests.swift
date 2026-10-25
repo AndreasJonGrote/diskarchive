@@ -57,13 +57,17 @@ struct EnglishLocalizationTests {
     /// Aufgabe 214: frühere Vorschlagstexte sind normale Texte (de unverändert, en neu).
     @Test func formerProposalTextsAreLocalized() {
         L10n.$languageOverride.withValue(.german) {
-            #expect(LayoutCopy.searchInProgress == "Suche läuft…")
+            #expect(LayoutCopy.loadingSearchTitle(media: 12, files: 48_230) == "Deine 12 Speichermedien und 48.230 Dateien werden durchsucht …")
+            #expect(LayoutCopy.loadingFavoritesTitle(media: 1, files: 1) == "Dein 1 Speichermedium und 1 Datei werden gefiltert …")
+            #expect(LayoutCopy.loadingOneMoment == "Einen Moment bitte.")
             #expect(LayoutCopy.noResults("abc") == "Keine Ergebnisse für „abc“")
             #expect(LayoutCopy.mediumFilterCount(2, 5) == "2 von 5 Medien")
             #expect(LayoutCopy.folderChangeExclusions == "Ausschlüsse ändern")
         }
         L10n.$languageOverride.withValue(.english) {
-            #expect(LayoutCopy.searchInProgress == "Searching…")
+            #expect(LayoutCopy.loadingSearchTitle(media: 12, files: 48_230) == "Searching your 12 storage media and 48,230 files …")
+            #expect(LayoutCopy.loadingFavoritesTitle(media: 1, files: 1) == "Filtering your 1 storage medium and 1 file …")
+            #expect(LayoutCopy.loadingOneMoment == "One moment, please.")
             #expect(LayoutCopy.noResults("abc") == "No results for “abc”")
             #expect(LayoutCopy.mediumFilterCount(2, 5) == "2 of 5 media")
             #expect(LayoutCopy.folderChangeExclusions == "Change Exclusions")

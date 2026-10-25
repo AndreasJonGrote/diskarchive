@@ -2,7 +2,7 @@
 //  UpdateAvailableDialog.swift
 //  diskindex
 //
-//  Update-Hinweis (c.0.3.3.001), Vorlage IndexingFailureDialog.
+//  Update-Hinweis (c.0.3.3.001), Vorlage IndexingFailureDialog; Layout 13 „Updatedialog“ (todo.0.4.047).
 //
 
 import AppKit
@@ -14,7 +14,8 @@ struct UpdateAvailableDialog: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Image("IconWarning")
+            // todo.0.4.047: Icon „Festplatten“ (Phosphor hard-drives), Textfarbe, 30 pt.
+            Image("MenuBarHardDrives")
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
@@ -25,7 +26,7 @@ struct UpdateAvailableDialog: View {
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(DesignColor.text)
 
-            Text(LayoutCopy.updateAvailableBody(current: notice.offer.currentDisplay, target: notice.offer.targetDisplay))
+            Text(LayoutCopy.updateAvailableText)
                 .font(.system(size: 13))
                 .foregroundStyle(DesignColor.text.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
@@ -44,35 +45,36 @@ struct UpdateAvailableDialog: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if notice.offer.showSkipCheckbox {
-                Toggle(isOn: Binding(
-                    get: { appState.updateNotice?.skipUpdate ?? notice.skipUpdate },
-                    set: { newValue in
-                        guard var current = appState.updateNotice else { return }
-                        current.skipUpdate = newValue
-                        appState.updateNotice = current
-                    }
-                )) {
-                    Text(LayoutCopy.updateAvailableSkipCheckbox)
-                        .font(.system(size: 13))
-                        .foregroundStyle(DesignColor.text.opacity(0.85))
+            // todo.0.4.047: der Haken ist die Einstellung „Auf Updates hinweisen“ (gespeichert beim Schließen).
+            Toggle(isOn: Binding(
+                get: { appState.updateNotice?.notifyAboutUpdates ?? notice.notifyAboutUpdates },
+                set: { newValue in
+                    guard var current = appState.updateNotice else { return }
+                    current.notifyAboutUpdates = newValue
+                    appState.updateNotice = current
                 }
-                .toggleStyle(DesignCheckbox())
+            )) {
+                Text(LayoutCopy.updatesToggle)
+                    .font(.system(size: 13))
+                    .foregroundStyle(DesignColor.text.opacity(0.85))
             }
+            .toggleStyle(DesignCheckbox())
 
             HStack(spacing: 8) {
-                Button(LayoutCopy.close) {
-                    appState.dismissUpdateNotice(saveSkip: appState.updateNotice?.skipUpdate ?? notice.skipUpdate)
+                // Beide Knöpfe gleich breit (Layout 13): die Fläche des Stils füllt die halbe Zeile.
+                Button {
+                    appState.dismissUpdateNotice()
+                } label: {
+                    Text(LayoutCopy.close).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(SecondaryButtonStyle(size: .dialog))
                 .frame(maxWidth: .infinity)
                 .pointerCursor()
 
-                Button(LayoutCopy.updateAvailableDownload) {
-                    appState.dismissUpdateNotice(saveSkip: appState.updateNotice?.skipUpdate ?? notice.skipUpdate)
-                    if let url = URL(string: "https://diskarchive.app/") {
-                        NSWorkspace.shared.open(url)
-                    }
+                Button {
+                    appState.openUpdateDownload()
+                } label: {
+                    Text(LayoutCopy.updateAvailableDownload).frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryButtonStyle(size: .dialog))
                 .frame(maxWidth: .infinity)

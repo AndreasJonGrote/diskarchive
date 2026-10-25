@@ -12,7 +12,6 @@ nonisolated struct VersionLockSettingsMutations: Equatable, Sendable {
     var setBetaExpiryNoticedAt: Date?
     var setApiLastSeen: Date?
     var setLockedVersion: String?
-    var clearSkippedUpdateVersion: Bool = false
     /// bug.0.4.053 (a): erster Start (Bezug der 30-Tage-Sperre, solange die API nie antwortete).
     var setFirstRunAt: Date? = nil
     var firstRunFresh: Bool = false
@@ -130,33 +129,21 @@ nonisolated enum VersionLockEvaluator {
 
         if let apiVersion {
             let appOlderThanAPI = appVersion.isOlderThanMajorMinor(apiVersion)
-            let skipped = settings.skippedUpdateVersion.flatMap(AppVersion.parse)
-            let skipHidesModal = skipped.map { apiVersion.compareMajorMinor(to: $0) == .orderedSame } ?? false
-
-            if appOlderThanAPI, !skipHidesModal {
-                let showSkip = !betaPathActive && lockReason == nil
+            // todo.0.4.047: kein „Update überspringen“ mehr; ob der Dialog erscheint, entscheidet die Einstellung
+            // „Auf Updates hinweisen“ (`AppState.applyVersionLockEvaluation`).
+            if appOlderThanAPI {
                 updateOffer = UpdateOffer(
                     currentDisplay: appVersion.displayString,
                     targetDisplay: apiVersion.displayString,
                     targetMajorMinor: apiVersion,
-                    showSkipCheckbox: showSkip,
                     showBetaCountdown: betaPathActive
                 )
-            } else if betaPathActive, !skipHidesModal {
+            } else if betaPathActive {
                 updateOffer = UpdateOffer(
                     currentDisplay: appVersion.displayString,
                     targetDisplay: apiVersion.displayString,
                     targetMajorMinor: apiVersion,
-                    showSkipCheckbox: false,
                     showBetaCountdown: true
-                )
-            } else if lockReason != nil, appOlderThanAPI, !skipHidesModal {
-                updateOffer = UpdateOffer(
-                    currentDisplay: appVersion.displayString,
-                    targetDisplay: apiVersion.displayString,
-                    targetMajorMinor: apiVersion,
-                    showSkipCheckbox: false,
-                    showBetaCountdown: false
                 )
             }
         }
@@ -202,9 +189,6 @@ nonisolated enum VersionLockEvaluator {
             if let version = mutations.setLockedVersion {
                 try SystemSettingsPersistence.writeLockedVersion(db, version: version)
             }
-            if mutations.clearSkippedUpdateVersion {
-                try SystemSettingsPersistence.writeSkippedUpdateVersion(db, version: nil)
-            }
             if let at = mutations.setFirstRunAt {
                 try SystemSettingsPersistence.writeFirstRunIfMissing(db, at: at, fresh: mutations.firstRunFresh)
             }
@@ -218,9 +202,11 @@ nonisolated enum VersionLockEvaluator {
         }
     }
 
+    #if DEBUG
     static func readSettings(pool: DatabasePool) throws -> SystemSettingsSnapshot {
         try pool.read(SystemSettingsPersistence.read)
     }
+    #endif
 
     /// Einstellungen und Zahl der schon indizierten Medien in einem Lesezugriff (bug.0.4.065). bug.0.4.072: nur
     /// Medien mit Index (`firstIndexedAt IS NOT NULL`); beim bloßen Anstecken legt die Erkennung schon eine Zeile an.

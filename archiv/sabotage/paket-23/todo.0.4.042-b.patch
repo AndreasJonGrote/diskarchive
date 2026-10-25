@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/SearchLoadingWindowTests/rerunWithTheSameHitsShowsNoLoadingScreen()
+--- a/diskindex/diskindex/App/AppState+IndexChanges.swift	2026-10-25 00:35:07
++++ b/diskindex/diskindex/App/AppState+IndexChanges.swift	2026-10-25 00:35:07
+@@ -168,7 +168,7 @@
+         // sichtbaren Treffern zeigt sie nicht.
+         // Gleiche Treffermenge wie die angezeigte (Live-Neustart, neues Medium, Sortierklick bei „Keine Treffer“): kein
+         // Wartescreen (Selbstprüfung 23).
+-        if searchMatch.items.isEmpty, searchMatch.media.isEmpty, !request.hasSameHits(as: shownSearch), !screenshotFrozenLists {
++        if searchMatch.items.isEmpty, searchMatch.media.isEmpty, !screenshotFrozenLists {
+             searchLoading.begin()
+         }
+         defer {

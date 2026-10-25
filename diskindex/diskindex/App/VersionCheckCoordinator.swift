@@ -210,16 +210,6 @@ enum VersionCheckCoordinator {
             completion?(due)
         }
     }
-
-    static func recordSkippedUpdate(target: AppVersion, store: IndexStoreV3) {
-        let pool = store.pool
-        let version = target.displayString
-        Task.detached(priority: .utility) {
-            try? pool.write { db in
-                try SystemSettingsPersistence.writeSkippedUpdateVersion(db, version: version)
-            }
-        }
-    }
 }
 
 #if DEBUG

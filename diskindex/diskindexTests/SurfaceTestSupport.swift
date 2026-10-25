@@ -24,7 +24,7 @@ struct SurfaceRig {
         let database = try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite"))
         let store = IndexStoreV3(database: database)
         // bug.0.4.163 (e): Ladefläche der Favoriten kurz (die Mindestdauer von 1 s prüft `FavoritesLoadingWindowTests`).
-        let app = AppState(favoritesLoadingMinimum: .milliseconds(100))
+        let app = AppState(loadingMinimum: .milliseconds(100))
         let coordinator = MediumCoordinator(store: store, access: GrantedAccess(), appState: app)
         return SurfaceRig(database: database, store: store, app: app, coordinator: coordinator)
     }

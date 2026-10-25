@@ -12,7 +12,6 @@ nonisolated enum SystemSettingsKey {
     static let betaExpiryNoticedAt = "betaExpiryNoticedAt"
     static let apiLastSeen = "apiLastSeen"
     static let lockedVersion = "lockedVersion"
-    static let skippedUpdateVersion = "skippedUpdateVersion"
     /// bug.0.4.053: erster Start mit dieser Datenbank (`date`); `value` = „fresh“, wenn die Datenbank dabei neu war.
     static let firstRunAt = "firstRunAt"
     /// bug.0.4.053: höchster je gesehener Zeitpunkt der Mac-Uhr (gegen zurückgestellte Uhr).
@@ -30,7 +29,6 @@ nonisolated struct SystemSettingsSnapshot: Equatable, Sendable {
     var betaExpiryNoticedAt: Date?
     var apiLastSeen: Date?
     var lockedVersion: String?
-    var skippedUpdateVersion: String?
     var firstRunAt: Date? = nil
     /// `true`, wenn beim ersten Start keine Datenbank da war (README: frische Installation).
     var firstRunFresh: Bool = false
@@ -43,7 +41,6 @@ nonisolated enum SystemSettingsPersistence {
             betaExpiryNoticedAt: try readDate(db, key: SystemSettingsKey.betaExpiryNoticedAt),
             apiLastSeen: try readDate(db, key: SystemSettingsKey.apiLastSeen),
             lockedVersion: try readValue(db, key: SystemSettingsKey.lockedVersion),
-            skippedUpdateVersion: try readValue(db, key: SystemSettingsKey.skippedUpdateVersion),
             firstRunAt: try readDate(db, key: SystemSettingsKey.firstRunAt),
             firstRunFresh: try readValue(db, key: SystemSettingsKey.firstRunAt) == FirstRunMarker.fresh,
             highestSeenAt: try readDate(db, key: SystemSettingsKey.highestSeenAt)
@@ -96,14 +93,6 @@ nonisolated enum SystemSettingsPersistence {
 
     static func writeLockedVersion(_ db: Database, version: String) throws {
         try writeValue(db, key: SystemSettingsKey.lockedVersion, value: version)
-    }
-
-    static func writeSkippedUpdateVersion(_ db: Database, version: String?) throws {
-        if let version {
-            try writeValue(db, key: SystemSettingsKey.skippedUpdateVersion, value: version)
-        } else {
-            try db.execute(sql: "DELETE FROM settings WHERE key = ?", arguments: [SystemSettingsKey.skippedUpdateVersion])
-        }
     }
 
     private static func readValue(_ db: Database, key: String) throws -> String? {

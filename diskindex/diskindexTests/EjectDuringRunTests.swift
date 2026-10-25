@@ -105,6 +105,13 @@ struct EjectDuringRunTests {
         }
     }
 
+    /// bug.0.4.194 (c): auch `Icon\r` (Ordnersymbol) und `.git` (aus den versteckten Artefakten) zählen nicht.
+    @Test func foreignMediumSharingOnlyTheFolderIconOrGitIsNotTakenIntoTheIndex() async throws {
+        for name in ["Icon\r", ".git"] {
+            try await foreignMediumShares(name, otherName: name)
+        }
+    }
+
     /// Gegenprobe: eigenes eingehängtes Medium (mit einem Verwaltungsnamen in der Wurzel) → eine Änderung unter den echten Ordnern wird geschrieben.
     @Test func ownMediumWithARealSharedFolderIsUpdated() async throws {
         let harness = try await ScanHarness.make()
@@ -385,7 +392,7 @@ struct UnconfirmedNoticeWithdrawalTests {
         defer { rig.coordinator.stop() }
         let id = harness.mediumID
         var withdrawn: [String] = []
-        let hooks = NoticeTestHooks(withdraw: { withdrawn.append($0) })
+        let hooks = NoticeTestHooks(post: { _, _ in }, withdraw: { withdrawn.append($0) })
         try await SystemNotice.$testHooks.withValue(hooks) {
             // Anderer Grund: nichts zurückgezogen.
             await rig.coordinator.handle(.appeared(volume))
@@ -406,9 +413,62 @@ struct UnconfirmedNoticeWithdrawalTests {
             // Der Hinweis dieses Mediums: genau seine Kennung wird zurückgezogen.
             await rig.coordinator.handle(.appeared(volume))
             try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .connected }, "Medium nicht erneut verbunden")
-            app.indexingFailure = IndexingFailureNotice(id: id, name: "SPAET2", reason: .unconfirmed)
+            // bug.0.4.193: über den echten Weg (Hinweis und zugestellte Mitteilung).
+            app.presentIndexingFailure(mediumID: id, name: "SPAET2", reason: .unconfirmed)
             await rig.coordinator.handle(.disappeared(path: volume.mountPath))
             #expect(withdrawn == ["diskindex.indexing-failure-\(id.uuidString)"], "Zurückgezogen: \(withdrawn)")
+        }
+    }
+
+    /// bug.0.4.193: Das Zurückziehen hängt an der zugestellten Mitteilung, nicht am Hinweis. Hinweis geschlossen →
+    /// Mitteilung trotzdem zurückgezogen; Hinweis von einem anderen Medium überschrieben → Mitteilung des ersten
+    /// zurückgezogen, Hinweis des zweiten bleibt; Mitteilung mit anderem Grund → nichts zurückgezogen.
+    @Test func lateUnmountWithdrawsTheDeliveredNoticeEvenWhenTheHintIsGone() async throws {
+        let harness = try await ScanHarness.make()
+        let volume = testVolume(path: "/Volumes/SPAET3", name: "SPAET3")
+        try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)
+        let app = AppState(store: harness.store)
+        let rig = WiredRig(store: harness.store, access: MemoryVolume(mountPath: volume.mountPath), app: app)
+        defer { rig.coordinator.stop() }
+        let id = harness.mediumID
+        let identifier = "diskindex.indexing-failure-\(id.uuidString)"
+        var withdrawn: [String] = []
+        let hooks = NoticeTestHooks(post: { _, _ in }, withdraw: { withdrawn.append($0) })
+        try await SystemNotice.$testHooks.withValue(hooks) {
+            // Hinweis geschlossen (wie „OK“ im Dialog), dann spätes Aushängen.
+            await rig.coordinator.handle(.appeared(volume))
+            try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .connected }, "Medium nicht verbunden")
+            app.presentIndexingFailure(mediumID: id, name: "SPAET3", reason: .unconfirmed)
+            try #require(app.indexingFailure?.id == id, "Voraussetzung: Hinweis steht")
+            app.indexingFailure = nil
+            await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+            #expect(withdrawn == [identifier], "Mitteilung nach geschlossenem Hinweis nicht zurückgezogen: \(withdrawn)")
+
+            // Hinweis von einem anderen Medium überschrieben.
+            withdrawn = []
+            await rig.coordinator.handle(.appeared(volume))
+            try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .connected }, "Medium nicht erneut verbunden")
+            app.presentIndexingFailure(mediumID: id, name: "SPAET3", reason: .unconfirmed)
+            let other = UUID()
+            app.presentIndexingFailure(mediumID: other, name: "ANDERES", reason: .unconfirmed)
+            try #require(app.indexingFailure?.id == other, "Voraussetzung: Hinweis des anderen Mediums steht")
+            await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+            #expect(withdrawn == [identifier], "Mitteilung des ersten Mediums nicht zurückgezogen: \(withdrawn)")
+            #expect(app.indexingFailure?.id == other, "Hinweis des anderen Mediums zurückgenommen")
+
+            // Anderer Grund: nichts zurückgezogen.
+            withdrawn = []
+            app.indexingFailure = nil
+            await rig.coordinator.handle(.appeared(volume))
+            try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .connected }, "Medium nicht erneut verbunden")
+            // Eine Stunde später (Drosselung: höchstens 3 Hinweise je Medium und Stunde).
+            let later = Date().addingTimeInterval(7_200)
+            app.presentIndexingFailure(mediumID: id, name: "SPAET3", reason: .unconfirmed, now: later)
+            app.presentIndexingFailure(mediumID: id, name: "SPAET3", reason: .unknown, now: later)
+            try #require(app.indexingFailure?.reason == .unknown, "Voraussetzung: neue Mitteilung mit anderem Grund")
+            app.indexingFailure = nil
+            await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+            #expect(withdrawn.isEmpty, "Mitteilung mit anderem Grund zurückgezogen: \(withdrawn)")
         }
     }
 }

@@ -22,7 +22,26 @@ nonisolated enum LayoutCopy {
     static var emptyNoFavoritesTitle: String { L10n.string("copy.empty.no_favorites.title") }
     static var emptyNoFavoritesMessage: String { L10n.string("copy.empty.no_favorites.message") }
     /// todo.0.4.043: Ladefläche der Favoriten (Fläche von „Keine Favoriten“ mit Spinner, ohne Untertitel).
-    static var emptyFavoritesLoadingTitle: String { L10n.string("copy.empty.favorites_loading.title") }
+    /// todo.0.4.042/046: Umfang der Ladeansicht („Deine 12 Speichermedien und 48.230 Dateien …“), Einzahl eigene Texte.
+    static func loadingSearchTitle(media: Int, files: Int) -> String {
+        L10n.format("copy.loading.search.title", loadingMedia(media), loadingFiles(files))
+    }
+
+    static func loadingFavoritesTitle(media: Int, files: Int) -> String {
+        L10n.format("copy.loading.favorites.title", loadingMedia(media), loadingFiles(files))
+    }
+
+    static var loadingOneMoment: String { L10n.string("copy.loading.subtitle") }
+
+    private static func loadingMedia(_ count: Int) -> String {
+        count == 1 ? L10n.string("copy.loading.media.one")
+            : L10n.format("copy.loading.media.other", DisplayNumberFormat.groupedInteger(count))
+    }
+
+    private static func loadingFiles(_ count: Int) -> String {
+        count == 1 ? L10n.string("copy.loading.files.one")
+            : L10n.format("copy.loading.files.other", DisplayNumberFormat.groupedInteger(count))
+    }
     static var autoIndex: String { L10n.string("copy.menu.auto_index") }
     static var on: String { L10n.string("copy.menu.on") }
     static var paused: String { L10n.string("copy.menu.paused") }
@@ -214,10 +233,11 @@ nonisolated enum LayoutCopy {
     }
 
     static var updateAvailableTitle: String { L10n.string("copy.update.available.title") }
-    static func updateAvailableBody(current: String, target: String) -> String {
-        L10n.format("copy.update.available.body", current, target)
-    }
-    static var updateAvailableSkipCheckbox: String { L10n.string("copy.update.available.skip") }
+    static var updateAvailableText: String { L10n.string("copy.update.available.text") }
+    /// todo.0.4.047: Einstellung „Auf Updates hinweisen“ (Tab Erweitert und Updatedialog).
+    static var updatesTitle: String { L10n.string("copy.settings.updates.title") }
+    static var updatesText: String { L10n.string("copy.settings.updates.text") }
+    static var updatesToggle: String { L10n.string("copy.settings.updates.toggle") }
     static var updateAvailableDownload: String { L10n.string("copy.update.available.download") }
     static var updateAvailableBetaCountdown: String { L10n.string("copy.update.available.beta_countdown") }
     static var versionLockBannerBetaEnded: String { L10n.string("copy.version_lock.banner.beta") }

@@ -95,10 +95,12 @@ final class MediumCoordinator {
         await reprobeDeniedVolumes()
     }
 
+    #if DEBUG
     /// Tests warten darauf, dass der Dialog entschieden ist.
     func waitForChoice() async {
         await choiceTask?.value
     }
+    #endif
 
     private func volumeAppeared(_ volume: VolumeInfo) async {
         mounted[volume.mountPath] = volume
@@ -424,6 +426,10 @@ final class MediumCoordinator {
         // bug.0.4.187 (a): kam das Aushängen erst nach der Karenz des Laufs, steht der Hinweis „nicht bestätigt“ zu Unrecht.
         if let notice = appState.indexingFailure, notice.id == id, notice.reason == .unconfirmed {
             appState.indexingFailure = nil
+        }
+        // bug.0.4.193: die zugestellte Mitteilung zurückziehen, auch wenn der Hinweis schon geschlossen oder von einem
+        // anderen Medium überschrieben ist.
+        if appState.unconfirmedNoticeMedia.remove(id) != nil {
             SystemNotice.withdrawIndexingFailure(mediumID: id)
         }
         await onMediumDisappeared?(id)

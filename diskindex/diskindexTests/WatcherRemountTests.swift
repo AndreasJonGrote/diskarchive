@@ -51,6 +51,8 @@ struct WatcherRemountTests {
             rig.watcher.isWatching(mediumID: mediumID)
                 && rig.watcher.watchGenerationForTesting(mediumID) >= generationBefore + 2
         }
+        // bug.0.4.194 (b): Der Lauf nach dem Wiedereinhängen endete nicht „nicht bestätigt“.
+        #expect(rig.app.indexingFailure == nil, "Hinweis nach dem Wiedereinhängen: \(String(describing: rig.app.indexingFailure))")
         let stored = try await rig.store.medium(uuid: mediumID)
         #expect(
             watchingAgain,

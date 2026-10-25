@@ -29,6 +29,29 @@ extension AppState {
         Dictionary(media.map { ($0.id, $0.connectionStatus == .connected) }, uniquingKeysWith: { first, _ in first })
     }
 
+    /// todo.0.4.046: Umfang der Ladeansicht der Favoriten – Medien des gewählten Verbindungsfilters und ihre Dateien.
+    var favoritesLoadingScope: (media: Int, files: Int) {
+        let online = mediumConnectivity
+        let media = indexedMedia.filter { favoritesConnectionFilter.includes(isOnline: online[$0.id] ?? false) }
+        return (media.count, media.reduce(0) { $0 + $1.fileCount })
+    }
+
+    /// todo.0.4.042: Umfang der Ladeansicht der Suche – die Medien, die diese Suche durchsucht (alle erfassten oder die
+    /// im Medienfilter gewählten), und ihre Dateien.
+    var searchLoadingScope: (media: Int, files: Int) {
+        let filters = searchState.filters
+        let media = indexedMedia.filter { SearchItemFilter.matchesMedium($0, filters: filters) }
+        return (media.count, media.reduce(0) { $0 + $1.fileCount })
+    }
+
+    /// todo.0.4.042: Die Suche hat Kriterien, aber noch keine Treffer und keine abgeschlossene Suche für diese Treffermenge
+    /// (Leerzustand) – die Ladeansicht steht schon im ersten Bild, bevor `runSearch` sie beginnt.
+    var searchAwaitsFirstResults: Bool {
+        guard !screenshotFrozenLists, searchMatch.items.isEmpty, searchMatch.media.isEmpty else { return false }
+        let current = SearchCountRequest(query: searchState.submittedQuery, filters: searchState.filters)
+        return !current.hasSameHits(as: shownSearch)
+    }
+
     func isMediumOnline(_ id: UUID) -> Bool {
         medium(with: id)?.connectionStatus == .connected
     }

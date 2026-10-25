@@ -18,6 +18,8 @@ private final class FailedRunWatcherBox {
     weak var watcher: ChangeWatcher?
     /// Die Verdrahtung wollte die Überwachung starten (bug.0.4.166).
     var startRequested = false
+    /// bug.0.4.194 (a): Der Dienst hat entschieden zu überwachen (`onRunIndexed`), synchron gesetzt.
+    var runIndexedCalled = false
 }
 
 @MainActor
@@ -181,12 +183,20 @@ struct LiveWatchAfterFailedRunTests {
         // Actor; ist der Haken beobachtet, steht sie fest – kein Warten auf eine Frist nötig.
         let decided = FailedRunDecision()
         rig.service.finishDecisionHookForTesting = { _ in decided.reached = true }
+        // bug.0.4.194 (a): Die Verdrahtung startet die Überwachung erst in einem eigenen Task; die Entscheidung selbst
+        // (Aufruf von `onRunIndexed`) fällt synchron direkt nach dem Haken – hier abgefangen, damit sie feststeht.
+        let wired = rig.service.onRunIndexed
+        rig.service.onRunIndexed = { [box] id, volume in
+            box.runIndexedCalled = true
+            wired?(id, volume)
+        }
         await rig.coordinator.handle(.appeared(volume))
         // Positives Signal: der Lauf endete mit dem Fehler „nicht bestätigt“ und die Entscheidung ist gefallen.
         let failed = await waitUntil(timeout: 20) {
             decided.reached && !rig.service.isRunActive(id) && app.indexingFailure?.reason == .unconfirmed
         }
         try #require(failed, "Lauf endete nicht mit „nicht bestätigt“")
+        #expect(!box.runIndexedCalled, "Überwachung nach „nicht bestätigt“ entschieden")
         #expect(!box.startRequested, "Überwachung nach „nicht bestätigt“ angefordert")
         #expect(!rig.watcher.isWatching(mediumID: id), "Überwachung nach „nicht bestätigt“ aktiv")
         #expect(!rig.service.suppressesFullReconcile(id))

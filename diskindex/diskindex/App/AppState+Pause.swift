@@ -117,6 +117,12 @@ extension AppState {
         }
         indexingFailure = IndexingFailureNotice(id: mediumID, name: name, reason: reason)
         SystemNotice.postIndexingFailure(mediumID: mediumID, name: name, reason: reason, settings: appSettings)
+        // bug.0.4.193: Die Mitteilung desselben Mediums ersetzt die vorige (gleiche Kennung).
+        if reason == .unconfirmed {
+            unconfirmedNoticeMedia.insert(mediumID)
+        } else {
+            unconfirmedNoticeMedia.remove(mediumID)
+        }
     }
 
     /// Aufwachen nach dem Ruhezustand (bug.0.4.028): Pause neu bewerten, die Indizierung genau einmal anstoßen

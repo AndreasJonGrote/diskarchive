@@ -34,11 +34,13 @@ struct ConfirmGate: Equatable {
         }
     }
 
+    #if DEBUG
     mutating func leave() {
         guard stage == .armed else { return }
         stage = .idle
         armedAt = nil
     }
+    #endif
 
     mutating func resetArmedTimeout(now: Date) {
         guard stage == .armed, let armedAt, now.timeIntervalSince(armedAt) >= 3 else { return }

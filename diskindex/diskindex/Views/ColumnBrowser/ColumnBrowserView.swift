@@ -63,6 +63,8 @@ struct ColumnBrowserView: View {
     #if DEBUG
     /// Tests (bug.0.4.168): ein waagerechter Auftrag ist erledigt (positives Signal statt Wartezeit).
     @Environment(\.columnScrollOrderDone) private var columnScrollOrderDone
+    /// Tests (bug.0.4.192): hält einen offenen Auftrag nach der Ruhezeit fest, bis der Test das Tor öffnet.
+    @Environment(\.columnScrollSettleGate) private var columnScrollSettleGate
     #endif
     private var resolvedSelectedMedium: Medium? {
         if let id = appState.columnBrowserState.selectedMediumID,
@@ -460,6 +462,9 @@ struct ColumnBrowserView: View {
         horizontalScrollSettle?.cancel()
         horizontalScrollSettle = Task { @MainActor in
             try? await Task.sleep(for: horizontalScrollSettleDelay)
+            #if DEBUG
+            await columnScrollSettleGate?()
+            #endif
             // Die Spalte der Auswahl lädt noch oder zeigt ihren Ladehinweis (Mindestanzeige): danach kann noch die
             // Details-Spalte kommen – warten, ohne selbst zu scrollen (das tut ihr Erscheinen).
             var waited = Duration.zero
@@ -1119,6 +1124,18 @@ extension EnvironmentValues {
     var columnScrollOrderDone: (@MainActor (Int) -> Void)? {
         get { self[ColumnScrollOrderDoneKey.self] }
         set { self[ColumnScrollOrderDoneKey.self] = newValue }
+    }
+}
+
+private struct ColumnScrollSettleGateKey: EnvironmentKey {
+    static let defaultValue: (@Sendable () async -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// Tests (bug.0.4.192): Tor nach der Ruhezeit eines offenen Auftrags; der Auftrag geht erst weiter, wenn es offen ist.
+    var columnScrollSettleGate: (@Sendable () async -> Void)? {
+        get { self[ColumnScrollSettleGateKey.self] }
+        set { self[ColumnScrollSettleGateKey.self] = newValue }
     }
 }
 #endif

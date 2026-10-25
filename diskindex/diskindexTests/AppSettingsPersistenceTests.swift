@@ -23,6 +23,26 @@ struct AppSettingsPersistenceTests {
         #expect(loaded == snapshot)
     }
 
+    /// todo.0.4.047 (Selbstprüfung): „Auf Updates hinweisen“ aus (Updatedialog schließen) bleibt nach dem Neustart aus.
+    @Test func notifyAboutUpdatesSurvivesARestart() async throws {
+        let harness = try StoreHarness.make()
+        let first = AppState(defaults: TestDefaults.make())
+        first.attach(store: harness.store)
+        await first.hydrateSettingsFromStore()
+        #expect(first.appSettings.notifyAboutUpdates, "Standard: an")
+        first.updateNotice = UpdateNotice(
+            offer: UpdateOffer(currentDisplay: "0.4.0", targetDisplay: "0.5", targetMajorMinor: AppVersion(major: 0, minor: 5, patch: 0), showBetaCountdown: false),
+            notifyAboutUpdates: false
+        )
+        first.dismissUpdateNotice()
+        let saved = await waitUntil(timeout: 30) { await harness.store.loadPersistedAppSettings()?.notifyAboutUpdates == false }
+        #expect(saved, "Einstellung nicht gespeichert")
+        let second = AppState(defaults: TestDefaults.make())
+        second.attach(store: harness.store)
+        await second.hydrateSettingsFromStore()
+        #expect(!second.appSettings.notifyAboutUpdates, "nach dem Neustart wieder an")
+    }
+
     @Test func migratesLegacyUserDefaultsIntoDatabase() async throws {
         try await AppSettingsRuntimeCache.isolating { try await migratesLegacyUserDefaultsIntoDatabaseBody() }
     }

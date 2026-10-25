@@ -111,17 +111,6 @@ struct MenuBarPauseMenuChrome: View {
     }
 }
 
-/// Menüliste ohne Fenster-Chrome (Vorschau / Legacy).
-struct PauseDurationMenu: View {
-    var active: PauseSpan?
-    var until: Date?
-    var onChoose: (PauseSpan) -> Void
-
-    var body: some View {
-        MenuBarPauseMenuChrome(opensAbove: false, active: active, until: until, onChoose: onChoose)
-    }
-}
-
 struct PauseDurationMenuContent: View {
     var active: PauseSpan?
     var until: Date?

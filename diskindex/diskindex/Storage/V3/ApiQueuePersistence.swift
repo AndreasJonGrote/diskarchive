@@ -22,12 +22,14 @@ nonisolated enum ApiQueuePersistence {
     static let maxRows = 50
     static let maxPayloadBytes = 5 * 1_024 * 1_024
 
+    #if DEBUG
     static func openQueuePool(at fileURL: URL) throws -> DatabasePool {
         #if DEBUG
         openQueuePoolCountTracker?.count += 1
         #endif
         return try SchemaV3.openPool(at: fileURL)
     }
+    #endif
 
     #if DEBUG
     final class OpenQueuePoolCountTracker: @unchecked Sendable {
@@ -184,11 +186,13 @@ nonisolated enum ApiQueuePersistence {
         }
     }
 
+    #if DEBUG
     static func deleteAll(_ pool: DatabasePool, kind: ApiQueueKind) throws {
         try pool.write { db in
             try db.execute(sql: "DELETE FROM api_queue WHERE kind = ?", arguments: [kind.rawValue])
         }
     }
+    #endif
 
     static func count(_ pool: DatabasePool, kind: ApiQueueKind? = nil) throws -> Int {
         try pool.read { db in

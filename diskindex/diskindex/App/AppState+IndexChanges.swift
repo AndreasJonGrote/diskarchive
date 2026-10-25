@@ -47,6 +47,7 @@ extension AppState {
         }
     }
 
+    #if DEBUG
     /// Tests schreiben aus, ohne die 500 ms Debounce abzuwarten.
     func flushMediumEdits() async {
         let ids = Array(pendingMediumWrites.keys)
@@ -54,6 +55,7 @@ extension AppState {
         pendingMediumWrites.removeAll()
         for id in ids { await writeMedium(id) }
     }
+    #endif
 
     /// Schreibt ausstehende Nutzer-Medium- und Einstellungs-Updates (bug.0.4.033).
     @MainActor
@@ -144,7 +146,9 @@ extension AppState {
         guard hasCriteria else {
             cancelTrailingLiveSearch()
             searchMatch = SearchMatch()
+            shownSearch = nil
             searchState.isSearchInProgress = false
+            searchLoading.cancel()
             return
         }
         let sort = searchState.sort.serverOrder
@@ -159,6 +163,14 @@ extension AppState {
         if !sortOnly { cancelTrailingLiveSearch() }
         // Alte Ergebnisse bleiben sichtbar, bis die neuen da sind (kein Flackern).
         searchState.isSearchInProgress = true
+        // todo.0.4.042: Start aus dem Leerzustand (noch keine Treffer sichtbar) – sofort die Ladeansicht, mindestens
+        // `loadingMinimum`; auch während des Wartens auf die Warteschlange nach einer Regeländerung. Verfeinern mit
+        // sichtbaren Treffern zeigt sie nicht.
+        // Gleiche Treffermenge wie die angezeigte (Live-Neustart, neues Medium, Sortierklick bei „Keine Treffer“): kein
+        // Wartescreen (Selbstprüfung 23).
+        if searchMatch.items.isEmpty, searchMatch.media.isEmpty, !request.hasSameHits(as: shownSearch), !screenshotFrozenLists {
+            searchLoading.begin()
+        }
         defer {
             if generation == searchGeneration {
                 searchState.isSearchInProgress = false
@@ -188,7 +200,9 @@ extension AppState {
             match.unfilteredItemCount = filters.hasActiveFilters ? nil : match.itemCount
         }
         searchMatch = match
+        shownSearch = request
         searchState.isSearchInProgress = false
+        searchLoading.finish()
         clampSearchSortToAvailableColumns()
         // Ergebnisse stehen; die Zahl(en) kommen in einer eigenen Aufgabe nach.
         let needsCount = !sortOnly && (countPending || filters.hasActiveFilters)
@@ -231,6 +245,7 @@ extension AppState {
         searchState.sort = SearchSort()
     }
 
+    #if DEBUG
     /// Tests: wartet, bis die nachgereichte Trefferzahl da (oder verworfen) ist.
     func waitForSearchCount() async {
         var task = searchCountTask
@@ -240,6 +255,7 @@ extension AppState {
             task = next == current ? nil : next
         }
     }
+    #endif
 
     private func cancelTrailingLiveSearch() {
         trailingLiveSearch?.cancel()
@@ -437,6 +453,7 @@ extension AppState {
         popoverCountTask = nil
     }
 
+    #if DEBUG
     /// Tests: wartet, bis Seite und nachgereichte Zahl der letzten Popover-Eingabe da (oder verworfen) sind.
     func waitForPopoverSearch() async {
         while let search = popoverSearchTask {
@@ -448,6 +465,7 @@ extension AppState {
             if popoverCountTask == count { break }
         }
     }
+    #endif
 
     func scheduleIndexChange(_ change: IndexChange, dropped: Bool) async {
         if case .removed(let id) = change {

@@ -1,0 +1,24 @@
+# Test: EjectDuringRunTests/foreignMediumSharingOnlyTheFolderIconOrGitIsNotTakenIntoTheIndex()
+--- a/diskindex/diskindex/Indexing/VanishedMediumGuard.swift	2026-10-24 22:05:05
++++ b/diskindex/diskindex/Indexing/VanishedMediumGuard.swift	2026-10-24 22:05:05
+@@ -42,19 +42,8 @@
+         return !(await isMounted(store: store, access: access, mediumUUID: mediumUUID, stored: stored, mountPath: mountPath))
+     }
+ 
+-    /// bug.0.4.189: keine eigene Liste, sondern die bestehenden Regeln – `IgnoreMatcher.alwaysSkipped`, die Artefaktgruppen
+-    /// „System“ und „versteckte Artefakte“ (`ArtifactRules`), verglichen kleingeschrieben wie dort. Dazu die Verwaltungsnamen,
+-    /// die keine Regel kennt, die aber auf vielen Medien liegen.
+-    private static let administrativeExact: Set<String> = Set(IgnoreMatcher.alwaysSkipped.map { $0.lowercased() }).union([
+-        ".volumeicon.icns", ".apdisk", ".metadata_never_index", ".localized", ".hidden", ".com.apple.timemachine.donotpresent",
+-    ])
+-    private static let administrativePatterns: [NamePattern] =
+-        [ArtifactCategory.system, .hiddenArtifacts].flatMap { ArtifactRules.categoryPatterns($0) }
+-
+     static func isAdministrative(_ name: String) -> Bool {
+-        let lower = name.lowercased()
+-        if lower.hasPrefix("._") || administrativeExact.contains(lower) { return true }
+-        return administrativePatterns.contains { $0.matches(lowercased: lower) }
++        name == ".DS_Store" || name == "Icon\r" || name.hasPrefix("._")
+     }
+ 
+     private static func isMounted(

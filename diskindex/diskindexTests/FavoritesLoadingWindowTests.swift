@@ -2,9 +2,9 @@
 //  FavoritesLoadingWindowTests.swift
 //  diskindexTests
 //
-//  todo.0.4.043: Beim Öffnen der Favoriten erscheint sofort die Ladefläche (Fläche von „Keine Favoriten“, Spinner
-//  statt des violetten Icons, „Favoriten werden geladen“) und bleibt mindestens 1 s, auch wenn die Favoriten schneller
-//  da sind; danach die Liste bzw. „Keine Favoriten“. Echtes Fenster außerhalb des Bildschirms (Regel 10/19), Pixel hell
+//  todo.0.4.043/046: Beim Öffnen der Favoriten erscheint sofort die Ladefläche (Fläche von „Keine Favoriten“, violetter
+//  Spinner statt des Icons, Titel mit dem Umfang des Verbindungsfilters) und bleibt mindestens 1 s, auch wenn die
+//  Favoriten schneller da sind; danach die Liste bzw. „Keine Favoriten“. Echtes Fenster außerhalb des Bildschirms (Regel 10/19), Pixel hell
 //  und dunkel. Der Test schaltet nur die Ansicht um (wie die Seitenleiste) und wartet (Regel 18).
 //
 
@@ -31,8 +31,7 @@ struct FavoritesLoadingWindowTests {
         let session = Self.open(app, dark: dark)
         defer { session.close() }
         let first = session.bitmap()
-        #expect(Self.violetPixels(first, dark: dark, region: Self.centerBand) == 0, "erstes Bild ohne Ladefläche")
-        #expect(Self.inkPixels(first, dark: dark, region: Self.spinnerSlot) > 20, "Spinner fehlt im ersten Bild")
+        _ = ScopeLoadingPixels.expectSpinner(first, region: Self.centerBand, ScopeLoadingPixels.isViolet, "erstes Bild")
         // Daten sind schnell da, die Ladefläche bleibt trotzdem stehen.
         let dataLoaded = await waitUntil { app.favoriteObjects.count == 2 }
         try #require(dataLoaded, "Favoriten nicht geladen")
@@ -40,8 +39,7 @@ struct FavoritesLoadingWindowTests {
         let loadingElapsed = opened.duration(to: .now)
         if loadingElapsed < .milliseconds(900) {
             #expect(app.favoritesLoading.isShowing, "Ladefläche vor 1 s verschwunden")
-            #expect(Self.violetPixels(loadingBitmap, dark: dark, region: Self.centerBand) == 0, "Icon statt Spinner sichtbar")
-            #expect(Self.inkPixels(loadingBitmap, dark: dark, region: Self.spinnerSlot) > 20, "Spinner fehlt")
+            _ = ScopeLoadingPixels.expectSpinner(loadingBitmap, region: Self.centerBand, ScopeLoadingPixels.isViolet, "während des Ladens")
         }
         let ended = await waitUntil(timeout: 5) { !app.favoritesLoading.isShowing }
         let elapsed = opened.duration(to: .now)
@@ -63,12 +61,15 @@ struct FavoritesLoadingWindowTests {
         let session = Self.open(app, dark: dark)
         defer { session.close() }
         let early = session.bitmap()
-        #expect(Self.violetPixels(early, dark: dark, region: Self.centerBand) == 0, "„Keine Favoriten“ statt Ladefläche")
-        #expect(Self.inkPixels(early, dark: dark, region: Self.spinnerSlot) > 20, "Spinner fehlt")
+        _ = ScopeLoadingPixels.expectSpinner(early, region: Self.centerBand, ScopeLoadingPixels.isViolet, "„Keine Favoriten“ statt Ladefläche?")
         let ended = await waitUntil(timeout: 5) { !app.favoritesLoading.isShowing }
         #expect(ended)
+        // „Keine Favoriten“: das gefüllte Icon (nicht hohl wie der Spinner).
         let emptyShown = await waitUntil {
-            Self.violetPixels(session.bitmap(), dark: dark, region: Self.centerBand) > 20
+            let bitmap = session.bitmap()
+            guard let box = ScopeLoadingPixels.bounds(bitmap, region: Self.centerBand, ScopeLoadingPixels.isViolet) else { return false }
+            let hole = CGRect(x: box.midX - 6, y: box.midY - 6, width: 12, height: 12)
+            return ScopeLoadingPixels.count(bitmap, region: hole, ScopeLoadingPixels.isViolet) > 0
         }
         #expect(emptyShown, "„Keine Favoriten“ (violettes Icon) nach der Ladefläche fehlt")
     }
@@ -84,6 +85,33 @@ struct FavoritesLoadingWindowTests {
         #expect(!app.favoritesLoading.isShowing)
         app.mainWindowDestination = .favorites
         #expect(app.favoritesLoading.isShowing)
+    }
+
+    /// todo.0.4.046: Umfang = Medien des gewählten Verbindungsfilters und ihre Dateien (Filter „Offline“ → nur Offline).
+    @Test func loadingScopeFollowsTheConnectionFilter() async throws {
+        let rig = try await Self.makeRig(favorites: ["a.txt"], minimum: .milliseconds(300))
+        defer { rig.close() }
+        let app = rig.app
+        let offline = try #require(app.indexedMedia.first)
+        var online = offline
+        online.id = UUID()
+        online.name = "Online"
+        online.connectionStatus = .connected
+        app.media.append(online)
+        app.updateMedium(id: offline.id) { $0.fileCount = 7 }
+        app.updateMedium(id: online.id) { $0.fileCount = 5 }
+        try #require(app.indexedMedia.count == 2, "Voraussetzung: zwei erfasste Medien")
+        app.favoritesConnectionFilter = .offline
+        app.mainWindowDestination = .favorites
+        #expect(app.favoritesLoading.isShowing)
+        #expect(app.favoritesLoadingScope.media == 1 && app.favoritesLoadingScope.files == 7, "Offline: \(app.favoritesLoadingScope)")
+        app.favoritesConnectionFilter = .online
+        #expect(app.favoritesLoadingScope.media == 1 && app.favoritesLoadingScope.files == 5, "Online: \(app.favoritesLoadingScope)")
+        app.favoritesConnectionFilter = .all
+        #expect(app.favoritesLoadingScope.media == 2 && app.favoritesLoadingScope.files == 12, "Alle: \(app.favoritesLoadingScope)")
+        L10n.$languageOverride.withValue(.german) {
+            #expect(LayoutCopy.loadingFavoritesTitle(media: 1, files: 7) == "Dein 1 Speichermedium und 7 Dateien werden gefiltert …")
+        }
     }
 
     // MARK: - Hilfen
@@ -114,7 +142,7 @@ struct FavoritesLoadingWindowTests {
         try await store.applyDirectory(mediumUUID: medium.uuid, parentID: nil, entries: entries, seenAt: Date())
         let rows = try await store.children(mediumUUID: medium.uuid, parentID: nil).filter { favorites.contains($0.name) }
         if !rows.isEmpty { try await store.setFavorites(itemIDs: rows.map(\.id), true) }
-        let app = AppState(favoritesLoadingMinimum: minimum)
+        let app = AppState(loadingMinimum: minimum)
         app.attach(store: store)
         await app.loadStoredMedia()
         return Rig(app: app, database: database, directory: directory)

@@ -95,7 +95,8 @@ struct SettingsScrollGutterTests {
             await app.runSearch()
             return AnyView(SearchView())
         } ready: { app, count in
-            app.searchMatch.items.count == count
+            // todo.0.4.042: erst nach dem Wartescreen (mindestens 1 s) steht die Tabelle.
+            app.searchMatch.items.count == count && !app.searchLoading.isShowing
         }
     }
 

@@ -21,24 +21,18 @@ struct SearchView: View {
             let match = appState.searchMatch
 
             VStack(spacing: 0) {
-                if !match.media.isEmpty {
-                    CompactMediumCardFlow(media: match.media)
+                if appState.searchLoading.isShowing || appState.searchAwaitsFirstResults {
+                    // todo.0.4.042: Start aus dem Leerzustand – Fläche von Layout 10.1, blauer Spinner, Umfang der Suche.
+                    let scope = appState.searchLoadingScope
+                    ScopeLoadingView(
+                        tint: DesignColor.filterSearch,
+                        title: LayoutCopy.loadingSearchTitle(media: scope.media, files: scope.files),
+                        emptyStateMessage: LayoutCopy.searchIdleSubtitle
+                    )
+                    .background(DesignColor.text.opacity(0.05))
+                } else {
+                    results(match: match)
                 }
-
-                // bug.0.4.038: Name, Datum, Medium sortiert die Abfrage; Pfad und Status nur, wenn alle Treffer da sind.
-                ObjectResultsTable(
-                    results: match.items,
-                    sort: appState.searchStateBinding(\.sort),
-                    serverSortedColumns: SearchSort.pageOrderedColumns,
-                    clientSortAvailable: match.allItemsOnPage
-                ) {
-                    placeholder(match: match)
-                }
-
-                ObjectCountFooter(
-                    filtered: match.itemCount,
-                    total: appState.searchState.hasActiveFilters ? match.unfilteredItemCount : match.itemCount
-                )
             }
             .task(id: searchRequest) {
                 guard !appState.screenshotFrozenLists else { return }
@@ -47,6 +41,28 @@ struct SearchView: View {
         } else {
             SearchIdlePlaceholder()
         }
+    }
+
+    @ViewBuilder
+    private func results(match: SearchMatch) -> some View {
+        if !match.media.isEmpty {
+            CompactMediumCardFlow(media: match.media)
+        }
+
+        // bug.0.4.038: Name, Datum, Medium sortiert die Abfrage; Pfad und Status nur, wenn alle Treffer da sind.
+        ObjectResultsTable(
+            results: match.items,
+            sort: appState.searchStateBinding(\.sort),
+            serverSortedColumns: SearchSort.pageOrderedColumns,
+            clientSortAvailable: match.allItemsOnPage
+        ) {
+            placeholder(match: match)
+        }
+
+        ObjectCountFooter(
+            filtered: match.itemCount,
+            total: appState.searchState.hasActiveFilters ? match.unfilteredItemCount : match.itemCount
+        )
     }
 
     private var searchRequest: String {
@@ -71,17 +87,9 @@ struct SearchView: View {
 
     @ViewBuilder
     private func placeholder(match: SearchMatch) -> some View {
-        if appState.searchState.isSearchInProgress {
-            HStack(spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
-                Text(LayoutCopy.searchInProgress)
-                    .foregroundStyle(DesignColor.text.opacity(0.55))
-            }
-            .font(.system(size: 13))
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 48)
-        } else if match.media.isEmpty {
+        // todo.0.4.042: die kleine Zeile „Suche läuft…“ entfällt (Wartescreen nur aus dem Leerzustand); beim Verfeinern
+        // bleibt die leere Tabelle stehen, bis die neuen Treffer da sind.
+        if !appState.searchState.isSearchInProgress, match.media.isEmpty {
             Group {
                 if submittedQuery.isEmpty {
                     Text(LayoutCopy.noResultsForFilters)

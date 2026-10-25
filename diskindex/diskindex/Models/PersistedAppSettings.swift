@@ -20,6 +20,8 @@ nonisolated struct PersistedAppSettings: Equatable, Codable {
     var notifyIndexed: Bool = true
     var notifyFavorites: Bool = true
     var autoSendCrashReports: Bool = false
+    /// todo.0.4.047: „Auf Updates hinweisen“.
+    var notifyAboutUpdates: Bool = true
 }
 
 nonisolated extension PersistedAppSettings {
@@ -44,6 +46,7 @@ nonisolated extension PersistedAppSettings {
         notifyIndexed = try container.decodeIfPresent(Bool.self, forKey: .notifyIndexed) ?? defaults.notifyIndexed
         notifyFavorites = try container.decodeIfPresent(Bool.self, forKey: .notifyFavorites) ?? defaults.notifyFavorites
         autoSendCrashReports = try container.decodeIfPresent(Bool.self, forKey: .autoSendCrashReports) ?? defaults.autoSendCrashReports
+        notifyAboutUpdates = try container.decodeIfPresent(Bool.self, forKey: .notifyAboutUpdates) ?? defaults.notifyAboutUpdates
     }
 }
 
@@ -68,6 +71,7 @@ extension AppSettings {
         notifyIndexed = persisted.notifyIndexed
         notifyFavorites = persisted.notifyFavorites
         autoSendCrashReports = persisted.autoSendCrashReports
+        notifyAboutUpdates = persisted.notifyAboutUpdates
     }
 
     nonisolated func persistedSnapshot() -> PersistedAppSettings {
@@ -83,7 +87,8 @@ extension AppSettings {
             notifySystem: notifySystem,
             notifyIndexed: notifyIndexed,
             notifyFavorites: notifyFavorites,
-            autoSendCrashReports: autoSendCrashReports
+            autoSendCrashReports: autoSendCrashReports,
+            notifyAboutUpdates: notifyAboutUpdates
         )
     }
 

@@ -250,6 +250,7 @@ final class IndexRepository {
     }
     #endif
 
+    #if DEBUG
     /// Tests lesen einen Ordner, ohne auf den Cache-Task zu warten.
     func loadChildren(mediumID: UUID, path: [String]) async -> [IndexedItem] {
         let key = cacheKey(mediumID, path)
@@ -259,6 +260,7 @@ final class IndexRepository {
         }
         return cache[key] ?? []
     }
+    #endif
 
     private func load(mediumID: UUID, path: [String], key: String, loadToken: UInt) async {
         #if DEBUG

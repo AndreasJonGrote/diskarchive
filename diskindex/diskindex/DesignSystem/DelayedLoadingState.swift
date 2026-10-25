@@ -11,6 +11,14 @@ import Observation
 nonisolated struct DelayedLoadingTiming: Sendable, Equatable {
     var delayBeforeHint: Duration = .seconds(1)
     var minimumHintVisible: Duration = .milliseconds(400)
+    #if DEBUG
+    /// Tests (bug.0.4.192): Tor am Ende der Mindestanzeige; das Ausblenden folgt erst, wenn der Test es öffnet.
+    var minimumEndGate: (@Sendable () async -> Void)?
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.delayBeforeHint == rhs.delayBeforeHint && lhs.minimumHintVisible == rhs.minimumHintVisible
+    }
+    #endif
 
     static let standard = DelayedLoadingTiming()
 }
@@ -109,6 +117,9 @@ final class DelayedLoadingState {
         isFinishPending = true
         minimumVisibleTask = Task {
             try? await Task.sleep(for: wait)
+            #if DEBUG
+            await timing.minimumEndGate?()
+            #endif
             guard !Task.isCancelled, generation == loadGeneration else { return }
             isFinishPending = false
             showsHint = false

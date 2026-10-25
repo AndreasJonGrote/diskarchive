@@ -52,7 +52,36 @@ import Testing
             depthFromNewest: 1
         )
         #expect(older.origin.x == newest.origin.x - 24)
-        #expect(older.origin.y == newest.origin.y - 24)
+        // todo.0.4.048 (Layout 02): ältere Panels nach links **oben** (AppKit: größeres y); vorher nach unten.
+        #expect(older.origin.y == newest.origin.y + 24)
+    }
+
+    /// todo.0.4.048: Tiefe 1 und 2 liegen links oberhalb des neuesten, je 24 pt Schritt, alle gleich groß.
+    @Test func olderPanelsStackUpAndToTheLeft() {
+        let visible = CGRect(x: 0, y: 0, width: 1_440, height: 900)
+        let size = CGSize(width: 300, height: 180)
+        let frames = (0...2).map {
+            AppWindowPresenter.newMediumPanelFrame(visibleFrame: visible, panelSize: size, depthFromNewest: $0)
+        }
+        for depth in 1...2 {
+            #expect(frames[depth].minX == frames[0].minX - CGFloat(depth) * 24, "Tiefe \(depth): x \(frames[depth].minX)")
+            #expect(frames[depth].minY == frames[0].minY + CGFloat(depth) * 24, "Tiefe \(depth): y \(frames[depth].minY)")
+            #expect(frames[depth].size == size)
+        }
+    }
+
+    /// todo.0.4.048: am oberen Rand bleibt jeder Rahmen im sichtbaren Bereich (Schritt nach oben gekürzt).
+    @Test func olderPanelsStayInsideTheVisibleFrameAtTheTop() {
+        // Niedriger Bildschirm: das neueste Panel reicht fast bis an den oberen Rand.
+        let visible = CGRect(x: 0, y: 30, width: 1_200, height: 320)
+        let size = CGSize(width: 300, height: 220)
+        let newest = AppWindowPresenter.newMediumPanelFrame(visibleFrame: visible, panelSize: size, depthFromNewest: 0)
+        for depth in 1...4 {
+            let frame = AppWindowPresenter.newMediumPanelFrame(visibleFrame: visible, panelSize: size, depthFromNewest: depth)
+            #expect(frame.maxY <= max(visible.maxY, newest.maxY) + 0.5, "Tiefe \(depth) über dem sichtbaren Bereich: \(frame)")
+            #expect(frame.minY >= newest.minY, "Tiefe \(depth) nach unten statt oben")
+            #expect(frame.minX == newest.minX - CGFloat(depth) * 24)
+        }
     }
 
     /// Sabotage: alter unten-rechts-Wert (maxX − width − 24) → rot.

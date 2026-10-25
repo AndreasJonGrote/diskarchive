@@ -44,12 +44,14 @@ nonisolated enum AppLanguagePolicy {
         activeDisplayLanguage = language
     }
 
+    #if DEBUG
     /// Atomar für Tests: sync + Prüfung ohne Zwischen-Schreiben anderer Suites.
     static func withActiveLanguageLock<T>(_ body: () throws -> T) rethrows -> T {
         lock.lock()
         defer { lock.unlock() }
         return try body()
     }
+    #endif
 
     /// Erststart: OS-Sprache in UserDefaults (237: nicht in SQLite).
     @discardableResult

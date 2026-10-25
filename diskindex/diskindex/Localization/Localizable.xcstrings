@@ -7,6 +7,227 @@
     "!" : {
 
     },
+    "copy.loading.favorites.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ und %2$@ werden gefiltert …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtering %1$@ and %2$@ …"
+          }
+        }
+      }
+    },
+    "copy.loading.files.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 file"
+          }
+        }
+      }
+    },
+    "copy.loading.files.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ Dateien"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ files"
+          }
+        }
+      }
+    },
+    "copy.loading.media.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein 1 Speichermedium"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "your 1 storage medium"
+          }
+        }
+      }
+    },
+    "copy.loading.media.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine %1$@ Speichermedien"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "your %1$@ storage media"
+          }
+        }
+      }
+    },
+    "copy.loading.search.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ und %2$@ werden durchsucht …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching %1$@ and %2$@ …"
+          }
+        }
+      }
+    },
+    "copy.loading.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einen Moment bitte."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One moment, please."
+          }
+        }
+      }
+    },
+    "copy.settings.updates.text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive weist dich in der Menüleiste darauf hin, sobald eine neue Version verfügbar ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive lets you know in the menu bar as soon as a new version is available."
+          }
+        }
+      }
+    },
+    "copy.settings.updates.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UPDATES"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UPDATES"
+          }
+        }
+      }
+    },
+    "copy.settings.updates.toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf Updates hinweisen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify me about updates"
+          }
+        }
+      }
+    },
+    "copy.update.available.download" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zur neuen Version"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get the new version"
+          }
+        }
+      }
+    },
+    "copy.update.available.text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lade die neue Version von Disk Archive herunter."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download the new version of Disk Archive."
+          }
+        }
+      }
+    },
+    "copy.update.available.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es ist eine neue Version verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A new version is available"
+          }
+        }
+      }
+    },
     "→" : {
 
     },
@@ -707,23 +928,6 @@
         }
       }
     },
-    "copy.column.folder_loading_progress_example" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "12 480 von 41 902 Objekten geladen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "12,480 of 41,902 objects loaded"
-          }
-        }
-      }
-    },
     "copy.column.folder_not_indexed_title" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -840,23 +1044,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "This folder’s contents are not indexed because of scan depth."
-          }
-        }
-      }
-    },
-    "copy.column.uncaptured_title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Inhalt nicht erfasst"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Contents not captured"
           }
         }
       }
@@ -1235,22 +1422,6 @@
         }
       }
     },
-    "copy.empty.favorites_loading.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Favoriten werden geladen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loading favorites"
-          }
-        }
-      }
-    },
     "copy.empty.no_favorites.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1604,70 +1775,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "No storage medium connected"
-          }
-        }
-      }
-    },
-    "copy.update.available.title" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neue Version verfügbar"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New version available"
-          }
-        }
-      }
-    },
-    "copy.update.available.body" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sie nutzen Version %1$@. Ein Update auf Version %2$@ ist verfügbar."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You are using version %1$@. An update to version %2$@ is available."
-          }
-        }
-      }
-    },
-    "copy.update.available.skip" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieses Update überspringen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skip this update"
-          }
-        }
-      }
-    },
-    "copy.update.available.download" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zum Download"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Download"
           }
         }
       }
@@ -2122,23 +2229,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ files"
-          }
-        }
-      }
-    },
-    "copy.medium.files_folders" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dateien / Ordner"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Files / folders"
           }
         }
       }
@@ -3215,23 +3305,6 @@
         }
       }
     },
-    "copy.search.in_progress" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Suche läuft…"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Searching…"
-          }
-        }
-      }
-    },
     "copy.search.no_results_for" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4061,23 +4134,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System messages include notes on errors and pauses."
-          }
-        }
-      }
-    },
-    "copy.settings.notices.text" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Ereignis einzeln wählbar. Systemmeldungen umfassen Hinweise zu Fehlern und zu Pausen. „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose each event individually. System messages include errors and pause notices. “Fully indexed” appears only if the scan took longer than 59 seconds (including reconcile or re-index). If “Enable notifications” is off, events are disabled. macOS asks once at first launch; if denied, change it only in macOS System Settings › Notifications."
           }
         }
       }

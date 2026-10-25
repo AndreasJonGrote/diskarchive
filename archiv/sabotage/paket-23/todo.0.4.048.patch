@@ -1,0 +1,13 @@
+# Test: NewMediumPanelPlacementTests/olderPanelsStackUpAndToTheLeft()
+# Test: NewMediumPanelPlacementTests/stackOffsetShiftsOlderPanels()
+--- a/diskindex/diskindex/App/AppWindowPresenter.swift	2026-10-25 00:22:11
++++ b/diskindex/diskindex/App/AppWindowPresenter.swift	2026-10-25 00:22:11
+@@ -440,7 +440,7 @@
+         // nicht über `visibleFrame` hinaus: der Schritt nach oben endet dort (die Panels bleiben nach links versetzt).
+         let newestCenterY = visibleFrame.maxY - visibleFrame.height * newMediumGoldenRatioFromTop
+         let room = max(0, visibleFrame.maxY - (newestCenterY + panelSize.height / 2))
+-        let centerY = newestCenterY + min(offset, room)
++        let centerY = newestCenterY - offset + room * 0
+         return CGRect(
+             x: centerX - panelSize.width / 2,
+             y: centerY - panelSize.height / 2,

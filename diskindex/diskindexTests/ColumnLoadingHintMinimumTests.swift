@@ -33,6 +33,13 @@ private final class HintRecorder {
         loadingEndsSeen += 1
     }
 
+    /// bug.0.4.192: wie oft die Ansicht `isLoading == true` (Neustart) bekommen hat.
+    private(set) var loadingStartsSeen = 0
+
+    func noteLoadingStarted() {
+        loadingStartsSeen += 1
+    }
+
     var last: Bool? { events.last?.visible }
     var firstShown: ContinuousClock.Instant? { events.first { $0.visible }?.at }
 
@@ -60,7 +67,7 @@ private struct LoadingHarness: View {
         ) { _ in EmptyView() }
         .frame(width: 270, height: 200)
         .onChange(of: model.isLoading) { _, loading in
-            if !loading { recorder.noteLoadingEnded() }
+            if loading { recorder.noteLoadingStarted() } else { recorder.noteLoadingEnded() }
         }
     }
 }
@@ -124,12 +131,14 @@ extension WindowTestGroup {
             // Hinweis am Ende der Mindestanzeige ausgeblendet und erst nach 300 ms wieder gezeigt.
             let model = LoadSwitch()
             let recorder = HintRecorder()
-            let window = open(LoadingHarness(
-                model: model,
-                recorder: recorder,
-                timing: DelayedLoadingTiming(delayBeforeHint: .milliseconds(300), minimumHintVisible: .milliseconds(1_500))
-            ))
+            // bug.0.4.192: Das Tor hält das Ende der Mindestanzeige fest, bis der Neustart in der Ansicht ist (unter Last lief
+            // die Mindestanzeige sonst vorher ab – „Test prüft nichts“).
+            let gate = SurfaceAsyncSignal()
+            var timing = DelayedLoadingTiming(delayBeforeHint: .milliseconds(300), minimumHintVisible: .milliseconds(1_500))
+            timing.minimumEndGate = { await gate.wait() }
+            let window = open(LoadingHarness(model: model, recorder: recorder, timing: timing))
             defer { close(window) }
+            defer { Task { await gate.signal() } }
 
             let shownSeen = await waitUntil { recorder.last == true }
             try #require(shownSeen, "Ladehinweis erscheint nicht")
@@ -137,12 +146,16 @@ extension WindowTestGroup {
             // bug.0.4.068 b): erst weiter, wenn das Ladeende wirklich in der Ansicht ankam; sonst würden beide
             // Änderungen zusammengefasst und `resumeLoading` nie gebraucht (Test grün ohne Beleg).
             let endsBefore = recorder.loadingEndsSeen
+            let startsBefore = recorder.loadingStartsSeen
             model.isLoading = false
             let endSeen = await waitUntil { recorder.loadingEndsSeen > endsBefore }
             try #require(endSeen, "isLoading == false kam in der Ansicht nicht an")
             try #require(recorder.last == true, "Hinweis schon vor dem Neustart ausgeblendet: \(recorder.events.map(\.visible))")
             model.isLoading = true
             let restartedAt = ContinuousClock.now
+            let restartSeen = await waitUntil { recorder.loadingStartsSeen > startsBefore }
+            try #require(restartSeen, "isLoading == true kam in der Ansicht nicht an")
+            await gate.signal()
 
             // Über das Ende der Mindestanzeige (1,5 s ab Erscheinen) hinaus laden lassen. Die lange Mindestanzeige
             // lässt Reserve, damit der Hinweis unter Last vor dem Neustart noch steht (bug.0.4.068 b, Regel 20).

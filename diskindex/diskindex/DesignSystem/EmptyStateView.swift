@@ -7,16 +7,16 @@
 
 import SwiftUI
 
-enum EmptyStateIconStyle {
+enum EmptyStateIconStyle: Equatable {
     /// Drei Medien-Icons (HDD, SSD, USB), volle Textfarbe.
     case mediaTypes
     /// Favoriten: bookmarks-simple Duotone, 40 pt, violett, ohne Kachel.
     case favorites
     /// Suche idle: Lupe + Trichter, blau, 40 pt.
     case searchAndFilter
-    /// todo.0.4.043/042: Laden – Spinner (wie „Inhalte werden geladen“, 20 pt, Textfarbe) an der Stelle der Icons, im
-    /// 40-pt-Platz der Icons, damit der Titel an seiner Stelle bleibt.
-    case loading
+    /// todo.0.4.042/046: Laden – drehender Spinner (offener Bogen, 32 pt, Strich 3 pt) in der Farbe der Ansicht (Suche
+    /// blau, Favoriten violett) an der Stelle der Icons, im 40-pt-Platz, damit der Titel an seiner Stelle bleibt.
+    case loadingSpinner(Color)
     case none
 }
 
@@ -24,6 +24,9 @@ struct EmptyStateView: View {
     var title: String
     var message: String
     var iconStyle: EmptyStateIconStyle = .mediaTypes
+    /// todo.0.4.042/046: Untertitel des Leerzustands, dessen Höhe die Ladeansicht freihält – so bleiben Icon-Platz und
+    /// Titel an derselben Stelle wie im Leerzustand, auch wenn der eigene Untertitel kürzer ist.
+    var reservedMessage: String?
 
     init(title: String, message: String, showsIcon: Bool = true, usesMediaTypeIcons: Bool = true) {
         self.title = title
@@ -37,10 +40,11 @@ struct EmptyStateView: View {
         }
     }
 
-    init(title: String, message: String, iconStyle: EmptyStateIconStyle) {
+    init(title: String, message: String, iconStyle: EmptyStateIconStyle, reservedMessage: String? = nil) {
         self.title = title
         self.message = message
         self.iconStyle = iconStyle
+        self.reservedMessage = reservedMessage
     }
 
     var body: some View {
@@ -64,10 +68,10 @@ struct EmptyStateView: View {
                     filterSearchIcon("IconMagnifyingGlass")
                     filterSearchIcon("IconFunnel")
                 }
-            case .loading:
-                IndexingSpinnerRing(color: DesignColor.text, lineWidth: 2.5)
-                    .padding(1.25)
-                    .frame(width: 20, height: 20)
+            case .loadingSpinner(let tint):
+                IndexingSpinnerRing(color: tint, lineWidth: 3)
+                    .padding(1.5)
+                    .frame(width: 32, height: 32)
                     .frame(width: 40, height: 40)
             case .none:
                 EmptyView()
@@ -76,18 +80,26 @@ struct EmptyStateView: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(DesignColor.text.opacity(0.7))
                 .multilineTextAlignment(.center)
-            // Ladefläche ohne Untertitel (todo.0.4.043).
             if !message.isEmpty {
-                Text(message)
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundStyle(DesignColor.text.opacity(0.55))
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: 340)
+                ZStack(alignment: .top) {
+                    if let reservedMessage {
+                        messageText(reservedMessage).hidden()
+                    }
+                    messageText(message)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 16)
         .padding(.vertical, 32)
+    }
+
+    private func messageText(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13, weight: .regular))
+            .foregroundStyle(DesignColor.text.opacity(0.55))
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: 340)
     }
 
     private func mediaIcon(_ asset: String) -> some View {
@@ -115,5 +127,22 @@ enum EmptyStateCopy {
     static var popoverNoneConnected: String { LayoutCopy.popoverNoneConnected }
     static var noFavoritesTitle: String { LayoutCopy.emptyNoFavoritesTitle }
     static var noFavoritesMessage: String { LayoutCopy.emptyNoFavoritesMessage }
-    static var favoritesLoadingTitle: String { LayoutCopy.emptyFavoritesLoadingTitle }
+}
+
+/// todo.0.4.042/046: eine Ladeansicht für Suche und Favoriten – Fläche des Leerzustands, Spinner in der Farbe der
+/// Ansicht, Titel mit dem Umfang, Untertitel „Einen Moment bitte.“ (Farbe und Text als Parameter, Regel 7).
+struct ScopeLoadingView: View {
+    var tint: Color
+    var title: String
+    /// Untertitel des Leerzustands derselben Ansicht (Lage von Icon-Platz und Titel wie dort).
+    var emptyStateMessage: String
+
+    var body: some View {
+        EmptyStateView(
+            title: title,
+            message: LayoutCopy.loadingOneMoment,
+            iconStyle: .loadingSpinner(tint),
+            reservedMessage: emptyStateMessage
+        )
+    }
 }

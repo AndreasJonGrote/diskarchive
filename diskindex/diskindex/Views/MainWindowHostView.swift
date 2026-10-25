@@ -46,7 +46,7 @@ struct MainWindowHostView: View {
                 Color.black.opacity(0.08)
                     .ignoresSafeArea()
                     .onTapGesture {
-                        appState.dismissUpdateNotice(saveSkip: update.skipUpdate)
+                        appState.dismissUpdateNotice()
                     }
 
                 UpdateAvailableDialog(notice: update)

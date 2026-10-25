@@ -141,10 +141,12 @@ nonisolated final class VolumeLookupFlights: @unchecked Sendable {
         self.lookup = lookup
     }
 
+    #if DEBUG
     /// Gestartete Abfragen für `path` (Tests: belegt „höchstens eine laufende je Pfad“).
     func startedLookups(path: String) -> Int {
         lock.withLock { startedCount[path] ?? 0 }
     }
+    #endif
 
     /// Ein Versuch: an eine laufende Abfrage anhängen oder eine neue starten; nach `timeout` `.timedOut`.
     func attempt(at url: URL, timeout: TimeInterval) async -> VolumeLookupOutcome {

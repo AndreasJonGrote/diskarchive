@@ -80,6 +80,10 @@ final class AppState {
     /// `true`, sobald der Monitor vor `loadStoredMedia` gestartet wurde.
     @ObservationIgnored var didStartCoordinatorBeforeLoad = false
     var indexingFailure: IndexingFailureNotice?
+    /// todo.0.4.047: öffnet eine Adresse im Browser (Tests ersetzen das je Instanz).
+    @ObservationIgnored var openExternalURL: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
+    /// bug.0.4.193: Medien mit zugestellter Mitteilung „nicht bestätigt“ – unabhängig davon, ob der Hinweis noch steht.
+    @ObservationIgnored var unconfirmedNoticeMedia: Set<UUID> = []
     var replaceMediumPrompt: ReplaceMediumPrompt?
     var ignoreConfirmationPrompt: IgnoreConfirmationPrompt?
     /// Wo die Rückfrage-Panels erscheinen; `nil` = kein Panel. Die App setzt `.centered` beim Start
@@ -192,6 +196,8 @@ final class AppState {
     var trailingLiveSearch: Task<Void, Never>?
     var searchCountTask: Task<Void, Never>?
     var lastCountedSearch: SearchCountRequest?
+    /// todo.0.4.042: Anfrage, zu der die sichtbaren Treffer gehören (`nil` = noch keine Suche abgeschlossen).
+    var shownSearch: SearchCountRequest?
     var popoverGeneration = 0
     /// bug.0.4.039: laufende Popover-Suche (Seite) und nachgereichte Zahl; neue Eingabe bricht beide ab.
     @ObservationIgnored var popoverSearchTask: Task<Void, Never>?
@@ -228,11 +234,17 @@ final class AppState {
             } else if oldValue == .favorites {
                 favoritesLoading.cancel()
             }
+            // todo.0.4.042: Verlassen der Suche beendet ihre Ladeansicht.
+            if oldValue == .search, mainWindowDestination != .search {
+                searchLoading.cancel()
+            }
         }
     }
     /// todo.0.4.043: Ladeanzeige der Favoriten (gemeinsamer Baustein mit der Suche, todo.0.4.042).
     /// bug.0.4.163 (e): Mindestdauer über `init` (Standard 1 s), Tests mit kurzer Dauer.
     let favoritesLoading: MinimumLoadingIndicator
+    /// todo.0.4.042: Ladeansicht der Suche aus dem Leerzustand (gleicher Baustein, gleiche Mindestdauer wie die Favoriten).
+    let searchLoading: MinimumLoadingIndicator
     var mainWindowDestinationBeforeSearch: MainWindowDestination?
     var isFilterBarVisible = false
     /// Hochzählen = Objekt-Suchfeld verliert den Fokus (Scaffold reagiert, Aufgabe 28).
@@ -295,8 +307,10 @@ final class AppState {
     /// Einhängepfad eines angeschlossenen Mediums. Der Koordinator setzt das.
     var mountPath: ((UUID) -> String?)?
 
-    init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil, favoritesLoadingMinimum: Duration = .seconds(1)) {
-        favoritesLoading = MinimumLoadingIndicator(minimum: favoritesLoadingMinimum)
+    /// `loadingMinimum`: Mindestdauer der Ladeansicht von Favoriten und Suche (eine Quelle, todo.0.4.042/043).
+    init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil, loadingMinimum: Duration = .seconds(1)) {
+        favoritesLoading = MinimumLoadingIndicator(minimum: loadingMinimum)
+        searchLoading = MinimumLoadingIndicator(minimum: loadingMinimum)
         indexStore = store
         indexRepository = IndexRepository(store: store)
         defer {
@@ -421,8 +435,12 @@ final class AppState {
         searchCountTask?.cancel()
         searchCountTask = nil
         lastCountedSearch = nil
+        // todo.0.4.042 (Selbstprüfung 23): Mit aktiven Filtern bleibt die Anfrage dieselbe (keine neue Suche) – der geleerte
+        // Stand gilt als angezeigt, sonst stünde der Wartescreen für immer.
+        shownSearch = SearchCountRequest(query: "", filters: searchState.filters)
         searchMatch = SearchMatch()
         searchState.isSearchInProgress = false
+        searchLoading.cancel()
     }
 
     /// Vollständig programmatisch gesetzter Begriff (Kontextmenü, Popover) — wird sofort abgeschickt.

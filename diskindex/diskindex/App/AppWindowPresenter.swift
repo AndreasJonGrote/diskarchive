@@ -27,10 +27,12 @@ enum AppWindowPresenter {
     private static var ignoreConfirmPanels: [ObjectIdentifier: NSPanel] = [:]
     private static var windowDelegates: [ObjectIdentifier: PresenterWindowDelegate] = [:]
 
+    #if DEBUG
     /// Anzahl offener Erkennungs-Panels dieser Instanz (Tests).
     static func openNewMediumPanelCount(for appState: AppState) -> Int {
         newMediumPanels[ObjectIdentifier(appState)]?.count ?? 0
     }
+    #endif
 
     /// bug.0.4.142: Lage, die ein `open*` tatsächlich benutzt. Im Testprozess immer außerhalb des Bildschirms (Regel 19/21),
     /// auch wenn ein Test die Lage nicht gesetzt oder `.centered` angefordert hat; sonst die angeforderte Lage.
@@ -48,8 +50,10 @@ enum AppWindowPresenter {
         effectivePlacement(appState.promptPanelPlacement)
     }
 
+    #if DEBUG
     /// Ob das Hauptfenster existiert und sichtbar ist (todo.0.4.011).
     static var isMainWindowVisible: Bool { mainWindow?.isVisible == true }
+    #endif
 
     /// Öffnet bzw. holt das Hauptfenster nach vorn; `destination == nil` behält die aktuelle Ansicht.
     static func openMain(appState: AppState, destination: MainWindowDestination? = nil) {
@@ -199,11 +203,13 @@ enum AppWindowPresenter {
         newMediumPanels[ObjectIdentifier(appState)]?[mediumID]?.close()
     }
 
+    #if DEBUG
     /// bug.0.4.143: nur das Hauptfenster schließen (Tests), ohne die Panels anderer `AppState`-Instanzen anzufassen.
     static func closeMainWindow() {
         mainWindow?.orderOut(nil)
         mainWindow?.close()
     }
+    #endif
 
     /// Fenster ohne Animation ausblenden — vor dem Prozessende, damit SwiftUI nicht mehr rendert.
     static func prepareForTermination() {
@@ -307,15 +313,19 @@ enum AppWindowPresenter {
         show(panel, placement: placement)
     }
 
+    #if DEBUG
     /// Offenes Ignorier-Panel dieser Instanz (Tests, bug.0.3.9.005 c).
     static func ignoreConfirmationPanel(for appState: AppState) -> NSPanel? {
         ignoreConfirmPanels[ObjectIdentifier(appState)]
     }
+    #endif
 
+    #if DEBUG
     /// Offenes Panel „Ersetzt dieses Medium?“ dieser Instanz (Tests, bug.0.3.9.005 c).
     static func replaceMediumPromptPanel(for appState: AppState) -> NSPanel? {
         replaceMediumPanels[ObjectIdentifier(appState)]
     }
+    #endif
 
     private static func place(_ panel: NSPanel, placement: PromptPanelPlacement) {
         switch placement {
@@ -436,7 +446,11 @@ enum AppWindowPresenter {
     ) -> CGRect {
         let offset = CGFloat(depthFromNewest) * newMediumStackOffset
         let centerX = visibleFrame.midX - offset
-        let centerY = visibleFrame.maxY - visibleFrame.height * newMediumGoldenRatioFromTop - offset
+        // todo.0.4.048 (Layout 02): der neueste vorn (goldener Schnitt), ältere nach links **oben**. Am oberen Rand
+        // nicht über `visibleFrame` hinaus: der Schritt nach oben endet dort (die Panels bleiben nach links versetzt).
+        let newestCenterY = visibleFrame.maxY - visibleFrame.height * newMediumGoldenRatioFromTop
+        let room = max(0, visibleFrame.maxY - (newestCenterY + panelSize.height / 2))
+        let centerY = newestCenterY + min(offset, room)
         return CGRect(
             x: centerX - panelSize.width / 2,
             y: centerY - panelSize.height / 2,

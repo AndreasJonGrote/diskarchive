@@ -16,33 +16,34 @@ struct VersionCheckTests {
     private let api10 = AppVersion(major: 1, minor: 0, patch: 0)
     private let now = Date(timeIntervalSince1970: 1_700_000_000)
 
-    @Test func majorMinorComparisonAndSkip() {
-        let skipped = SystemSettingsSnapshot(
+    /// todo.0.4.047: kein Überspringen mehr – jede neuere Haupt-/Nebenversion wird angeboten (ob der Dialog erscheint,
+    /// entscheidet die Einstellung „Auf Updates hinweisen“).
+    @Test func majorMinorComparison() {
+        let settings = SystemSettingsSnapshot(
             betaExpiryNoticedAt: nil,
             apiLastSeen: now,
-            lockedVersion: nil,
-            skippedUpdateVersion: "1.0"
+            lockedVersion: nil
         )
-        let eval = VersionLockEvaluator.evaluate(
+        for (api, display) in [(api10, "1.0"), (AppVersion(major: 1, minor: 1, patch: 0), "1.1")] {
+            let eval = VersionLockEvaluator.evaluate(
+                now: now,
+                appVersion: app03,
+                apiVersion: api,
+                settings: settings,
+                isFreshInstall: false,
+                buildDate: now
+            )
+            #expect(eval.updateOffer?.targetDisplay == display)
+        }
+        let same = VersionLockEvaluator.evaluate(
             now: now,
-            appVersion: app03,
-            apiVersion: api10,
-            settings: skipped,
+            appVersion: AppVersion(major: 1, minor: 1, patch: 2),
+            apiVersion: AppVersion(major: 1, minor: 1, patch: 0),
+            settings: settings,
             isFreshInstall: false,
             buildDate: now
         )
-        #expect(eval.updateOffer == nil)
-
-        let api11 = AppVersion(major: 1, minor: 1, patch: 0)
-        let eval2 = VersionLockEvaluator.evaluate(
-            now: now,
-            appVersion: app03,
-            apiVersion: api11,
-            settings: skipped,
-            isFreshInstall: false,
-            buildDate: now
-        )
-        #expect(eval2.updateOffer?.targetDisplay == "1.1")
+        #expect(same.updateOffer == nil, "gleiche Haupt-/Nebenversion: kein Angebot")
     }
 
     @Test func betaNoticeAndSevenDayLock() throws {
@@ -50,8 +51,7 @@ struct VersionCheckTests {
         let settings = SystemSettingsSnapshot(
             betaExpiryNoticedAt: noticed,
             apiLastSeen: now,
-            lockedVersion: nil,
-            skippedUpdateVersion: nil
+            lockedVersion: nil
         )
         let eval = VersionLockEvaluator.evaluate(
             now: now,
@@ -75,7 +75,7 @@ struct VersionCheckTests {
             now: now,
             appVersion: app03,
             apiVersion: api10,
-            settings: .init(betaExpiryNoticedAt: nil, apiLastSeen: nil, lockedVersion: nil, skippedUpdateVersion: nil),
+            settings: .init(betaExpiryNoticedAt: nil, apiLastSeen: nil, lockedVersion: nil),
             isFreshInstall: true,
             buildDate: now
         )
@@ -88,8 +88,7 @@ struct VersionCheckTests {
         let settings = SystemSettingsSnapshot(
             betaExpiryNoticedAt: nil,
             apiLastSeen: old,
-            lockedVersion: nil,
-            skippedUpdateVersion: nil
+            lockedVersion: nil
         )
         let eval = VersionLockEvaluator.evaluate(
             now: now,
@@ -119,7 +118,7 @@ struct VersionCheckTests {
             now: now,
             appVersion: app03,
             apiVersion: api10,
-            settings: .init(betaExpiryNoticedAt: nil, apiLastSeen: now, lockedVersion: nil, skippedUpdateVersion: nil),
+            settings: .init(betaExpiryNoticedAt: nil, apiLastSeen: now, lockedVersion: nil),
             isFreshInstall: false,
             buildDate: build
         )
@@ -136,7 +135,7 @@ struct VersionCheckTests {
             now: now,
             appVersion: app03,
             apiVersion: nil,
-            settings: .init(betaExpiryNoticedAt: nil, apiLastSeen: now, lockedVersion: nil, skippedUpdateVersion: nil),
+            settings: .init(betaExpiryNoticedAt: nil, apiLastSeen: now, lockedVersion: nil),
             isFreshInstall: false,
             buildDate: build,
             calendar: Calendar.current
@@ -148,8 +147,7 @@ struct VersionCheckTests {
         let settings = SystemSettingsSnapshot(
             betaExpiryNoticedAt: now,
             apiLastSeen: now,
-            lockedVersion: "0.3.1",
-            skippedUpdateVersion: nil
+            lockedVersion: "0.3.1"
         )
         let same = VersionLockEvaluator.evaluate(
             now: now,

@@ -28,11 +28,12 @@ struct FavoritesView: View {
             FavoritesConnectionFilterBar()
 
             if loading {
-                // todo.0.4.043: Fläche von „Keine Favoriten“, Spinner statt Icon, ohne Untertitel.
-                EmptyStateView(
-                    title: EmptyStateCopy.favoritesLoadingTitle,
-                    message: "",
-                    iconStyle: .loading
+                // todo.0.4.046: Fläche von „Keine Favoriten“, violetter Spinner, Umfang des Verbindungsfilters.
+                let scope = appState.favoritesLoadingScope
+                ScopeLoadingView(
+                    tint: DesignColor.favorite,
+                    title: LayoutCopy.loadingFavoritesTitle(media: scope.media, files: scope.files),
+                    emptyStateMessage: EmptyStateCopy.noFavoritesMessage
                 )
             } else if selectionEmpty {
                 // Aufgabe 147 — Duotone bookmarks-simple, 40 pt violett, ohne Kachel.

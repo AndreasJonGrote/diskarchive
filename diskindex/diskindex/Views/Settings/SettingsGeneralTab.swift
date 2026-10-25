@@ -40,6 +40,8 @@ struct SettingsGeneralTab: View {
                 case .advanced:
                     launchAtLoginSection
                     DesignDivider()
+                    updatesSection(settings: settings)
+                    DesignDivider()
                     reportsSection
                     DesignDivider()
                     pruneSection
@@ -117,6 +119,26 @@ struct SettingsGeneralTab: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// todo.0.4.047: „Auf Updates hinweisen“ (Layout des Nutzers 24.10.: Muster wie Autostart, darunter).
+    private func updatesSection(settings: Binding<AppSettings>) -> some View {
+        HStack(alignment: .top, spacing: 32) {
+            VStack(alignment: .leading, spacing: 6) {
+                SettingsSectionTitle(title: LayoutCopy.updatesTitle)
+                Text(LayoutCopy.updatesText)
+                    .font(.system(size: 12))
+                    .foregroundStyle(DesignColor.text.opacity(0.6))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Toggle(LayoutCopy.updatesToggle, isOn: settings.appSettingsField(\.notifyAboutUpdates))
+                .toggleStyle(DesignCheckbox())
+                .font(.system(size: 12.5, weight: .semibold))
+                .tint(DesignColor.control)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

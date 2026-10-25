@@ -445,18 +445,22 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         return try? ApiQueuePersistence.nextRetry(pool, issueID: id)
     }
 
+    #if DEBUG
     func queuedReportCount() throws -> Int {
         try ApiQueuePersistence.count(try resolvePool(), kind: .issueReport)
     }
+    #endif
 
     func firstQueuedPayload() throws -> Data? {
         try ApiQueuePersistence.firstPayload(try resolvePool(), kind: .issueReport)
     }
 
+    #if DEBUG
     func firstQueuedIssueID() throws -> String? {
         guard let data = try firstQueuedPayload() else { return nil }
         return ApiQueuePersistence.issueID(in: data)
     }
+    #endif
 
     /// Tests: Datei-Outbox (Migration).
     func reportFiles() -> [URL] {

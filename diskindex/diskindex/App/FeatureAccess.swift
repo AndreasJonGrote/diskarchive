@@ -27,7 +27,6 @@ nonisolated struct UpdateOffer: Equatable, Sendable {
     var currentDisplay: String
     var targetDisplay: String
     var targetMajorMinor: AppVersion
-    var showSkipCheckbox: Bool
     var showBetaCountdown: Bool
 }
 

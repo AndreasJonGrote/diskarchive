@@ -184,7 +184,8 @@ enum SystemNotice {
             withdraw(identifier)
             return
         }
-        if testHooks?.post != nil { return }
+        // bug.0.4.193: in Tests nie ins echte Mitteilungszentrum.
+        if testHooks?.post != nil || RuntimeEnvironment.isRunningTests { return }
         #endif
         (activeCenter as? UNUserNotificationCenter)?.removeDeliveredNotifications(withIdentifiers: [identifier])
     }

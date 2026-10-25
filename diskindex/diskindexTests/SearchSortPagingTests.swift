@@ -335,6 +335,9 @@ struct SearchSortHeaderWindowTests {
         defer { session.close() }
         let loaded = await waitUntil(timeout: 10) { app.searchMatch.items.count == SearchIndex.pageLimit }
         try #require(loaded, "Suche im Fenster lief nicht")
+        // todo.0.4.042: Start aus dem Leerzustand – die Tabelle steht erst nach dem Wartescreen (mindestens 1 s).
+        try #require(await waitUntil(timeout: 10) { !app.searchLoading.isShowing }, "Wartescreen endet nicht")
+        await PixelProbe.settleOpenWindow(session)
         #expect(app.searchMatch.items.first?.name == "treffer-000.txt")
         session.click(at: headerPoint(.date, in: session.window), settle: 0.2)
         #expect(app.searchState.sort == SearchSort(column: .date, direction: .ascending), "Klick hat nicht umgeschaltet")
@@ -353,6 +356,8 @@ struct SearchSortHeaderWindowTests {
         defer { session.close() }
         let few = await waitUntil(timeout: 10) { app.searchMatch.itemCount == 100 }
         try #require(few, "Trefferzahl für „treffer-1“ kam nicht")
+        // todo.0.4.042: Start aus dem Leerzustand – die Tabelle steht erst nach dem Wartescreen (mindestens 1 s).
+        try #require(await waitUntil(timeout: 10) { !app.searchLoading.isShowing }, "Wartescreen endet nicht")
         await PixelProbe.settleOpenWindow(session)
         session.click(at: headerPoint(.path, in: session.window), settle: 0.2)
         #expect(app.searchState.sort == SearchSort(column: .path, direction: .ascending), "Klick traf den Kopf „Pfad“ nicht")
@@ -386,6 +391,8 @@ struct SearchSortHeaderWindowTests {
         defer { session.close() }
         let few = await waitUntil(timeout: 10) { app.searchMatch.itemCount == 100 }
         try #require(few, "Trefferzahl für „treffer-1“ kam nicht")
+        // todo.0.4.042: Start aus dem Leerzustand – die Tabelle steht erst nach dem Wartescreen (mindestens 1 s).
+        try #require(await waitUntil(timeout: 10) { !app.searchLoading.isShowing }, "Wartescreen endet nicht")
         await PixelProbe.settleOpenWindow(session)
         var misses: [String] = []
         for column in [SearchSortColumn.name, .date, .medium, .path, .status] {

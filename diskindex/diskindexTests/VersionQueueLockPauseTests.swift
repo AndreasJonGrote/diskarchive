@@ -97,7 +97,6 @@ struct VersionLockGapTests {
             betaExpiryNoticedAt: nil,
             apiLastSeen: apiLastSeen,
             lockedVersion: nil,
-            skippedUpdateVersion: nil,
             firstRunAt: firstRunAt,
             firstRunFresh: firstRunFresh,
             highestSeenAt: highestSeenAt

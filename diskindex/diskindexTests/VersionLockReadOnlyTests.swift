@@ -18,7 +18,6 @@ struct VersionLockReadOnlyTests {
             currentDisplay: "0.3",
             targetDisplay: "1.0",
             targetMajorMinor: AppVersion(major: 1, minor: 0, patch: 0),
-            showSkipCheckbox: true,
             showBetaCountdown: false
         )
         appState.applyVersionLockEvaluation(

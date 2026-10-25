@@ -74,6 +74,9 @@ nonisolated struct AppSettings: Equatable, Codable {
     var autoSendCrashReports: Bool = false
     /// UI-Sprache (DE/EN). Erststart: OS-Erkennung; Wirkung vollständig nach Neustart.
     var displayLanguage: AppDisplayLanguage = AppDisplayLanguage.resolveFromOperatingSystem()
+    /// todo.0.4.047: „Auf Updates hinweisen“ (Tab Erweitert, Updatedialog). Aus = kein Updatedialog; der Versions-Check
+    /// läuft weiter, Beta-Countdown und Sperre erscheinen immer.
+    var notifyAboutUpdates: Bool = true
 
     mutating func resetGeneral() {
         scanDepth = Self.defaultScanDepth
@@ -142,6 +145,7 @@ nonisolated struct AppSettings: Equatable, Codable {
         autoSendCrashReports = try container.decodeIfPresent(Bool.self, forKey: .autoSendCrashReports) ?? false
         displayLanguage = try container.decodeIfPresent(AppDisplayLanguage.self, forKey: .displayLanguage)
             ?? AppDisplayLanguage.resolveFromOperatingSystem()
+        notifyAboutUpdates = try container.decodeIfPresent(Bool.self, forKey: .notifyAboutUpdates) ?? true
     }
 
     func encode(to encoder: Encoder) throws {
@@ -158,6 +162,7 @@ nonisolated struct AppSettings: Equatable, Codable {
         try container.encode(notifyIndexed, forKey: .notifyIndexed)
         try container.encode(notifyFavorites, forKey: .notifyFavorites)
         try container.encode(displayLanguage, forKey: .displayLanguage)
+        try container.encode(notifyAboutUpdates, forKey: .notifyAboutUpdates)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -165,6 +170,7 @@ nonisolated struct AppSettings: Equatable, Codable {
         case artifactDisabledCategories, artifactIncludePatterns // decode-only (121)
         case excludedPatterns, exclusionAddedAt, showFoldersRegardlessOfFilter, appearance
         case notificationsEnabled, notifySystem, notifyIndexed, notifyFavorites, autoSendCrashReports, displayLanguage
+        case notifyAboutUpdates
     }
 
     func save(to defaults: UserDefaults) {

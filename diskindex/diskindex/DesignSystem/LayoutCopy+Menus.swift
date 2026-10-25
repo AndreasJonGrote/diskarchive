@@ -88,7 +88,6 @@ nonisolated extension LayoutCopy {
     static var tablePath: String { L10n.string("copy.table.path") }
 
     static var popoverNoneConnected: String { L10n.string("copy.hint.popover_none_connected") }
-    static var searchInProgress: String { L10n.string("copy.search.in_progress") }
     static var noResultsForFilters: String { L10n.string("copy.search.no_results_for_filters") }
     static func noResults(_ a0: String) -> String { L10n.format("copy.search.no_results_for", a0) }
     static func popoverNoHits(_ a0: String) -> String { L10n.format("copy.search.popover_no_hits", a0) }

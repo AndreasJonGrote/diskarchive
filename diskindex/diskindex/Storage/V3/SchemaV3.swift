@@ -13,6 +13,8 @@ import Foundation
 import GRDB
 
 nonisolated enum SchemaV3 {
+    #if DEBUG
+    /// bug.0.4.195: nur für Tests (Schema-Prüfung).
     static let tableNames = [
         "storages", "storage_meta", "items", "item_details", "item_meta", "item_checksum",
         "favorites", "extensions", "meta_keys", "settings", "api_queue",
@@ -22,6 +24,7 @@ nonisolated enum SchemaV3 {
         "items_identity", "items_children", "items_search", "items_modified", "items_fileid",
         "items_parent", "item_checksum_full", "storages_slug", "storages_uuid", "items_gone", "items_search_natural",
     ]
+    #endif
 
     /// Teilindex für verschwundene Einträge (bug.0.4.013).
     static let itemsGoneMigration = "0.4.0-items_gone"

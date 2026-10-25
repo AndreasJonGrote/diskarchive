@@ -63,14 +63,18 @@ actor IndexStoreV3 {
     var searchQueryHold: (query: String, duration: Duration)?
     /// Zahl der Aufrufe von `search` an diesem Store (Tests).
     nonisolated let searchCalls = NameCheckCounter()
+    #if DEBUG
     /// Tests: `deleteMedium` schlägt für diese UUIDs fehl (forgetAll, 007).
     var deleteMediumFailUUIDs: Set<UUID> = []
+    #endif
     /// Tests: Teil-Prüfsummen-Abgleich (235b); kein globales Flag (bug.0.4.010).
     var partialMatchingEnabled = true
 
+    #if DEBUG
     func setPartialMatchingEnabled(_ enabled: Bool) {
         partialMatchingEnabled = enabled
     }
+    #endif
     /// Zählt Zeilen, deren Name in Swift gegen `IndexScope` geprüft wurde (Tests: ohne ausstehende Bereinigung 0).
     nonisolated let nameChecks = NameCheckCounter()
     /// Zahl der Aufrufe von `searchCount` an diesem Store (Tests: Entprellung des Popovers, bug.0.4.039).
@@ -152,9 +156,11 @@ actor IndexStoreV3 {
         changesContinuation.yield(IndexChangeEvent(change: change, generation: changeGeneration))
     }
 
+    #if DEBUG
     func setSearchParallelism(_ parts: Int?) {
         searchParallelism = parts
     }
+    #endif
 
     #if DEBUG
     func setDirectoryWritesFailing(_ failing: Bool) {
@@ -187,10 +193,12 @@ actor IndexStoreV3 {
         searchQueryHold = hold
     }
 
+    #if DEBUG
     /// Tests: `deleteMedium` für UUIDs fehlschlagen lassen.
     func setDeleteMediumFailUUIDs(_ uuids: Set<UUID>) {
         deleteMediumFailUUIDs = uuids
     }
+    #endif
 
     /// Tests: `reconcileScopeToStatus` künstlich verlangsamen (234).
     var reconcileBatchDelay: Duration?
@@ -287,10 +295,12 @@ actor IndexStoreV3 {
 
     // MARK: App-Einstellungen (237)
 
+    #if DEBUG
     func loadPersistedAppSettings() async -> PersistedAppSettings? {
         if case .loaded(let settings) = await loadPersistedAppSettingsResult() { return settings }
         return nil
     }
+    #endif
 
     /// bug.0.4.105: unterscheidet „kein Eintrag“ von „Lesefehler“ (kaputter Text, Datenbankfehler).
     func loadPersistedAppSettingsResult() async -> PersistedAppSettingsLoad {
@@ -477,9 +487,11 @@ actor IndexStoreV3 {
 
     /// Einziger harter Löschweg. Alles Zugehörige fällt über `ON DELETE CASCADE` mit. Bereits gelöscht → kein Fehler.
     func deleteMedium(uuid: UUID) async throws {
+        #if DEBUG
         if deleteMediumFailUUIDs.contains(uuid) {
             throw CocoaError(.fileWriteUnknown)
         }
+        #endif
         clearRunLeftovers(uuid)
         do {
             let deleted = try await pool.write { db -> Bool in
@@ -506,6 +518,7 @@ actor IndexStoreV3 {
 
     // MARK: Ebenen
 
+    #if DEBUG
     func applyDirectory(
         mediumUUID: UUID,
         parentID: Int64?,
@@ -531,6 +544,7 @@ actor IndexStoreV3 {
         emit(.items(mediumUUID, folderPaths: [folderPath]))
         emit(.counts(mediumUUID))
     }
+    #endif
 
     func applyDirectories(
         mediumUUID: UUID,

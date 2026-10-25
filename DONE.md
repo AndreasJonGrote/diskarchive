@@ -142,6 +142,14 @@ Kennungen: bis 233b alte Aufgabennummern; ab 12.10. `todo.<Version>.<Nr>` (Aufga
 | bug.0.4.189 | – | Verwaltungsdateien im Wurzelvergleich aus `IgnoreMatcher`/`ArtifactRules` abgeleitet, kleingeschrieben | 24.10. Host (seriell 1082/1082, parallel 2 von 3 grün – Rest `bug.0.4.192`, Sabotage 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten, Sabotage-Patches) |
 | bug.0.4.190 | – | Systemmitteilung „nicht bestätigt“ beim späten Aushängen zurückgezogen (Rest: `bug.0.4.193`) | 24.10. Host (seriell 1082/1082, parallel 2 von 3 grün – Rest `bug.0.4.192`, Sabotage 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten, Sabotage-Patches) |
 | bug.0.4.191 | – | Kleinkram: Umbenennen startet Überwachung nur bei „indiziert“, Live-Test Verwaltungsnamen (Rest a: `bug.0.4.194`) | 24.10. Host (seriell 1082/1082, parallel 2 von 3 grün – Rest `bug.0.4.192`, Sabotage 3/3, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten, Sabotage-Patches) |
+| bug.0.4.192 | – | Vorbedingungs-Wackler: Tore im DEBUG-Code halten Scroll-/Ladeauftrag fest (Rest a: `bug.0.4.197`) | 25.10. Host (seriell und parallel 3× je 2 rot nur durch Zeitumstellung → `bug.0.4.196`, Sabotage 11/11, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten, Sabotage-Patches) |
+| bug.0.4.193 | – | Mitteilung „nicht bestätigt“ nach zugestellter Menge zurückgezogen (Rest e: `bug.0.4.197`) | 25.10. Host (wie 192) | A C (Prüf-Agenten, Sabotage-Patches) |
+| bug.0.4.194 | – | Beweislücken 191 a, 188, 189 geschlossen | 25.10. Host (wie 192) | A C (Prüf-Agenten, Sabotage-Patches) |
+| bug.0.4.195 | – | Aufräumen: toter Code gelöscht, 26 Testhaken in `#if DEBUG`, 4 unbenutzte Texte entfernt | 25.10. Host (wie 192) | A C (Prüf-Agenten) |
+| todo.0.4.042 | – | Wartescreen der Suche nach Layout (Spinner blau, Umfang, mindestens 1 s) (Rest b: `bug.0.4.197`) | 25.10. Host (wie 192) | A C (Prüf-Agenten, Sabotage-Patches) |
+| todo.0.4.046 | – | Wartescreen der Favoriten (Spinner violett, „gefiltert“), gemeinsame Ansicht | 25.10. Host (wie 192) | A C (Prüf-Agenten, Sabotage-Patches) |
+| todo.0.4.047 | – | Updatedialog nach Layout 13, Einstellung „Auf Updates hinweisen“ im Tab Erweitert (Rest c: `bug.0.4.197`) | 25.10. Host (wie 192) | A C (Prüf-Agenten, Sabotage-Patches) |
+| todo.0.4.048 | – | Stapel der Erkennungsdialoge nach Layout 02: ältere nach links oben (Rest d: `bug.0.4.197`) | 25.10. Host (wie 192) | A C (Prüf-Agenten, Sabotage-Patches) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 
