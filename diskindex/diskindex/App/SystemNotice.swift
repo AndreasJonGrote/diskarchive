@@ -77,15 +77,19 @@ final class NoticeTestHooks {
     let post: ((UNNotificationRequest, String) -> Void)?
     /// bug.0.4.190: fängt das Zurückziehen zugestellter Mitteilungen ab (Kennung).
     let withdraw: ((String) -> Void)?
+    /// bug.0.4.197 e: Kennungen der „zugestellten“ Mitteilungen früherer Sitzungen (statt `getDeliveredNotifications`).
+    let delivered: [String]?
 
     init(
         center: NoticePosting? = nil,
         post: ((UNNotificationRequest, String) -> Void)? = nil,
-        withdraw: ((String) -> Void)? = nil
+        withdraw: ((String) -> Void)? = nil,
+        delivered: [String]? = nil
     ) {
         self.center = center
         self.post = post
         self.withdraw = withdraw
+        self.delivered = delivered
     }
 }
 #endif
@@ -171,8 +175,36 @@ enum SystemNotice {
         post(body: body, settings: settings, event: .favorites, kind: "favorites")
     }
 
+    nonisolated static let indexingFailureIdentifierPrefix = "diskindex.indexing-failure-"
+
     nonisolated static func indexingFailureIdentifier(mediumID: UUID) -> String {
-        "diskindex.indexing-failure-\(mediumID.uuidString)"
+        "\(indexingFailureIdentifierPrefix)\(mediumID.uuidString)"
+    }
+
+    /// bug.0.4.197 e: Beim Start zugestellte Mitteilungen „nicht bestätigt“ aus einer früheren Sitzung zurückziehen:
+    /// `unconfirmedNoticeMedia` ist nach dem Neustart leer, ein Klick zeigte sonst einen veralteten Hinweis.
+    /// Ruft der Start einmal auf (nicht im Zeichenpfad); das Zentrum antwortet auf einem Hintergrund-Thread.
+    @MainActor
+    static func withdrawStaleIndexingFailures() {
+        #if DEBUG
+        if let delivered = testHooks?.delivered {
+            for identifier in staleIndexingFailures(in: delivered) { testHooks?.withdraw?(identifier) }
+            return
+        }
+        // In Tests nie ins echte Mitteilungszentrum.
+        if testHooks?.post != nil || RuntimeEnvironment.isRunningTests { return }
+        #endif
+        guard activeCenter is UNUserNotificationCenter else { return }
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+            let stale = staleIndexingFailures(in: notifications.map(\.request.identifier))
+            guard !stale.isEmpty else { return }
+            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: stale)
+        }
+    }
+
+    /// bug.0.4.197 e: Kennungen der „nicht bestätigt“-Mitteilungen unter den zugestellten (eine Quelle für Start und Test).
+    nonisolated static func staleIndexingFailures(in delivered: [String]) -> [String] {
+        delivered.filter { $0.hasPrefix(indexingFailureIdentifierPrefix) }
     }
 
     /// bug.0.4.190: Der Hinweis wurde zurückgenommen – die schon zugestellte Mitteilung dieses Mediums auch.

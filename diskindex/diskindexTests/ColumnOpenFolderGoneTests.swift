@@ -109,7 +109,8 @@ struct ColumnOpenFolderGoneTests {
         settle: Duration = .milliseconds(100),
         waitUntilDone: Bool = true,
         done orders: ScrollOrdersDone? = nil,
-        gate: SurfaceAsyncSignal? = nil
+        gate: SurfaceAsyncSignal? = nil,
+        trace: SettleTrace? = nil
     ) async throws -> (PixelProbe.Session, NSScrollView) {
         let done = orders ?? ScrollOrdersDone()
         tree.app.mainWindowDestination = .columnBrowser
@@ -122,6 +123,7 @@ struct ColumnOpenFolderGoneTests {
                 .environment(\.columnScrollSettleDelay, settle)
                 .environment(\.columnScrollOrderDone, { token in done.tokens.append(token) })
                 .environment(\.columnScrollSettleGate, gate.map { gate -> @Sendable () async -> Void in { @Sendable in await gate.wait() } })
+                .environment(\.columnScrollSettleTrace, trace.map { trace -> @MainActor (ColumnScrollSettleEvent) -> Void in { event in trace.record(event) } })
                 .frame(width: Self.narrow.width, height: Self.narrow.height),
             size: Self.narrow
         )
@@ -235,24 +237,32 @@ struct ColumnOpenFolderGoneTests {
     @Test func userScrollWhileTheOrderIsOpenEndsIt() async throws {
         let mount = try makeMount()
         let tree = try await openFolderFixture(mount: mount)
-        // bug.0.4.192: Das Tor hält den Auftrag offen (vorher 2 s Ruhezeit, unter Last vor dem Scroll abgelaufen). Ohne
-        // Nutzer-Scroll bliebe er offen; endet er, war es der Scroll.
-        let settle = Duration.seconds(2)
+        // bug.0.4.192: Das Tor hält den Auftrag offen, bis der Test es öffnet. Ohne Nutzer-Scroll bliebe er offen; endet er,
+        // war es der Scroll.
+        // bug.0.4.197 a: Das Tor öffnet erst NACH dem Nutzer-Scroll; dann läuft die Aufgabe weiter. Der Test wartet auf
+        // das positive Signal „alle begonnenen Ruhezeit-Aufgaben sind zu Ende“ und prüft erst danach, ob ein Rücksprung
+        // angestoßen wurde (ohne den Abbruch durch den Nutzer-Scroll scrollt der Schlussscroll nach rechts).
         let gate = SurfaceAsyncSignal()
         let done = ScrollOrdersDone()
-        let (session, scroll) = try await openAlphaFileNarrow(tree, settle: settle, waitUntilDone: false, done: done, gate: gate)
+        let trace = SettleTrace()
+        let (session, scroll) = try await openAlphaFileNarrow(tree, waitUntilDone: false, done: done, gate: gate, trace: trace)
         defer { session.close() }
         defer { Task { await gate.signal() } }
         let token = tree.app.columnScrollToken
         try #require(!done.tokens.contains(token), "Auftrag schon vor dem Scroll erledigt – Test prüft nichts")
+        try #require(trace.started > 0, "keine Ruhezeit-Aufgabe begonnen – Test prüft nichts")
         // Wie ein Scroll mit Trackpad/Maus: Beginn des Live-Scrolls.
         NotificationCenter.default.post(name: NSScrollView.willStartLiveScrollNotification, object: scroll)
-        // Positives Signal: der Auftrag ist sofort erledigt (die Ruhezeit von 2 s läuft noch).
+        // Positives Signal: der Auftrag ist sofort erledigt (das Tor ist noch zu).
         #expect(await waitUntil(timeout: 1) { done.tokens.contains(token) }, "Nutzer-Scroll beendete den Auftrag nicht")
         try #require(await scrollToLeadingAndRest(session.window, scroll), "bleibt nicht links stehen")
         NotificationCenter.default.post(name: NSScrollView.didEndLiveScrollNotification, object: scroll)
         let before = scroll.documentVisibleRect.minX
-        try await Task.sleep(for: settle)
+        // Tor auf; die festgehaltene Aufgabe läuft zu Ende (abgebrochen oder – ohne Abbruch – mit Schlussscroll).
+        await gate.signal()
+        try #require(await waitUntil { trace.ended == trace.started }, "Ruhezeit-Aufgabe nicht zu Ende gelaufen")
+        // Ein angestoßener Schlussscroll animiert (0,2 s); abwarten, bis die Ansicht ruht, dann prüfen.
+        try #require(await scrollComesToRest(scroll), "Scroll-Animation endet nicht")
         session.window.contentView?.layoutSubtreeIfNeeded()
         #expect(abs(scroll.documentVisibleRect.minX - before) <= 1, "Auftrag scrollte nach Nutzer-Scroll zurück: \(before) → \(scroll.documentVisibleRect.minX)")
     }
@@ -405,6 +415,20 @@ private func scrollToLeadingAndRest(_ window: NSWindow, _ scroll: NSScrollView) 
         if scroll.documentVisibleRect.minX < 1 { return true }
     }
     return false
+}
+
+/// bug.0.4.197 a: zählt begonnene und beendete Ruhezeit-Aufgaben des Scroll-Auftrags.
+@MainActor
+final class SettleTrace {
+    private(set) var started = 0
+    private(set) var ended = 0
+
+    func record(_ event: ColumnScrollSettleEvent) {
+        switch event {
+        case .started: started += 1
+        case .ended: ended += 1
+        }
+    }
 }
 
 @MainActor

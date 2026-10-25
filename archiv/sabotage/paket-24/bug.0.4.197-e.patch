@@ -1,0 +1,12 @@
+# Test: StaleIndexingFailureWithdrawTests/startupWithdrawsOnlyTheStaleIndexingFailureNotices()
+--- a/diskindex/diskindex/App/SystemNotice.swift	2026-10-25 07:30:55
++++ b/diskindex/diskindex/App/SystemNotice.swift	2026-10-25 07:30:55
+@@ -204,7 +204,7 @@
+ 
+     /// bug.0.4.197 e: Kennungen der „nicht bestätigt“-Mitteilungen unter den zugestellten (eine Quelle für Start und Test).
+     nonisolated static func staleIndexingFailures(in delivered: [String]) -> [String] {
+-        delivered.filter { $0.hasPrefix(indexingFailureIdentifierPrefix) }
++        delivered
+     }
+ 
+     /// bug.0.4.190: Der Hinweis wurde zurückgenommen – die schon zugestellte Mitteilung dieses Mediums auch.

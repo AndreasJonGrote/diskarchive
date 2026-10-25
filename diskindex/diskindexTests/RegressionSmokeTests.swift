@@ -705,5 +705,11 @@ struct RegressionSmokeRows {
         try await UnconfirmedNoticeWithdrawalTests().lateUnmountEventWithdrawsTheDeliveredNoticeOfThatMediumOnly()
         try await MediumIdentityTests().renameOfAnUnindexedHeldMediumStartsNoWatcher()
     }
+
+    /// bug.0.4.196: Zeitumstellung – Stempel der doppelten Stunde werden eindeutig zurückgelesen (Absturzbericht nicht leer).
+    @Test func logStampsInTheDoubleHourKeepTheCrashReport() throws {
+        try PreviousRunReportTests().doubleHourStampsReadBackInOrder()
+        try PreviousRunReportTests().runAcrossTheChangeHasTheRightRuntime()
+    }
 }
 }

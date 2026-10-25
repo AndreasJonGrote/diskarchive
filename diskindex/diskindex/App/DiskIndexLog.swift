@@ -78,7 +78,13 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         set { descriptors[1] = newValue }
     }
     private var handlersInstalled = false
+    /// bug.0.4.196: Stempel mit Zeitzonen-Versatz („2026-10-25 02:30:00.000+02:00“) – eindeutig auch in der doppelten
+    /// Stunde der Zeitumstellung; lesbar bleibt die Ortszeit. Schreiben und Lesen nur über `formatter`/`lineDate`.
     private let formatter: DateFormatter
+    /// Alte Zeilen ohne Versatz (vor bug.0.4.196) werden weiter als Ortszeit gelesen.
+    private let legacyFormatter: DateFormatter
+    /// Namen archivierter Absturzdateien in UTC: sortierbar über die Umstellung hinweg.
+    private let fileFormatter: DateFormatter
     private let loggers: [DiskLogCategory: Logger]
     private let diskWriteQueue = DispatchQueue(label: "app.diskarchive.log-disk", qos: .utility)
 
@@ -88,13 +94,18 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     /// Ziel für den automatisch gesendeten Absturzbericht (bug.0.3.9.010): Standard `IssueReporter.shared`,
     /// erst beim Senden aufgelöst; Tests geben eine eigene Instanz mit eigener Warteschlange mit.
     private let crashReporter: () -> IssueReporter
+    /// bug.0.4.196: Uhr und Zeitzone der Stempel je Instanz (Tests: feste Zeit in der doppelten Stunde, ohne echte Uhr).
+    private let now: @Sendable () -> Date
 
     init(
         directory: URL? = nil,
         byteLimit: Int = DiskIndexLog.defaultByteLimit,
         crashAutoSend: (() -> Bool)? = nil,
-        crashReporter: IssueReporter? = nil
+        crashReporter: IssueReporter? = nil,
+        timeZone: TimeZone = .current,
+        now: @escaping @Sendable () -> Date = { Date() }
     ) {
+        self.now = now
         self.crashAutoSendEnabled = crashAutoSend ?? (directory == nil ? { IssueConsent.autoSendEnabled() } : { false })
         if let crashReporter {
             self.crashReporter = { crashReporter }
@@ -104,10 +115,16 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         self.writesToDisk = directory != nil || !RuntimeEnvironment.isRunningTests
         self.directory = directory ?? Self.defaultDirectory
         self.byteLimit = byteLimit
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
-        self.formatter = formatter
+        func makeFormatter(_ format: String, _ zone: TimeZone) -> DateFormatter {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = zone
+            formatter.dateFormat = format
+            return formatter
+        }
+        self.formatter = makeFormatter("yyyy-MM-dd HH:mm:ss.SSSZZZZZ", timeZone)
+        self.legacyFormatter = makeFormatter("yyyy-MM-dd HH:mm:ss.SSS", timeZone)
+        self.fileFormatter = makeFormatter("yyyy-MM-dd_HH-mm-ss.SSS'Z'", TimeZone(identifier: "UTC") ?? timeZone)
         self.loggers = Dictionary(uniqueKeysWithValues: DiskLogCategory.allCases.map { category in
             (category, Logger(subsystem: "app.diskarchive", category: category.rawValue))
         })
@@ -180,7 +197,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
                 record(.app, .info, "previous run ended without clean exit")
             }
         }
-        startedAt = Date()
+        startedAt = now()
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         #if DEBUG
@@ -442,7 +459,9 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         let folder = directory.appendingPathComponent("crash-handled", isDirectory: true)
         guard WriteGuard.permitsWrite(to: folder) else { return }
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-        let stamp = formatter.string(from: Date()).replacingOccurrences(of: " ", with: "_").replacingOccurrences(of: ":", with: "-")
+        lock.lock()
+        let stamp = fileFormatter.string(from: now())
+        lock.unlock()
         let destination = folder.appendingPathComponent("\(stamp).txt")
         guard WriteGuard.permitsWrite(to: destination) else { return }
         try? FileManager.default.moveItem(at: source, to: destination)
@@ -455,7 +474,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     }
 
     func runtimeSeconds() -> Int {
-        max(0, Int(Date().timeIntervalSince(startedAt)))
+        max(0, Int(now().timeIntervalSince(startedAt)))
     }
 
     /// bug.0.4.113: Version, Build und Laufzeit des **abgestürzten** Laufs aus dem Protokoll: letzte Startzeile vor der
@@ -481,12 +500,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
             guard let range = line.range(of: " \(key)=") else { return nil }
             return line[range.upperBound...].split(separator: " ").first.map(String.init)
         }
-        func stamp(_ line: String) -> Date? {
-            guard line.count >= 23 else { return nil }
-            lock.lock()
-            defer { lock.unlock() }
-            return formatter.date(from: String(line.prefix(23)))
-        }
+        func stamp(_ line: String) -> Date? { lineDate(line) }
         let startLine = lines[startIndex]
         // bug.0.4.164 (c): Die Absturzdatei (Signal-Absturz) entstand frühestens beim Start ihres Laufs; ist sie älter
         // als diese Startzeile, gehört die Startzeile zu einem späteren Lauf.
@@ -521,6 +535,17 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         let ownIndex = ownStart ? (lines.lastIndex(where: isStart) ?? lines.count) : lines.count
         guard let startIndex = lines[..<ownIndex].lastIndex(where: isStart) else { return nil }
         return startIndex..<ownIndex
+    }
+
+    /// bug.0.4.196: Zeit einer Protokollzeile aus ihren ersten beiden Feldern (Datum, Uhrzeit mit Versatz); alte Zeilen ohne
+    /// Versatz als Ortszeit. Keine feste Präfixlänge.
+    func lineDate(_ line: String) -> Date? {
+        let fields = line.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: false)
+        guard fields.count >= 2 else { return nil }
+        let text = "\(fields[0]) \(fields[1])"
+        lock.lock()
+        defer { lock.unlock() }
+        return formatter.date(from: text) ?? legacyFormatter.date(from: text)
     }
 
     /// Änderungszeit der Absturzdatei, wenn sie einen Absturz enthält.
@@ -656,7 +681,7 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
     private func timestamp() -> String {
         lock.lock()
         defer { lock.unlock() }
-        return formatter.string(from: Date())
+        return formatter.string(from: now())
     }
 
     private static var defaultDirectory: URL {

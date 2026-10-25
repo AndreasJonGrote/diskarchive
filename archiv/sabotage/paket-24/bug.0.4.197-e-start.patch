@@ -1,0 +1,11 @@
+# Test: StaleIndexingFailureWithdrawTests/startupWithdrawsOnlyTheStaleIndexingFailureNotices()
+--- a/diskindex/diskindex/App/StoreLaunchSequence.swift	2026-10-25 07:46:24
++++ b/diskindex/diskindex/App/StoreLaunchSequence.swift	2026-10-25 07:46:24
+@@ -15,7 +15,6 @@
+     /// zugestellten „nicht bestätigt“-Mitteilungen der letzten Sitzung zurückziehen (`unconfirmedNoticeMedia` ist leer).
+     static func evaluatePauseAtLaunch(appState: AppState, defaults: UserDefaults = AppDefaults.current) {
+         appState.refreshGlobalPause(defaults: defaults)
+-        SystemNotice.withdrawStaleIndexingFailures()
+     }
+ 
+     /// Schritt 2 (Datenbank offen, Dienste verdrahtet): zuerst die Versions-Sperre **lokal und synchron** auswerten

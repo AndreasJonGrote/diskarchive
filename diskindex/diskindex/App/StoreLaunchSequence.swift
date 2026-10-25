@@ -11,9 +11,11 @@ import Foundation
 @MainActor
 enum StoreLaunchSequence {
     /// Schritt 1 (`applicationDidFinishLaunching`, nach dem Mitteilungs-Delegaten, vor dem Öffnen der Datenbank):
-    /// eine bei beendeter App abgelaufene Pause auswerten (todo.0.4.027) – vor jeder Erkennung.
+    /// eine bei beendeter App abgelaufene Pause auswerten (todo.0.4.027) – vor jeder Erkennung. bug.0.4.197 e: dazu die
+    /// zugestellten „nicht bestätigt“-Mitteilungen der letzten Sitzung zurückziehen (`unconfirmedNoticeMedia` ist leer).
     static func evaluatePauseAtLaunch(appState: AppState, defaults: UserDefaults = AppDefaults.current) {
         appState.refreshGlobalPause(defaults: defaults)
+        SystemNotice.withdrawStaleIndexingFailures()
     }
 
     /// Schritt 2 (Datenbank offen, Dienste verdrahtet): zuerst die Versions-Sperre **lokal und synchron** auswerten

@@ -65,6 +65,9 @@ struct ColumnBrowserView: View {
     @Environment(\.columnScrollOrderDone) private var columnScrollOrderDone
     /// Tests (bug.0.4.192): hält einen offenen Auftrag nach der Ruhezeit fest, bis der Test das Tor öffnet.
     @Environment(\.columnScrollSettleGate) private var columnScrollSettleGate
+    /// Tests (bug.0.4.197 a): meldet Beginn und Ende jeder Ruhezeit-Aufgabe (positives Signal, dass ein festgehaltener
+    /// Auftrag zu Ende gelaufen ist).
+    @Environment(\.columnScrollSettleTrace) private var columnScrollSettleTrace
     #endif
     private var resolvedSelectedMedium: Medium? {
         if let id = appState.columnBrowserState.selectedMediumID,
@@ -460,7 +463,13 @@ struct ColumnBrowserView: View {
             scrollToTrailingColumn(proxy: proxy, folderColumns: folderColumns, showDetail: showDetail)
         }
         horizontalScrollSettle?.cancel()
+        #if DEBUG
+        columnScrollSettleTrace?(.started)
+        #endif
         horizontalScrollSettle = Task { @MainActor in
+            #if DEBUG
+            defer { columnScrollSettleTrace?(.ended) }
+            #endif
             try? await Task.sleep(for: horizontalScrollSettleDelay)
             #if DEBUG
             await columnScrollSettleGate?()
@@ -1136,6 +1145,25 @@ extension EnvironmentValues {
     var columnScrollSettleGate: (@Sendable () async -> Void)? {
         get { self[ColumnScrollSettleGateKey.self] }
         set { self[ColumnScrollSettleGateKey.self] = newValue }
+    }
+}
+
+/// Tests (bug.0.4.197 a): Beginn und Ende einer Ruhezeit-Aufgabe des waagerechten Scroll-Auftrags.
+enum ColumnScrollSettleEvent: Sendable {
+    case started
+    case ended
+}
+
+private struct ColumnScrollSettleTraceKey: EnvironmentKey {
+    static let defaultValue: (@MainActor (ColumnScrollSettleEvent) -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    /// Tests (bug.0.4.197 a): Rückruf je Beginn und Ende einer Ruhezeit-Aufgabe; sind alle begonnenen beendet, ist ein
+    /// festgehaltener Auftrag durchgelaufen (ein Rücksprung wäre dann schon angestoßen).
+    var columnScrollSettleTrace: (@MainActor (ColumnScrollSettleEvent) -> Void)? {
+        get { self[ColumnScrollSettleTraceKey.self] }
+        set { self[ColumnScrollSettleTraceKey.self] = newValue }
     }
 }
 #endif

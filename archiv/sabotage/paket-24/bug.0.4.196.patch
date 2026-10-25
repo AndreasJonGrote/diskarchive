@@ -1,0 +1,15 @@
+# Test: PreviousRunReportTests/signalCrashReportsTheCrashedRun()
+# Test: PreviousRunReportTests/oldCrashLineDoesNotHideTheNewSignalCrash()
+# Test: PreviousRunReportTests/doubleHourStampsReadBackInOrder()
+# Test: PreviousRunReportTests/runAcrossTheChangeHasTheRightRuntime()
+--- a/diskindex/diskindex/App/DiskIndexLog.swift	2026-10-25 07:30:55
++++ b/diskindex/diskindex/App/DiskIndexLog.swift	2026-10-25 07:30:55
+@@ -122,7 +122,7 @@
+             formatter.dateFormat = format
+             return formatter
+         }
+-        self.formatter = makeFormatter("yyyy-MM-dd HH:mm:ss.SSSZZZZZ", timeZone)
++        self.formatter = makeFormatter("yyyy-MM-dd HH:mm:ss.SSS", timeZone)
+         self.legacyFormatter = makeFormatter("yyyy-MM-dd HH:mm:ss.SSS", timeZone)
+         self.fileFormatter = makeFormatter("yyyy-MM-dd_HH-mm-ss.SSS'Z'", TimeZone(identifier: "UTC") ?? timeZone)
+         self.loggers = Dictionary(uniqueKeysWithValues: DiskLogCategory.allCases.map { category in

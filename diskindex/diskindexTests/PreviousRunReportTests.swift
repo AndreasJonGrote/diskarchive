@@ -12,16 +12,52 @@ import Testing
 @testable import diskindex
 
 struct PreviousRunReportTests {
+    /// bug.0.4.196: Stempel ohne echte Uhr – Zeitzone `Europe/Berlin`, feste Zeiten (Umstellung CEST → CET am 25.10.2026
+    /// um 03:00 Ortszeit = 01:00 UTC; 00:30 und 01:30 UTC sind beide „02:30“ Ortszeit).
+    private static let berlin = TimeZone(identifier: "Europe/Berlin") ?? .current
+
+    private static func utc(_ text: String) throws -> Date {
+        try #require(ISO8601DateFormatter().date(from: text), "Zeit \(text)")
+    }
+
+    /// Uhr je Protokoll-Instanz (Parameter `now`), vom Test vorgestellt.
+    private final class TestClock: @unchecked Sendable {
+        private let lock = NSLock()
+        private var current: Date
+        init(_ date: Date) { current = date }
+        var date: Date {
+            get { lock.withLock { current } }
+            set { lock.withLock { current = newValue } }
+        }
+        var now: @Sendable () -> Date { { [self] in date } }
+    }
+
+    private func log(_ directory: URL, _ clock: TestClock) -> DiskIndexLog {
+        DiskIndexLog(directory: directory, timeZone: Self.berlin, now: clock.now)
+    }
+
+    /// Absturzdatei mit der Zeit des Absturzes (der Signal-Handler schreibt sie; ihre Änderungszeit ist die Absturzzeit).
+    private func setCrashFileDate(_ directory: URL, _ date: Date) throws {
+        try FileManager.default.setAttributes(
+            [.modificationDate: date], ofItemAtPath: directory.appendingPathComponent("crash-last.txt").path
+        )
+    }
+
     /// Erster Lauf über das echte Protokoll: Startzeile, Aktionen, Absturz über den Weg des Signal-Handlers
     /// (`writeCrashSnapshot` → nur `crash-last.txt`, keine „CRASH“-Zeile im Protokoll). Die Startzeile bekommt danach
     /// eine ältere Version (wie nach einem Update), damit sie sich von der des neuen Laufs unterscheidet.
-    private func crashedRun(in directory: URL, keepLog: Bool = true) throws {
-        let first = DiskIndexLog(directory: directory)
+    /// bug.0.4.196: Start zur Zeit der Uhr, Aktionen 60 s später, Absturz `crashAfter` nach dem Start.
+    private func crashedRun(in directory: URL, keepLog: Bool = true, clock: TestClock, crashAfter: TimeInterval = 300) throws {
+        let began = clock.date
+        let first = log(directory, clock)
         first.start(installHandlers: false)
+        clock.date = began.addingTimeInterval(60)
         first.ui("click row=7")
         first.ui("search query chars=20")
         first.flushPendingWritesForTesting()
+        clock.date = began.addingTimeInterval(crashAfter)
         first.writeCrashSnapshot(signal: SIGSEGV)
+        try setCrashFileDate(directory, clock.date)
         let url = directory.appendingPathComponent(DiskIndexLog.fileName)
         if keepLog {
             let text = try String(contentsOf: url, encoding: .utf8)
@@ -42,11 +78,14 @@ struct PreviousRunReportTests {
 
     /// bug.0.4.113 (Nacharbeit): Signal-Absturz – Protokoll ohne „CRASH“-Zeile, die Startzeile des neuen Laufs ist
     /// schon geschrieben → Version, Build, Laufzeit und Aktionen kommen aus dem abgestürzten Lauf.
+    /// bug.0.4.196: feste Zeiten in der doppelten Stunde (Absturz 02:35 Sommerzeit, neuer Lauf 02:30 Winterzeit).
     @Test func signalCrashReportsTheCrashedRun() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        try crashedRun(in: directory)
-        let log = DiskIndexLog(directory: directory)
+        let clock = TestClock(try Self.utc("2026-10-25T00:30:00Z"))
+        try crashedRun(in: directory, clock: clock)
+        clock.date = try Self.utc("2026-10-25T01:30:00Z")
+        let log = log(directory, clock)
         log.start(installHandlers: false)
         log.ui("crash dialog send")
         log.flushPendingWritesForTesting()
@@ -55,7 +94,7 @@ struct PreviousRunReportTests {
         let info = log.previousRunInfo()
         #expect(info.version == "0.3.1")
         #expect(info.build == "40")
-        #expect(info.runtimeSeconds != nil)
+        #expect(info.runtimeSeconds == 60)
         let actions = log.crashBreadcrumbs()
         #expect(actions.contains { $0.hasSuffix("ui info click row=7") }, "Aktionen: \(actions)")
         #expect(actions.contains { $0.hasSuffix("ui info search query chars=20") })
@@ -66,8 +105,10 @@ struct PreviousRunReportTests {
     @Test func missingStartLineLeavesFieldsEmpty() throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        try crashedRun(in: directory, keepLog: false)
-        let log = DiskIndexLog(directory: directory)
+        let clock = TestClock(try Self.utc("2026-10-25T00:30:00Z"))
+        try crashedRun(in: directory, keepLog: false, clock: clock)
+        clock.date = try Self.utc("2026-10-25T01:30:00Z")
+        let log = log(directory, clock)
         log.start(installHandlers: false)
         log.flushPendingWritesForTesting()
         let info = log.previousRunInfo()
@@ -95,22 +136,30 @@ struct PreviousRunReportTests {
     @Test @MainActor func oldCrashLineDoesNotHideTheNewSignalCrash() async throws {
         let directory = try makeDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
-        let runA = DiskIndexLog(directory: directory)
+        // bug.0.4.196: feste Zeiten in der doppelten Stunde (B stürzt 02:35 Sommerzeit ab, neuer Lauf 02:30 Winterzeit).
+        let clock = TestClock(try Self.utc("2026-10-25T00:10:00Z"))
+        let runA = log(directory, clock)
         runA.start(installHandlers: false)
         runA.recordCrash(signal: "exception NSRangeException", symbols: ["0 diskindex 0x0000000100000000 main + 1"])
         runA.flushPendingWritesForTesting()
         try setStartVersion(directory, index: 0, version: "0.3.0", build: "30")
-        let clean = DiskIndexLog(directory: directory)
+        clock.date = try Self.utc("2026-10-25T00:20:00Z")
+        let clean = log(directory, clock)
         clean.start(installHandlers: false)
         await AppStartup.finishTermination(appState: AppState(), log: clean)
         clean.flushPendingWritesForTesting()
-        let runB = DiskIndexLog(directory: directory)
+        clock.date = try Self.utc("2026-10-25T00:30:00Z")
+        let runB = log(directory, clock)
         runB.start(installHandlers: false)
+        clock.date = try Self.utc("2026-10-25T00:31:00Z")
         runB.ui("click row=7")
         runB.flushPendingWritesForTesting()
+        clock.date = try Self.utc("2026-10-25T00:35:00Z")
         runB.writeCrashSnapshot(signal: SIGSEGV)
+        try setCrashFileDate(directory, clock.date)
         try setStartVersion(directory, index: 2, version: "0.3.1", build: "31")
-        let now = DiskIndexLog(directory: directory)
+        clock.date = try Self.utc("2026-10-25T01:30:00Z")
+        let now = log(directory, clock)
         now.start(installHandlers: false)
         now.flushPendingWritesForTesting()
         let info = now.previousRunInfo()
@@ -193,5 +242,70 @@ struct PreviousRunReportTests {
         try #require(text.contains("CRASH signal=exception"), "Voraussetzung: CRASH-Zeile von A im Protokoll")
         #expect(now.crashExcerpt().signal == "unknown", "Absturz von A im Bericht nach B: \(now.crashExcerpt().signal)")
         #expect(!now.crashBreadcrumbs().contains { $0.contains("click row=1") }, "Aktionen von A im Bericht nach B")
+    }
+
+    // MARK: - bug.0.4.196: Zeitumstellung
+
+    /// Start, letzte Zeile und Absturz in der ersten „02:xx“-Stunde (Sommerzeit), der neue Lauf in der zweiten
+    /// (Winterzeit) → Version, Build und die richtige Laufzeit (600 s), nicht eine Stunde verschoben.
+    @Test func doubleHourStampsReadBackInOrder() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let clock = TestClock(try Self.utc("2026-10-25T00:30:00Z"))
+        let crashed = log(directory, clock)
+        crashed.start(installHandlers: false)
+        clock.date = try Self.utc("2026-10-25T00:40:00Z")
+        crashed.ui("click row=7")
+        crashed.flushPendingWritesForTesting()
+        clock.date = try Self.utc("2026-10-25T00:45:00Z")
+        crashed.writeCrashSnapshot(signal: SIGSEGV)
+        try setCrashFileDate(directory, clock.date)
+        try setStartVersion(directory, index: 0, version: "0.3.1", build: "40")
+        clock.date = try Self.utc("2026-10-25T01:35:00Z")
+        let now = log(directory, clock)
+        now.start(installHandlers: false)
+        now.flushPendingWritesForTesting()
+        #expect(now.previousRunInfo() == PreviousRunInfo(version: "0.3.1", build: "40", runtimeSeconds: 600))
+    }
+
+    /// Start vor der Umstellung (02:50 Sommerzeit), letzte Zeile und Absturz danach (03:10 Winterzeit) → Laufzeit 80 min.
+    @Test func runAcrossTheChangeHasTheRightRuntime() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let clock = TestClock(try Self.utc("2026-10-25T00:50:00Z"))
+        let crashed = log(directory, clock)
+        crashed.start(installHandlers: false)
+        clock.date = try Self.utc("2026-10-25T02:10:00Z")
+        crashed.ui("click row=7")
+        crashed.flushPendingWritesForTesting()
+        clock.date = try Self.utc("2026-10-25T02:15:00Z")
+        crashed.writeCrashSnapshot(signal: SIGSEGV)
+        try setCrashFileDate(directory, clock.date)
+        try setStartVersion(directory, index: 0, version: "0.3.1", build: "40")
+        clock.date = try Self.utc("2026-10-25T02:20:00Z")
+        let now = log(directory, clock)
+        now.start(installHandlers: false)
+        now.flushPendingWritesForTesting()
+        #expect(now.previousRunInfo() == PreviousRunInfo(version: "0.3.1", build: "40", runtimeSeconds: 4800))
+    }
+
+    /// Alte Zeilen ohne Versatz (vor bug.0.4.196) werden weiter als Ortszeit gelesen: Laufzeit aus Start und letzter Zeile.
+    @Test func legacyStampsWithoutOffsetAreReadAsLocalTime() throws {
+        let directory = try makeDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let legacy = [
+            "2026-10-20 12:00:00.000 app info start version=0.3.1 build=40 config=Debug macOS=15 pid=1",
+            "2026-10-20 12:02:30.000 ui info click row=7",
+            "",
+        ].joined(separator: "\n")
+        try legacy.write(to: directory.appendingPathComponent(DiskIndexLog.fileName), atomically: true, encoding: .utf8)
+        try "CRASH signal=SIGSEGV\n".write(to: directory.appendingPathComponent("crash-last.txt"), atomically: true, encoding: .utf8)
+        // 12:03 Ortszeit (Sommerzeit) = 10:03 UTC.
+        try setCrashFileDate(directory, try Self.utc("2026-10-20T10:03:00Z"))
+        let clock = TestClock(try Self.utc("2026-10-20T10:10:00Z"))
+        let now = log(directory, clock)
+        now.start(installHandlers: false)
+        now.flushPendingWritesForTesting()
+        #expect(now.previousRunInfo() == PreviousRunInfo(version: "0.3.1", build: "40", runtimeSeconds: 150))
     }
 }

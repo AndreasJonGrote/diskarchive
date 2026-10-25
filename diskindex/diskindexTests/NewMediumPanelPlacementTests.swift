@@ -84,6 +84,18 @@ import Testing
         }
     }
 
+    /// bug.0.4.197 d: Schmaler Bildschirm, viele Panels: der Schritt nach links endet an `visibleFrame.minX`,
+    /// jeder Rahmen liegt ganz im sichtbaren Bereich.
+    @Test func manyPanelsOnNarrowScreenStayInsideTheVisibleFrame() {
+        let visible = CGRect(x: 40, y: 20, width: 400, height: 900)
+        let size = CGSize(width: 300, height: 100)
+        for depth in 0...8 {
+            let frame = AppWindowPresenter.newMediumPanelFrame(visibleFrame: visible, panelSize: size, depthFromNewest: depth)
+            #expect(frame.minX >= visible.minX, "Tiefe \(depth) links herausgeragt: \(frame)")
+            #expect(visible.contains(frame), "Tiefe \(depth) nicht ganz sichtbar: \(frame)")
+        }
+    }
+
     /// Sabotage: alter unten-rechts-Wert (maxX − width − 24) → rot.
     @Test func sabotageOldBottomTrailingRejected() {
         let visible = CGRect(x: 0, y: 0, width: 1_000, height: 800)

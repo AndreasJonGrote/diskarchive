@@ -69,6 +69,24 @@ struct SearchLoadingWindowTests {
         #expect(gone, "Spinner nach dem Ende noch sichtbar")
     }
 
+    /// bug.0.4.197 b: Mindestdauer – die Treffer sind da (positives Signal), der Wartescreen steht trotzdem bis zum Ende
+    /// der Mindestdauer (hier 5 s, damit die Messung nicht an der Dauer der Prüfung hängt).
+    @Test func loadingScreenOutlastsFastHitsUntilTheMinimum() async throws {
+        let rig = try await Self.makeRig(loadingMinimum: .seconds(5))
+        defer { rig.close() }
+        let app = rig.app
+        app.mainWindowDestination = .search
+        let session = Self.open(app, dark: false)
+        defer { session.close() }
+        let started = ContinuousClock.now
+        app.openSearch(withQuery: "rechnung")
+        let hits = await waitUntil(timeout: 4) { !app.searchMatch.items.isEmpty }
+        try #require(hits, "keine Treffer")
+        try #require(started.duration(to: .now) < .seconds(4), "Treffer zu spät für die Messung")
+        #expect(app.searchLoading.isShowing, "Wartescreen vor der Mindestdauer verschwunden")
+        app.searchLoading.cancel()
+    }
+
     /// Medienfilter auf ein Medium: Umfang nur dieses Medium (Einzahl), seine Dateien.
     @Test func mediumFilterNarrowsTheScope() async throws {
         let rig = try await Self.makeRig()
@@ -163,7 +181,7 @@ struct SearchLoadingWindowTests {
         }
     }
 
-    private static func makeRig() async throws -> Rig {
+    private static func makeRig(loadingMinimum: Duration = .seconds(1)) async throws -> Rig {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-search-loading-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -176,7 +194,7 @@ struct SearchLoadingWindowTests {
             let entries = files.map { ScannedEntry(name: $0, isFolder: false, sizeBytes: 1, modifiedAt: Date()) }
             try await store.applyDirectory(mediumUUID: medium.uuid, parentID: nil, entries: entries, seenAt: Date())
         }
-        let app = AppState(loadingMinimum: .seconds(1))
+        let app = AppState(loadingMinimum: loadingMinimum)
         app.attach(store: store)
         await app.loadStoredMedia()
         try #require(app.indexedMedia.count == 2, "Voraussetzung: zwei erfasste Medien")

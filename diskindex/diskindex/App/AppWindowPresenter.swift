@@ -445,7 +445,10 @@ enum AppWindowPresenter {
         depthFromNewest: Int
     ) -> CGRect {
         let offset = CGFloat(depthFromNewest) * newMediumStackOffset
-        let centerX = visibleFrame.midX - offset
+        // bug.0.4.197 d: Auch der Schritt nach links endet an `visibleFrame.minX` (der Rahmen ragt nie links heraus).
+        let newestCenterX = visibleFrame.midX
+        let roomLeft = max(0, (newestCenterX - panelSize.width / 2) - visibleFrame.minX)
+        let centerX = newestCenterX - min(offset, roomLeft)
         // todo.0.4.048 (Layout 02): der neueste vorn (goldener Schnitt), ältere nach links **oben**. Am oberen Rand
         // nicht über `visibleFrame` hinaus: der Schritt nach oben endet dort (die Panels bleiben nach links versetzt).
         let newestCenterY = visibleFrame.maxY - visibleFrame.height * newMediumGoldenRatioFromTop

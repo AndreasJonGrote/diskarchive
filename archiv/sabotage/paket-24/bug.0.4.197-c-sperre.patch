@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/UpdateDialogTests/uncheckingAndClosingTurnsTheSettingOff(dark:)
+--- a/diskindex/diskindex/App/AppState+VersionLock.swift	2026-10-25 07:30:55
++++ b/diskindex/diskindex/App/AppState+VersionLock.swift	2026-10-25 07:30:55
+@@ -19,7 +19,7 @@
+         // todo.0.4.047: Mit „Auf Updates hinweisen“ aus erscheint kein Updatedialog – außer Beta-Countdown oder Sperre
+         // (die erscheinen immer). Der Haken im Dialog gilt bis zum Schließen; ein neuer Stand behält ihn.
+         if let offer = evaluation.updateOffer,
+-           appSettings.notifyAboutUpdates || offer.showBetaCountdown || evaluation.showLockBanner {
++           appSettings.notifyAboutUpdates || offer.showBetaCountdown {
+             let notify = updateNotice?.notifyAboutUpdates ?? appSettings.notifyAboutUpdates
+             updateNotice = UpdateNotice(offer: offer, notifyAboutUpdates: notify)
+         } else {

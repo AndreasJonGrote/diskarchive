@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/SearchLoadingWindowTests/loadingScreenOutlastsFastHitsUntilTheMinimum()
+--- a/diskindex/diskindex/Models/MinimumLoadingIndicator.swift	2026-10-25 07:31:03
++++ b/diskindex/diskindex/Models/MinimumLoadingIndicator.swift	2026-10-25 07:31:03
+@@ -34,7 +34,7 @@
+     /// Daten sind da: ausblenden, sobald `minimum` seit `begin` vergangen ist.
+     func finish() {
+         guard isShowing, hideTask == nil, let shownAt else { return }
+-        let remaining = minimum - shownAt.duration(to: .now)
++        let remaining = shownAt.duration(to: shownAt) // Mindestdauer gestrichen
+         guard remaining > .zero else {
+             isShowing = false
+             return
