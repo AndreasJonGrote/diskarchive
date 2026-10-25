@@ -39,8 +39,9 @@ struct UnreadableFoldersErrorTests {
         #expect(MediumChip.presentation(medium).error)
     }
 
-    /// Test 2: Der Ordner wird lesbar, nächstes Anschließen → `.indexed`, 100 %, Merker gelöscht, Mitteilung zurückgezogen.
-    @Test func readableAgainOnReconnectEndsTheErrorAndWithdrawsTheNotice() async throws {
+    /// Test 2: Der Ordner wird lesbar, „Erneut versuchen“ → `.indexed`, 100 %, Merker gelöscht, Mitteilung zurückgezogen
+    /// (ohne Aushängen dazwischen: das zieht seit bug.0.4.200 e selbst zurück und verdeckte sonst den Rückzug des Laufs).
+    @Test func readableAgainOnRetryEndsTheErrorAndWithdrawsTheNotice() async throws {
         let harness = try await ScanHarness.make()
         let volume = testVolume(path: "/Volumes/LUECKE", name: "LUECKE")
         try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)
@@ -69,9 +70,8 @@ struct UnreadableFoldersErrorTests {
         #expect(app.medium(with: id)?.indexStatus == .error)
 
         access.markReadable("bad")
-        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
-        try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .offline }, "Aushängen nicht verarbeitet")
-        await rig.coordinator.handle(.appeared(volume))
+        app.indexingFailure = nil
+        app.onReindexMedium?(id)
         let indexed = await waitUntil { app.medium(with: id)?.indexStatus == .indexed }
         #expect(indexed, "Nach lesbarem Ordner nicht indiziert: \(String(describing: app.medium(with: id)?.indexStatus))")
         #expect(app.medium(with: id)?.indexProgressPercent == 100)
@@ -79,6 +79,34 @@ struct UnreadableFoldersErrorTests {
         #expect(try await harness.store.medium(uuid: id)?.indexStatus == .indexed)
         #expect(withdrawn == [id], "Zurückgezogen: \(withdrawn)")
         #expect(app.indexingFailure == nil, "Hinweis blieb nach erfolgreichem Lauf")
+    }
+
+    /// Test 2b: Der Ordner wird lesbar, nächstes Anschließen liest die Lücke nach → `.indexed`, Merker gelöscht.
+    @Test func readableAgainOnReconnectEndsTheError() async throws {
+        let harness = try await ScanHarness.make()
+        let volume = testVolume(path: "/Volumes/LUECKE2", name: "LUECKE2")
+        try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)
+        let access = MemoryVolume(mountPath: volume.mountPath)
+        access.file("bad/keep.txt")
+        access.file("ok/a.txt")
+        access.markUnreadable("bad")
+        let app = AppState(store: harness.store, defaults: TestDefaults.make())
+        app.withdrawIndexingFailureNotice = { _ in }
+        let rig = WiredRig(store: harness.store, access: access, app: app)
+        rig.service.runLimitsForTesting = Self.fastRetries
+        defer { rig.coordinator.stop() }
+        let id = harness.mediumID
+        await rig.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { app.medium(with: id)?.indexStatus == .error }, "Lauf mit Lücke endet nicht als Fehler")
+        await rig.service.waitUntilIdle(id)
+        access.markReadable("bad")
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .offline }, "Aushängen nicht verarbeitet")
+        await rig.coordinator.handle(.appeared(volume))
+        let indexed = await waitUntil { app.medium(with: id)?.indexStatus == .indexed }
+        #expect(indexed, "Nach lesbarem Ordner nicht indiziert: \(String(describing: app.medium(with: id)?.indexStatus))")
+        #expect(try await harness.store.indexHasGaps(mediumUUID: id) == false, "Merker nach geschlossener Lücke nicht gelöscht")
+        #expect(try await harness.store.medium(uuid: id)?.indexStatus == .indexed)
     }
 
     /// Test 3: Nur ein immer ausgeschlossener Systemordner ist unlesbar → `.indexed`, kein Fehler.

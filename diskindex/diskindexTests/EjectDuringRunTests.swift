@@ -345,8 +345,9 @@ private final class EjectFlag: @unchecked Sendable {
 @Suite(.serialized) @MainActor
 struct UnconfirmedNoticeWithdrawalTests {
     /// Kette: Medium erscheint, der Hinweis „nicht bestätigt“ steht → das Aushängen-Ereignis desselben Mediums nimmt ihn
-    /// zurück. Ein Hinweis eines anderen Mediums oder mit anderem Grund bleibt.
-    @Test func lateUnmountEventWithdrawsOnlyTheUnconfirmedNoticeOfThatMedium() async throws {
+    /// zurück. Ein Hinweis eines anderen Mediums bleibt; bug.0.4.200 (e): ein Hinweis mit anderem Grund geht auch (Hinweis
+    /// nur für angeschlossene Medien).
+    @Test func lateUnmountEventWithdrawsOnlyTheNoticeOfThatMedium() async throws {
         let harness = try await ScanHarness.make()
         let volume = testVolume(path: "/Volumes/SPAET", name: "SPAET")
         try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)
@@ -357,11 +358,11 @@ struct UnconfirmedNoticeWithdrawalTests {
         await rig.coordinator.handle(.appeared(volume))
         try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .connected }, "Medium nicht verbunden")
 
-        // Anderer Grund bleibt.
+        // bug.0.4.200 (e): anderer Grund geht ebenfalls.
         app.indexingFailure = IndexingFailureNotice(id: id, name: "SPAET", reason: .unknown)
         await rig.coordinator.handle(.disappeared(path: volume.mountPath))
         try #require(await waitUntil { app.medium(with: id)?.connectionStatus == .offline }, "Aushängen nicht verarbeitet")
-        #expect(app.indexingFailure?.reason == .unknown, "Hinweis mit anderem Grund zurückgenommen")
+        #expect(app.indexingFailure == nil, "Hinweis mit anderem Grund blieb nach dem Aushängen")
 
         // Hinweis eines anderen Mediums bleibt.
         await rig.coordinator.handle(.appeared(volume))
@@ -456,7 +457,7 @@ struct UnconfirmedNoticeWithdrawalTests {
             #expect(withdrawn == [identifier], "Mitteilung des ersten Mediums nicht zurückgezogen: \(withdrawn)")
             #expect(app.indexingFailure?.id == other, "Hinweis des anderen Mediums zurückgenommen")
 
-            // Anderer Grund: nichts zurückgezogen.
+            // bug.0.4.200 (e): anderer Grund wird ebenfalls zurückgezogen.
             withdrawn = []
             app.indexingFailure = nil
             await rig.coordinator.handle(.appeared(volume))
@@ -468,7 +469,7 @@ struct UnconfirmedNoticeWithdrawalTests {
             try #require(app.indexingFailure?.reason == .unknown, "Voraussetzung: neue Mitteilung mit anderem Grund")
             app.indexingFailure = nil
             await rig.coordinator.handle(.disappeared(path: volume.mountPath))
-            #expect(withdrawn.isEmpty, "Mitteilung mit anderem Grund zurückgezogen: \(withdrawn)")
+            #expect(withdrawn == [identifier], "Mitteilung mit anderem Grund nicht zurückgezogen: \(withdrawn)")
         }
     }
 }

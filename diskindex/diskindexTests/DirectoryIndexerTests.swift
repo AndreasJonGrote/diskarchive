@@ -223,7 +223,7 @@ import Testing
         #expect(still.name == "keep.txt")
         // Gegenprobe: bleibt „bad“ unlesbar, bleibt der Index unvollständig (der Folgelauf liest die Lücke nach).
         let stillBad = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)
-        #expect(stillBad.status == .error, "Folgelauf meldet ohne Nachlesen „indiziert“")
+        #expect(stillBad.status == .error, "Folgelauf mit bleibender Lücke nicht „Fehler“ (ohne Nachlesen „indiziert“?)")
         access.markReadable("bad")
         let listedBefore = access.listed.filter { $0.hasSuffix("/bad") }.count
         let again = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)

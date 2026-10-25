@@ -44,7 +44,7 @@
 | 23 | **0.4.0** | `bug.0.4.192`–`195`, `todo.0.4.042`, `046`–`048` | Wackler, Mitteilung, Beweislücken, Wartescreens, Updatedialog, Stapel Erkennungsdialoge, Aufräumen → [archiv/paket-23-abgenommen-2026-10-25.md](archiv/paket-23-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
 | 24 | **0.4.0** | `bug.0.4.196`, `197` | Zeitumstellung im Protokoll, Reste aus Prüfung 23 → [archiv/paket-24-abgenommen-2026-10-25.md](archiv/paket-24-abgenommen-2026-10-25.md) | **abgenommen 25.10.** (ruhiger Gesamtlauf offen) |
 | **25** | **0.4.0** | `bug.0.4.198` | Text „Auf Updates hinweisen“ ohne „in der Menüleiste“ → [archiv/paket-25-abgenommen-2026-10-25.md](archiv/paket-25-abgenommen-2026-10-25.md) | abgenommen 25.10. |
-| **26** | **0.4.0** | `bug.0.4.199`, `200` | Dauerhafte Lücke = „Fehler“, Details „Indiziert x %“, Reste aus der Prüfung → [todo/paket-26.md](todo/paket-26.md) | **Korrektur 25.10.** (`200`) |
+| **26** | **0.4.0** | `bug.0.4.199`–`201` | Dauerhafte Lücke = „Fehler“, Details „Indiziert x %“, Reste aus der Prüfung → [todo/paket-26.md](todo/paket-26.md) | **2. Korrektur 25.10.** (`201`) |
 | – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | nach Paket 26 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 

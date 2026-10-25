@@ -78,7 +78,7 @@ struct MenuBarConnectedMediumRow: View {
                 if let fraction {
                     IndexingProgressBar(progress: fraction)
                 } else {
-                    Text(secondaryLine)
+                    Text(medium.menuBarSecondaryLine)
                         .font(.system(size: 11))
                         .foregroundStyle(DesignColor.text.opacity(0.55))
                         .lineLimit(1)
@@ -97,25 +97,6 @@ struct MenuBarConnectedMediumRow: View {
             MenuBarGhostButton(title: LayoutCopy.reindex, isEnabled: reindexAllowed) {
                 appState.reindexMedium(id: medium.id)
             }
-        }
-    }
-
-    private var secondaryLine: String {
-        switch medium.indexStatus {
-        case .indexed:
-            IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexActivityAt ?? medium.lastIndexedAt)
-        case .error:
-            LayoutCopy.mediumNoAccess
-        case .pending:
-            if medium.decision == .undecided {
-                LayoutCopy.mediumDecisionPending
-            } else if medium.hasIndex {
-                LayoutCopy.indexingInProgress
-            } else {
-                LayoutCopy.indexingInProgress
-            }
-        case .indexing:
-            ""
         }
     }
 

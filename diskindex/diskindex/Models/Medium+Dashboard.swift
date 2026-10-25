@@ -7,7 +7,8 @@ import Foundation
 
 extension Medium {
     var dashboardSpecLine: String {
-        if indexStatus == .error {
+        // bug.0.4.200 (a): bei Lücke die normale Zeile wie Online.
+        if indexStatus == .error, !hasIndexGaps {
             return LayoutCopy.mediumNoAccess
         }
         if indexStatus == .pending, fileCount == 0 {
@@ -16,9 +17,45 @@ extension Medium {
         return specLine
     }
 
+    /// Dashboard-Karte: „Fehler · erneut versuchen“ statt der Belegung; bug.0.4.200 (a): bei Lücke die Belegung wie Online
+    /// (nur der Chip sagt „Fehler“).
+    var dashboardShowsRetryLine: Bool {
+        indexStatus == .error && !hasIndexGaps
+    }
+
+    /// Dashboard-Karte: Zeile „Zuletzt indiziert“ (aus `MediumDashboardCard`, bug.0.4.200 testbar).
+    var showsLastIndexedLine: Bool {
+        connectionStatus == .connected && showsIndexDetails && hasIndex
+    }
+
+    /// bug.0.4.200 (a): Belegung und „Zuletzt indiziert“ wie bei Online – indiziert, im Lauf oder Fehler wegen Lücke.
+    private var showsIndexDetails: Bool {
+        indexStatus == .indexing || hasCompleteIndexExceptGaps
+    }
+
+    /// Menüleiste, zweite Zeile einer Medium-Zeile (aus `MenuBarConnectedMediumRow`, bug.0.4.200 testbar).
+    var menuBarSecondaryLine: String {
+        switch indexStatus {
+        case .indexed:
+            IndexedDateFormatting.lastIndexedLine(date: lastIndexActivityAt ?? lastIndexedAt)
+        case .error:
+            hasIndexGaps
+                ? IndexedDateFormatting.lastIndexedLine(date: lastIndexActivityAt ?? lastIndexedAt)
+                : LayoutCopy.mediumNoAccess
+        case .pending:
+            if decision == .undecided {
+                LayoutCopy.mediumDecisionPending
+            } else {
+                LayoutCopy.indexingInProgress
+            }
+        case .indexing:
+            ""
+        }
+    }
+
     /// Belegung als „87 %“ oder „3,77 TB / 4,1 TB“ — nur bei angeschlossenen, indizierten Medien.
     func occupancyLabel(showAbsolute: Bool) -> String? {
-        guard connectionStatus == .connected, indexStatus != .pending, indexStatus != .error else {
+        guard connectionStatus == .connected, showsIndexDetails else {
             return nil
         }
         if showAbsolute {

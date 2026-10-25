@@ -55,7 +55,7 @@ struct MediumDashboardCard: View {
     @ViewBuilder
     private func metaLine(medium: Medium) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            if medium.indexStatus == .error {
+            if medium.dashboardShowsRetryLine {
                 Text(LayoutCopy.dashboardErrorRetry)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else if let occupancy = medium.occupancyLabel(showAbsolute: medium.showAbsoluteCapacity) {
@@ -86,7 +86,7 @@ struct MediumDashboardCard: View {
 
     @ViewBuilder
     private func metaTimeBadge(medium: Medium) -> some View {
-        if showsLastIndexed(medium) {
+        if medium.showsLastIndexedLine {
             HStack(spacing: 4) {
                 Image("IconClock")
                     .renderingMode(.template)
@@ -104,13 +104,6 @@ struct MediumDashboardCard: View {
         } else {
             lastSeenBadge(medium: medium)
         }
-    }
-
-    private func showsLastIndexed(_ medium: Medium) -> Bool {
-        medium.connectionStatus == .connected
-            && medium.indexStatus != .pending
-            && medium.indexStatus != .error
-            && medium.hasIndex
     }
 
     private func lastSeenBadge(medium: Medium) -> some View {

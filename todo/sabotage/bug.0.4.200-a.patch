@@ -1,0 +1,13 @@
+# bug.0.4.200 (a): Dashboard-Zeile bei Lücke wieder „kein Zugriff“
+# Test: GapMediumBehavesOnlineTests/gapMediumShowsTheOnlineLines()
+--- a/diskindex/diskindex/Models/Medium+Dashboard.swift	2026-10-25 17:55:20
++++ b/diskindex/diskindex/Models/Medium+Dashboard.swift	2026-10-25 17:55:20
+@@ -8,7 +8,7 @@
+ extension Medium {
+     var dashboardSpecLine: String {
+         // bug.0.4.200 (a): bei Lücke die normale Zeile wie Online.
+-        if indexStatus == .error, !hasIndexGaps {
++        if indexStatus == .error {
+             return LayoutCopy.mediumNoAccess
+         }
+         if indexStatus == .pending, fileCount == 0 {

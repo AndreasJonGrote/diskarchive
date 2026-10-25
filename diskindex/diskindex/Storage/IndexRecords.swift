@@ -171,6 +171,8 @@ nonisolated struct StoredMedium: Sendable, Equatable {
     var completedDepth: Int
     var scanTotal: Int
     var createdAt: Date
+    /// bug.0.4.200: Merker `indexGaps` (nur gelesen; geschrieben von `finishIndexing`).
+    var hasIndexGaps = false
 
     init(
         uuid: UUID = UUID(),
@@ -230,6 +232,11 @@ nonisolated struct StoredMedium: Sendable, Equatable {
         self.completedDepth = completedDepth
         self.scanTotal = scanTotal
         self.createdAt = createdAt
+    }
+
+    /// bug.0.4.200: wie `Medium.hasCompleteIndexExceptGaps` (eine Regel, `IndexGaps.completeExceptGaps`).
+    var hasCompleteIndexExceptGaps: Bool {
+        IndexGaps.completeExceptGaps(indexed: indexStatus == .indexed, error: indexStatus == .error, gaps: hasIndexGaps)
     }
 }
 

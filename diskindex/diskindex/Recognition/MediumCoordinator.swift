@@ -204,7 +204,10 @@ final class MediumCoordinator {
                 DiskIndexLog.shared.record(.medium, .error, "kein Zugriff", privateDetail: volume.mountPath)
                 var denied = stored
                 denied.lastSeenAt = Date()
+                // bug.0.4.200 (d): Fehler ist jetzt der Zugriff, nicht mehr die Lücke (Aktivieren prüft wieder).
+                denied.hasIndexGaps = false
                 try await store.updateMediumRecognition(uuid: denied.uuid, denied)
+                try await store.clearIndexGaps(mediumUUID: denied.uuid)
                 // bug.0.4.062: während des Schreibens ausgehängt → nicht „verbunden“ melden.
                 guard isPathStill(for: denied.uuid, at: volume.mountPath) else { return }
                 mediumByPath[volume.mountPath] = denied.uuid
@@ -299,12 +302,32 @@ final class MediumCoordinator {
         }
     }
 
+    /// bug.0.4.200 (f): „Nein“ beendet einen Fehler (Konzept 2b, jeder Grund): Status nach der Tabelle in
+    /// `konzept/medien.md` (vollständiger Index → Online/Offline, sonst „x % indiziert“), „!“, Hinweis und Mitteilung weg.
+    func endFailureAfterDecline(mediumID: UUID) async {
+        appState.endIndexingFailure(mediumID: mediumID)
+        do {
+            guard let stored = try await store.medium(uuid: mediumID), stored.indexStatus == .error else { return }
+            let settled = await settledStatus(stored)
+            try await store.updateMediumIndexStatus(uuid: mediumID, settled)
+            appState.updateMedium(id: mediumID) {
+                $0.indexStatus = IndexStatus(rawValue: settled.rawValue) ?? .pending
+            }
+        } catch {
+            guard DiskIndexLog.isOperationalFailure(error) else { return }
+            DiskIndexLog.shared.record(.medium, .error, "nein beendet fehler \(DiskIndexLog.errorSummary(error))")
+        }
+    }
+
     /// bug.0.4.126/151: „indiziert“ nur nach einem Lauf bis zum Ende und ohne später gefundene Lücke.
     private func settledStatus(_ medium: StoredMedium) async -> StoredIndexStatus {
         guard medium.firstIndexedAt != nil else { return .pending }
         // Lesefehler: lieber „unvollständig“ (holt den Lauf nach) als fälschlich „indiziert“.
         guard let gaps = try? await store.indexHasGaps(mediumUUID: medium.uuid) else { return .pending }
-        return gaps ? .pending : .indexed
+        // bug.0.4.200: der Merker fällt bei einem Fehler aus anderem Grund weg – nicht lesbare Ordner im Index zählen
+        // trotzdem als Lücke (das Anschließen liest sie nach, statt kurz „Online“ zu zeigen).
+        guard !gaps, let unreadable = try? await store.hasUnreadableFolders(mediumUUID: medium.uuid) else { return .pending }
+        return unreadable ? .pending : .indexed
     }
 
     private func receiveUnknown(_ volume: VolumeInfo) async {
@@ -389,7 +412,8 @@ final class MediumCoordinator {
                   stored.indexStatus == .error else { continue }
             // bug.0.4.199: Fehler wegen nicht lesbarer Ordner ist kein Zugriffsproblem – nachgelesen wird beim Anschließen,
             // beim App-Start und mit „Erneut versuchen“, nicht bei jedem Aktivieren der App.
-            if (try? await store.indexHasGaps(mediumUUID: id)) == true { continue }
+            // bug.0.4.200 (d): der Merker steht nur, solange der letzte Fehler die Lücke ist.
+            if stored.hasIndexGaps { continue }
             guard case .granted = await access.probe(volume) else { continue }
             // bug.0.4.062 (REPORT 132): während der Probe ausgehängt oder ein anderes Medium unter dem Pfad → nichts tun.
             guard isStillMounted(id, at: path) else { continue }
@@ -426,15 +450,10 @@ final class MediumCoordinator {
         guard let id = mediumByPath.removeValue(forKey: path) else { return }
         DiskIndexLog.shared.record(.medium, .info, "ausgehängt id=\(id)", privateDetail: path)
         requestedIndex.remove(id)
-        // bug.0.4.187 (a): kam das Aushängen erst nach der Karenz des Laufs, steht der Hinweis „nicht bestätigt“ zu Unrecht.
-        if let notice = appState.indexingFailure, notice.id == id, notice.reason == .unconfirmed {
-            appState.indexingFailure = nil
-        }
-        // bug.0.4.193: die zugestellte Mitteilung zurückziehen, auch wenn der Hinweis schon geschlossen oder von einem
-        // anderen Medium überschrieben ist.
-        if appState.unconfirmedNoticeMedia.remove(id) != nil {
-            SystemNotice.withdrawIndexingFailure(mediumID: id)
-        }
+        // bug.0.4.187 (a), 193, 200 (e): Hinweis nur für angeschlossene Medien (Konzept 2b) – beim Aushängen für jeden
+        // Grund schließen und die zugestellte Mitteilung zurückziehen, auch wenn der Hinweis schon geschlossen oder von
+        // einem anderen Medium überschrieben ist.
+        appState.endIndexingFailure(mediumID: id)
         await onMediumDisappeared?(id)
         await onIndexingInterrupted?(id)
         do {
@@ -618,6 +637,7 @@ final class MediumCoordinator {
                 current.lastIndexedAt = medium.lastIndexedAt
                 current.lastIndexActivityAt = medium.lastIndexActivityAt
                 current.completedDepth = medium.completedDepth
+                current.hasIndexGaps = medium.hasIndexGaps
                 current.isForgotten = medium.isForgotten
                 if !preserveUserFields {
                     // bug.0.4.043: Nutzerfelder nicht zurücksetzen, solange ein Write aussteht.
@@ -669,7 +689,8 @@ extension StoredMedium {
             isForgotten: isForgotten,
             indexingProgress: 0,
             showAbsoluteCapacity: showAbsoluteCapacity,
-            isFavorite: isFavorite
+            isFavorite: isFavorite,
+            hasIndexGaps: hasIndexGaps
         )
     }
 }

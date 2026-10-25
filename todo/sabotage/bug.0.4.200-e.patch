@@ -1,0 +1,12 @@
+# bug.0.4.200 (e): Aushängen beendet den Fehler nicht
+# Test: GapMediumBehavesOnlineTests/unmountEndsTheFailureForEveryReason()
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 17:55:20
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 17:55:20
+@@ -450,7 +450,6 @@
+         // bug.0.4.187 (a), 193, 200 (e): Hinweis nur für angeschlossene Medien (Konzept 2b) – beim Aushängen für jeden
+         // Grund schließen und die zugestellte Mitteilung zurückziehen, auch wenn der Hinweis schon geschlossen oder von
+         // einem anderen Medium überschrieben ist.
+-        appState.endIndexingFailure(mediumID: id)
+         await onMediumDisappeared?(id)
+         await onIndexingInterrupted?(id)
+         do {

@@ -1,0 +1,12 @@
+# bug.0.4.200 (g): erfolgreicher Lauf zieht Hinweis und Mitteilung nicht zurück
+# Test: UnreadableFoldersErrorTests/readableAgainOnRetryEndsTheErrorAndWithdrawsTheNotice()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 17:55:20
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 17:55:20
+@@ -437,7 +437,6 @@
+             $0.indexRunPhase = .indexing
+         }
+         if outcome.status == .indexed, !outcome.interrupted {
+-            appState.endIndexingFailure(mediumID: mediumUUID)
+         }
+         if outcome.status == .indexed, !outcome.interrupted, let medium = appState.medium(with: mediumUUID) {
+             let duration = started.map { Date().timeIntervalSince($0) } ?? 0

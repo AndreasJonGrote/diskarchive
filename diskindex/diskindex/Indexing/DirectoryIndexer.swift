@@ -58,7 +58,8 @@ nonisolated struct DirectoryIndexer: Sendable {
         }
         var backgroundRecount: Task<Void, Never>?
         defer { backgroundRecount?.cancel() }
-        let fullReconcile = !fromScratch && stored.indexStatus == .indexed && stored.completedDepth > 0
+        // bug.0.4.200 (c): ein Medium mit Lücke gleicht ab wie ein `.indexed`-Medium (liest dabei jeden Ordner neu).
+        let fullReconcile = !fromScratch && stored.hasCompleteIndexExceptGaps && stored.completedDepth > 0
         // bug.0.4.127: unvollständig wegen nicht lesbarer Ordner (alle Ebenen fertig) → von oben nachlesen, sonst
         // begänne der Lauf unterhalb des Baums und meldete ohne Nachlesen „indiziert“.
         var rereadsGaps = false
@@ -685,7 +686,8 @@ nonisolated struct DirectoryIndexer: Sendable {
         _ mountPath: String
     ) async -> IndexRunOutcome {
         let reconcileInterrupted = fullReconcile && (halt == .none || halt == .pause || halt == .cancel)
-        let status: StoredIndexStatus = reconcileInterrupted ? .indexed : .pending
+        // bug.0.4.200 (c): unterbrochener Abgleich behält den Stand davor (`.indexed` bzw. „Fehler“ wegen Lücke).
+        let status: StoredIndexStatus = reconcileInterrupted ? stored.indexStatus : .pending
         let interrupted = reconcileInterrupted
         do {
             _ = try await store.finishIndexing(

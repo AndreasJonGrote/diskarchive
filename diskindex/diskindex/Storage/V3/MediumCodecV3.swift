@@ -414,6 +414,7 @@ nonisolated enum MediumCodecV3 {
             createdAt: optionalDate("firstSeenAt") ?? Date(timeIntervalSince1970: 0)
         )
         stored.volumeUUID = VolumeIdentity.canonicalVolumeUUID(stored.volumeUUID)
+        stored.hasIndexGaps = meta[IndexStoreV3.indexGapsKey]?.value == "1"
         return stored
     }
 }

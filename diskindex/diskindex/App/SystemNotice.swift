@@ -182,7 +182,7 @@ enum SystemNotice {
     }
 
     /// bug.0.4.197 e: Beim Start zugestellte Mitteilungen „nicht bestätigt“ aus einer früheren Sitzung zurückziehen:
-    /// `unconfirmedNoticeMedia` ist nach dem Neustart leer, ein Klick zeigte sonst einen veralteten Hinweis.
+    /// `failureNoticeMedia` ist nach dem Neustart leer, ein Klick zeigte sonst einen veralteten Hinweis.
     /// Ruft der Start einmal auf (nicht im Zeichenpfad); das Zentrum antwortet auf einem Hintergrund-Thread.
     @MainActor
     static func withdrawStaleIndexingFailures() {

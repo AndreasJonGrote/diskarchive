@@ -82,6 +82,8 @@ struct IndexFailureReasonTests {
         await store.setDirectoryWritesFailing(true)
         let app = AppState(store: store)
         await app.loadStoredMedia()
+        // bug.0.4.200 (e): Hinweis nur für angeschlossene Medien (ohne Erkennung hier von Hand).
+        app.updateMedium(id: medium.uuid) { $0.connectionStatus = .connected }
         // Pausenzustand kommt aus den geteilten UserDefaults; hier ausdrücklich nicht pausiert.
         app.globalAutoIndexPaused = false
         app.heldForSleep = false
@@ -116,6 +118,7 @@ struct IndexFailureReasonTests {
         access.scriptMountChecks([false, false])
         let app = AppState(store: store)
         await app.loadStoredMedia()
+        app.updateMedium(id: medium.uuid) { $0.connectionStatus = .connected }
         app.globalAutoIndexPaused = false
         app.heldForSleep = false
         let service = IndexingService(store: store, access: access, appState: app)

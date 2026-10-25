@@ -1,0 +1,13 @@
+# bug.0.4.200 (c): stiller Abgleich mit bleibender Lücke zeigt den Hinweis neu
+# Test: GapMediumBehavesOnlineTests/followUpRunStaysQuietWhileTheGapRemains()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 18:15:52
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 18:15:52
+@@ -460,7 +460,7 @@
+         // unterbrochener Abgleich (Pause, Abbruch) ist nie ein neuer Fehler. (e): Hinweis nur für angeschlossene Medien
+         // (Konzept 2b).
+         let quietGap = quietGapRuns.remove(mediumUUID) != nil
+-        let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
++        let gapRemains = false && quietGap && outcome.failureReason == .unreadableFolders
+         if outcome.status == .error, !gapRemains, !outcome.interrupted, let medium = appState.medium(with: mediumUUID),
+            medium.connectionStatus == .connected {
+             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)

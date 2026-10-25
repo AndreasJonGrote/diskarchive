@@ -53,7 +53,8 @@ enum LiveWiring {
                 }
                 continue
             }
-            guard let stored, stored.decision == .index, stored.indexStatus == .indexed else { continue }
+            // bug.0.4.200 (b): ein Medium mit Lücke wird überwacht wie ein `.indexed`-Medium.
+            guard let stored, stored.decision == .index, stored.hasCompleteIndexExceptGaps else { continue }
             if watcher.isWatching(mediumID: id) {
                 await watcher.stop(mediumID: id)
             }
@@ -135,7 +136,7 @@ enum LiveWiring {
             await stopWatcherAndStartIndex(watcher: watcher, service: service, id: id, volume: volume, fromScratch: false)
             // Kein Lauf (z. B. Medium pausiert): Überwachung trotzdem unter dem neuen Pfad weiterführen – wie bei den
             // übrigen Startwegen nur, wenn der Index vollständig ist (bug.0.4.191 b).
-            if service?.isRunActive(id) != true, appState.medium(with: id)?.indexStatus == .indexed {
+            if service?.isRunActive(id) != true, appState.medium(with: id)?.hasCompleteIndexExceptGaps == true {
                 await startWatching(id, volume)
             }
         }
@@ -218,6 +219,7 @@ enum LiveWiring {
                 if decision == .dontIndex || !allowIndexing {
                     await service?.cancel(mediumUUID: id)
                     await watcher?.stop(mediumID: id)
+                    await coordinator?.endFailureAfterDecline(mediumID: id)
                     return
                 }
                 guard decision == .index, allowIndexing else { return }
@@ -255,7 +257,7 @@ enum LiveWiring {
             let paused = appState.globalAutoIndexPaused
             let reconciles: [(id: UUID, volume: VolumeInfo)] = paused ? [] : interruptedReconciles.compactMap { id in
                 guard let medium = appState.medium(with: id), medium.connectionStatus == .connected,
-                      medium.decision == .index, medium.allowIndexing, medium.indexStatus == .indexed,
+                      medium.decision == .index, medium.allowIndexing, medium.hasCompleteIndexExceptGaps,
                       !medium.autoIndexPaused, !appState.heldForSleep,
                       let volume = coordinator?.volume(for: id) else { return nil }
                 return (id, volume)
@@ -276,7 +278,7 @@ enum LiveWiring {
             }
             for medium in appState.media
             where medium.connectionStatus == .connected && medium.decision == .index && medium.allowIndexing
-                && medium.indexStatus != .indexed {
+                && !medium.hasCompleteIndexExceptGaps {
                 // Der vor der Sperre abgebrochene Auftrag darf den neuen nicht als „bereits angefordert“ verschlucken.
                 coordinator?.clearIndexRequest(mediumID: medium.id)
                 coordinator?.requestIndexingAfterDecision(mediumID: medium.id)

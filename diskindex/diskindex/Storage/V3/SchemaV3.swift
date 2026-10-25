@@ -168,7 +168,8 @@ nonisolated enum SchemaV3 {
 
     /// Nach Absturz/Beenden: `indexing` ohne laufenden Prozess → `indexed` oder `pending` (bug.0.4.028).
     /// „indiziert“ nur nach mindestens einem Lauf bis zum Ende (`firstIndexedAt`, bug.0.4.126); `lastIndexedAt`
-    /// setzt schon jede fertige Ebene. Eine später gefundene Lücke (`indexGaps`, bug.0.4.151) hält den Status auf `pending`.
+    /// setzt schon jede fertige Ebene. Mit Merker `indexGaps` (Lücke, bug.0.4.151/199) wird ein unterbrochener Lauf `pending`,
+    /// damit das Anschließen die Lücke nachliest.
     private static func normalizeInterruptedIndexingStatuses(in pool: DatabasePool) throws {
         let indexing = MediumCodecV3.code(.indexing)
         let indexed = MediumCodecV3.code(.indexed)

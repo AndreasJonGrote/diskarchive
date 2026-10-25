@@ -768,6 +768,14 @@ actor IndexStoreV3 {
         }
     }
 
+    /// bug.0.4.200 (d): Zugriff beim Anschließen verweigert – der letzte Fehler ist nicht mehr die Lücke.
+    func clearIndexGaps(mediumUUID: UUID) async throws {
+        try await pool.write { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
+            try Self.setIndexGaps(db, storageID, false)
+        }
+    }
+
     private nonisolated static func setIndexGaps(_ db: Database, _ storageID: Int64, _ gaps: Bool) throws {
         let key = indexGapsKey
         guard gaps else {
@@ -886,7 +894,8 @@ actor IndexStoreV3 {
         mountPath: String? = nil,
         ranToEnd: Bool = false
     ) async throws -> Bool {
-        // bug.0.4.127: Lauf bis zum Ende mit nicht lesbaren Ordnern (`.pending`) räumt auf wie ein vollständiger Lauf;
+        // bug.0.4.127: Lauf bis zum Ende mit nicht lesbaren Ordnern (seit bug.0.4.199 `.error`) räumt auf wie ein
+        // vollständiger Lauf;
         // Ordner, die nicht gelesen wurden, haben keine Kinder auf „verschwunden“ gesetzt.
         let completesRun = (status == .indexed || ranToEnd) && !interrupted
         // Während der Abschluss des Mediums noch liest/schreibt: ein zweiter Abschluss desselben Laufs tut nichts; ein
@@ -1000,6 +1009,10 @@ actor IndexStoreV3 {
                 let total = try Int.fetchOne(db, sql: "SELECT fileCount + folderCount FROM storages WHERE id = ?", arguments: [storageID]) ?? 0
                 try MediumCodecV3.setMeta(db, storageID, .scanTotal, value: String(total))
                 try Self.setScanTotalIncomplete(db, storageID, false)
+            } else if status == .error, !interrupted {
+                // bug.0.4.200 (d): der Lauf scheiterte aus anderem Grund – der letzte Fehler ist nicht mehr die Lücke
+                // (Aktivieren der App prüft dann wieder, z. B. nach der Freigabe in den Systemeinstellungen).
+                try Self.setIndexGaps(db, storageID, false)
             }
             // bug.0.4.104: Wiederverbinden auch beim unterbrochenen Ende — sonst geht die Zuordnung verloren und
             // der nächste Lauf löscht die alte Zeile samt Favorit, Teil-Prüfsumme und `item_meta`.

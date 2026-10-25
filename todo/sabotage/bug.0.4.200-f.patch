@@ -1,0 +1,12 @@
+# bug.0.4.200 (f): „Nein“ beendet den Fehler nicht
+# Test: GapMediumBehavesOnlineTests/declineEndsTheFailure()
+--- a/diskindex/diskindex/App/LiveWiring.swift	2026-10-25 17:55:20
++++ b/diskindex/diskindex/App/LiveWiring.swift	2026-10-25 17:55:20
+@@ -219,7 +219,6 @@
+                 if decision == .dontIndex || !allowIndexing {
+                     await service?.cancel(mediumUUID: id)
+                     await watcher?.stop(mediumID: id)
+-                    await coordinator?.endFailureAfterDecline(mediumID: id)
+                     return
+                 }
+                 guard decision == .index, allowIndexing else { return }

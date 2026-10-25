@@ -1,0 +1,13 @@
+# bug.0.4.200 (c): Abgleich eines Mediums mit Lücke zeigt wieder „wird indiziert“
+# Test: GapMediumBehavesOnlineTests/followUpRunStaysQuietWhileTheGapRemains()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 18:15:52
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 18:15:52
+@@ -380,7 +380,7 @@
+         lastUIUpdate[mediumUUID] = now
+         appState.updateMedium(id: mediumUUID) {
+             // bug.0.4.200 (c): Abgleich eines Mediums mit Lücke zeigt weiter „Fehler“, wie ein `.indexed`-Medium „Online“.
+-            if !$0.hasCompleteIndexExceptGaps {
++            if $0.indexStatus != .indexed {
+                 $0.indexStatus = .indexing
+             }
+             $0.indexRunPhase = progress.phase

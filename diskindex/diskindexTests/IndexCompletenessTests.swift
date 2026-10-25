@@ -31,9 +31,11 @@ struct IndexCompletenessTests {
         #expect(stored.indexStatus == .pending)
     }
 
-    /// bug.0.4.151: Medium war vollständig (`firstIndexedAt` gesetzt), ein späterer Abgleich fand eine Lücke (`.error`, bug.0.4.199);
-    /// endet die App mitten im nächsten Lauf, bleibt es nach dem Neuöffnen `.pending` (nicht wieder `.indexed`).
-    @Test func laterGapSurvivesRestartAsPending() async throws {
+    /// bug.0.4.151: Medium war vollständig (`firstIndexedAt` gesetzt), ein späterer Abgleich fand eine Lücke (seit
+    /// bug.0.4.199 `.error`). Endet die App mitten im nächsten Lauf (`indexing`), setzt die Normalisierung beim Öffnen
+    /// (`normalizeInterruptedIndexingStatuses`) wegen des Merkers `.pending` statt `.indexed` – das Anschließen liest dann
+    /// die Lücke nach.
+    @Test func laterGapIsNotIndexedAfterACrashMidRun() async throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-gap-\(UUID().uuidString)", isDirectory: true)
         let fileURL = directory.appendingPathComponent("archive.sqlite")

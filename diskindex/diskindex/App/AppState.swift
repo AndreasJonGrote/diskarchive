@@ -82,9 +82,8 @@ final class AppState {
     var indexingFailure: IndexingFailureNotice?
     /// todo.0.4.047: öffnet eine Adresse im Browser (Tests ersetzen das je Instanz).
     @ObservationIgnored var openExternalURL: @MainActor (URL) -> Void = { NSWorkspace.shared.open($0) }
-    /// bug.0.4.193: Medien mit zugestellter Mitteilung „nicht bestätigt“ – unabhängig davon, ob der Hinweis noch steht.
-    @ObservationIgnored var unconfirmedNoticeMedia: Set<UUID> = []
-    /// bug.0.4.199: Medien mit zugestellter Fehler-Mitteilung; ein danach erfolgreicher Lauf zieht sie zurück.
+    /// bug.0.4.193/199: Medien mit zugestellter Fehler-Mitteilung – unabhängig davon, ob der Hinweis noch steht; ein
+    /// erfolgreicher Lauf, das Aushängen und „Nein“ ziehen sie zurück.
     @ObservationIgnored var failureNoticeMedia: Set<UUID> = []
     /// bug.0.4.199: Rückzug einer Fehler-Mitteilung (Tests ersetzen das je Instanz; der Lauf endet in einem
     /// losgelösten Task, dort gilt der Task-lokale Haken von `SystemNotice` nicht).

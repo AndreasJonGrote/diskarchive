@@ -253,7 +253,7 @@ final class ChangeWatcher {
                 continue
             }
             guard let stored else { continue }
-            guard stored.decision == .index, stored.indexStatus == .indexed else { continue }
+            guard stored.decision == .index, stored.hasCompleteIndexExceptGaps else { continue }
             start(
                 mediumID: id,
                 volume: pair.volume,

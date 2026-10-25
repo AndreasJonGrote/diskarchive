@@ -15,6 +15,8 @@ final class IndexingService {
     private(set) var rejectedStartsForTesting: [UUID: Int] = [:]
     /// bug.0.4.199: kürzere Lese-Wiederholungen je Instanz (nicht lesbare Ordner ohne 1 + 3 + 10 s Wartezeit).
     var runLimitsForTesting: IndexingRunLimits?
+    /// bug.0.4.200 (c): Status nach jeder Fortschrittsmeldung (die Abschlussmeldung wird nie gedrosselt).
+    var publishedStatusHookForTesting: (@MainActor (UUID, IndexStatus) -> Void)?
     #endif
     /// bug.0.4.162 (f): ein Neustart „von vorn“ wartet auf das Ende des laufenden Laufs – bis dahin bleibt die Sperre
     /// „Neu indizieren“ stehen (der alte Lauf gibt sie beim Abbruch bzw. Ende nicht frei).
@@ -38,11 +40,19 @@ final class IndexingService {
     private var startsWaitingForCancel: [UUID: (volume: VolumeInfo, fromScratch: Bool)] = [:]
     /// Abgleich-Lauf (bug.0.4.014), damit `cancel` wie `DirectoryIndexer.stop` endet.
     private var runFullReconcile: [UUID: Bool] = [:]
+    /// bug.0.4.200 (c): Abgleich eines Mediums mit Lücke – läuft still, Status bleibt „Fehler“, bleibt die Lücke, kommen
+    /// weder Hinweis noch Mitteilung neu.
+    private var quietGapRuns: Set<UUID> = []
     /// Lauf zu Ende: Live-Überwachung starten (nach Erfolg und, bug.0.4.084, nach einem gescheiterten Lauf).
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
 
-    fileprivate func setRunFullReconcile(_ mediumUUID: UUID, _ value: Bool) {
+    fileprivate func setRunFullReconcile(_ mediumUUID: UUID, _ value: Bool, quietGap: Bool) {
         runFullReconcile[mediumUUID] = value
+        if quietGap {
+            quietGapRuns.insert(mediumUUID)
+        } else {
+            quietGapRuns.remove(mediumUUID)
+        }
     }
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
@@ -200,11 +210,14 @@ final class IndexingService {
                 }
                 storedBeforeRun = nil
             }
+            // bug.0.4.200 (c): ein Medium mit Lücke gleicht ab wie ein `.indexed`-Medium (gleiche Regel wie im Indexer).
+            let completeBefore = storedBeforeRun?.hasCompleteIndexExceptGaps == true
             let fullReconcile = !fromScratch
-                && storedBeforeRun?.indexStatus == .indexed
+                && completeBefore
                 && (storedBeforeRun?.completedDepth ?? 0) > 0
-            await bridge.rememberFullReconcile(mediumUUID, fullReconcile)
-            let reconcileRun = !fromScratch && storedBeforeRun?.indexStatus == .indexed
+            let quietGap = fullReconcile && storedBeforeRun?.indexStatus == .error
+            await bridge.rememberFullReconcile(mediumUUID, fullReconcile, quietGap: quietGap)
+            let reconcileRun = !fromScratch && completeBefore
             let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: reconcileRun)
             guard began else { return }
             let outcome = await indexer.run(
@@ -267,11 +280,14 @@ final class IndexingService {
         pauseIDs.remove(mediumUUID)
         let fullReconcile = runFullReconcile.removeValue(forKey: mediumUUID) ?? false
         let reconcileInterrupted = fullReconcile
+        // bug.0.4.200 (c): abgebrochener Abgleich eines Mediums mit Lücke bleibt „Fehler“ (wie `DirectoryIndexer.stop`).
+        let quietGap = quietGapRuns.remove(mediumUUID) != nil
+        let restored: StoredIndexStatus = quietGap ? .error : (reconcileInterrupted ? .indexed : .pending)
         do {
             _ = try await store.finishIndexing(
                 mediumUUID: mediumUUID,
                 token: token,
-                status: reconcileInterrupted ? .indexed : .pending,
+                status: restored,
                 firstIndexedAt: nil,
                 interrupted: reconcileInterrupted
             )
@@ -282,7 +298,7 @@ final class IndexingService {
         if runs[mediumUUID] == nil {
             appState.clearMenuBarRunIndicators(mediumUUID)
             appState.updateMedium(id: mediumUUID) {
-                $0.indexStatus = reconcileInterrupted ? .indexed : .pending
+                $0.indexStatus = IndexStatus(rawValue: restored.rawValue) ?? .pending
             }
         }
         #if DEBUG
@@ -363,7 +379,8 @@ final class IndexingService {
         }
         lastUIUpdate[mediumUUID] = now
         appState.updateMedium(id: mediumUUID) {
-            if $0.indexStatus != .indexed {
+            // bug.0.4.200 (c): Abgleich eines Mediums mit Lücke zeigt weiter „Fehler“, wie ein `.indexed`-Medium „Online“.
+            if !$0.hasCompleteIndexExceptGaps {
                 $0.indexStatus = .indexing
             }
             $0.indexRunPhase = progress.phase
@@ -374,6 +391,11 @@ final class IndexingService {
                 $0.indexingProgress = progress.ratio
             }
         }
+        #if DEBUG
+        if let status = appState.medium(with: mediumUUID)?.indexStatus {
+            publishedStatusHookForTesting?(mediumUUID, status)
+        }
+        #endif
     }
 
     fileprivate func finish(_ mediumUUID: UUID, _ token: UUID, _ outcome: IndexRunOutcome) async {
@@ -414,6 +436,7 @@ final class IndexingService {
                 $0.fileCount = stored.fileCount
                 $0.folderCount = stored.folderCount
                 $0.scanTotal = stored.scanTotal
+                $0.hasIndexGaps = stored.hasIndexGaps
                 $0.completedDepth = stored.completedDepth
                 $0.lastIndexedAt = stored.lastIndexedAt
                 $0.lastIndexActivityAt = stored.lastIndexActivityAt
@@ -433,7 +456,13 @@ final class IndexingService {
                 settings: appState.appSettings
             )
         }
-        if outcome.status == .error, let medium = appState.medium(with: mediumUUID) {
+        // bug.0.4.200 (c): stiller Abgleich mit bleibender Lücke → kein neuer Hinweis, keine neue Mitteilung; ein
+        // unterbrochener Abgleich (Pause, Abbruch) ist nie ein neuer Fehler. (e): Hinweis nur für angeschlossene Medien
+        // (Konzept 2b).
+        let quietGap = quietGapRuns.remove(mediumUUID) != nil
+        let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
+        if outcome.status == .error, !gapRemains, !outcome.interrupted, let medium = appState.medium(with: mediumUUID),
+           medium.connectionStatus == .connected {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
         #if DEBUG
@@ -511,9 +540,9 @@ private final class Bridge: @unchecked Sendable {
         self.service = service
     }
 
-    func rememberFullReconcile(_ mediumUUID: UUID, _ fullReconcile: Bool) async {
+    func rememberFullReconcile(_ mediumUUID: UUID, _ fullReconcile: Bool, quietGap: Bool) async {
         await MainActor.run {
-            service?.setRunFullReconcile(mediumUUID, fullReconcile)
+            service?.setRunFullReconcile(mediumUUID, fullReconcile, quietGap: quietGap)
         }
     }
 

@@ -65,6 +65,14 @@ struct Medium: Identifiable, Equatable, Hashable {
     var showAbsoluteCapacity: Bool = false
     /// Favorit (Mock bis 19.12 — konsistente Darstellung ab Dashboard).
     var isFavorite: Bool = false
+    /// bug.0.4.200: der letzte Lauf bis zum Ende fand nicht lesbare Ordner (Merker `indexGaps`).
+    var hasIndexGaps: Bool = false
+
+    /// bug.0.4.200: Index bis auf die Lücke vollständig → verhält sich überall wie Online; nur Chip, „!“, Modal und
+    /// Mitteilung sagen „Fehler“.
+    var hasCompleteIndexExceptGaps: Bool {
+        IndexGaps.completeExceptGaps(indexed: indexStatus == .indexed, error: indexStatus == .error, gaps: hasIndexGaps)
+    }
 
     var hasIndex: Bool {
         completedDepth >= 1 || fileCount + folderCount > 0
@@ -104,5 +112,12 @@ struct Medium: Identifiable, Equatable, Hashable {
     var specLine: String {
         let files = DisplayNumberFormat.groupedInteger(fileCount)
         return "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumFilesCount(files))"
+    }
+}
+
+/// bug.0.4.200: eine Regel für `Medium` und `StoredMedium` (Regel 7).
+nonisolated enum IndexGaps {
+    static func completeExceptGaps(indexed: Bool, error: Bool, gaps: Bool) -> Bool {
+        indexed || (error && gaps)
     }
 }
