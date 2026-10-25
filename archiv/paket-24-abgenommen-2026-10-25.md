@@ -25,3 +25,4 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
 - **Abgenommen:** `bug.0.4.196`, `197` (a–e).
 - **Kein Fehler / so lassen (niedrig):** gemischte Sortierung alter (Ortszeit) und neuer (UTC) Absturzdateinamen beim Behalten der fünf jüngsten (höchstens 1–2 h, bis 1.0 egal); Breadcrumb 6 Byte kürzer; kein eigener Test für die Frühjahrslücke (durch Versatz eindeutig); `withdrawStaleIndexingFailures` vor dem Öffnen der Datenbank, Rennen mit neuer Zustellung praktisch ausgeschlossen; Panel breiter als `visibleFrame` bleibt mittig.
 - **Offen für 0.4.0 (Kriterien 3, 4):** Gesamtlauf auf ruhigem Rechner (Last < 3, keine Spiele/Streams, kein `mobileassetd`).
+- **Ruhiger Gesamtlauf 25.10. 11:45–12:11 (Last ~3,5, fast nur Claude-App):** Debug und Release 0 Warnungen, seriell **1103/1103** grün, Parallel 1–3 **grün** (je 1097 bestanden, 6 übersprungen), keine neuen `.ips`, App des Nutzers 12:11:30, Version 0.4.0. Kriterien 2–6 und 9 erfüllt.
