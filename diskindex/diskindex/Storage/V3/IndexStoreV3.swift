@@ -174,6 +174,12 @@ actor IndexStoreV3 {
         beginIndexingRejected = rejected
     }
 
+    /// Tests (bug.0.4.202 c): die nächsten `count` Aufrufe von `medium(uuid:)` werfen einen Speicherfehler.
+    func setNextMediumReadsFailing(_ count: Int) {
+        failingMediumReads = count
+    }
+    private var failingMediumReads = 0
+
     /// Tests (bug.0.4.201 e): `beginIndexing` wirft, bevor ein Lauf beginnt.
     func setBeginIndexingFailing(_ failing: Bool) {
         beginIndexingFails = failing
@@ -388,6 +394,10 @@ actor IndexStoreV3 {
     func medium(uuid: UUID) async throws -> StoredMedium? {
         #if DEBUG
         await mediumReadHookForTesting.run()
+        if failingMediumReads > 0 {
+            failingMediumReads -= 1
+            throw IndexStoreError.unknownMedium
+        }
         #endif
         return try await pool.read { db in try MediumCodecV3.fetch(db, uuid: uuid) }
     }

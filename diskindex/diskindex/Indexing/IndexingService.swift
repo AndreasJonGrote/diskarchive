@@ -38,23 +38,29 @@ final class IndexingService {
     private var rerunAfterFinish: Set<UUID> = []
     /// Starts während eines laufenden Abbruchs, je Medium zusammengefasst (bug.0.4.080 a).
     private var startsWaitingForCancel: [UUID: (volume: VolumeInfo, fromScratch: Bool)] = [:]
-    /// Abgleich-Lauf (bug.0.4.014), damit `cancel` wie `DirectoryIndexer.stop` endet.
-    private var runFullReconcile: [UUID: Bool] = [:]
-    /// bug.0.4.200 (c): Abgleich eines Mediums mit Lücke – läuft still, Status bleibt „Fehler“, bleibt die Lücke, kommen
-    /// weder Hinweis noch Mitteilung neu.
-    private var quietGapRuns: Set<UUID> = []
+    /// Art des laufenden Laufs (bug.0.4.014 Abgleich, damit `cancel` wie `DirectoryIndexer.stop` endet; bug.0.4.200 c
+    /// stiller Abgleich bei Lücke). bug.0.4.202 (a): gehört zum Token des Laufs – ein altes `finish` räumt nur seine
+    /// eigene ab, nie die eines inzwischen gestarteten Laufs.
+    private var runKinds: [UUID: RememberedRunKind] = [:]
     /// Lauf zu Ende: Live-Überwachung starten (nach Erfolg und, bug.0.4.084, nach einem gescheiterten Lauf).
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
 
-    fileprivate func setRunFullReconcile(_ mediumUUID: UUID, _ token: UUID, _ kind: IndexRunKind) {
+    /// Merkt die Art aus dem Speicher (`kind`, bestätigt) bzw. behält die aus der Anzeige (`nil`: Speicher nicht lesbar)
+    /// und gibt die geltende zurück – `nil`, wenn der Lauf nicht mehr läuft.
+    fileprivate func rememberRunKind(_ mediumUUID: UUID, _ token: UUID, _ kind: IndexRunKind?) -> IndexRunKind? {
         // bug.0.4.201 (c): ein abgebrochener Lauf merkt sich nichts mehr (sonst bliebe der Eintrag nach `cancel` stehen).
-        guard runs[mediumUUID] == token else { return }
-        runFullReconcile[mediumUUID] = kind.fullReconcile
-        if kind.quietGap {
-            quietGapRuns.insert(mediumUUID)
-        } else {
-            quietGapRuns.remove(mediumUUID)
+        guard runs[mediumUUID] == token else { return nil }
+        if let kind {
+            runKinds[mediumUUID] = RememberedRunKind(token: token, kind: kind, confirmedByStore: true)
         }
+        // bug.0.4.202 (c): Art und Beginn der Anzeige aus derselben Quelle.
+        return runKinds[mediumUUID]?.token == token ? runKinds[mediumUUID]?.kind : nil
+    }
+
+    /// bug.0.4.202 (a): Art dieses Laufs abholen (nur mit seinem Token).
+    private func takeRunKind(_ mediumUUID: UUID, _ token: UUID) -> RememberedRunKind? {
+        guard runKinds[mediumUUID]?.token == token else { return nil }
+        return runKinds.removeValue(forKey: mediumUUID)
     }
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
@@ -114,7 +120,7 @@ final class IndexingService {
         for id in ids {
             // Inzwischen entsperrt: keine weiteren abbrechen (sonst ginge der Abgleich verloren) …
             guard !appState.featureAccess.canWriteIndex else { break }
-            if runFullReconcile[id] == true {
+            if runKinds[id]?.kind.fullReconcile == true {
                 reconcilesInterruptedByVersionLock.insert(id)
             }
             tasks[id]?.cancel()
@@ -191,13 +197,16 @@ final class IndexingService {
         runs[mediumUUID] = token
         // bug.0.4.201 (c): Art des Laufs sofort merken (aus dem angezeigten Stand), damit ein `cancel` vor dem Lesen des
         // Speichers „Fehler“ bzw. `.indexed` wiederherstellt; der Lauf berichtigt sie gleich aus dem Speicher.
+        // bug.0.4.202 (c): unbestätigt – `cancel` prüft sie gegen den Speicher, bevor es den Stand davor wiederherstellt.
         if let medium = appState.medium(with: mediumUUID) {
-            setRunFullReconcile(mediumUUID, token, IndexRunKind(
+            runKinds[mediumUUID] = RememberedRunKind(token: token, kind: IndexRunKind(
                 fromScratch: fromScratch,
                 completeExceptGaps: medium.hasCompleteIndexExceptGaps,
                 completedDepth: medium.completedDepth,
                 error: medium.indexStatus == .error
-            ))
+            ), confirmedByStore: false)
+        } else {
+            runKinds[mediumUUID] = nil
         }
         runVolumes[mediumUUID] = volume
         runStartedAt[mediumUUID] = Date()
@@ -226,16 +235,16 @@ final class IndexingService {
             }
             // bug.0.4.200 (c): ein Medium mit Lücke gleicht ab wie ein `.indexed`-Medium (gleiche Regel wie im Indexer).
             // bug.0.4.201 (c): Speicher nicht lesbar → die in `start` gemerkte Art bleibt (kein Überschreiben mit „kein Abgleich“).
-            let kind = IndexRunKind(
-                fromScratch: fromScratch,
-                completeExceptGaps: storedBeforeRun?.hasCompleteIndexExceptGaps == true,
-                completedDepth: storedBeforeRun?.completedDepth ?? 0,
-                error: storedBeforeRun?.indexStatus == .error
-            )
-            if storedBeforeRun != nil {
-                await bridge.rememberFullReconcile(mediumUUID, token, kind)
+            let storedKind = storedBeforeRun.map {
+                IndexRunKind(
+                    fromScratch: fromScratch,
+                    completeExceptGaps: $0.hasCompleteIndexExceptGaps,
+                    completedDepth: $0.completedDepth,
+                    error: $0.indexStatus == .error
+                )
             }
-            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: kind.reconcileRun)
+            let kind = await bridge.rememberRunKind(mediumUUID, token, storedKind)
+            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: kind?.reconcileRun ?? false)
             guard began else { return }
             let outcome = await indexer.run(
                 store: store,
@@ -295,10 +304,25 @@ final class IndexingService {
         }
         runStartedAt.removeValue(forKey: mediumUUID)
         pauseIDs.remove(mediumUUID)
-        let fullReconcile = runFullReconcile.removeValue(forKey: mediumUUID) ?? false
-        let reconcileInterrupted = fullReconcile
+        let remembered = takeRunKind(mediumUUID, token)
+        var kind = remembered?.kind
+        if let remembered, !remembered.confirmedByStore, remembered.kind.fullReconcile {
+            // bug.0.4.202 (c): Abbruch vor dem Lesen des Speichers – den Stand davor nur so wiederherstellen, wie ihn der
+            // Speicher bestätigt (nie ein `.indexed` bzw. „Fehler“ mit Lücke schreiben, das dort nicht stand); nicht
+            // lesbar → `.pending`.
+            let stored = try? await store.medium(uuid: mediumUUID)
+            kind = stored.map {
+                IndexRunKind(
+                    fromScratch: false,
+                    completeExceptGaps: $0.hasCompleteIndexExceptGaps,
+                    completedDepth: $0.completedDepth,
+                    error: $0.indexStatus == .error
+                )
+            }
+        }
+        let reconcileInterrupted = kind?.fullReconcile ?? false
         // bug.0.4.200 (c): abgebrochener Abgleich eines Mediums mit Lücke bleibt „Fehler“ (wie `DirectoryIndexer.stop`).
-        let quietGap = quietGapRuns.remove(mediumUUID) != nil
+        let quietGap = kind?.quietGap ?? false
         let restored: StoredIndexStatus = quietGap ? .error : (reconcileInterrupted ? .indexed : .pending)
         do {
             _ = try await store.finishIndexing(
@@ -417,6 +441,10 @@ final class IndexingService {
 
     fileprivate func finish(_ mediumUUID: UUID, _ token: UUID, _ outcome: IndexRunOutcome) async {
         guard runs[mediumUUID] == token else { return }
+        // bug.0.4.202 (a): Merker dieses Laufs abholen, bevor er freigegeben wird – nach den `await`s unten kann schon
+        // ein neuer Lauf desselben Mediums laufen (Überwachung, „Neu indizieren“).
+        let kind = takeRunKind(mediumUUID, token)?.kind
+        let runVolume = runVolumes.removeValue(forKey: mediumUUID)
         tasks[mediumUUID] = nil
         // bug.0.4.152: der Lauf ist zu Ende (auch ein abgelehnter Beginn) – eine Sperre „Neu indizieren“ gilt nicht mehr,
         // außer der Neustart von vorn wartet schon (bug.0.4.162 f: erst der neue Lauf gibt sie frei).
@@ -479,7 +507,7 @@ final class IndexingService {
         #if DEBUG
         await finishBeforeFailureHookForTesting?(mediumUUID)
         #endif
-        let quietGap = quietGapRuns.remove(mediumUUID) != nil
+        let quietGap = kind?.quietGap ?? false
         let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
         if outcome.status == .error, !gapRemains, !outcome.interrupted, let medium = appState.medium(with: mediumUUID),
            medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
@@ -494,9 +522,11 @@ final class IndexingService {
         if finishedRun {
             fullReconcileSuppressed.remove(mediumUUID)
         }
-        if finishedRun, let volume = runVolumes[mediumUUID] {
+        // bug.0.4.202 (b): keine Überwachung für ein beim Laufende ausgehängtes Medium (wie beim Hinweis).
+        let mounted = isStillMounted(mediumUUID)
+        if finishedRun, mounted, let volume = runVolume {
             onRunIndexed?(mediumUUID, volume)
-        } else if Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolumes[mediumUUID] {
+        } else if !finishedRun, mounted, Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolume {
             // bug.0.4.084 (README: beim Anschließen Lauf und sofort Live-Überwachung): Ein gescheiterter Lauf lässt die
             // Überwachung nicht aus, solange das Medium angeschlossen, „Indizieren: Ja“, nicht pausiert und nicht
             // gesperrt ist. Abbruch, Sperre, Aushängen und Beenden während des Laufs kommen hier nicht an (ihr Token ist
@@ -512,8 +542,6 @@ final class IndexingService {
         if finishedRun {
             appState.scheduleDatabaseMaintenance()
         }
-        runFullReconcile.removeValue(forKey: mediumUUID)
-        runVolumes.removeValue(forKey: mediumUUID)
         if rerunAfterFinish.contains(mediumUUID) {
             rerunAfterFinish.remove(mediumUUID)
             if let coordinator, let volume = coordinator.volume(for: mediumUUID) {
@@ -576,6 +604,13 @@ nonisolated struct IndexRunKind: Sendable {
     }
 }
 
+/// bug.0.4.202: Art eines Laufs mit seinem Token; `confirmedByStore` = aus dem Speicher (sonst aus der Anzeige).
+private struct RememberedRunKind {
+    let token: UUID
+    let kind: IndexRunKind
+    let confirmedByStore: Bool
+}
+
 /// Schmale Brücke, damit der Utility-Task den Main-Actor-Dienst erreicht.
 private final class Bridge: @unchecked Sendable {
     private weak var service: IndexingService?
@@ -584,9 +619,9 @@ private final class Bridge: @unchecked Sendable {
         self.service = service
     }
 
-    func rememberFullReconcile(_ mediumUUID: UUID, _ token: UUID, _ kind: IndexRunKind) async {
+    func rememberRunKind(_ mediumUUID: UUID, _ token: UUID, _ kind: IndexRunKind?) async -> IndexRunKind? {
         await MainActor.run {
-            service?.setRunFullReconcile(mediumUUID, token, kind)
+            service?.rememberRunKind(mediumUUID, token, kind)
         }
     }
 

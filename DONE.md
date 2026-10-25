@@ -156,6 +156,7 @@ Kennungen: bis 233b alte Aufgabennummern; ab 12.10. `todo.<Version>.<Nr>` (Aufga
 | bug.0.4.199 | – | Dauerhafte Lücke = Status „Fehler“ mit Grund „Einige Ordner … nicht gelesen“, Details-Zeile „Indiziert x %“ | 25.10. Host (Gesamtlauf 20:53–21:31: seriell 1126/1126, parallel 3× grün, Sabotage 30/30, 0 Warnungen, App 0.4.0) | A C (Prüf-Agenten, Sabotage-Patches) |
 | bug.0.4.200 | – | Medium mit Lücke wie Online (Anzeige, Überwachung, stille Folgeläufe, Aktivieren, Aushängen, „Nein“) | 25.10. Host (wie 199) | A C (Prüf-Agenten, Sabotage-Patches) |
 | bug.0.4.201 | – | Pause-Ende/Aufwachen, Rennen beim Aushängen, Abbruch stiller Lauf, Anschließen in der Pause, frühe Fehler (Reste: `bug.0.4.202`) | 25.10. Host (wie 199) | A C (Prüf-Agenten, Sabotage-Patches) |
+| bug.0.4.202 | – | Merker des Laufs am Token, keine Überwachung nach Aushängen am Laufende, `cancel` nur mit bestätigter Art, Patch 201-b geteilt, Pausenzweige getestet (Reste: `bug.0.4.203`) | 25.10. Host (Gesamtlauf 21:59–22:29: seriell 1135/1135, parallel 3× grün, Sabotage 9/9, 0 Warnungen, App 0.4.0) | A C (Prüf-Agent, Sabotage-Patches) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

@@ -1,6 +1,6 @@
 # Checkliste Abnahmerunde 0.4.0 (`todo.0.4.040`, Nutzer)
 
-Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 27). Geschrieben vom Host 25.10. (`todo.0.4.045`). Funde schreibst du einfach in den Chat, der Host macht daraus `bug.0.4.xxx`.
+Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 28). Geschrieben vom Host 25.10. (`todo.0.4.045`). Funde schreibst du einfach in den Chat, der Host macht daraus `bug.0.4.xxx`.
 
 ## Vorher
 

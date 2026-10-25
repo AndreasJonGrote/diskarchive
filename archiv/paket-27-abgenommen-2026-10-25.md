@@ -15,6 +15,17 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
   (d) **Patch 201-b teilen:** je ein Patch für „offline zuerst“ (`MediumCoordinator.swift` Z. ~468) und für `isStillMounted` in `finish`; für die zweite Hälfte ein Test, in dem der angezeigte Status `.connected` bleibt, der Pfad aber weg ist. Beide rot.
   (e) **Pausenzweig beim Anschließen:** `heldForSleep`/`autoIndexPaused` in der Bedingung `MediumCoordinator.swift` Z. ~238 hat keinen Test; Test (Ruhezustand bzw. automatische Pause) + Patch.
   **So lassen:** Doppelstart, wenn die Pause genau zwischen `resumePausedRuns` und dem Schluss von `connectKnown` endet (zweiter Lauf über `rerunAfterFinish`, harmlos, wie bei `.indexed`).
-  **Status:** 
+  **Status:** Bereit zur Prüfung. Vorher rot (21:37): `GapMediumRunWindowTests` a, b, c (2). d und e decken vorhandenen Code ab und waren grün; Beweis über die Patches. (a) `runKinds` (`RememberedRunKind` mit Token, bestätigt aus dem Speicher oder aus der Anzeige) ersetzt `runFullReconcile` und `quietGapRuns`. `finish` holt Art und Volume vor der Freigabe ab, nur mit dem eigenen Token. (b) `onRunIndexed` nur noch, wenn `isStillMounted`.
+  (c) `cancel` mit unbestätigter Art liest den Speicher und nimmt dessen Art, nicht lesbar → `.pending`. Bei `storedBeforeRun == nil` kommen Art und `beginRunUI` aus der gemerkten Art. (d) Patch 201-b geteilt: `d-offline` und `d-pfad`, je ein Test. (e) Je ein Test für Ruhezustand und automatische Pause.
+  Selbstprüfung (Sonnet), nichts Hohes. Mittel behoben: Test und Patch für `cancel` bei Speicherfehler (`c-lesefehler`). Niedrig behoben: `cancel` nimmt die Art des Speichers statt nur „vollständig ja/nein“.
+  21:46–21:49: 275 Tests in 39 Suites grün. Sabotage 9/9 rot (21:49–21:52). 20× parallel `GapMediumRunWindow…` + `GapMediumRemainder…` grün (21:53).
+  Release und Debug: 0 Warnungen. App 21:54 (0.4.0), Signatur ok, 0 neue `.ips`. **Kein Gesamtlauf:** Last 4–7.
 
 **Paketende:** 0 Warnungen Debug und Release, die betroffenen Tests (Rennen-Tests 20× parallel) und alle Patches unter `todo/sabotage/` rot, App des Nutzers gebaut. **Gesamtlauf nur auf ruhigem Rechner** (Last < 3, keine Spiele), sonst weglassen und im Status vermerken; dann macht ihn der Host.
+
+## Abnahme Host 25.10. (Gesamtlauf 21:59–22:29)
+
+`Werkzeuge/pruefung.sh voll`: Debug und Release 0 Warnungen, seriell **1135/1135**, Parallel 1–3 **grün** (je 1129 bestanden, 6 übersprungen), keine neuen `.ips`, Sabotage **9/9 rot ✓**, App des Nutzers 22:29:15, Signatur gültig, Version 0.4.0. Prüf-Agent (Sonnet): a–e wie verlangt, kein hoher oder mittlerer Fund, kein Rückschritt bei 014, 104/141, 162, 166, 181–185, 199–201.
+
+- **Abgenommen:** `bug.0.4.202`.
+- **Reste (niedrig, Nutzer „wir lösen alles“) → `bug.0.4.203` (Paket 28):** übrige Schritte in `finish` (Sperre, Anforderung, Anzeige) an das Token binden, `cancel` liest bei unbestätigter Art immer den Speicher, Beweislücke im Zweig `!finishedRun`, wackliger Lesefehler-Zähler im Test.

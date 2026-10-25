@@ -1,0 +1,12 @@
+# bug.0.4.202 (d): Aushängen macht die Trennung erst nach den await sichtbar
+# Test: GapMediumRunWindowTests/unmountShowsOfflineBeforeItsFirstAwait()
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 21:42:58
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 21:42:58
+@@ -465,7 +465,6 @@
+         DiskIndexLog.shared.record(.medium, .info, "ausgehängt id=\(id)", privateDetail: path)
+         requestedIndex.remove(id)
+         // bug.0.4.201 (b): die Trennung zuerst sichtbar machen – ein Lauf, der gerade endet, zeigt keinen Hinweis mehr.
+-        appState.updateMedium(id: id) { $0.connectionStatus = .offline }
+         // bug.0.4.187 (a), 193, 200 (e): Hinweis nur für angeschlossene Medien (Konzept 2b) – beim Aushängen für jeden
+         // Grund schließen und die zugestellte Mitteilung zurückziehen, auch wenn der Hinweis schon geschlossen oder von
+         // einem anderen Medium überschrieben ist.
