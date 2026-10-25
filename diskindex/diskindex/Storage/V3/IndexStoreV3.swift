@@ -39,6 +39,8 @@ actor IndexStoreV3 {
     /// Tests: das nächste Schreiben einer Ebene schlägt fehl.
     var directoryWritesFail = false
     var beginIndexingRejected = false
+    /// Tests (bug.0.4.201 e): `beginIndexing` wirft einen Speicherfehler.
+    var beginIndexingFails = false
     #if DEBUG
     /// bug.0.4.169: läuft synchron unmittelbar vor dem Lesen einer Teil-Prüfsumme am Laufende (auf dem lesenden Faden).
     var partialReadHookForTesting: (@Sendable (URL) -> Void)?
@@ -170,6 +172,11 @@ actor IndexStoreV3 {
     /// Tests (bug.0.4.152): `beginIndexing` lehnt ab, als wäre der Token schon verworfen.
     func setBeginIndexingRejected(_ rejected: Bool) {
         beginIndexingRejected = rejected
+    }
+
+    /// Tests (bug.0.4.201 e): `beginIndexing` wirft, bevor ein Lauf beginnt.
+    func setBeginIndexingFailing(_ failing: Bool) {
+        beginIndexingFails = failing
     }
 
     /// Tests: `children`/`childrenPage`/`childCount` werfen einen Speicherfehler.
@@ -841,6 +848,7 @@ actor IndexStoreV3 {
         if revokedIndexingTokens.removeValue(forKey: token) != nil { return false }
         #if DEBUG
         if beginIndexingRejected { return false }
+        if beginIndexingFails { throw IndexStoreError.unknownMedium }
         #endif
         indexingToken[mediumUUID] = token
         insertedIDsDuringRun[mediumUUID] = []

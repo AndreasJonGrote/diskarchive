@@ -1,0 +1,13 @@
+# bug.0.4.201 (d): endet die Pause während des Anschließens, bleibt ein Medium mit Lücke ohne Abgleich
+# Test: GapMediumRemainderTests/pauseEndingDuringConnectStillReconciles()
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 20:22:22
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 20:22:22
+@@ -300,7 +300,7 @@
+         }
+         // bug.0.4.201 (d): auch ein in der Pause „Fehler“ gebliebenes Medium mit Lücke – endete die Pause während der
+         // Schritte oben, fand `resumePausedRuns` es noch nicht unter den verbundenen.
+-        if fresh.decision == .index, fresh.hasCompleteIndexExceptGaps {
++        if fresh.decision == .index, fresh.indexStatus == .indexed {
+             let paused = appState.globalAutoIndexPaused
+             if !paused {
+                 onReconcileRequested?(fresh.uuid, volume)

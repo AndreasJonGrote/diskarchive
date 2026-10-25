@@ -1,0 +1,14 @@
+# bug.0.4.201 (a): Pause-Ende und Aufwachen gleichen ein Medium mit Lücke nicht ab
+# Test: GapMediumRemainderTests/pauseEndReconcilesTheGapMedium()
+# Test: GapMediumRemainderTests/wakeReconcilesTheGapMedium()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 20:19:36
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 20:19:36
+@@ -547,7 +547,7 @@
+                 guard let stored else { return }
+                 guard stored.decision == .index else { return }
+                 // bug.0.4.201 (a): ein Medium mit Lücke gleicht ab wie ein `.indexed`-Medium.
+-                guard stored.indexStatus == .pending || stored.indexStatus == .indexing || stored.hasCompleteIndexExceptGaps else {
++                guard stored.indexStatus == .pending || stored.indexStatus == .indexing || stored.indexStatus == .indexed else {
+                     return
+                 }
+                 guard tasks[id] == nil else { return }

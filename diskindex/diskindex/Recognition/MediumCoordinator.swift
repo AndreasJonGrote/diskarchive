@@ -100,6 +100,9 @@ final class MediumCoordinator {
     func waitForChoice() async {
         await choiceTask?.value
     }
+
+    /// Tests (bug.0.4.201 d): läuft in `connectKnown`, sobald der Status feststeht, vor dem Eintragen des Pfads. Je Instanz.
+    var connectStatusDecidedHookForTesting: (@MainActor (UUID) async -> Void)?
     #endif
 
     private func volumeAppeared(_ volume: VolumeInfo) async {
@@ -231,8 +234,17 @@ final class MediumCoordinator {
         fresh.lastSeenAt = Date()
         if recoveredFromError {
             // bug.0.4.126: „indiziert“ nur nach einem Lauf bis zum Ende, nicht nach der ersten fertigen Ebene.
-            fresh.indexStatus = await settledStatus(fresh)
+            // bug.0.4.201 (d): eine Lücke bleibt „Fehler“, bis ein Lauf sie nachliest – in der Pause startet keiner.
+            let paused = appState.globalAutoIndexPaused || appState.heldForSleep || fresh.autoIndexPaused
+            if fresh.hasIndexGaps, fresh.decision == .index, paused {
+                fresh.indexStatus = .error
+            } else {
+                fresh.indexStatus = await settledStatus(fresh)
+            }
         }
+        #if DEBUG
+        await connectStatusDecidedHookForTesting?(fresh.uuid)
+        #endif
         if let free = volume.volumeFreeBytes {
             fresh.capacityUsedBytes = max(0, volume.volumeTotalBytes - free)
         }
@@ -286,7 +298,9 @@ final class MediumCoordinator {
             try await store.updateMediumIndexStatus(uuid: fresh.uuid, fresh.indexStatus)
             publish(fresh, connection: .connected)
         }
-        if fresh.decision == .index, fresh.indexStatus == .indexed {
+        // bug.0.4.201 (d): auch ein in der Pause „Fehler“ gebliebenes Medium mit Lücke – endete die Pause während der
+        // Schritte oben, fand `resumePausedRuns` es noch nicht unter den verbundenen.
+        if fresh.decision == .index, fresh.hasCompleteIndexExceptGaps {
             let paused = appState.globalAutoIndexPaused
             if !paused {
                 onReconcileRequested?(fresh.uuid, volume)
@@ -450,6 +464,8 @@ final class MediumCoordinator {
         guard let id = mediumByPath.removeValue(forKey: path) else { return }
         DiskIndexLog.shared.record(.medium, .info, "ausgehängt id=\(id)", privateDetail: path)
         requestedIndex.remove(id)
+        // bug.0.4.201 (b): die Trennung zuerst sichtbar machen – ein Lauf, der gerade endet, zeigt keinen Hinweis mehr.
+        appState.updateMedium(id: id) { $0.connectionStatus = .offline }
         // bug.0.4.187 (a), 193, 200 (e): Hinweis nur für angeschlossene Medien (Konzept 2b) – beim Aushängen für jeden
         // Grund schließen und die zugestellte Mitteilung zurückziehen, auch wenn der Hinweis schon geschlossen oder von
         // einem anderen Medium überschrieben ist.

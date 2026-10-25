@@ -58,8 +58,8 @@ struct GapMediumBehavesOnlineTests {
         return limits
     }
 
-    /// Angeschlossenes Medium, erster Lauf endet mit Lücke („bad“ nicht lesbar) → `.error`, Hinweis steht.
-    private static func gapMedium(_ name: String) async throws -> Setup {
+    /// Angeschlossenes Medium (auch für `GapMediumRemainderTests`), erster Lauf endet mit Lücke („bad“ nicht lesbar) → `.error`, Hinweis steht.
+    static func gapMedium(_ name: String) async throws -> Setup {
         let harness = try await ScanHarness.make()
         let volume = testVolume(path: "/Volumes/\(name)", name: name)
         try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)

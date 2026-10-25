@@ -1,0 +1,13 @@
+# bug.0.4.201 (f): unterbrochener Abgleich eines Mediums mit Lücke endet als „indiziert“
+# Test: GapMediumBehavesOnlineTests/pauseDuringTheQuietFollowUpRunIsNoNewFailure()
+--- a/diskindex/diskindex/Indexing/DirectoryIndexer.swift	2026-10-25 20:19:37
++++ b/diskindex/diskindex/Indexing/DirectoryIndexer.swift	2026-10-25 20:19:37
+@@ -700,7 +700,7 @@
+     ) async -> IndexRunOutcome {
+         let reconcileInterrupted = fullReconcile && (halt == .none || halt == .pause || halt == .cancel)
+         // bug.0.4.200 (c): unterbrochener Abgleich behält den Stand davor (`.indexed` bzw. „Fehler“ wegen Lücke).
+-        let status: StoredIndexStatus = reconcileInterrupted ? stored.indexStatus : .pending
++        let status: StoredIndexStatus = reconcileInterrupted ? .indexed : .pending
+         let interrupted = reconcileInterrupted
+         do {
+             _ = try await store.finishIndexing(

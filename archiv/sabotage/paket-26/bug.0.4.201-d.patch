@@ -1,0 +1,13 @@
+# bug.0.4.201 (d): Anschließen in der Pause setzt ein Medium mit Lücke auf „unvollständig“
+# Test: GapMediumRemainderTests/connectDuringPauseKeepsTheError()
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 20:19:37
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 20:19:37
+@@ -233,7 +233,7 @@
+             // bug.0.4.126: „indiziert“ nur nach einem Lauf bis zum Ende, nicht nach der ersten fertigen Ebene.
+             // bug.0.4.201 (d): eine Lücke bleibt „Fehler“, bis ein Lauf sie nachliest – in der Pause startet keiner.
+             let paused = appState.globalAutoIndexPaused || appState.heldForSleep || fresh.autoIndexPaused
+-            if fresh.hasIndexGaps, fresh.decision == .index, paused {
++            if fresh.hasIndexGaps, fresh.decision == .dontIndex, paused {
+                 fresh.indexStatus = .error
+             } else {
+                 fresh.indexStatus = await settledStatus(fresh)

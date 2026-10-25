@@ -65,6 +65,18 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
   (e) **Frühe Fehler (niedrig):** `DirectoryIndexer.swift` Z. ~40–53 (`store.medium` oder `beginIndexing` wirft) enden ohne `finishIndexing`, der Merker bleibt, `reprobeDeniedVolumes` überspringt das Medium weiter. Merker auch auf diesen Wegen löschen (eine Stelle, Regel 7). Test + Patch.
   (f) **Fehlende Patches:** `DirectoryIndexer.swift` Z. ~689 (`stop` behält `.error` → `.indexed`); je ein Patch für `occupancyLabel`, `showsLastIndexedLine`, `menuBarSecondaryLine`; `connectKnown` mit verweigertem Zugriff löscht den Merker (`MediumCoordinator.swift` Z. ~208): direkter Test + Patch.
   **So lassen:** roter Kartenrand und rotes Symbol bei Lücke (gehören zur Fehler-Optik, der Nutzer wollte „fehlerhaft“); während des lauten Nachlesens beim Anschließen keine Überwachung (wie bei jedem Lauf).
-  **Status:** 
+  **Status:** Bereit zur Prüfung. Vorher rot (20:13): `GapMediumRemainderTests` a–e; f-verweigert war schon grün (seit 200), dafür nur Test und Patch. (a) `resumePausedRuns` über `hasCompleteIndexExceptGaps`, gilt für Pause-Ende und Aufwachen. (b) Aushängen setzt offline vor allen `await`s; `finish` fragt den Koordinator (`isStillMounted`); Test mit Haken `finishBeforeFailureHookForTesting`. (c) Eine Regel `IndexRunKind`, gemerkt in `start` mit Token-Prüfung; der Task überschreibt nur, wenn der Speicher lesbar war.
+  (d) Ein Medium mit Lücke bleibt in der Pause „Fehler“; endet die Pause beim Anschließen, holt `connectKnown` den Abgleich nach (Befund mittel der Selbstprüfung, Test mit Haken). (e) `failedBeforeBegin` löscht den Merker. (f) 5 Patches. Die 200er-Patches `c-pause` und `e-lauf` sind neu gebaut, weil sich die Bedingung geändert hat.
+  Selbstprüfung (Sonnet): nichts Hohes. Mittel behoben: Pausenfenster. Mittel nicht erreichbar: Wiederanschluss während des Aushängens, denn die Ereignisse laufen nacheinander (`for await`).
+  20:30–20:32: 266 Tests in 38 Suites grün. Sabotage 30/30 rot (20:33–20:43). 20× parallel `GapMediumRemainder…` + `GapMediumBehavesOnline…` grün (20:43).
+  Release und Debug: 0 Warnungen. App 20:45 (0.4.0), Signatur ok, 0 neue `.ips`. Kein Gesamtlauf (laut Auftrag, Last 3–5).
 
 **Paketende:** 0 Warnungen Debug und Release, die betroffenen Tests und alle Patches unter `todo/sabotage/` rot, App des Nutzers gebaut. **Gesamtlauf (seriell/parallel) nur, wenn der Rechner ruhig ist** (keine Spiele, Last < 3); sonst weglassen und im Status vermerken, dann macht ihn der Host.
+
+## Abnahme Host 25.10. (Gesamtlauf 20:53–21:31, Last ~2,5)
+
+`Werkzeuge/pruefung.sh voll`: Debug und Release 0 Warnungen, seriell **1126/1126**, Parallel 1–3 **grün** (je 1120 bestanden, 6 übersprungen), keine neuen `.ips`, Sabotage **30/30 rot ✓**, App des Nutzers 21:30:57, Signatur gültig, Version 0.4.0. Drei Prüf-Agenten (Sonnet, je einer für 199, 200, 201): nach 201 nichts Hohes oder Mittleres, kein Rückschritt bei 162, 166, 187, 193, 104, 141.
+
+- **Abgenommen:** `bug.0.4.199`, `200`, `201`.
+- **Reste (niedrig) → `bug.0.4.202` (Paket 27):** Merker nach `runs[id] = nil` an das Token binden, Überwachung nach Aushängen am Laufende, `cancel` vor dem Lesen des Speichers, Patch 201-b teilen, Pausenzweig beim Anschließen ohne Test.
+- **So lassen:** roter Kartenrand und rotes Symbol bei Lücke; keine Überwachung während des lauten Nachlesens beim Anschließen; Doppelstart bei Pausenende im Anschließen; unterbrochener Wiederholungslauf zeigt „x % indiziert, offline“; Filter „Indiziert“ ohne Medien mit Lücke.

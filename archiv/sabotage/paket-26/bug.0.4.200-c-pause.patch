@@ -1,13 +1,13 @@
 # bug.0.4.200 (c): Pause während des stillen Abgleichs meldet einen Fehler
 # Test: GapMediumBehavesOnlineTests/pauseDuringTheQuietFollowUpRunIsNoNewFailure()
---- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 18:05:28
-+++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 18:05:28
-@@ -454,7 +454,7 @@
-         // (Konzept 2b).
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 20:29:56
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 20:29:56
+@@ -481,7 +481,7 @@
+         #endif
          let quietGap = quietGapRuns.remove(mediumUUID) != nil
          let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
 -        if outcome.status == .error, !gapRemains, !outcome.interrupted, let medium = appState.medium(with: mediumUUID),
 +        if outcome.status == .error, !gapRemains, let medium = appState.medium(with: mediumUUID),
-            medium.connectionStatus == .connected {
+            medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
              appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
          }

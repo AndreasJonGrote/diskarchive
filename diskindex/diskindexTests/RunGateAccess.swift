@@ -33,7 +33,14 @@ final class RunGateAccess: MediumAccess, @unchecked Sendable {
         await state.held
     }
 
-    func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
+    /// bug.0.4.201 (f): Probe meldet „kein Zugriff“, solange eingeschaltet.
+    private let probeLock = NSLock()
+    private var probeDenied = false
+    func setProbeDenied(_ denied: Bool) { probeLock.withLock { probeDenied = denied } }
+
+    func probe(_ volume: VolumeInfo) async -> MediumAccessResult {
+        probeLock.withLock { probeDenied } ? .denied(reason: "NSCocoaErrorDomain 257") : .granted
+    }
 
     func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
         let path = url.standardizedFileURL.path

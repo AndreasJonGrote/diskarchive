@@ -1,0 +1,13 @@
+# bug.0.4.201 (f): „Zuletzt indiziert“ fehlt bei Lücke
+# Test: GapMediumBehavesOnlineTests/gapMediumShowsTheOnlineLines()
+--- a/diskindex/diskindex/Models/Medium+Dashboard.swift	2026-10-25 20:19:37
++++ b/diskindex/diskindex/Models/Medium+Dashboard.swift	2026-10-25 20:19:37
+@@ -25,7 +25,7 @@
+ 
+     /// Dashboard-Karte: Zeile „Zuletzt indiziert“ (aus `MediumDashboardCard`, bug.0.4.200 testbar).
+     var showsLastIndexedLine: Bool {
+-        connectionStatus == .connected && showsIndexDetails && hasIndex
++        connectionStatus == .connected && indexStatus == .indexed && hasIndex
+     }
+ 
+     /// bug.0.4.200 (a): Belegung und „Zuletzt indiziert“ wie bei Online – indiziert, im Lauf oder Fehler wegen Lücke.

@@ -46,9 +46,11 @@ final class IndexingService {
     /// Lauf zu Ende: Live-Überwachung starten (nach Erfolg und, bug.0.4.084, nach einem gescheiterten Lauf).
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
 
-    fileprivate func setRunFullReconcile(_ mediumUUID: UUID, _ value: Bool, quietGap: Bool) {
-        runFullReconcile[mediumUUID] = value
-        if quietGap {
+    fileprivate func setRunFullReconcile(_ mediumUUID: UUID, _ token: UUID, _ kind: IndexRunKind) {
+        // bug.0.4.201 (c): ein abgebrochener Lauf merkt sich nichts mehr (sonst bliebe der Eintrag nach `cancel` stehen).
+        guard runs[mediumUUID] == token else { return }
+        runFullReconcile[mediumUUID] = kind.fullReconcile
+        if kind.quietGap {
             quietGapRuns.insert(mediumUUID)
         } else {
             quietGapRuns.remove(mediumUUID)
@@ -80,6 +82,8 @@ final class IndexingService {
     var finishDecisionHookForTesting: (@MainActor (UUID) async -> Void)?
     /// Tests (bug.0.4.073): läuft in `cancel` nach dem Abmelden, vor dem Warten auf den Task. Je Instanz.
     var cancelBeforeAwaitHookForTesting: (@MainActor (UUID) async -> Void)?
+    /// Tests (bug.0.4.201 b): läuft in `finish` nach der Token-Prüfung, vor der Entscheidung über den Hinweis. Je Instanz.
+    var finishBeforeFailureHookForTesting: (@MainActor (UUID) async -> Void)?
     #endif
 
     fileprivate func isRunToken(_ mediumUUID: UUID, _ token: UUID) -> Bool {
@@ -185,6 +189,16 @@ final class IndexingService {
         // bug.0.4.095: ein neuer Lauf (Anschließen, Neu indizieren, Pausenende) hebt die Sperre des Vollabgleichs auf.
         fullReconcileSuppressed.remove(mediumUUID)
         runs[mediumUUID] = token
+        // bug.0.4.201 (c): Art des Laufs sofort merken (aus dem angezeigten Stand), damit ein `cancel` vor dem Lesen des
+        // Speichers „Fehler“ bzw. `.indexed` wiederherstellt; der Lauf berichtigt sie gleich aus dem Speicher.
+        if let medium = appState.medium(with: mediumUUID) {
+            setRunFullReconcile(mediumUUID, token, IndexRunKind(
+                fromScratch: fromScratch,
+                completeExceptGaps: medium.hasCompleteIndexExceptGaps,
+                completedDepth: medium.completedDepth,
+                error: medium.indexStatus == .error
+            ))
+        }
         runVolumes[mediumUUID] = volume
         runStartedAt[mediumUUID] = Date()
         var configuration = ScanConfiguration(
@@ -211,14 +225,17 @@ final class IndexingService {
                 storedBeforeRun = nil
             }
             // bug.0.4.200 (c): ein Medium mit Lücke gleicht ab wie ein `.indexed`-Medium (gleiche Regel wie im Indexer).
-            let completeBefore = storedBeforeRun?.hasCompleteIndexExceptGaps == true
-            let fullReconcile = !fromScratch
-                && completeBefore
-                && (storedBeforeRun?.completedDepth ?? 0) > 0
-            let quietGap = fullReconcile && storedBeforeRun?.indexStatus == .error
-            await bridge.rememberFullReconcile(mediumUUID, fullReconcile, quietGap: quietGap)
-            let reconcileRun = !fromScratch && completeBefore
-            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: reconcileRun)
+            // bug.0.4.201 (c): Speicher nicht lesbar → die in `start` gemerkte Art bleibt (kein Überschreiben mit „kein Abgleich“).
+            let kind = IndexRunKind(
+                fromScratch: fromScratch,
+                completeExceptGaps: storedBeforeRun?.hasCompleteIndexExceptGaps == true,
+                completedDepth: storedBeforeRun?.completedDepth ?? 0,
+                error: storedBeforeRun?.indexStatus == .error
+            )
+            if storedBeforeRun != nil {
+                await bridge.rememberFullReconcile(mediumUUID, token, kind)
+            }
+            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: kind.reconcileRun)
             guard began else { return }
             let outcome = await indexer.run(
                 store: store,
@@ -459,10 +476,13 @@ final class IndexingService {
         // bug.0.4.200 (c): stiller Abgleich mit bleibender Lücke → kein neuer Hinweis, keine neue Mitteilung; ein
         // unterbrochener Abgleich (Pause, Abbruch) ist nie ein neuer Fehler. (e): Hinweis nur für angeschlossene Medien
         // (Konzept 2b).
+        #if DEBUG
+        await finishBeforeFailureHookForTesting?(mediumUUID)
+        #endif
         let quietGap = quietGapRuns.remove(mediumUUID) != nil
         let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
         if outcome.status == .error, !gapRemains, !outcome.interrupted, let medium = appState.medium(with: mediumUUID),
-           medium.connectionStatus == .connected {
+           medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
         #if DEBUG
@@ -505,6 +525,13 @@ final class IndexingService {
         coordinator?.clearIndexRequest(mediumID: mediumUUID)
     }
 
+    /// bug.0.4.201 (b): eingehängt laut Koordinator (das Aushängen trägt den Pfad vor jedem `await` aus); ohne
+    /// Koordinator (Dienst allein) zählt nur der angezeigte Verbindungsstatus.
+    private func isStillMounted(_ mediumUUID: UUID) -> Bool {
+        guard let coordinator else { return true }
+        return coordinator.volume(for: mediumUUID) != nil
+    }
+
     private func resumePausedRuns() {
         guard let coordinator, !appState.globalAutoIndexPaused else { return }
         for (id, volume) in coordinator.connectedVolumes() {
@@ -522,13 +549,30 @@ final class IndexingService {
                 }
                 guard let stored else { return }
                 guard stored.decision == .index else { return }
-                guard stored.indexStatus == .pending || stored.indexStatus == .indexing || stored.indexStatus == .indexed else {
+                // bug.0.4.201 (a): ein Medium mit Lücke gleicht ab wie ein `.indexed`-Medium.
+                guard stored.indexStatus == .pending || stored.indexStatus == .indexing || stored.hasCompleteIndexExceptGaps else {
                     return
                 }
                 guard tasks[id] == nil else { return }
                 start(mediumUUID: id, volume: volume, fromScratch: false)
             }
         }
+    }
+}
+
+/// Art des Laufs aus dem Stand davor (bug.0.4.014 Abgleich, bug.0.4.200 c stiller Abgleich bei Lücke).
+nonisolated struct IndexRunKind: Sendable {
+    /// Voller Abgleich: unterbrochen bleibt der Stand davor.
+    let fullReconcile: Bool
+    /// Abgleich eines Mediums mit Lücke: Status bleibt „Fehler“, bleibt die Lücke, kein neuer Hinweis.
+    let quietGap: Bool
+    /// Ohne „wird indiziert“ beginnen.
+    let reconcileRun: Bool
+
+    init(fromScratch: Bool, completeExceptGaps: Bool, completedDepth: Int, error: Bool) {
+        reconcileRun = !fromScratch && completeExceptGaps
+        fullReconcile = reconcileRun && completedDepth > 0
+        quietGap = fullReconcile && error
     }
 }
 
@@ -540,9 +584,9 @@ private final class Bridge: @unchecked Sendable {
         self.service = service
     }
 
-    func rememberFullReconcile(_ mediumUUID: UUID, _ fullReconcile: Bool, quietGap: Bool) async {
+    func rememberFullReconcile(_ mediumUUID: UUID, _ token: UUID, _ kind: IndexRunKind) async {
         await MainActor.run {
-            service?.setRunFullReconcile(mediumUUID, fullReconcile, quietGap: quietGap)
+            service?.setRunFullReconcile(mediumUUID, token, kind)
         }
     }
 

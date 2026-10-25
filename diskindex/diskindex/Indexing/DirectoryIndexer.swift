@@ -41,7 +41,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             if DiskIndexLog.isOperationalFailure(error) {
                 DiskIndexLog.shared.record(.store, .error, "store error medium \(DiskIndexLog.errorSummary(error))")
             }
-            return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: IndexFailureReason.classify(error))
+            return await failedBeforeBegin(store, mediumUUID, IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: nil, failureReason: IndexFailureReason.classify(error)))
         }
         let began: Bool
         do {
@@ -50,7 +50,7 @@ nonisolated struct DirectoryIndexer: Sendable {
             if DiskIndexLog.isOperationalFailure(error) {
                 DiskIndexLog.shared.record(.store, .error, "store error beginIndexing \(DiskIndexLog.errorSummary(error))")
             }
-            return IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: stored.firstIndexedAt, failureReason: IndexFailureReason.classify(error))
+            return await failedBeforeBegin(store, mediumUUID, IndexRunOutcome(status: .error, readErrors: 0, progress: [], completedDepths: [], firstIndexedAt: stored.firstIndexedAt, failureReason: IndexFailureReason.classify(error)))
         }
         guard began else {
             DiskIndexLog.shared.record(.index, .error, "begin abgelehnt medium=\(mediumUUID)")
@@ -671,6 +671,19 @@ nonisolated struct DirectoryIndexer: Sendable {
             firstIndexedAt: stored.firstIndexedAt,
             failureReason: IndexFailureReason.classify(error)
         )
+    }
+
+    /// bug.0.4.201 (e): Fehler vor dem Beginn (kein `finishIndexing`): der letzte Fehler ist nicht mehr die Lücke, der
+    /// Merker fällt weg (sonst übersprünge das Aktivieren der App das Medium weiter).
+    private func failedBeforeBegin(_ store: IndexStoreV3, _ mediumUUID: UUID, _ outcome: IndexRunOutcome) async -> IndexRunOutcome {
+        do {
+            try await store.clearIndexGaps(mediumUUID: mediumUUID)
+        } catch {
+            if DiskIndexLog.isOperationalFailure(error) {
+                DiskIndexLog.shared.record(.store, .error, "store error clearIndexGaps \(DiskIndexLog.errorSummary(error))")
+            }
+        }
+        return outcome
     }
 
     private func stop(
