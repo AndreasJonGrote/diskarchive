@@ -51,10 +51,19 @@ final class IndexingService {
         // bug.0.4.201 (c): ein abgebrochener Lauf merkt sich nichts mehr (sonst bliebe der Eintrag nach `cancel` stehen).
         guard runs[mediumUUID] == token else { return nil }
         if let kind {
-            runKinds[mediumUUID] = RememberedRunKind(token: token, kind: kind, confirmedByStore: true)
+            runKinds[mediumUUID] = RememberedRunKind(
+                token: token, kind: kind, confirmedByStore: true, fromScratch: runKinds[mediumUUID]?.fromScratch ?? false
+            )
         }
         // bug.0.4.202 (c): Art und Beginn der Anzeige aus derselben Quelle.
         return runKinds[mediumUUID]?.token == token ? runKinds[mediumUUID]?.kind : nil
+    }
+
+    /// bug.0.4.203: Nach der Freigabe eines Laufs (`runs[id] = nil`) ist ein eingetragener Lauf ein neuerer – sein altes
+    /// `finish` bzw. `cancel` verändert nichts mehr, was ihm gehört (Sperre des Vollabgleichs, Anforderung, Anzeige,
+    /// Überwachung, Nachhol-Abgleich). Eine Stelle (Regel 7); nach jedem `await` neu fragen.
+    private func newerRunOwns(_ mediumUUID: UUID) -> Bool {
+        runs[mediumUUID] != nil
     }
 
     /// bug.0.4.202 (a): Art dieses Laufs abholen (nur mit seinem Token).
@@ -90,6 +99,12 @@ final class IndexingService {
     var cancelBeforeAwaitHookForTesting: (@MainActor (UUID) async -> Void)?
     /// Tests (bug.0.4.201 b): läuft in `finish` nach der Token-Prüfung, vor der Entscheidung über den Hinweis. Je Instanz.
     var finishBeforeFailureHookForTesting: (@MainActor (UUID) async -> Void)?
+    /// Tests (bug.0.4.203 a): läuft in `finish` direkt nach der Freigabe (`runs[id] = nil`), vor dem Lesen des Speichers.
+    var finishAfterReleaseHookForTesting: (@MainActor (UUID) async -> Void)?
+    /// Tests (bug.0.4.203 d): das nächste Lesen des Speichers in `cancel` bzw. vor dem Lauf scheitert (nur dieser Aufrufer,
+    /// je Instanz; danach wieder aus).
+    var failsNextCancelStoreReadForTesting = false
+    var failsNextStoreReadBeforeRunForTesting = false
     #endif
 
     fileprivate func isRunToken(_ mediumUUID: UUID, _ token: UUID) -> Bool {
@@ -204,7 +219,7 @@ final class IndexingService {
                 completeExceptGaps: medium.hasCompleteIndexExceptGaps,
                 completedDepth: medium.completedDepth,
                 error: medium.indexStatus == .error
-            ), confirmedByStore: false)
+            ), confirmedByStore: false, fromScratch: fromScratch)
         } else {
             runKinds[mediumUUID] = nil
         }
@@ -223,9 +238,16 @@ final class IndexingService {
         let store = store
         let access = access
         let bridge = Bridge(service: self)
+        #if DEBUG
+        let failsStoreRead = failsNextStoreReadBeforeRunForTesting
+        failsNextStoreReadBeforeRunForTesting = false
+        #else
+        let failsStoreRead = false
+        #endif
         tasks[mediumUUID] = Task.detached(priority: .utility) {
             var storedBeforeRun: StoredMedium?
             do {
+                if failsStoreRead { throw IndexStoreError.unknownMedium }
                 storedBeforeRun = try await store.medium(uuid: mediumUUID)
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
@@ -306,14 +328,24 @@ final class IndexingService {
         pauseIDs.remove(mediumUUID)
         let remembered = takeRunKind(mediumUUID, token)
         var kind = remembered?.kind
-        if let remembered, !remembered.confirmedByStore, remembered.kind.fullReconcile {
+        // bug.0.4.203 (b): unbestätigt immer gegen den Speicher prüfen, gleich was die Anzeige sagte (auch „kein Abgleich“).
+        if let remembered, !remembered.confirmedByStore {
             // bug.0.4.202 (c): Abbruch vor dem Lesen des Speichers – den Stand davor nur so wiederherstellen, wie ihn der
             // Speicher bestätigt (nie ein `.indexed` bzw. „Fehler“ mit Lücke schreiben, das dort nicht stand); nicht
             // lesbar → `.pending`.
-            let stored = try? await store.medium(uuid: mediumUUID)
+            var stored: StoredMedium?
+            #if DEBUG
+            let failsStoreRead = failsNextCancelStoreReadForTesting
+            failsNextCancelStoreReadForTesting = false
+            #else
+            let failsStoreRead = false
+            #endif
+            if !failsStoreRead {
+                stored = try? await store.medium(uuid: mediumUUID)
+            }
             kind = stored.map {
                 IndexRunKind(
-                    fromScratch: false,
+                    fromScratch: remembered.fromScratch,
                     completeExceptGaps: $0.hasCompleteIndexExceptGaps,
                     completedDepth: $0.completedDepth,
                     error: $0.indexStatus == .error
@@ -452,8 +484,12 @@ final class IndexingService {
             appState.reindexRequested.remove(mediumUUID)
         }
         appState.clearMenuBarRunIndicators(mediumUUID)
-        runs[mediumUUID] = nil
+        // bug.0.4.203 (a): auch die Startzeit gehört diesem Lauf – vor der Freigabe abholen.
         let started = runStartedAt.removeValue(forKey: mediumUUID)
+        runs[mediumUUID] = nil
+        #if DEBUG
+        await finishAfterReleaseHookForTesting?(mediumUUID)
+        #endif
         DiskIndexLog.shared.record(.index, .info, "lauf ende medium=\(mediumUUID) status=\(outcome.status)")
         var stored: StoredMedium?
         do {
@@ -464,18 +500,24 @@ final class IndexingService {
             }
             stored = nil
         }
+        // bug.0.4.203 (a): Status, Fortschritt und Phase gehören einem inzwischen gestarteten Lauf (die Zahlen aus dem
+        // Speicher gelten weiter).
+        let ownsDisplay = !newerRunOwns(mediumUUID)
         appState.updateMedium(id: mediumUUID) {
-            if let raw = stored?.indexStatus.rawValue, let status = IndexStatus(rawValue: raw) {
-                $0.indexStatus = status
-            } else if outcome.status == .indexed {
-                $0.indexStatus = .indexed
-            } else if outcome.status == .error {
-                $0.indexStatus = .error
-            } else {
-                $0.indexStatus = .pending
-            }
-            if $0.indexStatus == .indexed, !outcome.interrupted {
-                $0.indexingProgress = 1
+            if ownsDisplay {
+                if let raw = stored?.indexStatus.rawValue, let status = IndexStatus(rawValue: raw) {
+                    $0.indexStatus = status
+                } else if outcome.status == .indexed {
+                    $0.indexStatus = .indexed
+                } else if outcome.status == .error {
+                    $0.indexStatus = .error
+                } else {
+                    $0.indexStatus = .pending
+                }
+                if $0.indexStatus == .indexed, !outcome.interrupted {
+                    $0.indexingProgress = 1
+                }
+                $0.indexRunPhase = .indexing
             }
             if let stored {
                 $0.fileCount = stored.fileCount
@@ -486,7 +528,6 @@ final class IndexingService {
                 $0.lastIndexedAt = stored.lastIndexedAt
                 $0.lastIndexActivityAt = stored.lastIndexActivityAt
             }
-            $0.indexRunPhase = .indexing
         }
         if outcome.status == .indexed, !outcome.interrupted {
             appState.endIndexingFailure(mediumID: mediumUUID)
@@ -509,8 +550,9 @@ final class IndexingService {
         #endif
         let quietGap = kind?.quietGap ?? false
         let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
-        if outcome.status == .error, !gapRemains, !outcome.interrupted, let medium = appState.medium(with: mediumUUID),
-           medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
+        // bug.0.4.203: läuft schon ein neuer Lauf, meldet er selbst sein Ergebnis (kein Hinweis mitten in seinem Lauf).
+        if outcome.status == .error, !gapRemains, !outcome.interrupted, !newerRunOwns(mediumUUID),
+           let medium = appState.medium(with: mediumUUID), medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
         #if DEBUG
@@ -519,12 +561,16 @@ final class IndexingService {
         #endif
         // bug.0.4.127: auch ein Lauf bis zum Ende mit nicht lesbaren Ordnern (bug.0.4.199: `.error`) startet die Überwachung.
         let finishedRun = !outcome.interrupted && (outcome.status == .indexed || outcome.ranToEnd)
-        if finishedRun {
+        // bug.0.4.203 (a): Sperre, Überwachung und Nachhol-Abgleich gehören einem inzwischen gestarteten Lauf.
+        let superseded = newerRunOwns(mediumUUID)
+        if finishedRun, !superseded {
             fullReconcileSuppressed.remove(mediumUUID)
         }
         // bug.0.4.202 (b): keine Überwachung für ein beim Laufende ausgehängtes Medium (wie beim Hinweis).
         let mounted = isStillMounted(mediumUUID)
-        if finishedRun, mounted, let volume = runVolume {
+        if superseded {
+            DiskIndexLog.shared.record(.index, .info, "neuer lauf übernimmt medium=\(mediumUUID)")
+        } else if finishedRun, mounted, let volume = runVolume {
             onRunIndexed?(mediumUUID, volume)
         } else if !finishedRun, mounted, Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolume {
             // bug.0.4.084 (README: beim Anschließen Lauf und sofort Live-Überwachung): Ein gescheiterter Lauf lässt die
@@ -542,7 +588,7 @@ final class IndexingService {
         if finishedRun {
             appState.scheduleDatabaseMaintenance()
         }
-        if rerunAfterFinish.contains(mediumUUID) {
+        if !superseded, rerunAfterFinish.contains(mediumUUID) {
             rerunAfterFinish.remove(mediumUUID)
             if let coordinator, let volume = coordinator.volume(for: mediumUUID) {
                 DiskIndexLog.shared.record(.index, .info, "abgleich nachgeholt medium=\(mediumUUID)")
@@ -550,7 +596,9 @@ final class IndexingService {
             }
         }
         BulkDirectoryReader.flushReadLogSummary(force: true)
-        coordinator?.clearIndexRequest(mediumID: mediumUUID)
+        if !newerRunOwns(mediumUUID) {
+            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+        }
     }
 
     /// bug.0.4.201 (b): eingehängt laut Koordinator (das Aushängen trägt den Pfad vor jedem `await` aus); ohne
@@ -609,6 +657,8 @@ private struct RememberedRunKind {
     let token: UUID
     let kind: IndexRunKind
     let confirmedByStore: Bool
+    /// bug.0.4.203 (b): für die Prüfung gegen den Speicher in `cancel`.
+    let fromScratch: Bool
 }
 
 /// Schmale Brücke, damit der Utility-Task den Main-Actor-Dienst erreicht.

@@ -48,4 +48,4 @@ Zu 0.4.1 gehören außerdem `todo.0.4.021` (Download-Seite mit Anleitung), `022`
 | `todo.1.0.002` | Erweiterte Dateityp-Icons (früher T3, Styleguide 15) |
 | `todo.1.0.003` | Ausführliches Protokoll / Diagnose-Modus (früher T5, Vorschlag Claude, nicht freigegeben) |
 
-Entfallen: T2 „Programme als Dateityp“ (erledigt in 233: `.app`, `.dmg`, `.pkg`); Signatur/Notarisierung stand im alten Backlog bei 1.0, gilt laut README aber als Voraussetzung von 0.4 (`todo.0.4.020`).
+Entfallen: T2 „Programme als Dateityp“ (erledigt in 233: `.app`, `.dmg`, `.pkg`); Signatur/Notarisierung: zu 1.0 (Nutzer 18.10., `todo.0.4.020`), nicht Voraussetzung von 0.4.

@@ -1,6 +1,6 @@
 # Checkliste Abnahmerunde 0.4.0 (`todo.0.4.040`, Nutzer)
 
-Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 28). Geschrieben vom Host 25.10. (`todo.0.4.045`). Funde schreibst du einfach in den Chat, der Host macht daraus `bug.0.4.xxx`.
+Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 29). Geschrieben vom Host 25.10. (`todo.0.4.045`). Funde schreibst du einfach in den Chat, der Host macht daraus `bug.0.4.xxx`.
 
 ## Vorher
 
@@ -24,7 +24,7 @@ Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 28). 
 - [ ] Rückfrage „Ersetzt dieses Medium?“ (z. B. Stick neu formatieren, gleicher Name) samt Texten.
 - [ ] Ein Volume im Finder umbenennen → Name in der App folgt.
 - [ ] **Gegenprobe `bug.0.4.141`:** Datei als Favorit markieren, auf dem Medium in einen anderen Ordner verschieben, während der Abgleich läuft das Medium abziehen, wieder anstecken → Favorit ist noch da.
-- [ ] **`bug.0.4.199`:** einen Ordner auf der SSD (APFS oder Mac OS Extended; FAT/exFAT-Sticks kennen keine Rechte) unlesbar machen (Finder → Informationen → Freigabe & Zugriffsrechte: „Keine Rechte“ für alle), neu indizieren → Chip „Fehler“, Grund „Einige Ordner … nicht gelesen“, Details „Indiziert 99 %“; Rechte zurück, abziehen und anstecken → Online, „Indiziert 100 %“.
+- [ ] **`bug.0.4.199`:** zuerst im Finder die SSD auswählen → Informationen → unten „Eigentümer auf diesem Volume ignorieren“ **ausschalten** (externe Volumes haben das oft an, dann greift „Keine Rechte“ nicht); dann einen Ordner auf der SSD (APFS oder Mac OS Extended; FAT/exFAT-Sticks kennen keine Rechte) unlesbar machen (Finder → Informationen → Freigabe & Zugriffsrechte: „Keine Rechte“ für alle), neu indizieren → Chip „Fehler“, Grund „Einige Ordner … nicht gelesen“, Details „Indiziert 99 %“; Rechte zurück, abziehen und anstecken → Online, „Indiziert 100 %“; danach „Eigentümer ignorieren“ wieder so einstellen wie vorher.
 
 ## 3. Layout-Durchgang
 

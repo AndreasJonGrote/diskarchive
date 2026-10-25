@@ -1,0 +1,15 @@
+# bug.0.4.203 (a): altes finish löscht die Anforderung eines neuen Laufs
+# Test: GapMediumRunOwnershipTests/oldFinishLeavesDisplayAndRequestOfTheNewRun()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:42:42
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:42:42
+@@ -596,9 +596,7 @@
+             }
+         }
+         BulkDirectoryReader.flushReadLogSummary(force: true)
+-        if !newerRunOwns(mediumUUID) {
+-            coordinator?.clearIndexRequest(mediumID: mediumUUID)
+-        }
++        coordinator?.clearIndexRequest(mediumID: mediumUUID)
+     }
+ 
+     /// bug.0.4.201 (b): eingehängt laut Koordinator (das Aushängen trägt den Pfad vor jedem `await` aus); ohne

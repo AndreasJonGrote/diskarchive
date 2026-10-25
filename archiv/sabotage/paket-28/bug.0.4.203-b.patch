@@ -1,0 +1,13 @@
+# bug.0.4.203 (b): cancel prüft eine unbestätigte Art nur bei angezeigtem Abgleich gegen den Speicher
+# Test: GapMediumRunOwnershipTests/cancelChecksAnUnconfirmedKindAgainstTheStore()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:40
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:40
+@@ -329,7 +329,7 @@
+         let remembered = takeRunKind(mediumUUID, token)
+         var kind = remembered?.kind
+         // bug.0.4.203 (b): unbestätigt immer gegen den Speicher prüfen, gleich was die Anzeige sagte (auch „kein Abgleich“).
+-        if let remembered, !remembered.confirmedByStore {
++        if let remembered, !remembered.confirmedByStore, remembered.kind.fullReconcile {
+             // bug.0.4.202 (c): Abbruch vor dem Lesen des Speichers – den Stand davor nur so wiederherstellen, wie ihn der
+             // Speicher bestätigt (nie ein `.indexed` bzw. „Fehler“ mit Lücke schreiben, das dort nicht stand); nicht
+             // lesbar → `.pending`.

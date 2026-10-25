@@ -5,7 +5,8 @@
 | Datei | Inhalt | Wer liest |
 |---|---|---|
 | [todo/regeln.md](todo/regeln.md) | 15 Regeln für den Worker (verbindlich, neu gefasst 23.10.) | Worker immer, Host bei Bedarf |
-| [todo/paket-25.md](todo/paket-25.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
+| [todo/paket-29.md](todo/paket-29.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
+| [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | Checkliste der Abnahmerunde `todo.0.4.040` | Nutzer |
 | [todo/backlog.md](todo/backlog.md) | nicht freigegeben, nach Zielversion | nur bei Planung |
 | `archiv/todo-stand-*.md` | alte Fassungen (Volltexte abgenommener Pakete) | nur bei Bedarf |
 
@@ -18,9 +19,9 @@
 
 ## Stand
 
-**Stand 25.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 27** (DONE.md). **Gesamtlauf 25.10. 21:59–22:29 grün** (seriell 1135/1135, parallel 3× grün, Sabotage 9/9, 0 Warnungen, keine `.ips`). **Paket 28 freigegeben** ([todo/paket-28.md](todo/paket-28.md), `bug.0.4.203`, Reste aus 27). **Offen vor `todo.0.4.040`:** Paket 28. Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). „Keine Schwelle“ bleibt (Nutzer 23.10.). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
+**Stand 25.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 28** (DONE.md). **Gesamtlauf 25.10. 23:01–23:33 grün** (seriell 1140/1140, parallel 3× grün, Sabotage 10/10, 0 Warnungen, keine `.ips`). **Paket 29 freigegeben** ([todo/paket-29.md](todo/paket-29.md), `bug.0.4.204`, Umbau statt weiterer Flicken). **Offen vor `todo.0.4.040`:** Paket 29. Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). „Keine Schwelle“ bleibt (Nutzer 23.10.). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
 
-**Prüfung Host 25.10. 02:08–02:38 (Paket 23, Arbeitsbaum auf `aa4df91` + uncommittet, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`, Last ~3):** Debug mit Testziel und Release 0 Warnungen, seriell 1096 Tests und Parallel 1–3 **je dieselben 2 rot** (`PreviousRunReportTests`, Absturzbericht leer – Lauf in der doppelten Stunde der Zeitumstellung, Protokoll-Stempel ohne Zeitzone → `bug.0.4.196`, Ursache vom Host belegt), keine neuen `.ips`, Sabotage **11/11 rot ✓**, App des Nutzers aktuell (02:38:50, Version 0.4.0). Drei Prüf-Agenten (Sonnet): kein hoher Befund; Reste → `bug.0.4.197`. Alle 8 Kennungen abgenommen, 5 mit Resten. Vorige Prüfungen: `archiv/paket-1[4-9]-abgenommen-*.md`, `archiv/paket-2[0-3]-abgenommen-*.md`.
+**Prüfung Host 25.10. 23:01–23:33 (Paket 28, Arbeitsbaum uncommittet seit Paket 27, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`, ruhiger Rechner):** Debug mit Testziel und Release 0 Warnungen, seriell 1140/1140, Parallel 1–3 grün (je 1134 bestanden, 6 übersprungen), keine neuen `.ips`, Sabotage **10/10 rot ✓**, App des Nutzers 23:32:54, Version 0.4.0. Prüf-Agent (Sonnet): kein hoher oder mittlerer Befund; die niedrigen betreffen alle das Nebeneinander zweier Läufe und gehen ohne neue Kennung in `bug.0.4.204` (Supervisor/Nutzer 25.10.). Ältere Prüfungen: `archiv/paket-*-abgenommen-*.md`.
 
 **Abnahmekriterien 0.4.0 (alle müssen erfüllt sein):** (1) alle Kennungen von 0.4.0 vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) App des Nutzers aktuell (Regel 14); (7) Abnahmerunde des Nutzers `todo.0.4.040`; (8) keine offene „Frage:“; (9) alle Sabotage-Patches rot (ab Paket 17).
 
@@ -42,12 +43,13 @@
 | 21 | **0.4.0** | `bug.0.4.186`, `187` | Keine Überwachung nach „nicht bestätigt“, Kleinkram → [archiv/paket-21-abgenommen-2026-10-24.md](archiv/paket-21-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
 | 22 | **0.4.0** | `bug.0.4.188`–`191` | Roter Parallellauf nach Wiedereinhängen, Verwaltungsdateien, Systemmitteilung, Kleinkram → [archiv/paket-22-abgenommen-2026-10-24.md](archiv/paket-22-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
 | 23 | **0.4.0** | `bug.0.4.192`–`195`, `todo.0.4.042`, `046`–`048` | Wackler, Mitteilung, Beweislücken, Wartescreens, Updatedialog, Stapel Erkennungsdialoge, Aufräumen → [archiv/paket-23-abgenommen-2026-10-25.md](archiv/paket-23-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
-| 24 | **0.4.0** | `bug.0.4.196`, `197` | Zeitumstellung im Protokoll, Reste aus Prüfung 23 → [archiv/paket-24-abgenommen-2026-10-25.md](archiv/paket-24-abgenommen-2026-10-25.md) | **abgenommen 25.10.** (ruhiger Gesamtlauf offen) |
-| **25** | **0.4.0** | `bug.0.4.198` | Text „Auf Updates hinweisen“ ohne „in der Menüleiste“ → [archiv/paket-25-abgenommen-2026-10-25.md](archiv/paket-25-abgenommen-2026-10-25.md) | abgenommen 25.10. |
+| 24 | **0.4.0** | `bug.0.4.196`, `197` | Zeitumstellung im Protokoll, Reste aus Prüfung 23 → [archiv/paket-24-abgenommen-2026-10-25.md](archiv/paket-24-abgenommen-2026-10-25.md) | **abgenommen 25.10.** (ruhiger Gesamtlauf 11:45–12:11 grün) |
+| 25 | **0.4.0** | `bug.0.4.198` | Text „Auf Updates hinweisen“ ohne „in der Menüleiste“ → [archiv/paket-25-abgenommen-2026-10-25.md](archiv/paket-25-abgenommen-2026-10-25.md) | abgenommen 25.10. |
 | 26 | **0.4.0** | `bug.0.4.199`–`201` | Dauerhafte Lücke = „Fehler“, Details „Indiziert x %“, Reste aus der Prüfung → [archiv/paket-26-abgenommen-2026-10-25.md](archiv/paket-26-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
 | 27 | **0.4.0** | `bug.0.4.202` | Zeitfenster am Laufende, Beweislücken (Reste aus 26) → [archiv/paket-27-abgenommen-2026-10-25.md](archiv/paket-27-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
-| **28** | **0.4.0** | `bug.0.4.203` | `finish`/`cancel` ganz am Token, Beweislücke, wackliger Test (Reste aus 27) → [todo/paket-28.md](todo/paket-28.md) | **freigegeben 25.10.** |
-| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | nach Paket 28 |
+| 28 | **0.4.0** | `bug.0.4.203` | `finish`/`cancel` ganz am Token, Beweislücke, wackliger Test (Reste aus 27) → [archiv/paket-28-abgenommen-2026-10-25.md](archiv/paket-28-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
+| **29** | **0.4.0** | `bug.0.4.204` | Abschluss und Abbruch je Medium nacheinander (Umbau), schwache Tests → [todo/paket-29.md](todo/paket-29.md) | **freigegeben 25.10.** |
+| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | nach Paket 29 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 
 ## Entscheidungen des Nutzers

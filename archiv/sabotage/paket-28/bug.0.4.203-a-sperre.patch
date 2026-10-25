@@ -1,0 +1,13 @@
+# bug.0.4.203 (a): altes finish eines gescheiterten Laufs sperrt den Vollabgleich des neuen
+# Test: GapMediumRunOwnershipTests/oldFailedFinishDoesNotSuppressTheNewRunsReconcile()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:40
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:40
+@@ -563,7 +563,7 @@
+         // bug.0.4.127: auch ein Lauf bis zum Ende mit nicht lesbaren Ordnern (bug.0.4.199: `.error`) startet die Überwachung.
+         let finishedRun = !outcome.interrupted && (outcome.status == .indexed || outcome.ranToEnd)
+         // bug.0.4.203 (a): Sperre, Überwachung und Nachhol-Abgleich gehören einem inzwischen gestarteten Lauf.
+-        let superseded = newerRunOwns(mediumUUID)
++        let superseded = false
+         if finishedRun, !superseded {
+             fullReconcileSuppressed.remove(mediumUUID)
+         }

@@ -30,6 +30,8 @@ Neu gefasst vom Host am 23.10.2026 (15 statt 31 Regeln, gleicher Inhalt, dazu Sa
     4. **Alte Reste:** Können Daten früherer Läufe oder anderer Medien (Protokoll, Merker, Cache) das Ergebnis verfälschen?
     5. **Beweis:** Wird der Test mit dem Patch aus Regel 9 rot?
 
+    **Was ein Befund ist (Supervisor/Nutzer 25.10.):** eine **konkrete Folge von Ereignissen**, als Test schreibbar, **plus** das Verhalten, das dabei falsch ist. „Was wäre wenn“ ohne solche Folge zählt nicht. Ab `bug.0.4.204` gilt je Medium höchstens ein Lebenszyklus „Start → Lauf → Abschluss/Abbruch“ (`IndexingService`, Wächter in DEBUG): zwei Läufe desselben Mediums gleichzeitig heißt, Marker oder Wächter sind falsch – dort beheben, kein neuer Flicken.
+
     Mittlere und hohe Befunde vor „Bereit“ beheben, den Rest als „Frage:“. Sind Zeitabläufe beteiligt (Scrollen, FSEvents, Warteschlangen): die Suite 20× im Parallellauf, Uhrzeit im Status.
 
 ## Abschluss

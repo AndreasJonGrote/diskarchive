@@ -34,7 +34,7 @@ Das Konzept steht in Themendateien unter `konzept/`. **Nur die Datei zum Thema l
 **Eine Stelle für alle konzeptionellen Entscheidungen, nach Thema sortiert.** Hier steht, wie die App **sein soll**. Das Layout zeigt, wie sie **aussieht**. Die chronologische Entstehung steht in [README.md](README.md) (Verlauf), die offenen Arbeiten in [TODO.md](TODO.md) · Erledigt: [DONE.md](DONE.md).
 
 **Pflege:** Claude trägt jede Entscheidung des Nutzers hier ein. Überholte Entscheidungen werden **ersetzt**, nicht angehängt.
-- Stand: 08.10.2026, Layout gelesen mit Stand 08.10. 08:33; offene Widersprüche stehen in Abschnitt 11. Markierung **[offen]** = noch nicht entschieden, **[Annahme]** = von Claude angenommen, bestätigt vom Nutzer noch nicht.
+- Offene Widersprüche stehen in Abschnitt 11. Markierung **[offen]** = noch nicht entschieden, **[Annahme]** = von Claude angenommen, bestätigt vom Nutzer noch nicht.
 
 ---
 

@@ -1,0 +1,13 @@
+# bug.0.4.203 (d): Speicher vor dem Lauf nicht lesbar – Beginn der Anzeige aus anderer Quelle (Lesefehler nur vor dem Lauf)
+# Test: GapMediumRunWindowTests/unreadableStoreBeforeTheRunKeepsTheQuietStart()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:48
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:48
+@@ -266,7 +266,7 @@
+                 )
+             }
+             let kind = await bridge.rememberRunKind(mediumUUID, token, storedKind)
+-            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: kind?.reconcileRun ?? false)
++            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: storedKind?.reconcileRun ?? false)
+             guard began else { return }
+             let outcome = await indexer.run(
+                 store: store,

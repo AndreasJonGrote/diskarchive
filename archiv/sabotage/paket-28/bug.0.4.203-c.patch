@@ -1,0 +1,13 @@
+# bug.0.4.203 (c): Überwachung nach gescheitertem Lauf für ein ausgetragenes Medium
+# Test: GapMediumRunOwnershipTests/failedRunOfAnUnmountedMediumStartsNoWatch()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:40
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-25 22:39:40
+@@ -573,7 +573,7 @@
+             DiskIndexLog.shared.record(.index, .info, "neuer lauf übernimmt medium=\(mediumUUID)")
+         } else if finishedRun, mounted, let volume = runVolume {
+             onRunIndexed?(mediumUUID, volume)
+-        } else if !finishedRun, mounted, Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolume {
++        } else if !finishedRun, Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolume {
+             // bug.0.4.084 (README: beim Anschließen Lauf und sofort Live-Überwachung): Ein gescheiterter Lauf lässt die
+             // Überwachung nicht aus, solange das Medium angeschlossen, „Indizieren: Ja“, nicht pausiert und nicht
+             // gesperrt ist. Abbruch, Sperre, Aushängen und Beenden während des Laufs kommen hier nicht an (ihr Token ist

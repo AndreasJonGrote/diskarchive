@@ -103,6 +103,8 @@ final class MediumCoordinator {
 
     /// Tests (bug.0.4.201 d): läuft in `connectKnown`, sobald der Status feststeht, vor dem Eintragen des Pfads. Je Instanz.
     var connectStatusDecidedHookForTesting: (@MainActor (UUID) async -> Void)?
+    /// Tests (bug.0.4.203 a): eine Anforderung zum Indizieren steht.
+    func isIndexRequestedForTesting(_ mediumID: UUID) -> Bool { requestedIndex.contains(mediumID) }
     #endif
 
     private func volumeAppeared(_ volume: VolumeInfo) async {

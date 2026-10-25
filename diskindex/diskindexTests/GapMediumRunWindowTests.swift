@@ -122,13 +122,14 @@ struct GapMediumRunWindowTests {
             $0.indexStatus = .indexed
             $0.hasIndexGaps = false
         }
-        // Lesen im Lauf und im Abbruch scheitern (Reihenfolge der beiden offen).
-        await setup.harness.store.setNextMediumReadsFailing(2)
+        // bug.0.4.203 (d): nur das Lesen in `cancel` scheitert (je Instanz, kein Zähler, den andere Leser verbrauchen).
+        let service = setup.rig.service
+        service.failsNextCancelStoreReadForTesting = true
+        defer { service.failsNextCancelStoreReadForTesting = false }
         setup.rig.service.start(mediumUUID: setup.id, volume: setup.volume, fromScratch: false)
         await setup.rig.service.cancel(mediumUUID: setup.id)
         #expect(setup.app.medium(with: setup.id)?.indexStatus == .pending, "Status nach Abbruch: \(String(describing: setup.app.medium(with: setup.id)?.indexStatus))")
         await setup.rig.service.waitUntilIdle(setup.id)
-        await setup.harness.store.setNextMediumReadsFailing(0)
     }
 
     /// (c) Speicher vor dem Lauf nicht lesbar: Art des Laufs und Beginn der Anzeige aus derselben Quelle – der stille
@@ -139,7 +140,10 @@ struct GapMediumRunWindowTests {
         setup.app.indexingFailure = nil
         var published: [IndexStatus] = []
         setup.rig.service.publishedStatusHookForTesting = { _, status in published.append(status) }
-        await setup.harness.store.setNextMediumReadsFailing(1)
+        // bug.0.4.203 (d): nur das Lesen vor dem Lauf scheitert.
+        let service = setup.rig.service
+        service.failsNextStoreReadBeforeRunForTesting = true
+        defer { service.failsNextStoreReadBeforeRunForTesting = false }
         setup.hold.set(true)
         let before = setup.recorder.finished
         setup.rig.service.start(mediumUUID: setup.id, volume: setup.volume, fromScratch: false)
