@@ -43,6 +43,7 @@
 | 22 | **0.4.0** | `bug.0.4.188`–`191` | Roter Parallellauf nach Wiedereinhängen, Verwaltungsdateien, Systemmitteilung, Kleinkram → [archiv/paket-22-abgenommen-2026-10-24.md](archiv/paket-22-abgenommen-2026-10-24.md) | **abgenommen 24.10.** |
 | 23 | **0.4.0** | `bug.0.4.192`–`195`, `todo.0.4.042`, `046`–`048` | Wackler, Mitteilung, Beweislücken, Wartescreens, Updatedialog, Stapel Erkennungsdialoge, Aufräumen → [archiv/paket-23-abgenommen-2026-10-25.md](archiv/paket-23-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
 | 24 | **0.4.0** | `bug.0.4.196`, `197` | Zeitumstellung im Protokoll, Reste aus Prüfung 23 → [archiv/paket-24-abgenommen-2026-10-25.md](archiv/paket-24-abgenommen-2026-10-25.md) | **abgenommen 25.10.** (ruhiger Gesamtlauf offen) |
+| 25 (geplant) | **0.4.0** | `bug.0.4.198` + Funde des ruhigen Gesamtlaufs | Text „Auf Updates hinweisen“ ohne „in der Menüleiste“ (Nutzer 25.10.): de „Disk Archive weist dich darauf hin, sobald eine neue Version verfügbar ist.“, en „Disk Archive lets you know as soon as a new version is available.“ | **nach dem ruhigen Lauf** |
 | – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat | nach Paket 24 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 
@@ -58,5 +59,5 @@
 
 | Kennung | Was | Wer |
 |---|---|---|
-| `todo.0.3.2.001` | Layout **02** geliefert 24.10. (→ `todo.0.4.048`, abgenommen 25.10.); offen nur noch **04** (Dashboard-`card-meta`: Belegung links, „Zuletzt indiziert“ rechts, eine Zeile) in `layout/Disk Index App.dc.html` nachziehen. Blockiert keinen Code. | Nutzer |
+| `todo.0.3.2.001` | **Erledigt 25.10.:** Layout 02 → `todo.0.4.048`; Layout 04 per Screenshot des Nutzers (Dashboard-Karten: Belegung links, Uhr + Zeit rechts, eine Zeile) – die App setzt das schon so um (`MediumDashboardCard`); die HTML-Datei wird nicht nachgezogen. Weitere Layout-Fragen erst zu 0.4.1, nur auf Nachfrage. | – |
 | `todo.0.4.045` | Nach Paket 24 (`bug.0.4.124`, `162 c`): Löschbefehl für die rund 8.600 leeren Test-`.plist` in `~/Library/Preferences` an den Nutzer geben (Host löscht nichts außerhalb des Projekts). Danach Checkliste für `todo.0.4.040` (SD, USB, SSD gleichzeitig; vorher alle Medien neu indizieren; Gegenprobe `bug.0.4.141`). | Host → Nutzer |
