@@ -1473,6 +1473,23 @@
         }
       }
     },
+    "copy.failure.unreadable_folders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einige Ordner auf diesem Medium konnten nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Some folders on this medium couldn't be read."
+          }
+        }
+      }
+    },
     "copy.failure.database" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2280,6 +2297,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$@ free of %2$@"
+          }
+        }
+      }
+    },
+    "copy.medium.indexed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indiziert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Indexed"
+          }
+        }
+      }
+    },
+    "copy.medium.indexed_value" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld %%"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
           }
         }
       }

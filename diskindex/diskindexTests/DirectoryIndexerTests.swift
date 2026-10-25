@@ -211,18 +211,19 @@ import Testing
         var fastRetries = IndexingRunLimits.standard
         fastRetries.readRetryDelays = [.milliseconds(1)]
         let outcome = try await harness.run(access: access, maxDepth: nil, fromScratch: true, limits: fastRetries)
-        // bug.0.4.127 (README 4): nicht lesbarer Ordner → Index unvollständig („x % indiziert“), nicht `.indexed`.
-        #expect(outcome.status != .indexed)
+        // bug.0.4.127 (README 4): nicht lesbarer Ordner → Index unvollständig, nicht `.indexed`; bug.0.4.199: „Fehler“.
+        #expect(outcome.status == .error)
+        #expect(outcome.failureReason == .unreadableFolders)
         #expect(outcome.readErrors == 1)
         let partial = try #require(try await harness.store.medium(uuid: harness.mediumID))
-        #expect(partial.indexStatus != .indexed)
+        #expect(partial.indexStatus == .error)
         let partialPercent = await MainActor.run { partial.asMedium(connection: .connected).indexProgressPercent }
         #expect(partialPercent < 100)
         let still = try #require(try await harness.store.item(id: kept.id))
         #expect(still.name == "keep.txt")
         // Gegenprobe: bleibt „bad“ unlesbar, bleibt der Index unvollständig (der Folgelauf liest die Lücke nach).
         let stillBad = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)
-        #expect(stillBad.status != .indexed, "Folgelauf meldet ohne Nachlesen „indiziert“")
+        #expect(stillBad.status == .error, "Folgelauf meldet ohne Nachlesen „indiziert“")
         access.markReadable("bad")
         let listedBefore = access.listed.filter { $0.hasSuffix("/bad") }.count
         let again = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)
@@ -252,10 +253,10 @@ import Testing
         var fastRetries = IndexingRunLimits.standard
         fastRetries.readRetryDelays = [.milliseconds(1)]
         let gap = try await harness.run(access: access, maxDepth: nil, fromScratch: true, limits: fastRetries)
-        #expect(gap.status != .indexed)
+        #expect(gap.status == .error)
         access.remove("ok/weg.txt")
         let again = try await harness.run(access: access, maxDepth: nil, fromScratch: false, limits: fastRetries)
-        #expect(again.status != .indexed)
+        #expect(again.status == .error)
         #expect(try await harness.item(named: "weg.txt") == nil, "Löschung außerhalb der Lücke nicht erkannt")
         #expect(try await harness.item(named: "bleibt.txt") != nil)
     }

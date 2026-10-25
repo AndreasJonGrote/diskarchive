@@ -59,6 +59,7 @@ struct IndexFailureReasonTests {
         case .unknown: access.failRoot(with: OtherFailure())
         case .timeout: Issue.record("timeout wird in classifyUsesTheErrorObjectNotText geprüft")
         case .unconfirmed: Issue.record("unconfirmed wird in EjectDuringRunTests geprüft")
+        case .unreadableFolders: Issue.record("unreadableFolders wird in UnreadableFoldersErrorTests geprüft")
         }
         var limits = IndexingRunLimits.standard
         limits.readRetryDelays = [.milliseconds(1)]
@@ -127,7 +128,7 @@ struct IndexFailureReasonTests {
     }
 
     /// Die Grundzeile steht im Dialog: mit Grund ist der Inhalt höher als ohne.
-    @Test(arguments: [IndexFailureReason.permission, .disconnected, .timeout, .unconfirmed, .diskSpace, .database])
+    @Test(arguments: [IndexFailureReason.permission, .disconnected, .timeout, .unconfirmed, .diskSpace, .database, .unreadableFolders])
     func dialogShowsTheReasonLine(_ reason: IndexFailureReason) async throws {
         let app = AppState()
         let notice = IndexingFailureNotice(id: UUID(), name: "Stick", reason: reason)

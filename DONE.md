@@ -152,6 +152,7 @@ Kennungen: bis 233b alte Aufgabennummern; ab 12.10. `todo.<Version>.<Nr>` (Aufga
 | todo.0.4.048 | – | Stapel der Erkennungsdialoge nach Layout 02: ältere nach links oben (Rest d: `bug.0.4.197`) | 25.10. Host (wie 192) | A C (Prüf-Agenten, Sabotage-Patches) |
 | bug.0.4.196 | – | Protokoll-Stempel mit Zeitzonen-Versatz, eine Lesestelle, Absturzdateinamen in UTC; Tests ohne Rechneruhr | 25.10. Host (Lauf unter Last 7–9: nur Zeitgrenzen rot, kein Test aus Paket 24; Sabotage 8/8, 0 Warnungen, App 0.4.0; ruhiger Gesamtlauf offen) | A C (Prüf-Agenten, Sabotage-Patches) |
 | bug.0.4.197 | – | Reste 192 a, 042 b, 047 c, 048 d (links begrenzt), 193 e (alte Mitteilungen beim Start zurückgezogen) | 25.10. Host (wie 196) | A C (Prüf-Agenten, Sabotage-Patches) |
+| bug.0.4.198 | – | Text „Auf Updates hinweisen“ ohne „in der Menüleiste“ (de/en), Texttest | 25.10. Host (ruhiger Gesamtlauf 14:05–14:32: seriell 1104/1104, parallel 3× grün, 0 Warnungen, keine `.ips`, App 0.4.0; kein Patch, nur Text) | A (Texttest) |
 
 **Doku erledigt (Claude 14.10.):** REPORT 38 (kein Fix, nur Zeitstempel), 40 (Messbericht), 41 (Layout-Reminder), README „Architektur“ und Abschnitt „Datenbank“ neu, ROADMAP abgeglichen, `datenbank-konzeption.md` und `todo-audit.md` aufgelöst (Archiv: `archiv/datenbank-konzeption-bis-2026-10-14.md`, `archiv/todo-audit-2026-10-13.md`), REPORT in `archiv/report-audit-2026-10-13.md`.
 

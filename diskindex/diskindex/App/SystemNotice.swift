@@ -314,6 +314,8 @@ nonisolated enum IndexFailureReason: Equatable {
     case unconfirmed
     case diskSpace
     case database
+    /// bug.0.4.199: Der Lauf lief bis zum Ende, Ordner auf dem Medium waren nicht lesbar (Lücke im Index).
+    case unreadableFolders
     case unknown
 
     var notificationCode: String {
@@ -324,6 +326,7 @@ nonisolated enum IndexFailureReason: Equatable {
         case .unconfirmed: "unconfirmed"
         case .diskSpace: "diskSpace"
         case .database: "database"
+        case .unreadableFolders: "unreadableFolders"
         case .unknown: "unknown"
         }
     }
@@ -336,6 +339,7 @@ nonisolated enum IndexFailureReason: Equatable {
         case "unconfirmed": self = .unconfirmed
         case "diskSpace": self = .diskSpace
         case "database": self = .database
+        case "unreadableFolders": self = .unreadableFolders
         case "unknown": self = .unknown
         default: return nil
         }
@@ -355,6 +359,8 @@ nonisolated enum IndexFailureReason: Equatable {
             return LayoutCopy.failureDiskSpace
         case .database:
             return LayoutCopy.failureDatabase
+        case .unreadableFolders:
+            return LayoutCopy.failureUnreadableFolders
         case .unknown:
             return nil
         }

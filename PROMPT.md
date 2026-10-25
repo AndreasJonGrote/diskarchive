@@ -1,3 +1,5 @@
-Erledigt (Bereit zur Prüfung): bug.0.4.198 (Text ohne „in der Menüleiste“, de/en; Texttest vorher rot, jetzt grün; 0 Warnungen Debug/Release; App 13:56 gebaut).
-Offen/blockiert: Gesamtlauf (seriell/parallel) macht der Host später.
-HALT.
+Rolle: **Worker**. **Paket 26, Korrektur:** [todo/paket-26.md](todo/paket-26.md), Abschnitt „Korrektur nach Prüfung Host 25.10.“, nur `bug.0.4.200` (a–h): Medium mit Lücke verhält sich überall wie Online, nur Chip/„!“/Modal/Mitteilung sagen „Fehler“; Überwachung, stille Folgeläufe, Aktivieren, Aushängen, „Nein“, fehlende Patches, alte Kommentare. Antworten auf deine vier Fragen stehen dort. Regeln: `todo/regeln.md` (verbindlich).
+
+Test vorher rot belegen, je Teil ein Sabotage-Patch unter `todo/sabotage/` (die vier von 199 bleiben liegen, alle rot), Selbstprüfung nach Regel 12. Paketende: 0 Warnungen Debug und Release, betroffene Tests grün, App des Nutzers gebaut. Gesamtlauf nur auf ruhigem Rechner (Last < 3, keine Spiele), sonst weglassen und im Status vermerken.
+
+Zum Schluss: nur das Feld „Status“ von `bug.0.4.200` füllen (höchstens 5 Zeilen, „Bereit zur Prüfung“) und diese Datei durch „Erledigt (Bereit zur Prüfung): … Offen/blockiert: … HALT.“ ersetzen (höchstens drei Zeilen). Kein Git.

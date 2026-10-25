@@ -1,0 +1,12 @@
+# bug.0.4.199 Patch 4: Aktivieren der App liest ein Medium mit Lücke neu
+# Test: UnreadableFoldersErrorTests/readableAgainOnReconnectEndsTheErrorAndWithdrawsTheNotice()
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 16:36:58
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift	2026-10-25 16:36:58
+@@ -389,7 +389,6 @@
+                   stored.indexStatus == .error else { continue }
+             // bug.0.4.199: Fehler wegen nicht lesbarer Ordner ist kein Zugriffsproblem – nachgelesen wird beim Anschließen,
+             // beim App-Start und mit „Erneut versuchen“, nicht bei jedem Aktivieren der App.
+-            if (try? await store.indexHasGaps(mediumUUID: id)) == true { continue }
+             guard case .granted = await access.probe(volume) else { continue }
+             // bug.0.4.062 (REPORT 132): während der Probe ausgehängt oder ein anderes Medium unter dem Pfad → nichts tun.
+             guard isStillMounted(id, at: path) else { continue }

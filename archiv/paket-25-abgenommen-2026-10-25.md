@@ -15,3 +15,9 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln). V
 ## Vorprüfung Host 25.10. (13:58–14:01, Nutzer spielt)
 
 Diff gelesen: nur `copy.settings.updates.text` (de/en) und ein neuer Test in `L10nTests`, alter Wortlaut nirgends mehr im Code, Konzept oder Layout. `pruefung.sh schnell`: Debug 0 Warnungen; `L10nTests`, `LayoutCopyTests`, `WindowTestGroup/UpdateDialogTests` grün. **Offen für die Abnahme:** `pruefung.sh voll` auf ruhigem Rechner.
+
+## Abnahme Host 25.10. (Gesamtlauf 14:05–14:32, ruhiger Rechner)
+
+`Werkzeuge/pruefung.sh voll`: Debug und Release 0 Warnungen, seriell **1104/1104** grün, Parallel 1–3 **grün** (je 1098 bestanden, 6 übersprungen), keine neuen `.ips`, keine Patches (nur Text, begründet), App des Nutzers 14:32:10, Signatur gültig, Version 0.4.0.
+
+- **Abgenommen:** `bug.0.4.198`.

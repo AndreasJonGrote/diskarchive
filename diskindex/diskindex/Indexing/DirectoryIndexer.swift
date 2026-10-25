@@ -473,13 +473,14 @@ nonisolated struct DirectoryIndexer: Sendable {
         let stamped = Date()
         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
         let committed: Bool
-        // bug.0.4.127 (README 4): nicht lesbare Ordner → Index unvollständig, nicht `.indexed`.
+        // bug.0.4.127 (README 4): nicht lesbare Ordner → Index unvollständig, nicht `.indexed`. bug.0.4.199: die
+        // dauerhafte Lücke ist ein Fehler mit eigenem Grund (Merker `indexGaps` und Fortschritt bleiben gespeichert).
         let hasGaps = readErrors > 0
         do {
             committed = try await store.finishIndexing(
                 mediumUUID: mediumUUID,
                 token: token,
-                status: hasGaps ? .pending : .indexed,
+                status: hasGaps ? .error : .indexed,
                 firstIndexedAt: hasGaps ? nil : stamped,
                 mountPath: volume.mountPath,
                 ranToEnd: true
@@ -493,11 +494,12 @@ nonisolated struct DirectoryIndexer: Sendable {
         DiskIndexLog.shared.record(.index, .info, "ende medium=\(mediumUUID) committed=\(committed) lesefehler=\(readErrors)")
         let fresh = try? await store.medium(uuid: mediumUUID)
         return IndexRunOutcome(
-            status: committed ? (hasGaps ? .pending : .indexed) : (fresh?.indexStatus ?? .pending),
+            status: committed ? (hasGaps ? .error : .indexed) : (fresh?.indexStatus ?? .pending),
             readErrors: readErrors,
             progress: samples,
             completedDepths: completedDepths,
             firstIndexedAt: fresh?.firstIndexedAt,
+            failureReason: committed && hasGaps ? .unreadableFolders : nil,
             ranToEnd: committed
         )
     }

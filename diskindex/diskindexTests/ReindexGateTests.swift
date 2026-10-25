@@ -333,11 +333,12 @@ struct ReindexGateTests {
         app.media = [medium(id: id, indexing: indexing, lastIndexedAt: lastIndexedAt)]
         let popover = await PixelProbe.render(row(app: app, id: id), size: CGSize(width: 340, height: 56))
         let detail = await PixelProbe.render(
-            MediumDetailModalView(mediumID: id).environment(app).frame(width: 540, height: 420, alignment: .top),
-            size: CGSize(width: 540, height: 420)
+            MediumDetailModalView(mediumID: id).environment(app).frame(width: 540, height: 460, alignment: .top),
+            size: CGSize(width: 540, height: 460)
         )
         // Bereich relativ zur Bitmap (Knopf „Neu indizieren“ rechts in der Zeile), unabhängig von Punkt- und Pixeleinheiten.
-        return (contrast(popover, x0: popover.size.width * 0.73, x1: popover.size.width * 0.97, y0: popover.size.height * 0.3, y1: popover.size.height * 0.72), contrast(detail, x0: 290, x1: 370, y0: 328, y1: 352))
+        // bug.0.4.199: Zeile „Indiziert“ im Modal → Knöpfe eine Zeile (36 pt) tiefer.
+        return (contrast(popover, x0: popover.size.width * 0.73, x1: popover.size.width * 0.97, y0: popover.size.height * 0.3, y1: popover.size.height * 0.72), contrast(detail, x0: 290, x1: 370, y0: 364, y1: 388))
     }
 
     private func row(app: AppState, id: UUID) -> some View {

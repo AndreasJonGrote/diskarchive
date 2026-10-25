@@ -117,11 +117,24 @@ extension AppState {
         }
         indexingFailure = IndexingFailureNotice(id: mediumID, name: name, reason: reason)
         SystemNotice.postIndexingFailure(mediumID: mediumID, name: name, reason: reason, settings: appSettings)
+        failureNoticeMedia.insert(mediumID)
         // bug.0.4.193: Die Mitteilung desselben Mediums ersetzt die vorige (gleiche Kennung).
         if reason == .unconfirmed {
             unconfirmedNoticeMedia.insert(mediumID)
         } else {
             unconfirmedNoticeMedia.remove(mediumID)
+        }
+    }
+
+    /// bug.0.4.199: Ein Lauf gelang (z. B. die Lücke ist nachgelesen) – der Fehler dieses Mediums endet: Hinweis schließen
+    /// und die zugestellte Mitteilung über den bestehenden Weg zurückziehen.
+    func endIndexingFailure(mediumID: UUID) {
+        if indexingFailure?.id == mediumID {
+            indexingFailure = nil
+        }
+        unconfirmedNoticeMedia.remove(mediumID)
+        if failureNoticeMedia.remove(mediumID) != nil {
+            withdrawIndexingFailureNotice(mediumID)
         }
     }
 

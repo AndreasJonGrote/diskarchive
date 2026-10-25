@@ -30,6 +30,11 @@ extension Medium {
         LayoutCopy.mediumFreeOfTotal(ByteCountFormatter.storage.string(fromByteCount: freeBytes), totalCapacityLabel)
     }
 
+    /// bug.0.4.199: Fortschritt wie im Chip (`indexProgressPercent`): vollständig 100 %, mit Lücke z. B. 99 %.
+    var indexedLabel: String {
+        LayoutCopy.detailIndexedValue(indexProgressPercent)
+    }
+
     var filesLabel: String {
         DisplayNumberFormat.groupedInteger(fileCount)
     }

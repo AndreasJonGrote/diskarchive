@@ -190,6 +190,9 @@ nonisolated enum LayoutCopy {
     static var files: String { L10n.string("copy.medium.files") }
     static var folders: String { L10n.string("copy.medium.folders") }
     static var lastSeen: String { L10n.string("copy.medium.last_seen") }
+    /// bug.0.4.199: Details-Modal, Zeile unter „Zuletzt gesehen“.
+    static var detailIndexed: String { L10n.string("copy.medium.indexed") }
+    static func detailIndexedValue(_ percent: Int) -> String { L10n.format("copy.medium.indexed_value", percent) }
     static var dashboardErrorRetry: String { L10n.string("copy.dashboard.error_retry") }
     static var dashboardOccupiedSuffix: String { L10n.string("copy.dashboard.occupied_suffix") }
     static var shouldIndex: String { L10n.string("copy.medium.should_index") }

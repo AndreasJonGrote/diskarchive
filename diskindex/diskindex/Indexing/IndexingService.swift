@@ -13,6 +13,8 @@ final class IndexingService {
     private(set) var startedRunsForTesting: [UUID: [Bool]] = [:]
     /// bug.0.4.162 (i): abgelehnte Starts je Medium (positives Signal für „kein Lauf“).
     private(set) var rejectedStartsForTesting: [UUID: Int] = [:]
+    /// bug.0.4.199: kürzere Lese-Wiederholungen je Instanz (nicht lesbare Ordner ohne 1 + 3 + 10 s Wartezeit).
+    var runLimitsForTesting: IndexingRunLimits?
     #endif
     /// bug.0.4.162 (f): ein Neustart „von vorn“ wartet auf das Ende des laufenden Laufs – bis dahin bleibt die Sperre
     /// „Neu indizieren“ stehen (der alte Lauf gibt sie beim Abbruch bzw. Ende nicht frei).
@@ -175,12 +177,15 @@ final class IndexingService {
         runs[mediumUUID] = token
         runVolumes[mediumUUID] = volume
         runStartedAt[mediumUUID] = Date()
-        let configuration = ScanConfiguration(
+        var configuration = ScanConfiguration(
             maxDepth: appState.appSettings.indexedMaxDepth,
             ignoreHiddenFiles: appState.appSettings.ignoreHiddenFiles,
             artifactsIgnored: appState.appSettings.artifactsIgnored,
             excludedPatterns: appState.appSettings.excludedPatterns
         )
+        #if DEBUG
+        if let runLimitsForTesting { configuration.limits = runLimitsForTesting }
+        #endif
         let indexer = indexer
         let store = store
         let access = access
@@ -415,6 +420,9 @@ final class IndexingService {
             }
             $0.indexRunPhase = .indexing
         }
+        if outcome.status == .indexed, !outcome.interrupted {
+            appState.endIndexingFailure(mediumID: mediumUUID)
+        }
         if outcome.status == .indexed, !outcome.interrupted, let medium = appState.medium(with: mediumUUID) {
             let duration = started.map { Date().timeIntervalSince($0) } ?? 0
             let objects = medium.fileCount + medium.folderCount
@@ -432,7 +440,7 @@ final class IndexingService {
         // Tests (bug.0.4.166): Zustand ändern, nachdem der Lauf geendet hat und bevor über die Überwachung entschieden wird.
         await finishDecisionHookForTesting?(mediumUUID)
         #endif
-        // bug.0.4.127: auch ein Lauf bis zum Ende mit nicht lesbaren Ordnern (`.pending`) startet die Überwachung.
+        // bug.0.4.127: auch ein Lauf bis zum Ende mit nicht lesbaren Ordnern (bug.0.4.199: `.error`) startet die Überwachung.
         let finishedRun = !outcome.interrupted && (outcome.status == .indexed || outcome.ranToEnd)
         if finishedRun {
             fullReconcileSuppressed.remove(mediumUUID)

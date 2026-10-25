@@ -31,7 +31,7 @@ struct IndexCompletenessTests {
         #expect(stored.indexStatus == .pending)
     }
 
-    /// bug.0.4.151: Medium war vollständig (`firstIndexedAt` gesetzt), ein späterer Abgleich fand eine Lücke (`.pending`);
+    /// bug.0.4.151: Medium war vollständig (`firstIndexedAt` gesetzt), ein späterer Abgleich fand eine Lücke (`.error`, bug.0.4.199);
     /// endet die App mitten im nächsten Lauf, bleibt es nach dem Neuöffnen `.pending` (nicht wieder `.indexed`).
     @Test func laterGapSurvivesRestartAsPending() async throws {
         let directory = FileManager.default.temporaryDirectory
@@ -45,10 +45,10 @@ struct IndexCompletenessTests {
         let first = UUID()
         #expect(try await store.beginIndexing(mediumUUID: medium.uuid, token: first))
         #expect(try await store.finishIndexing(mediumUUID: medium.uuid, token: first, status: .indexed, firstIndexedAt: Date(), ranToEnd: true))
-        // Späterer Abgleich: Lücke → `.pending` trotz `firstIndexedAt`.
+        // Späterer Abgleich: Lücke → `.error` trotz `firstIndexedAt` (bug.0.4.199, vorher `.pending`).
         let second = UUID()
         #expect(try await store.beginIndexing(mediumUUID: medium.uuid, token: second))
-        #expect(try await store.finishIndexing(mediumUUID: medium.uuid, token: second, status: .pending, firstIndexedAt: nil, ranToEnd: true))
+        #expect(try await store.finishIndexing(mediumUUID: medium.uuid, token: second, status: .error, firstIndexedAt: nil, ranToEnd: true))
         // Nächster Lauf beginnt, Prozess endet.
         #expect(try await store.beginIndexing(mediumUUID: medium.uuid, token: UUID()))
         try database.close()

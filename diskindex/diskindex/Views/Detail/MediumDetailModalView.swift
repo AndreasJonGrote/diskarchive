@@ -89,6 +89,8 @@ struct MediumDetailModalView: View {
             detailRow(label: LayoutCopy.files, value: medium.filesLabel)
             detailRow(label: LayoutCopy.folders, value: medium.foldersLabel)
             detailRow(label: LayoutCopy.lastSeen, value: medium.lastSeenDescription(now: .now))
+            // bug.0.4.199: Fortschritt immer sichtbar, auch offline.
+            detailRow(label: LayoutCopy.detailIndexed, value: medium.indexedLabel)
 
             settingsRow(label: LayoutCopy.shouldIndex, isLast: true) {
                 EquatableView(content: AllowIndexingBinaryGroup(

@@ -1,0 +1,13 @@
+# bug.0.4.199 Patch 2: Wert der Zeile „Indiziert“ fest 100 %
+# Test: UnreadableFoldersErrorTests/detailRowShowsTheIndexedPercent()
+--- a/diskindex/diskindex/Models/Medium+Detail.swift	2026-10-25 16:32:37
++++ b/diskindex/diskindex/Models/Medium+Detail.swift	2026-10-25 16:32:37
+@@ -32,7 +32,7 @@
+ 
+     /// bug.0.4.199: Fortschritt wie im Chip (`indexProgressPercent`): vollständig 100 %, mit Lücke z. B. 99 %.
+     var indexedLabel: String {
+-        LayoutCopy.detailIndexedValue(indexProgressPercent)
++        LayoutCopy.detailIndexedValue(100)
+     }
+ 
+     var filesLabel: String {

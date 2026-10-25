@@ -32,6 +32,7 @@ nonisolated extension LayoutCopy {
     static var failureUnconfirmed: String { L10n.string("copy.failure.unconfirmed") }
     static var failureDiskSpace: String { L10n.string("copy.failure.disk_space") }
     static var failureDatabase: String { L10n.string("copy.failure.database") }
+    static var failureUnreadableFolders: String { L10n.string("copy.failure.unreadable_folders") }
     static var chipNotAllowed: String { L10n.string("copy.chip.not_allowed") }
     static var chipPending: String { L10n.string("copy.chip.pending") }
     static var chipError: String { L10n.string("copy.chip.error") }

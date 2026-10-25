@@ -387,6 +387,9 @@ final class MediumCoordinator {
             guard let id = mediumByPath[path],
                   let stored = try? await store.medium(uuid: id),
                   stored.indexStatus == .error else { continue }
+            // bug.0.4.199: Fehler wegen nicht lesbarer Ordner ist kein Zugriffsproblem – nachgelesen wird beim Anschließen,
+            // beim App-Start und mit „Erneut versuchen“, nicht bei jedem Aktivieren der App.
+            if (try? await store.indexHasGaps(mediumUUID: id)) == true { continue }
             guard case .granted = await access.probe(volume) else { continue }
             // bug.0.4.062 (REPORT 132): während der Probe ausgehängt oder ein anderes Medium unter dem Pfad → nichts tun.
             guard isStillMounted(id, at: path) else { continue }

@@ -711,5 +711,11 @@ struct RegressionSmokeRows {
         try PreviousRunReportTests().doubleHourStampsReadBackInOrder()
         try PreviousRunReportTests().runAcrossTheChangeHasTheRightRuntime()
     }
+
+    /// bug.0.4.199: Dauerhafte Lücke ist „Fehler“ mit Grund; das Details-Modal zeigt „Indiziert x %“.
+    @Test func permanentGapIsAnErrorAndDetailsShowThePercent() async throws {
+        try await UnreadableFoldersErrorTests().runWithAnUnreadableFolderEndsAsError()
+        UnreadableFoldersErrorTests().detailRowShowsTheIndexedPercent()
+    }
 }
 }

@@ -254,7 +254,7 @@ struct MediumCoordinatorTests {
         let token = UUID()
         #expect(try await rig.store.beginIndexing(mediumUUID: existing.uuid, token: token))
         #expect(try await rig.store.finishIndexing(
-            mediumUUID: existing.uuid, token: token, status: .pending, firstIndexedAt: nil, ranToEnd: true
+            mediumUUID: existing.uuid, token: token, status: .error, firstIndexedAt: nil, ranToEnd: true
         ))
         try await rig.store.pool.write { db in
             try db.execute(sql: "UPDATE storages SET firstIndexedAt = 1700000000, indexStatus = ? WHERE uuid = ?",
