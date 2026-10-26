@@ -112,13 +112,21 @@ In jedem Zustand werden zuerst wartende Starts, Neustarts von vorn und `rerunAft
 
 ## Übergabe Lauf → Überwachung
 
-`onRunIndexed` → `LiveWiring.startWatching`. Vor dem Lesen des Speichers prüft es Sperre und Pause. Aus dem Speicher prüft es die Entscheidung „Ja“. Nach dem letzten `await` (K5, Paket 29) prüft es gegen den aktuellen `AppState`:
+`ChangeWatcher.start` hat genau drei Startwege. Alle drei lesen zuerst den Speicher und rufen direkt vor `start`, nach ihrem letzten `await`, die **eine Prüfstelle** `ChangeWatcher.mayStartWatching` auf (bug.0.4.205):
+
+| Startweg | Auslöser |
+|---|---|
+| `LiveWiring.startWatching` | Lauf zu Ende (`onRunIndexed`), Aufwachen, Umbenennen ohne Lauf |
+| `ChangeWatcher.applyPause` | Pausenende; prüft nach dem Lesen zusätzlich die Generation der Pause |
+| `ChangeWatcher.restartWatchIfConnected` | Stream-Unmount bei angeschlossenem Medium; läuft in einem eigenen Task, weil der abgebrochene Überwachungs-Task das Lesen sonst abbräche |
+
+`mayStartWatching` prüft gegen den aktuellen `AppState`:
 - Sperre
 - Pause
 - Medium bekannt
 - Entscheidung „Ja“ und `allowIndexing`
 - angeschlossen
 
-Den Flush der Überwachung hält `isRunActive` zurück, solange ein Lebenszyklus oder ein wartender Start besteht.
+`start` selbst prüft nur `tasks[id] == nil` und die Sperre. Den Flush der Überwachung hält `isRunActive` zurück, solange ein Lebenszyklus oder ein wartender Start besteht.
 
-**Offen (Paket 30, `bug.0.4.205`):** Die beiden anderen Startwege der Überwachung, `ChangeWatcher.applyPause` (Pausenende) und `restartWatchIfConnected`, prüfen nach dem `await` noch nicht gegen den `AppState`. Nach Paket 30 gibt es eine Prüfstelle für alle drei Wege.
+**Offen (Paket 31, `bug.0.4.206`):** Ein `stop` mit neuem Lauf (`stopWatcherAndStartIndex`) im Lesefenster eines Startwegs wird übergangen. Nach Paket 31 vergleicht jeder Startweg die Generation der Überwachung des Mediums (`watchGenerations`) von vor dem Lesen mit der danach. Ein `stop` oder `start` dazwischen gewinnt.

@@ -70,8 +70,8 @@ final class ChangeWatcher {
     #if DEBUG
     /// Tests (bug.0.4.076 d): läuft im Flush nach dem Vorbereiten, vor der erneuten Sperr-Prüfung. Je Instanz.
     var flushAfterPrepareHookForTesting: (@MainActor () async -> Void)?
-    /// Tests (bug.0.4.204 K5): läuft in `LiveWiring.startWatching` nach dem Lesen des Speichers, vor der letzten
-    /// Prüfung gegen `AppState`. Je Instanz.
+    /// Tests (bug.0.4.204 K5, bug.0.4.205): läuft in jedem Startweg der Überwachung (`LiveWiring.startWatching`,
+    /// `applyPause`, `restartWatchIfConnected`) nach dem Lesen des Speichers, vor `mayStartWatching`. Je Instanz.
     var startAfterReadHookForTesting: (@MainActor (UUID) async -> Void)?
     func pendingPathsForTesting(_ mediumID: UUID) -> Set<String> { pending[mediumID] ?? [] }
     func pendingItemEventCountForTesting(_ mediumID: UUID) -> Int { pendingItemEvents[mediumID]?.count ?? 0 }
@@ -189,6 +189,35 @@ final class ChangeWatcher {
         tasks[mediumID] != nil
     }
 
+    /// bug.0.4.205: die eine Prüfstelle aller Startwege der Überwachung, direkt vor `start` und nach dem letzten
+    /// `await` des Wegs – Vergessen, „Nein“, Pause, Sperre oder Aushängen im Lesefenster kennt der Speicher womöglich
+    /// noch nicht (`pendingMediumWrites`), und `stop`/`applyPause` davor fanden keine laufende Überwachung.
+    /// bug.0.4.206: dazu der Stand der Überwachung des Mediums von vor dem ersten `await` des Wegs
+    /// (`watchGeneration`) – ein `stop` (z. B. `stopWatcherAndStartIndex`: Umbenennen, Regeländerung, Voll-Abgleich)
+    /// oder `start` im Lesefenster gewinnt; die Überwachung startet dann am Ende des neuen Laufs.
+    func mayStartWatching(_ mediumID: UUID, since generation: Int, from place: String) -> Bool {
+        guard watchGenerations[mediumID, default: 0] == generation,
+              appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
+              let medium = appState.medium(with: mediumID), medium.decision == .index, medium.allowIndexing,
+              medium.connectionStatus == .connected else {
+            DiskIndexLog.shared.record(.watcher, .info, "überwachung nicht gestartet \(place) medium=\(mediumID)")
+            return false
+        }
+        return true
+    }
+
+    /// bug.0.4.206: Stand der Überwachung des Mediums (`start` und `stop` zählen ihn hoch); jeder Startweg merkt ihn
+    /// sich vor seinem ersten `await` und gibt ihn `mayStartWatching` mit.
+    func watchGeneration(_ mediumID: UUID) -> Int {
+        watchGenerations[mediumID, default: 0]
+    }
+
+    /// bug.0.4.206: Volume laut Koordinator zum Startzeitpunkt (Umbenennen im Lesefenster), sonst das gelesene –
+    /// ob das Medium angeschlossen ist, entscheidet allein `mayStartWatching`.
+    func currentVolume(_ mediumID: UUID, else read: VolumeInfo) -> VolumeInfo {
+        connectedVolumes().first { $0.id == mediumID }?.volume ?? read
+    }
+
     /// bug.0.4.161: Der angeforderte Abgleich ist gestartet (oder wurde verworfen) – eine neue Anforderung zählt wieder.
     func fullReconcileStarted(mediumID: UUID) {
         fullReconcileRequested.remove(mediumID)
@@ -246,6 +275,7 @@ final class ChangeWatcher {
             guard generation == pauseGeneration, !appState.globalAutoIndexPaused else { return }
             let id = pair.id
             guard tasks[id] == nil, !skipping.contains(id) else { continue }
+            let since = watchGeneration(id)
             let stored: StoredMedium?
             do {
                 stored = try await store.medium(uuid: id)
@@ -257,9 +287,15 @@ final class ChangeWatcher {
             }
             guard let stored else { continue }
             guard stored.decision == .index, stored.hasCompleteIndexExceptGaps else { continue }
+            #if DEBUG
+            await startAfterReadHookForTesting?(id)
+            #endif
+            // bug.0.4.205: ein neuerer Durchlauf (Pause an, Pausenende mit anderen Auslassungen) gilt.
+            guard generation == pauseGeneration else { return }
+            guard mayStartWatching(id, since: since, from: "pausenende") else { continue }
             start(
                 mediumID: id,
-                volume: pair.volume,
+                volume: currentVolume(id, else: pair.volume),
                 resumeFSEventsUUID: stored.fsEventsUUID,
                 resumeLastEventID: stored.lastEventID ?? 0
             )
@@ -268,13 +304,18 @@ final class ChangeWatcher {
 
     private func handleStreamUnmount(mediumID: UUID) async {
         DiskIndexLog.shared.record(.watcher, .info, "stream unmount medium=\(mediumID)")
+        // bug.0.4.206: Stand vor dem ersten `await` merken – ein `stop` während `saveCursor` oder vor dem Lesen im
+        // Neustart-Task gewinnt.
+        let since = watchGeneration(mediumID)
         await saveCursor(mediumID: mediumID)
         quietTasks[mediumID]?.cancel()
         quietTasks[mediumID] = nil
         tasks[mediumID]?.cancel()
         tasks[mediumID] = nil
         sources[mediumID] = nil
-        await restartWatchIfConnected(mediumID: mediumID)
+        // bug.0.4.205: Wir laufen im eben abgebrochenen Überwachungs-Task – das Lesen des Speichers darin würfe
+        // `CancellationError`, der Neustart käme nie an. Darum in einem eigenen Task, der den Abbruch nicht erbt.
+        Task { [weak self] in await self?.restartWatchIfConnected(mediumID: mediumID, since: since) }
     }
 
     private func watchStreamEnded(_ mediumID: UUID, generation: Int) async {
@@ -283,7 +324,7 @@ final class ChangeWatcher {
         sources[mediumID] = nil
     }
 
-    private func restartWatchIfConnected(mediumID: UUID) async {
+    private func restartWatchIfConnected(mediumID: UUID, since: Int) async {
         guard tasks[mediumID] == nil else { return }
         guard let pair = connectedVolumes().first(where: { $0.id == mediumID }) else { return }
         let stored: StoredMedium?
@@ -296,10 +337,14 @@ final class ChangeWatcher {
             return
         }
         guard let stored, stored.decision == .index else { return }
+        #if DEBUG
+        await startAfterReadHookForTesting?(mediumID)
+        #endif
+        guard mayStartWatching(mediumID, since: since, from: "neustart") else { return }
         let cursor = cursors[mediumID]
         start(
             mediumID: mediumID,
-            volume: pair.volume,
+            volume: currentVolume(mediumID, else: pair.volume),
             resumeFSEventsUUID: cursor?.uuid ?? stored.fsEventsUUID,
             resumeLastEventID: cursor?.eventID ?? stored.lastEventID ?? 0
         )

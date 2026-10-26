@@ -17,6 +17,8 @@ enum LiveWiring {
     ) async {
         guard appState.featureAccess.canWriteIndex else { return }
         guard !appState.globalAutoIndexPaused else { return }
+        // bug.0.4.206: Stand der Überwachung vor dem Lesen; ein `stop` oder `start` im Fenster gewinnt.
+        let since = watcher.watchGeneration(id)
         var stored: StoredMedium?
         do {
             stored = try await store.medium(uuid: id)
@@ -30,18 +32,12 @@ enum LiveWiring {
         #if DEBUG
         await watcher.startAfterReadHookForTesting?(id)
         #endif
-        // bug.0.4.204 K5: Vergessen, „Nein“, Pause oder Sperre während des Lesens – der Speicher kennt das womöglich
-        // noch nicht (`pendingMediumWrites`), und `stop`/`applyPause` davor fanden keine laufende Überwachung. Darum
-        // nach dem letzten `await` gegen den aktuellen Stand prüfen.
-        guard appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
-              let medium = appState.medium(with: id), medium.decision == .index, medium.allowIndexing,
-              medium.connectionStatus == .connected else {
-            DiskIndexLog.shared.record(.watcher, .info, "überwachung nicht gestartet medium=\(id)")
-            return
-        }
+        // bug.0.4.204 K5, bug.0.4.205: nach dem letzten `await` gegen den aktuellen Stand prüfen (eine Prüfstelle für
+        // alle Startwege).
+        guard watcher.mayStartWatching(id, since: since, from: "nach lauf") else { return }
         watcher.start(
             mediumID: id,
-            volume: volume,
+            volume: watcher.currentVolume(id, else: volume),
             resumeFSEventsUUID: stored.fsEventsUUID,
             resumeLastEventID: stored.lastEventID ?? 0
         )

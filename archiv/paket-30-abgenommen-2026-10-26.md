@@ -43,7 +43,10 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
     3. `bug.0.4.205-c.patch`: In der gemeinsamen Prüfung nur `connectionStatus == .connected` weglassen. Test 3 und Test 2 „nicht mehr angeschlossen“ werden rot.
     4. `bug.0.4.205-d.patch`: In `applyPause` die erneute Prüfung der Generation weglassen. Test 1 „erneute Pause“ wird rot. Bleibt er grün, weil die Pause-Bedingung allein schon greift, den Patch weglassen und im Status begründen.
   - **So lassen:** Der Nachhol-Abgleich übernimmt die Überwachung nicht (Paket 29). `resumePausedRuns` (`IndexingService`) prüft weiter `tasks[id] == nil`; der Start dort wartet ohnehin am Marker (`konzept/lauf-lebenszyklus.md`, Ereignis 6).
-  - **Status:** _(Worker)_
+  - **Status:** Bereit zur Prüfung. `ChangeWatcher.mayStartWatching(_:from:)` (Sperre, keine Pause, Medium bekannt mit „Ja“ und `allowIndexing`, `.connected`; eine Protokollzeile mit dem Weg), aufgerufen direkt vor `start` in `LiveWiring.startWatching` (statt der eigenen K5-Bedingung), `applyPause` (dazu `generation == pauseGeneration` nach dem `await`) und `restartWatchIfConnected`; Haken `startAfterReadHookForTesting` in allen drei Wegen. Sperre ohne eigenen Patch (prüft `start` ohnehin). Tests `WatchStartCheckTests` (Pausenende: Vergessen, Nein, erneute Pause, neuer Durchlauf mit Auslassung → Patch d; Neustart: Vergessen, Nein, Pause, Aushängen; Gegenprobe je Weg, Starts gezählt über die angelegten Quellen), gemeinsame Ereignisliste `WatchStartEvent`, `startWatchingChecksTheStateAfterTheRead` + `.disconnect`. Rot vor dem Fix 11:33 (Pausenende alle vier Fälle).
+    Zusätzlich behoben (Befund mittel, vorbestehend, Selbstprüfung bestätigt): Der Neustart nach Stream-Unmount kam nie an – `handleStreamUnmount` läuft im eigenen Überwachungs-Task und bricht ihn ab, `store.medium` warf darin `CancellationError` (stumm, `isOperationalFailure`). Diagnose 11:34 (`Task.isCancelled` beim Lesen, keine Überwachung), Test-Gegenprobe rot 11:33. Fix: Neustart in eigenem `Task`; Patch e.
+    Belege: 57 betroffene Suites 282/282 grün (11:55–11:56); `ChangeWatcherTests`, `WatchStartCheckTests`, `RunLifecycleTests`, `IndexingWiringTests` 20× parallel grün (11:57–12:02; ein früherer Lauf 11:39–11:42 meldete einmal `forgetStopsWatcherAndCoordinatorMapping` rot im Protokoll, im Ergebnis-Bundle alle 20 grün, ohne Meldung; danach zweimal 20× grün); Sabotage a–e 5/5 rot (12:02–12:05); Debug clean mit Testziel und Release 0 Warnungen (12:05–12:07); keine neue `.ips`; App des Nutzers 12:06:56 (0.4.0, Signatur ok), jüngste `.swift` 11:53:45, `find -newer` leer. Gesamtlauf weggelassen (Last 4–9).
+    Selbstprüfung (Sonnet): keine Regression in den Startwegen (Entsperren, Aufwachen, App-Start), Zählung und `hook.done` ehrlich; einziger mittlerer Befund = Neustart (behoben). Niedrig, offen: für `applyPause` kein Fall „nicht mehr angeschlossen“ (nicht verlangt). Patch c ist nur gegen `startWatchingChecksTheStateAfterTheRead` belegt, den Neustart-Fall „Aushängen“ habe ich unter c nicht eigens laufen lassen.
 
 **Paketende:**
 - 0 Warnungen in Debug und Release.
@@ -51,3 +54,21 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
 - Alle Patches unter `todo/sabotage/` rot.
 - App des Nutzers gebaut.
 - **Gesamtlauf nur auf ruhigem Rechner** (Last < 3, keine Spiele). Sonst weglassen und im Status vermerken, dann macht ihn der Host.
+
+## Abnahme Host 26.10. (Gesamtlauf 12:14–12:44)
+
+`Werkzeuge/pruefung.sh voll` ergab:
+- Debug und Release: 0 Warnungen.
+- Seriell **1158/1158** grün.
+- Parallel 1–3 **grün** (je 1152 bestanden, 6 übersprungen).
+- Keine neuen `.ips`.
+- Sabotage **5/5 rot ✓**.
+- App des Nutzers 12:44:30, Signatur gültig, Version 0.4.0.
+
+Den Produktcode hat der Host gelesen: `mayStartWatching` steht in allen drei Startwegen, in `applyPause` wird die Generation erneut geprüft, der Neustart nach einem Stream-Unmount läuft in einem eigenen Task. Prüf-Agent (Sonnet): Es gibt keine weiteren Aufrufer von `ChangeWatcher.start`, die Tests und die Patches a–e sind in Ordnung.
+
+- **Abgenommen:** `bug.0.4.205`, einschließlich des vom Worker gefundenen Neustarts nach Stream-Unmount (mittel, vorbestehend, Patch e).
+- **Reste → `bug.0.4.206` (Paket 31):**
+  - Befund des Prüf-Agenten, vom Host im Code bestätigt: Ein `stop` mit neuem Lauf (`stopWatcherAndStartIndex`) im Lesefenster eines Startwegs wird übergangen. Die Überwachung startet dann neben dem Lauf, beim Umbenennen sogar auf dem alten Pfad.
+  - Patch c nennt den Neustart-Fall „Aushängen“ nicht im Kopf.
+  - Für `applyPause` fehlt der Fall „nicht mehr angeschlossen“.

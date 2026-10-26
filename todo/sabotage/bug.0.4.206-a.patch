@@ -1,0 +1,16 @@
+# Test: WatchStartCheckTests/restartAfterStreamUnmountChecksTheStateAfterTheRead()
+# Test: WatchStartCheckTests/pauseEndChecksTheStateAfterTheRead()
+# Test: RunLifecycleTests/startWatchingChecksTheStateAfterTheRead()
+# bug.0.4.206 (a): stop im Lesefenster wird übergangen (kein Vergleich der Generation).
+--- a/diskindex/diskindex/Indexing/ChangeWatcher.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcher.swift
+@@ -196,8 +196,7 @@
+     /// (`watchGeneration`) – ein `stop` (z. B. `stopWatcherAndStartIndex`: Umbenennen, Regeländerung, Voll-Abgleich)
+     /// oder `start` im Lesefenster gewinnt; die Überwachung startet dann am Ende des neuen Laufs.
+     func mayStartWatching(_ mediumID: UUID, since generation: Int, from place: String) -> Bool {
+-        guard watchGenerations[mediumID, default: 0] == generation,
+-              appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
++        guard appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
+               let medium = appState.medium(with: mediumID), medium.decision == .index, medium.allowIndexing,
+               medium.connectionStatus == .connected else {
+             DiskIndexLog.shared.record(.watcher, .info, "überwachung nicht gestartet \(place) medium=\(mediumID)")

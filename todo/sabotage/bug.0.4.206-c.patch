@@ -1,0 +1,15 @@
+# Test: RunLifecycleTests/startWatchingChecksTheStateAfterTheRead()
+# Test: WatchStartCheckTests/restartAfterStreamUnmountChecksTheStateAfterTheRead()
+# bug.0.4.206 (c), Nachtrag zu 205-c: angeschlossen fehlt in mayStartWatching.
+--- a/diskindex/diskindex/Indexing/ChangeWatcher.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcher.swift
+@@ -198,8 +198,7 @@
+     func mayStartWatching(_ mediumID: UUID, since generation: Int, from place: String) -> Bool {
+         guard watchGenerations[mediumID, default: 0] == generation,
+               appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
+-              let medium = appState.medium(with: mediumID), medium.decision == .index, medium.allowIndexing,
+-              medium.connectionStatus == .connected else {
++              let medium = appState.medium(with: mediumID), medium.decision == .index, medium.allowIndexing else {
+             DiskIndexLog.shared.record(.watcher, .info, "überwachung nicht gestartet \(place) medium=\(mediumID)")
+             return false
+         }

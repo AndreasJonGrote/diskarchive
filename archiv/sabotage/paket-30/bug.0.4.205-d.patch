@@ -1,0 +1,11 @@
+# Test: WatchStartCheckTests/pauseEndChecksTheStateAfterTheRead()
+--- a/diskindex/diskindex/Indexing/ChangeWatcher.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcher.swift
+@@ -274,7 +274,6 @@
+             await startAfterReadHookForTesting?(id)
+             #endif
+             // bug.0.4.205: ein neuerer Durchlauf (Pause an, Pausenende mit anderen Auslassungen) gilt.
+-            guard generation == pauseGeneration else { return }
+             guard mayStartWatching(id, from: "pausenende") else { continue }
+             start(
+                 mediumID: id,

@@ -399,13 +399,10 @@ struct RunLifecycleTests {
         #expect(setup.rig.starts(id).count == 2, "Läufe: \(setup.rig.starts(id))")
     }
 
-    private enum ReadWindowEvent: String, CaseIterable {
-        case none, forget, decline, pause
-    }
-
     /// K5: `LiveWiring.startWatching` für das angeschlossene Medium mit „Ja“; `event` tritt nach dem Lesen des Speichers
-    /// ein. Ergebnis: überwacht direkt nach dem Ende von `startWatching`, und ob der Haken lief.
-    private static func watchingAfterTheRead(_ event: ReadWindowEvent) async throws -> (watching: Bool, hookRan: Bool) {
+    /// ein (gemeinsame Liste mit `WatchStartCheckTests`, bug.0.4.205). Ergebnis: überwacht direkt nach dem Ende von
+    /// `startWatching`, und ob der Haken lief.
+    private static func watchingAfterTheRead(_ event: WatchStartEvent) async throws -> (watching: Bool, hookRan: Bool) {
         let setup = try await Self.gapMedium("LESEN\(event.rawValue.uppercased())")
         defer { setup.tearDown() }
         let app = setup.app
@@ -415,20 +412,7 @@ struct RunLifecycleTests {
         var hookRan = false
         watcher.startAfterReadHookForTesting = { _ in
             hookRan = true
-            switch event {
-            case .none:
-                break
-            case .forget:
-                app.forgetMedium(id: id)
-            case .decline:
-                app.updateMedium(id: id, persist: true) {
-                    $0.decision = .dontIndex
-                    $0.allowIndexing = false
-                }
-            case .pause:
-                app.globalAutoIndexPaused = true
-                app.onAutoIndexPauseChanged?()
-            }
+            await event.apply(setup)
         }
         await LiveWiring.startWatching(id: id, volume: setup.volume, store: setup.harness.store, watcher: watcher, appState: app)
         let watching = watcher.isWatching(mediumID: id)
@@ -437,13 +421,13 @@ struct RunLifecycleTests {
         return (watching, hookRan)
     }
 
-    /// K5 (Supervisor 26.10.): Vergessen, „Nein“ oder Pause, während `startWatching` den Speicher liest → keine
-    /// Überwachung. Gegenprobe ohne Ereignis: sie läuft.
+    /// K5 (Supervisor 26.10.): Vergessen, „Nein“, Pause, Aushängen (bug.0.4.205) oder `stop` (bug.0.4.206), während
+    /// `startWatching` den Speicher liest → keine Überwachung. Gegenprobe ohne Ereignis: sie läuft.
     @Test func startWatchingChecksTheStateAfterTheRead() async throws {
         let plain = try await Self.watchingAfterTheRead(.none)
         try #require(plain.hookRan, "Haken nach dem Lesen lief nicht")
         #expect(plain.watching, "Gegenprobe: ohne Ereignis keine Überwachung")
-        for event in [ReadWindowEvent.forget, .decline, .pause] {
+        for event in [WatchStartEvent.forget, .decline, .pause, .disconnect, .offline, .stop] {
             let result = try await Self.watchingAfterTheRead(event)
             try #require(result.hookRan, "Haken nach dem Lesen lief nicht (\(event))")
             #expect(!result.watching, "Überwachung trotz \(event) während des Lesens")

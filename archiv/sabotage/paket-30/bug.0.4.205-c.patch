@@ -1,0 +1,13 @@
+# Test: RunLifecycleTests/startWatchingChecksTheStateAfterTheRead()
+--- a/diskindex/diskindex/Indexing/ChangeWatcher.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcher.swift
+@@ -194,8 +194,7 @@
+     /// noch nicht (`pendingMediumWrites`), und `stop`/`applyPause` davor fanden keine laufende Überwachung.
+     func mayStartWatching(_ mediumID: UUID, from place: String) -> Bool {
+         guard appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
+-              let medium = appState.medium(with: mediumID), medium.decision == .index, medium.allowIndexing,
+-              medium.connectionStatus == .connected else {
++              let medium = appState.medium(with: mediumID), medium.decision == .index, medium.allowIndexing else {
+             DiskIndexLog.shared.record(.watcher, .info, "überwachung nicht gestartet \(place) medium=\(mediumID)")
+             return false
+         }

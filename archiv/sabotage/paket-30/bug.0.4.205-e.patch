@@ -1,0 +1,12 @@
+# Test: WatchStartCheckTests/restartAfterStreamUnmountChecksTheStateAfterTheRead()
+--- a/diskindex/diskindex/Indexing/ChangeWatcher.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcher.swift
+@@ -295,7 +295,7 @@
+         sources[mediumID] = nil
+         // bug.0.4.205: Wir laufen im eben abgebrochenen Überwachungs-Task – das Lesen des Speichers darin würfe
+         // `CancellationError`, der Neustart käme nie an. Darum in einem eigenen Task, der den Abbruch nicht erbt.
+-        Task { [weak self] in await self?.restartWatchIfConnected(mediumID: mediumID) }
++        await restartWatchIfConnected(mediumID: mediumID)
+     }
+ 
+     private func watchStreamEnded(_ mediumID: UUID, generation: Int) async {
