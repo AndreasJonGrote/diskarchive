@@ -42,8 +42,8 @@ struct GapMediumRunWindowTests {
         try #require(await waitUntil { setup.app.medium(with: setup.id)?.connectionStatus == .offline })
     }
 
-    /// (a) Startet zwischen der Freigabe in `finish` und seinem Ende ein neuer stiller Abgleich, bleiben dessen Merker:
-    /// ein Abbruch stellt „Fehler“ mit Lücke her.
+    /// (a) Wird zwischen der Freigabe in `finish` und seinem Ende ein neuer stiller Abgleich angefordert, bleiben dessen
+    /// Merker: ein Abbruch stellt „Fehler“ mit Lücke her. bug.0.4.204: der neue Lauf wartet auf das Ende des alten.
     @Test func finishOfTheOldRunKeepsTheMarkersOfTheNewRun() async throws {
         let setup = try await Self.gapMedium("FENSTERALT")
         defer { setup.rig.coordinator.stop() }
@@ -57,10 +57,10 @@ struct GapMediumRunWindowTests {
             startedNew = true
             setup.hold.set(true)
             service.start(mediumUUID: id, volume: volume, fromScratch: false)
-            await setup.gate.entered.wait()
         }
         try #require(await setup.runToEnd(), "alter Lauf endet nicht")
         service.finishBeforeFailureHookForTesting = nil
+        try #require(await waitUntil { await setup.gate.heldCount() >= 1 }, "neuer Lauf hält nicht am Tor")
         try #require(startedNew && service.isRunActive(id), "neuer Lauf läuft nicht")
         await service.cancel(mediumUUID: id)
         await setup.gate.open()

@@ -1,0 +1,13 @@
+# Test: RunLifecycleTests/renameDuringTheFinishStartsNoWatchBesideTheNextRun()
+# bug.0.4.204: isRunActive sieht Abschluss und wartenden Start nicht (Umbenennen startet die Überwachung daneben).
+--- a/diskindex/diskindex/Indexing/IndexingService.swift
++++ b/diskindex/diskindex/Indexing/IndexingService.swift
+@@ -137,7 +137,7 @@
+     /// bug.0.4.204: auch im Abschluss und mit wartendem Start – sonst startete z. B. das Umbenennen die Überwachung neben
+     /// dem gleich anlaufenden Lauf.
+     func isRunActive(_ mediumUUID: UUID) -> Bool {
+-        lifecycles[mediumUUID] != nil || startsWaitingForCancel[mediumUUID] != nil
++        tasks[mediumUUID] != nil
+     }
+ 
+     #if DEBUG

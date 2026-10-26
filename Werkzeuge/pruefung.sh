@@ -8,10 +8,14 @@
 #   Werkzeuge/pruefung.sh sabotage                  nur die Sabotage-Patches aus todo/sabotage/ (Regel 9), je Patch rot erwartet
 #   (voll prüft die Patches am Ende mit, wenn welche da sind)
 # Umgebung (alles optional):
-#   S=<Ordner>   Scratch-Ordner (Standard: neuer Ordner unter ${TMPDIR:-/tmp}); nie im Repository
-#   KEEP=1       DerivedData nicht löschen
+#   S=<Ordner>   Scratch-Ordner (Standard: neuer Ordner pruefung.XXXXXX unter ${TMPDIR:-/tmp}); muss unter $TMPDIR
+#                liegen – nie im Repository, nie im Scratch einer Sitzung (sonst Abbruch)
+#   KEEP=1       DerivedData und alle .xcresult behalten
+# Platz (Host 26.10., Platte lief mit 167 GB Testresten voll): beim Start Abbruch unter 25 GB frei; ältere
+#   pruefung.*-Ordner unter $TMPDIR bis auf die zwei neuesten (und laufende) werden gelöscht; .xcresult grüner Läufe
+#   und erwartungsgemäß roter Sabotage-Läufe werden sofort gelöscht, nur die zur Fehlersuche nötigen bleiben.
 # Ausgabe: eine Zusammenfassung ($S/zusammenfassung.txt, am Ende auch auf stdout), Rohlogs bleiben in $S.
-# Kein Git, keine Eingriffe außerhalb von $S und dem DerivedData der Nutzer-App (Regel 14).
+# Kein Git, keine Eingriffe außerhalb von $TMPDIR/pruefung.* und dem DerivedData der Nutzer-App (Regel 14).
 
 set -u
 MODUS="${1:-voll}"; shift || true
@@ -27,8 +31,35 @@ if [ -z "${DEVELOPER_DIR:-}" ] && [ -d /Applications/Xcode.app/Contents/Develope
   export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
 fi
 
-S="${S:-$(mktemp -d "${TMPDIR:-/tmp}/pruefung.XXXXXX")}"
-mkdir -p "$S"
+TMPBASE="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
+MINFREI_GB=25
+FREI_GB=$(( $(df -k "$TMPBASE" | awk 'NR==2 {print $4}') / 1024 / 1024 ))
+if [ "$FREI_GB" -lt "$MINFREI_GB" ]; then
+  echo "Abbruch: zu wenig Platz ($FREI_GB GB frei unter $TMPBASE, mindestens $MINFREI_GB GB) – erst aufräumen, sonst falsche Rote."
+  exit 3
+fi
+# Alte Läufe: alle pruefung.* bis auf die zwei neuesten löschen, laufende (PID in .laeuft lebt) nie.
+ALT=0
+while IFS= read -r d; do
+  [ -n "$d" ] || continue
+  ALT=$((ALT+1)); [ "$ALT" -le 2 ] && continue
+  pid=$(cat "$d/.laeuft" 2>/dev/null)
+  if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then continue; fi
+  rm -rf "$d"
+done < <(ls -dt "$TMPBASE"/pruefung.* 2>/dev/null)
+
+if [ -n "${S:-}" ]; then
+  # Erst prüfen, dann anlegen (macOS: /var ist /private/var).
+  case "$S" in /var/*|/tmp/*) S="/private$S" ;; esac
+  case "$S/" in
+    "$TMPBASE"/*) ;;
+    *) echo "Abbruch: S=$S liegt nicht unter \$TMPDIR ($TMPBASE) – Voreinstellung nutzen (S weglassen)."; exit 2 ;;
+  esac
+  mkdir -p "$S" || exit 2
+else
+  S="$(mktemp -d "$TMPBASE/pruefung.XXXXXX")"
+fi
+echo $$ > "$S/.laeuft"
 DD="$S/dd"; DDREL="$S/dd-rel"; SUM="$S/zusammenfassung.txt"
 DEST='platform=macOS,arch=arm64'
 BASIS=(-project diskindex.xcodeproj -scheme diskindex -destination "$DEST")
@@ -38,6 +69,17 @@ TESTOPT=(-only-testing:diskindexTests -test-timeouts-enabled YES -maximum-test-e
 zeit() { date '+%H:%M:%S'; }
 log()  { echo "$*" | tee -a "$SUM"; }
 warnungen() { grep "warning:" "$1" | grep -v appintents | sort -u | wc -l | tr -d ' '; }
+# Zahl der roten Tests eines .xcresult; leer, wenn nicht lesbar (dann behalten).
+rotzahl() {
+  xcrun xcresulttool get test-results summary --path "$1" --compact 2>/dev/null \
+    | python3 -I -c 'import sys,json; print(json.load(sys.stdin).get("failedTests",0))' 2>/dev/null
+}
+# .xcresult eines grünen Laufs löschen (je ~140 MB); rote und nicht lesbare bleiben zur Fehlersuche.
+gruen_weg() {
+  [ "${KEEP:-0}" = "1" ] && return
+  [ -d "$1" ] || return
+  [ "$(rotzahl "$1")" = "0" ] && rm -rf "$1"
+}
 # Sabotage (Regel 9): jeder Patch in einer Kopie des Projekts, die in "# Test:" genannten Tests müssen rot werden.
 sabotage() {
   shopt -s nullglob
@@ -70,6 +112,8 @@ sabotage() {
       local f=${rot%% *} n=${rot##* }
       if [ -n "$rot" ] && [ "${n:-0}" -gt 0 ] && [ "${f:-0}" -gt 0 ]; then
         log "Sabotage $name: rot ✓ ($f von $n)  $START–$(zeit)"; ok=$((ok+1))
+        # Erwartetes Rot: das Ergebnis wird nicht mehr gebraucht (Log bleibt).
+        [ "${KEEP:-0}" = "1" ] || rm -rf "$S/sab-$name.xcresult"
       elif [ "${n:-0}" -eq 0 ]; then
         log "Sabotage $name: kein Test gefunden ($tests)  $START–$(zeit)"; bad=$((bad+1))
       else
@@ -89,7 +133,8 @@ BEZUG="$S/bezug"; touch "$BEZUG"
 
 if [ "$MODUS" = "sabotage" ]; then
   sabotage
-  log "Ende $(zeit)  (Rohlogs in $S)"; echo; echo "=== Zusammenfassung ($SUM) ==="; cat "$SUM"; exit 0
+  rm -f "$S/.laeuft"
+  log "Ende $(zeit)  (Rohlogs in $S; frei $(df -h "$TMPBASE" | awk 'NR==2 {print $4}'))"; echo; echo "=== Zusammenfassung ($SUM) ==="; cat "$SUM"; exit 0
 fi
 
 # 1. Build mit Testziel
@@ -109,12 +154,14 @@ if [ "$MODUS" = "schnell" ]; then
     -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 \
     -resultBundlePath "$S/schnell.xcresult" > "$S/schnell.log" 2>&1
   log "Gezielt (${SUITES[*]:-alle}): Exit $?  $(testzeile "$S/schnell.log")  $START–$(zeit)"
+  gruen_weg "$S/schnell.xcresult"
 else
   # 2. Seriell
   START=$(zeit)
   xcodebuild test-without-building "${BASIS[@]}" -derivedDataPath "$DD" "${TESTOPT[@]}" \
     -parallel-testing-enabled NO -resultBundlePath "$S/seriell.xcresult" > "$S/seriell.log" 2>&1
   log "Seriell: Exit $?  $(testzeile "$S/seriell.log")  $START–$(zeit)"
+  gruen_weg "$S/seriell.xcresult"
 
   # 3. Parallel, dreimal
   for i in 1 2 3; do
@@ -129,6 +176,7 @@ else
 d=json.load(sys.stdin)
 print("   Ergebnis %s, gesamt %s, bestanden %s, rot %s, übersprungen %s" % (d.get("result"),d.get("totalTestCount"),d.get("passedTests"),d.get("failedTests"),d.get("skippedTests")))
 for f in d.get("testFailures",[]): print("   ROT:",f.get("testName"),"-",f.get("failureText"))' | tee -a "$SUM"
+      gruen_weg "$S/par$i.xcresult"
     fi
   done
 
@@ -160,5 +208,7 @@ for f in d.get("testFailures",[]): print("   ROT:",f.get("testName"),"-",f.get("
 fi
 
 [ "${KEEP:-0}" = "1" ] || rm -rf "$DD" "$DDREL"
-log "Ende $(zeit)  (Rohlogs und .xcresult in $S)"
+rm -f "$S/.laeuft"
+BLEIBT=$(ls -d "$S"/*.xcresult 2>/dev/null | wc -l | tr -d ' ')
+log "Ende $(zeit)  (Rohlogs in $S; behaltene .xcresult: $BLEIBT; Ordnergröße $(du -sh "$S" 2>/dev/null | cut -f1); frei $(df -h "$TMPBASE" | awk 'NR==2 {print $4}'))"
 echo; echo "=== Zusammenfassung ($SUM) ==="; cat "$SUM"

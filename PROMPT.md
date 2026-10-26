@@ -1,7 +1,3 @@
-⚠ Worker – Minimum Sonnet 5.5 Medium. Läuft die Sitzung darunter, in der ersten Zeile melden und auf den Wechsel warten.
-
-Rolle: **Worker**. Arbeite **Paket 29** ab: [todo/paket-29.md](todo/paket-29.md), nur `bug.0.4.204`: **Umbau** in `IndexingService` – je Medium höchstens ein Lebenszyklus „Start → Lauf → Abschluss bzw. Abbruch“; ein neuer `start` und ein zweiter `cancel` warten, bis `finish`/`cancel` des vorigen Laufs ganz fertig ist. **Lies den Abschnitt „Ergänzung (Supervisor/Nutzer 25.10.)“ vollständig:** (a) Abbruch während des Abschlusses, vier Tests; (b) nur ein Weg zum Warten (Marker statt Abfragen alle 20 ms); (c) Aufräumen nach der Liste „entfällt/bleibt“, im Status je Symbol; (d) Wächter in DEBUG (`assertionFailure`) bei Start, Abschluss und Abbruch. Achtung Verklemmung. Dazu die zwei schwachen Tests aus 203. Regeln: `todo/regeln.md` (verbindlich, neu: Regel 12 „Was ein Befund ist“).
-
-Test vorher rot belegen, Sabotage-Patches unter `todo/sabotage/` (die vier im Paket, zwei für den Wächter und je einer aus den Klarstellungen zu (a) und (b), alle rot), Selbstprüfung nach Regel 12 (besonders: Verklemmung, Rückschritte bei 014, 162, 181–185, 199–203). Paketende: 0 Warnungen Debug und Release, betroffene Tests grün (Rennen-Tests 20× parallel), App des Nutzers gebaut. Gesamtlauf nur auf ruhigem Rechner (Last < 3, keine Spiele), sonst weglassen und im Status vermerken – der Wächter prüft dann im Gesamtlauf des Hosts mit.
-
-Zum Schluss: nur das Feld „Status“ im Paket-File füllen (höchstens 5 Zeilen, „Bereit zur Prüfung“) und diese Datei durch „Erledigt (Bereit zur Prüfung): … Offen/blockiert: … HALT.“ ersetzen (höchstens drei Zeilen). Kein Git.
+Erledigt (Bereit zur Prüfung): bug.0.4.204 (Paket 29: ein Lebenszyklus je Medium, Abbruch im Abschluss, ein Warteweg, Aufräumen, Wächter in DEBUG; 12 Patches rot).
+Offen/blockiert: Gesamtlauf weggelassen (Last 3–10); Frage zu `watchHandedOn` und Nachhol-Abgleich im Status.
+HALT.

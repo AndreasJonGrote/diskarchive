@@ -37,7 +37,13 @@ Gilt, wenn ein Bericht des Workers vorliegt („check“, „next“ oder Loop m
 
 ## 3. Prüfskript `Werkzeuge/pruefung.sh`
 
-Aufruf aus beliebigem Ordner, im Hintergrund starten; Rohlogs und `.xcresult` liegen im Scratch-Ordner `$S` (Standard: neuer Ordner unter `$TMPDIR`, nie im Repository).
+Aufruf aus beliebigem Ordner, im Hintergrund starten, **ohne `S=`** (Voreinstellung). Rohlogs liegen im Ordner `$S` = `$TMPDIR/pruefung.XXXXXX`. Ein `S` außerhalb von `$TMPDIR` (Repository, Scratch einer Sitzung) bricht das Skript ab.
+
+**Platz und Aufräumen (Host 26.10., nach 167 GB Testresten bei 12 GB frei):**
+- **Beim Start:** unter **25 GB** frei → Abbruch „zu wenig Platz“ (Exit 3) statt falscher Roter (Build, SQLite „disk full“). Danach werden ältere `pruefung.*`-Ordner unter `$TMPDIR` bis auf die **zwei neuesten** gelöscht; ein Ordner mit lebendem Lauf (PID in `.laeuft`) bleibt immer.
+- **Während des Laufs:** das `.xcresult` jedes **grünen** Laufs (seriell, Parallel 1–3, schnell) wird sofort gelöscht, ebenso das eines **erwartungsgemäß roten** Sabotage-Patches (rot ✓). Es bleiben nur die zur Fehlersuche nötigen: rote Läufe, nicht lesbare Ergebnisse, Patches mit „GRÜN ✗“. Logs und `zusammenfassung.txt` bleiben immer. Die Schlusszeile nennt die behaltenen `.xcresult`, die Ordnergröße und den freien Platz.
+- `KEEP=1` behält DerivedData und alle `.xcresult` (nur zur Fehlersuche, danach von Hand löschen).
+- Sitzungs-Scratch (`/private/tmp/claude-501/…/scratchpad`) räumt das Skript nicht; Host und Worker legen dort keine Builds und Testergebnisse ab (Regel 13).
 
 ```
 Werkzeuge/pruefung.sh voll                    # Paketende
@@ -45,7 +51,7 @@ Werkzeuge/pruefung.sh schnell [Suite ...]     # je Aufgabe: Build + Warnungen + 
 Werkzeuge/pruefung.sh sabotage                # nur die Patches aus todo/sabotage/: je Patch Kopie, Patch, genannte Tests → rot ✓ / GRÜN ✗
 ```
 
-`voll` macht der Reihe nach: `clean build-for-testing` (Debug mit Testziel, Warnungen, Ziel 0), Gesamtlauf seriell, Parallellauf dreimal mit `-resultBundlePath` (rote Tests samt Fehlertext aus dem `.xcresult`), Release-Warnungen (Ziel 0), neue `Disk Archive*.ips` seit Start (Ziel 0), die Sabotage-Patches, Regel 14 (Nutzer-App ohne `-derivedDataPath` gebaut, Binary-Zeit, neuere `.swift`-Dateien, `codesign`, Version aus `Info.plist`) und löscht danach den eigenen DerivedData-Ordner. Das Ergebnis ist `$S/zusammenfassung.txt`; der Host liest nur sie und bei roten Tests die genannten Logs.
+`voll` macht der Reihe nach: `clean build-for-testing` (Debug mit Testziel, Warnungen, Ziel 0), Gesamtlauf seriell, Parallellauf dreimal mit `-resultBundlePath` (rote Tests samt Fehlertext aus dem `.xcresult`), Release-Warnungen (Ziel 0), neue `Disk Archive*.ips` seit Start (Ziel 0), die Sabotage-Patches, Regel 14 (Nutzer-App ohne `-derivedDataPath` gebaut, Binary-Zeit, neuere `.swift`-Dateien, `codesign`, Version aus `Info.plist`) und löscht danach den eigenen DerivedData-Ordner (Aufräumen siehe oben). Das Ergebnis ist `$S/zusammenfassung.txt`; der Host liest nur sie und bei roten Tests die genannten Logs.
 
 - **Pflege nur durch den Host** (AGENTS.md); der Worker ändert die Datei nicht und braucht sie nicht zu nutzen. Änderungen am Skript nennt der Host in der Commit-Nachricht.
 - Setzt `DEVELOPER_DIR` selbst, wenn `/Applications/Xcode.app` vorhanden ist (Command Line Tools sind die Voreinstellung). Nichts am System ändern.

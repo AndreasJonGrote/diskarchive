@@ -1,0 +1,13 @@
+# Test: RunLifecycleTests/unmountDuringTheFinishKeepsTheEndState()
+# Test: RunLifecycleTests/pauseDuringTheFinishKeepsTheEndState()
+# bug.0.4.204 (a): Abbruch während des Abschlusses streicht den Nachhol-Abgleich nicht.
+--- a/diskindex/diskindex/Indexing/IndexingService.swift
++++ b/diskindex/diskindex/Indexing/IndexingService.swift
+@@ -92,7 +92,6 @@
+     /// bug.0.4.204 (a): Aushängen, Sperre, Nein oder Pause während Abschluss bzw. Abbruch – der Endstand bleibt, aber
+     /// kein Nachhol-Abgleich und keine Überwachung mehr.
+     private func abortWhileClosing(_ mediumUUID: UUID) {
+-        rerunAfterFinish.remove(mediumUUID)
+         lifecycles[mediumUUID]?.abortedWhileClosing = true
+     }
+ 

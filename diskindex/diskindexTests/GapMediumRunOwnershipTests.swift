@@ -5,6 +5,7 @@
 //  bug.0.4.203 — Nach der Freigabe eines Laufs (`runs[id] = nil`) verändert sein altes `finish` nichts mehr, was einem
 //  neuen Lauf desselben Mediums gehört (Sperre des Vollabgleichs, Anforderung, Anzeige); `cancel` prüft eine
 //  unbestätigte Art immer gegen den Speicher; Überwachung nach gescheitertem Lauf nur für eingehängte Medien.
+//  bug.0.4.204: der neue Lauf wartet auf das Ende des alten Abschlusses (`RunLifecycleTests`).
 //  Verdrahtet wie in der App (`WiredRig`), Medium im Speicher (`MemoryVolume`).
 //
 
@@ -20,7 +21,8 @@ struct GapMediumRunOwnershipTests {
         try await GapMediumBehavesOnlineTests.gapMedium(name)
     }
 
-    /// Neuen Lauf starten, sobald das alte `finish` den Lauf freigegeben hat, und ihn am Tor festhalten.
+    /// Neuen Lauf anfordern, sobald das alte `finish` den Lauf freigegeben hat (bug.0.4.204: er startet nach dessen Ende
+    /// und hält am Tor).
     private static func startNewRunAfterRelease(_ setup: Setup, start: @escaping @MainActor () -> Void) -> () -> Bool {
         var startedNew = false
         setup.rig.service.finishAfterReleaseHookForTesting = { _ in
@@ -28,9 +30,12 @@ struct GapMediumRunOwnershipTests {
             startedNew = true
             setup.hold.set(true)
             start()
-            await setup.gate.entered.wait()
         }
         return { startedNew }
+    }
+
+    private static func newRunHeld(_ setup: Setup) async -> Bool {
+        await waitUntil { await setup.gate.heldCount() >= 1 }
     }
 
     private static func finishNewRun(_ setup: Setup) async {
@@ -39,7 +44,7 @@ struct GapMediumRunOwnershipTests {
         await setup.rig.service.waitUntilIdle(setup.id)
     }
 
-    /// (a) Altes `finish` nach dem Start eines neuen (stillen) Laufs: Anzeige und Anforderung des neuen Laufs bleiben.
+    /// (a) Altes `finish`, ein neuer (stiller) Lauf wartet: Anzeige und Anforderung des neuen Laufs bleiben.
     @Test func oldFinishLeavesDisplayAndRequestOfTheNewRun() async throws {
         let setup = try await Self.gapMedium("ALTANZEIGE")
         defer { setup.rig.coordinator.stop() }
@@ -54,15 +59,16 @@ struct GapMediumRunOwnershipTests {
         }
         let startedNew = Self.startNewRunAfterRelease(setup) { coordinator.requestIndexingAfterDecision(mediumID: id) }
         try #require(await setup.runToEnd(), "alter Lauf endet nicht")
-        try #require(startedNew(), "neuer Lauf nicht gestartet")
-        #expect(watched.isEmpty, "altes `finish` startet die Überwachung mitten im neuen Lauf")
+        try #require(startedNew(), "neuer Lauf nicht angefordert")
+        try #require(await Self.newRunHeld(setup), "neuer Lauf startet nicht")
+        #expect(watched.isEmpty, "altes `finish` startet die Überwachung neben dem neuen Lauf")
         #expect(setup.app.medium(with: id)?.indexStatus == .error, "Anzeige des stillen Laufs überschrieben: \(String(describing: setup.app.medium(with: id)?.indexStatus))")
         #expect(coordinator.isIndexRequestedForTesting(id), "Anforderung des neuen Laufs gelöscht")
         await Self.finishNewRun(setup)
     }
 
-    /// (a) Altes `finish` eines gescheiterten Laufs nach dem Start eines neuen: keine Sperre des Vollabgleichs für den
-    /// neuen Lauf.
+    /// (a) Altes `finish` eines gescheiterten Laufs, ein neuer wartet: keine Sperre des Vollabgleichs für den neuen Lauf.
+    /// (bug.0.4.204: der alte Lauf endet vor dem Start des neuen – sein Hinweis ist keiner „mitten im neuen“ mehr.)
     @Test func oldFailedFinishDoesNotSuppressTheNewRunsReconcile() async throws {
         let setup = try await Self.gapMedium("ALTSPERRE")
         defer { setup.rig.coordinator.stop() }
@@ -76,9 +82,9 @@ struct GapMediumRunOwnershipTests {
             service.start(mediumUUID: id, volume: volume, fromScratch: true)
         }
         try #require(await setup.runToEnd(fromScratch: true), "alter Lauf endet nicht")
-        try #require(startedNew(), "neuer Lauf nicht gestartet")
+        try #require(startedNew(), "neuer Lauf nicht angefordert")
+        try #require(await Self.newRunHeld(setup), "neuer Lauf startet nicht")
         #expect(!service.suppressesFullReconcile(id), "Sperre des alten Laufs gilt für den neuen")
-        #expect(setup.app.indexingFailure == nil, "Hinweis des alten Laufs mitten im neuen: \(String(describing: setup.app.indexingFailure))")
         await Self.finishNewRun(setup)
     }
 
@@ -94,17 +100,6 @@ struct GapMediumRunOwnershipTests {
         await setup.rig.service.waitUntilIdle(setup.id)
         #expect(try await setup.storedStatus() == .error)
         #expect(try await setup.harness.store.indexHasGaps(mediumUUID: setup.id))
-    }
-
-    /// (b) Abbruch eines Laufs „von vorn“ direkt nach dem Start: der Speicher („Fehler“ mit Lücke) bestätigt keinen
-    /// Abgleich – `.pending` wie bei jedem abgebrochenen Lauf von vorn.
-    @Test func cancelOfAScratchRunRightAfterTheStartIsPending() async throws {
-        let setup = try await Self.gapMedium("VONVORN")
-        defer { setup.rig.coordinator.stop() }
-        setup.rig.service.start(mediumUUID: setup.id, volume: setup.volume, fromScratch: true)
-        await setup.rig.service.cancel(mediumUUID: setup.id)
-        #expect(setup.app.medium(with: setup.id)?.indexStatus == .pending, "Status nach Abbruch: \(String(describing: setup.app.medium(with: setup.id)?.indexStatus))")
-        await setup.rig.service.waitUntilIdle(setup.id)
     }
 
     /// (c) Gescheiterter Lauf, Pfad beim Laufende schon ausgetragen, Anzeige bleibt `.connected`: keine Überwachung.

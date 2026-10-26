@@ -59,7 +59,8 @@ struct GapMediumBehavesOnlineTests {
     }
 
     /// Angeschlossenes Medium (auch für `GapMediumRemainderTests`), erster Lauf endet mit Lücke („bad“ nicht lesbar) → `.error`, Hinweis steht.
-    static func gapMedium(_ name: String) async throws -> Setup {
+    /// `startWatching`: wie in `WiredRig` (bug.0.4.204: Tests zählen, wann die Überwachung startet).
+    static func gapMedium(_ name: String, startWatching: @escaping (UUID, VolumeInfo) async -> Void = { _, _ in }) async throws -> Setup {
         let harness = try await ScanHarness.make()
         let volume = testVolume(path: "/Volumes/\(name)", name: name)
         try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)
@@ -73,7 +74,7 @@ struct GapMediumBehavesOnlineTests {
         let app = AppState(store: harness.store, defaults: TestDefaults.make())
         let recorder = Recorder()
         app.withdrawIndexingFailureNotice = { recorder.withdrawn.append($0) }
-        let rig = WiredRig(store: harness.store, access: gate, app: app)
+        let rig = WiredRig(store: harness.store, access: gate, app: app, startWatching: startWatching)
         rig.service.runLimitsForTesting = fastRetries
         rig.service.finishDecisionHookForTesting = { _ in recorder.finished += 1 }
         let setup = Setup(harness: harness, volume: volume, memory: memory, gate: gate, hold: hold, app: app, rig: rig, recorder: recorder)

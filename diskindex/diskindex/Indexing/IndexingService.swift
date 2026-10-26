@@ -5,7 +5,8 @@
 
 import Foundation
 
-/// Hält höchstens einen Lauf je Medium und schickt Fortschritt an `AppState`.
+/// Hält höchstens einen Lauf je Medium und schickt Fortschritt an `AppState`. bug.0.4.204: je Medium höchstens ein
+/// Lebenszyklus „Start → Lauf → Abschluss bzw. Abbruch“ (`lifecycles`, Wächter in DEBUG).
 @MainActor
 final class IndexingService {
     #if DEBUG
@@ -36,11 +37,21 @@ final class IndexingService {
     private var runStartedAt: [UUID: Date] = [:]
     private var runVolumes: [UUID: VolumeInfo] = [:]
     private var rerunAfterFinish: Set<UUID> = []
-    /// Starts während eines laufenden Abbruchs, je Medium zusammengefasst (bug.0.4.080 a).
+    /// Starts während Abschluss bzw. Abbruch eines Laufs, je Medium zusammengefasst (bug.0.4.080 a). bug.0.4.204 (b):
+    /// nur eine Merkliste – `endLifecycle` startet sie als letzter Schritt des Lebenszyklus (kein Task, kein Abfragen).
     private var startsWaitingForCancel: [UUID: (volume: VolumeInfo, fromScratch: Bool)] = [:]
+    /// bug.0.4.204: je Medium höchstens ein Lebenszyklus „Start → Lauf → Abschluss bzw. Abbruch“. `start` legt ihn an,
+    /// `finish` bzw. `cancel` setzen vor der Freigabe den Schlussmarker (`closing`) und lösen ihn als allerletzten
+    /// Schritt (`endLifecycle`). Bis dahin warten ein neuer Start (`startsWaitingForCancel`) und ein weiterer `cancel`
+    /// bzw. `waitUntilIdle` (Fortsetzung in `waiters`). `finish`/`cancel` warten nie selbst auf den Marker.
+    private var lifecycles: [UUID: RunLifecycle] = [:]
+    #if DEBUG
+    /// bug.0.4.204 (d): Wächter, unabhängig vom Marker geführt – Lebenszyklus je Medium von `start` bis zur letzten Zeile
+    /// von `finish` bzw. `cancel`. Ein zweiter zur selben Zeit (Marker zu früh gelöst, Start ohne Warten) bricht hart ab.
+    private var guardedLifecycles: [UUID: (token: UUID, closing: Bool)] = [:]
+    #endif
     /// Art des laufenden Laufs (bug.0.4.014 Abgleich, damit `cancel` wie `DirectoryIndexer.stop` endet; bug.0.4.200 c
-    /// stiller Abgleich bei Lücke). bug.0.4.202 (a): gehört zum Token des Laufs – ein altes `finish` räumt nur seine
-    /// eigene ab, nie die eines inzwischen gestarteten Laufs.
+    /// stiller Abgleich bei Lücke). bug.0.4.204: je Medium (nur ein Lebenszyklus).
     private var runKinds: [UUID: RememberedRunKind] = [:]
     /// Lauf zu Ende: Live-Überwachung starten (nach Erfolg und, bug.0.4.084, nach einem gescheiterten Lauf).
     var onRunIndexed: ((UUID, VolumeInfo) -> Void)?
@@ -49,27 +60,68 @@ final class IndexingService {
     /// und gibt die geltende zurück – `nil`, wenn der Lauf nicht mehr läuft.
     fileprivate func rememberRunKind(_ mediumUUID: UUID, _ token: UUID, _ kind: IndexRunKind?) -> IndexRunKind? {
         // bug.0.4.201 (c): ein abgebrochener Lauf merkt sich nichts mehr (sonst bliebe der Eintrag nach `cancel` stehen).
-        guard runs[mediumUUID] == token else { return nil }
+        guard isRunToken(mediumUUID, token) else { return nil }
         if let kind {
             runKinds[mediumUUID] = RememberedRunKind(
-                token: token, kind: kind, confirmedByStore: true, fromScratch: runKinds[mediumUUID]?.fromScratch ?? false
+                kind: kind, confirmedByStore: true, fromScratch: runKinds[mediumUUID]?.fromScratch ?? false
             )
         }
         // bug.0.4.202 (c): Art und Beginn der Anzeige aus derselben Quelle.
-        return runKinds[mediumUUID]?.token == token ? runKinds[mediumUUID]?.kind : nil
+        return runKinds[mediumUUID]?.kind
     }
 
-    /// bug.0.4.203: Nach der Freigabe eines Laufs (`runs[id] = nil`) ist ein eingetragener Lauf ein neuerer – sein altes
-    /// `finish` bzw. `cancel` verändert nichts mehr, was ihm gehört (Sperre des Vollabgleichs, Anforderung, Anzeige,
-    /// Überwachung, Nachhol-Abgleich). Eine Stelle (Regel 7); nach jedem `await` neu fragen.
-    private func newerRunOwns(_ mediumUUID: UUID) -> Bool {
-        runs[mediumUUID] != nil
+    /// bug.0.4.204: wartet, bis der laufende Lebenszyklus des Mediums endet (Fortsetzung am Marker, kein Abfragen).
+    private func waitForLifecycleEnd(_ mediumUUID: UUID) async {
+        guard lifecycles[mediumUUID] != nil else { return }
+        await withCheckedContinuation { lifecycles[mediumUUID]?.waiters.append($0) }
     }
 
-    /// bug.0.4.202 (a): Art dieses Laufs abholen (nur mit seinem Token).
-    private func takeRunKind(_ mediumUUID: UUID, _ token: UUID) -> RememberedRunKind? {
-        guard runKinds[mediumUUID]?.token == token else { return nil }
-        return runKinds.removeValue(forKey: mediumUUID)
+    /// bug.0.4.204: allerletzter Schritt von `finish` bzw. `cancel` – Marker lösen, einen wartenden Start starten, jede
+    /// wartende Fortsetzung genau einmal fortsetzen.
+    private func endLifecycle(_ mediumUUID: UUID, _ token: UUID) {
+        guard lifecycles[mediumUUID]?.token == token, let ended = lifecycles.removeValue(forKey: mediumUUID) else { return }
+        if let waiting = startsWaitingForCancel.removeValue(forKey: mediumUUID) {
+            scratchRestartPending.remove(mediumUUID)
+            if isStillMounted(mediumUUID) {
+                start(mediumUUID: mediumUUID, volume: waiting.volume, fromScratch: waiting.fromScratch)
+            } else {
+                // Ausgehängt ohne `willDisappear` (Kabel gezogen): kein Lauf mit dem alten Volume (wie `discardWaitingStart`).
+                appState.reindexRequested.remove(mediumUUID)
+                DiskIndexLog.shared.record(.index, .info, "wartender start verworfen nicht eingehängt medium=\(mediumUUID)")
+            }
+        }
+        for waiter in ended.waiters {
+            waiter.resume()
+        }
+    }
+
+    /// bug.0.4.204 (a): Aushängen, Sperre, Nein oder Pause während Abschluss bzw. Abbruch – der Endstand bleibt, aber
+    /// kein Nachhol-Abgleich und keine Überwachung mehr.
+    private func abortWhileClosing(_ mediumUUID: UUID) {
+        rerunAfterFinish.remove(mediumUUID)
+        lifecycles[mediumUUID]?.abortedWhileClosing = true
+    }
+
+    /// bug.0.4.204 (d): Wächter beim Start (kein anderer Lebenszyklus desselben Mediums), beim Beginn von Abschluss bzw.
+    /// Abbruch (der eigene, noch nicht im Abschluss) und an deren letzter Zeile. Nur in DEBUG; Release unverändert.
+    private func guardLifecycle(_ mediumUUID: UUID, _ token: UUID, _ step: LifecycleStep, _ place: StaticString) {
+        #if DEBUG
+        let owner = guardedLifecycles[mediumUUID]
+        let valid = switch step {
+        case .begins: owner == nil
+        case .closes: owner?.token == token && owner?.closing == false
+        case .ends: owner?.token == token && owner?.closing == true
+        case .terminates: owner?.token == token
+        }
+        if !valid {
+            assertionFailure("zwei lebenszyklen medium=\(mediumUUID) stelle=\(place)")
+        }
+        switch step {
+        case .begins: guardedLifecycles[mediumUUID] = (token, false)
+        case .closes: guardedLifecycles[mediumUUID] = (token, true)
+        case .ends, .terminates: guardedLifecycles[mediumUUID] = nil
+        }
+        #endif
     }
 
     init(store: IndexStoreV3, access: any MediumAccess, appState: AppState) {
@@ -82,8 +134,10 @@ final class IndexingService {
         self.coordinator = coordinator
     }
 
+    /// bug.0.4.204: auch im Abschluss und mit wartendem Start – sonst startete z. B. das Umbenennen die Überwachung neben
+    /// dem gleich anlaufenden Lauf.
     func isRunActive(_ mediumUUID: UUID) -> Bool {
-        tasks[mediumUUID] != nil
+        lifecycles[mediumUUID] != nil || startsWaitingForCancel[mediumUUID] != nil
     }
 
     #if DEBUG
@@ -105,8 +159,12 @@ final class IndexingService {
     /// je Instanz; danach wieder aus).
     var failsNextCancelStoreReadForTesting = false
     var failsNextStoreReadBeforeRunForTesting = false
+    /// Tests (bug.0.4.204 a): ein `cancel` kam an, während Abschluss bzw. Abbruch des Laufs noch läuft (vor dem Warten).
+    var cancelWhileClosingHookForTesting: (@MainActor (UUID) -> Void)?
     #endif
 
+    /// Bleibt (bug.0.4.204 c): trennt innerhalb eines Lebenszyklus den abgebrochenen Lauf von seinen späten Schritten
+    /// (Beginn der Anzeige, Merken der Art).
     fileprivate func isRunToken(_ mediumUUID: UUID, _ token: UUID) -> Bool {
         runs[mediumUUID] == token
     }
@@ -119,8 +177,9 @@ final class IndexingService {
         }
     }
 
+    /// bug.0.4.204 (a): auch Medien im Abschluss – die Sperre erreicht sie (`cancel` streicht den Nachhol-Abgleich).
     func activeMediumUUIDs() -> [UUID] {
-        Array(Set(tasks.keys).union(runs.keys))
+        Array(lifecycles.keys)
     }
 
     /// bug.0.4.073: Die Sperre bricht einen vollständigen Abgleich ab, das Medium bleibt `.indexed` (`interrupted`).
@@ -161,34 +220,26 @@ final class IndexingService {
             rejectStart(mediumUUID)
             return
         }
-        if startsWaitingForCancel[mediumUUID] != nil || (tasks[mediumUUID] != nil && runs[mediumUUID] == nil) {
-            // Abbruch läuft noch (`cancel` wartet auf den Task): `finish` dieses Laufs löst kein `rerunAfterFinish`
-            // mehr ein, also auf das Ende warten und dann neu starten (bug.0.4.073). bug.0.4.080 a): Weitere Starts
-            // in dieser Zeit (LiveWiring und Koordinator) warten nicht einzeln, sondern gehen in denselben Neustart,
-            // auch in der Lücke zwischen Ende des Abbruchs und Neustart (`waitUntilIdle` fragt alle 20 ms ab).
-            if let waiting = startsWaitingForCancel[mediumUUID] {
-                startsWaitingForCancel[mediumUUID] = (volume, waiting.fromScratch || fromScratch)
-                return
-            }
-            startsWaitingForCancel[mediumUUID] = (volume, fromScratch)
-            Task {
-                await waitUntilIdle(mediumUUID)
-                guard let waiting = startsWaitingForCancel.removeValue(forKey: mediumUUID) else { return }
-                start(mediumUUID: mediumUUID, volume: waiting.volume, fromScratch: waiting.fromScratch)
-            }
+        if startsWaitingForCancel[mediumUUID] != nil || lifecycles[mediumUUID]?.closing == true {
+            // bug.0.4.204: Abschluss bzw. Abbruch läuft noch – warten, bis `endLifecycle` diesen Start als letzten
+            // Schritt startet (bug.0.4.073). bug.0.4.080 a): Weitere Starts in dieser Zeit (LiveWiring und Koordinator)
+            // gehen in denselben Neustart.
+            let waiting = startsWaitingForCancel[mediumUUID]
+            startsWaitingForCancel[mediumUUID] = (volume, (waiting?.fromScratch ?? false) || fromScratch)
             return
         }
-        if tasks[mediumUUID] != nil {
+        if let running = lifecycles[mediumUUID] {
             guard fromScratch else {
                 rerunAfterFinish.insert(mediumUUID)
                 return
             }
+            // bug.0.4.162 (f): Neustart von vorn – wartet als Start am Marker, bis der Abbruch dieses Laufs fertig ist.
             scratchRestartPending.insert(mediumUUID)
+            startsWaitingForCancel[mediumUUID] = (volume, true)
             Task {
+                // Nur diesen Lauf abbrechen (endete er inzwischen, läuft der Neustart schon).
+                guard lifecycles[mediumUUID]?.token == running.token else { return }
                 await cancel(mediumUUID: mediumUUID)
-                await waitUntilIdle(mediumUUID)
-                scratchRestartPending.remove(mediumUUID)
-                start(mediumUUID: mediumUUID, volume: volume, fromScratch: true)
             }
             return
         }
@@ -207,6 +258,8 @@ final class IndexingService {
         #endif
 
         let token = UUID()
+        guardLifecycle(mediumUUID, token, .begins, "start")
+        lifecycles[mediumUUID] = RunLifecycle(token: token)
         // bug.0.4.095: ein neuer Lauf (Anschließen, Neu indizieren, Pausenende) hebt die Sperre des Vollabgleichs auf.
         fullReconcileSuppressed.remove(mediumUUID)
         runs[mediumUUID] = token
@@ -214,7 +267,7 @@ final class IndexingService {
         // Speichers „Fehler“ bzw. `.indexed` wiederherstellt; der Lauf berichtigt sie gleich aus dem Speicher.
         // bug.0.4.202 (c): unbestätigt – `cancel` prüft sie gegen den Speicher, bevor es den Stand davor wiederherstellt.
         if let medium = appState.medium(with: mediumUUID) {
-            runKinds[mediumUUID] = RememberedRunKind(token: token, kind: IndexRunKind(
+            runKinds[mediumUUID] = RememberedRunKind(kind: IndexRunKind(
                 fromScratch: fromScratch,
                 completeExceptGaps: medium.hasCompleteIndexExceptGaps,
                 completedDepth: medium.completedDepth,
@@ -285,6 +338,20 @@ final class IndexingService {
 
     /// App-Ende: Tasks abbrechen ohne den Main Thread zu blockieren.
     func cancelAllForTermination() {
+        // bug.0.4.085 a), 204 (b): kein wartender Start und kein Nachhol-Abgleich läuft nach dem Beenden noch an.
+        startsWaitingForCancel.removeAll()
+        scratchRestartPending.removeAll()
+        rerunAfterFinish.removeAll()
+        for (id, lifecycle) in lifecycles {
+            if lifecycle.closing {
+                // Abschluss bzw. Abbruch läuft weiter und löst den Marker selbst – ohne Überwachung.
+                lifecycles[id]?.abortedWhileClosing = true
+            } else {
+                // Laufende Läufe kommen nie zu `finish` (Token weg): ihr Lebenszyklus endet hier, Wartende laufen weiter.
+                guardLifecycle(id, lifecycle.token, .terminates, "beenden")
+                endLifecycle(id, lifecycle.token)
+            }
+        }
         for id in Array(tasks.keys) {
             appState.clearMenuBarRunIndicators(id)
             runs.removeValue(forKey: id)
@@ -292,13 +359,12 @@ final class IndexingService {
             tasks[id] = nil
         }
         pauseIDs.removeAll()
-        // bug.0.4.085 a): kein wartender Start läuft nach dem Beenden noch an.
-        startsWaitingForCancel.removeAll()
     }
 
     /// bug.0.4.085 a): Medium wird ausgehängt – ein wartender Start (mit altem Volume) läuft nicht mehr an.
     func discardWaitingStart(mediumUUID: UUID) {
         startsWaitingForCancel[mediumUUID] = nil
+        scratchRestartPending.remove(mediumUUID)
         // bug.0.4.152: kein Start mehr, der die Sperre „Neu indizieren“ wieder löst.
         appState.reindexRequested.remove(mediumUUID)
     }
@@ -309,8 +375,24 @@ final class IndexingService {
     #endif
 
     func cancel(mediumUUID: UUID) async {
+        guard let lifecycle = lifecycles[mediumUUID] else { return }
+        if lifecycle.closing {
+            // bug.0.4.204 (a): Abschluss bzw. Abbruch läuft – dessen Endstand bleibt (kein zweites Wiederherstellen),
+            // kein Nachhol-Abgleich, keine Überwachung; auf das Ende warten. Ein wartender Start bleibt (nur Aushängen
+            // und Beenden verwerfen ihn; Sperre, Nein und Pause lehnt `start` selbst ab).
+            abortWhileClosing(mediumUUID)
+            #if DEBUG
+            cancelWhileClosingHookForTesting?(mediumUUID)
+            #endif
+            await waitForLifecycleEnd(mediumUUID)
+            return
+        }
+        let token = lifecycle.token
+        guardLifecycle(mediumUUID, token, .closes, "abbruch")
+        lifecycles[mediumUUID]?.closing = true
+        // bug.0.4.204: die Anforderung gehört diesem Lauf; was ab jetzt angefordert wird, dem nächsten Lebenszyklus.
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
         let task = tasks[mediumUUID]
-        guard task != nil || runs[mediumUUID] != nil else { return }
         // bug.0.4.130 (a): ein ausstehender Nachhol-Abgleich überlebt den Abbruch nicht (Sperre, Aushängen, Pause).
         rerunAfterFinish.remove(mediumUUID)
         // bug.0.4.129: Abbruch, bevor der Lauf „wird indiziert“ meldete (Aushängen, Sperre direkt nach dem Klick) →
@@ -319,14 +401,10 @@ final class IndexingService {
             appState.reindexRequested.remove(mediumUUID)
         }
         task?.cancel()
-        guard let token = runs.removeValue(forKey: mediumUUID) else {
-            await task?.value
-            tasks[mediumUUID] = nil
-            return
-        }
+        runs[mediumUUID] = nil
         runStartedAt.removeValue(forKey: mediumUUID)
         pauseIDs.remove(mediumUUID)
-        let remembered = takeRunKind(mediumUUID, token)
+        let remembered = runKinds.removeValue(forKey: mediumUUID)
         var kind = remembered?.kind
         // bug.0.4.203 (b): unbestätigt immer gegen den Speicher prüfen, gleich was die Anzeige sagte (auch „kein Abgleich“).
         if let remembered, !remembered.confirmedByStore {
@@ -368,36 +446,38 @@ final class IndexingService {
             DiskIndexLog.shared.record(.index, .error, "abbruch \(DiskIndexLog.errorSummary(error))")
         }
         DiskIndexLog.shared.record(.index, .info, "abgebrochen medium=\(mediumUUID)")
-        if runs[mediumUUID] == nil {
-            appState.clearMenuBarRunIndicators(mediumUUID)
-            appState.updateMedium(id: mediumUUID) {
-                $0.indexStatus = IndexStatus(rawValue: restored.rawValue) ?? .pending
-            }
+        appState.clearMenuBarRunIndicators(mediumUUID)
+        appState.updateMedium(id: mediumUUID) {
+            $0.indexStatus = IndexStatus(rawValue: restored.rawValue) ?? .pending
         }
         #if DEBUG
         await cancelBeforeAwaitHookForTesting?(mediumUUID)
         #endif
         await task?.value
-        if runs[mediumUUID] == nil {
-            tasks[mediumUUID] = nil
-        }
+        tasks[mediumUUID] = nil
         BulkDirectoryReader.flushReadLogSummary(force: true)
-        coordinator?.clearIndexRequest(mediumID: mediumUUID)
+        guardLifecycle(mediumUUID, token, .ends, "abbruch ende")
+        endLifecycle(mediumUUID, token)
     }
 
     /// Popover-Schalter „Automatisches Indizieren“.
     func pauseChanged() {
         if appState.globalAutoIndexPaused {
             pauseIDs.formUnion(runs.keys)
+            // bug.0.4.204 (a): Pause während Abschluss bzw. Abbruch – kein Nachhol-Abgleich, keine Überwachung.
+            for (id, lifecycle) in lifecycles where lifecycle.closing {
+                abortWhileClosing(id)
+            }
         } else {
             pauseIDs.removeAll()
             resumePausedRuns()
         }
     }
 
+    /// bug.0.4.204 (b): bis kein Lebenszyklus des Mediums mehr läuft – am Marker (Fortsetzung), kein Abfragen.
     func waitUntilIdle(_ mediumUUID: UUID) async {
-        while tasks[mediumUUID] != nil {
-            try? await Task.sleep(for: .milliseconds(20))
+        while lifecycles[mediumUUID] != nil {
+            await waitForLifecycleEnd(mediumUUID)
         }
     }
 
@@ -472,10 +552,13 @@ final class IndexingService {
     }
 
     fileprivate func finish(_ mediumUUID: UUID, _ token: UUID, _ outcome: IndexRunOutcome) async {
+        // Bleibt (bug.0.4.204 c): trennt innerhalb eines Lebenszyklus den abgebrochenen Lauf von seinem eigenen späten
+        // Ende – nach `cancel` gehört der Abschluss dem Abbruch.
         guard runs[mediumUUID] == token else { return }
-        // bug.0.4.202 (a): Merker dieses Laufs abholen, bevor er freigegeben wird – nach den `await`s unten kann schon
-        // ein neuer Lauf desselben Mediums laufen (Überwachung, „Neu indizieren“).
-        let kind = takeRunKind(mediumUUID, token)?.kind
+        guardLifecycle(mediumUUID, token, .closes, "abschluss")
+        // bug.0.4.204: Schlussmarker vor der Freigabe – bis `endLifecycle` unten startet kein neuer Lauf desselben Mediums.
+        lifecycles[mediumUUID]?.closing = true
+        let kind = runKinds.removeValue(forKey: mediumUUID)?.kind
         let runVolume = runVolumes.removeValue(forKey: mediumUUID)
         tasks[mediumUUID] = nil
         // bug.0.4.152: der Lauf ist zu Ende (auch ein abgelehnter Beginn) – eine Sperre „Neu indizieren“ gilt nicht mehr,
@@ -484,9 +567,10 @@ final class IndexingService {
             appState.reindexRequested.remove(mediumUUID)
         }
         appState.clearMenuBarRunIndicators(mediumUUID)
-        // bug.0.4.203 (a): auch die Startzeit gehört diesem Lauf – vor der Freigabe abholen.
         let started = runStartedAt.removeValue(forKey: mediumUUID)
         runs[mediumUUID] = nil
+        // bug.0.4.204: die Anforderung gehört diesem Lauf; was ab jetzt angefordert wird, dem nächsten Lebenszyklus.
+        coordinator?.clearIndexRequest(mediumID: mediumUUID)
         #if DEBUG
         await finishAfterReleaseHookForTesting?(mediumUUID)
         #endif
@@ -500,25 +584,22 @@ final class IndexingService {
             }
             stored = nil
         }
-        // bug.0.4.203 (a): Status, Fortschritt und Phase gehören einem inzwischen gestarteten Lauf (die Zahlen aus dem
-        // Speicher gelten weiter).
-        let ownsDisplay = !newerRunOwns(mediumUUID)
         appState.updateMedium(id: mediumUUID) {
-            if ownsDisplay {
-                if let raw = stored?.indexStatus.rawValue, let status = IndexStatus(rawValue: raw) {
-                    $0.indexStatus = status
-                } else if outcome.status == .indexed {
-                    $0.indexStatus = .indexed
-                } else if outcome.status == .error {
-                    $0.indexStatus = .error
-                } else {
-                    $0.indexStatus = .pending
-                }
-                if $0.indexStatus == .indexed, !outcome.interrupted {
-                    $0.indexingProgress = 1
-                }
-                $0.indexRunPhase = .indexing
+            // bug.0.4.204 (4): die Anzeige des Laufs neu bestimmen – ein danach wartender stiller Abgleich zeigt sie
+            // weiter (nie das „wird indiziert“ dieses Laufs).
+            if let raw = stored?.indexStatus.rawValue, let status = IndexStatus(rawValue: raw) {
+                $0.indexStatus = status
+            } else if outcome.status == .indexed {
+                $0.indexStatus = .indexed
+            } else if outcome.status == .error {
+                $0.indexStatus = .error
+            } else {
+                $0.indexStatus = .pending
             }
+            if $0.indexStatus == .indexed, !outcome.interrupted {
+                $0.indexingProgress = 1
+            }
+            $0.indexRunPhase = .indexing
             if let stored {
                 $0.fileCount = stored.fileCount
                 $0.folderCount = stored.folderCount
@@ -550,8 +631,7 @@ final class IndexingService {
         #endif
         let quietGap = kind?.quietGap ?? false
         let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
-        // bug.0.4.203: läuft schon ein neuer Lauf, meldet er selbst sein Ergebnis (kein Hinweis mitten in seinem Lauf).
-        if outcome.status == .error, !gapRemains, !outcome.interrupted, !newerRunOwns(mediumUUID),
+        if outcome.status == .error, !gapRemains, !outcome.interrupted,
            let medium = appState.medium(with: mediumUUID), medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
@@ -561,15 +641,16 @@ final class IndexingService {
         #endif
         // bug.0.4.127: auch ein Lauf bis zum Ende mit nicht lesbaren Ordnern (bug.0.4.199: `.error`) startet die Überwachung.
         let finishedRun = !outcome.interrupted && (outcome.status == .indexed || outcome.ranToEnd)
-        // bug.0.4.203 (a): Sperre, Überwachung und Nachhol-Abgleich gehören einem inzwischen gestarteten Lauf.
-        let superseded = newerRunOwns(mediumUUID)
-        if finishedRun, !superseded {
+        if finishedRun {
             fullReconcileSuppressed.remove(mediumUUID)
         }
         // bug.0.4.202 (b): keine Überwachung für ein beim Laufende ausgehängtes Medium (wie beim Hinweis).
         let mounted = isStillMounted(mediumUUID)
-        if superseded {
-            DiskIndexLog.shared.record(.index, .info, "neuer lauf übernimmt medium=\(mediumUUID)")
+        // bug.0.4.204: nach einem Abbruch im Abschluss keine Überwachung (a); wartet ein Start, überwacht sein Lauf an
+        // seinem Ende – nicht schon jetzt neben ihm (er startet ohne `ChangeWatcher.stop`).
+        let watchHandedOn = lifecycles[mediumUUID]?.abortedWhileClosing == true || startsWaitingForCancel[mediumUUID] != nil
+        if finishedRun, mounted, watchHandedOn {
+            DiskIndexLog.shared.record(.index, .info, "überwachung übergeben medium=\(mediumUUID)")
         } else if finishedRun, mounted, let volume = runVolume {
             onRunIndexed?(mediumUUID, volume)
         } else if !finishedRun, mounted, Self.watchesAfterFailure(outcome), watchesAfterFailedRun(mediumUUID), let volume = runVolume {
@@ -582,23 +663,24 @@ final class IndexingService {
             // bug.0.4.095: bis zum nächsten Lauf (erfolgreich oder neu angestoßen) löst die Überwachung keinen vollen
             // Abgleich aus, nur Einzeländerungen – sonst startet jede Änderung einen Lauf, der wieder scheitert.
             fullReconcileSuppressed.insert(mediumUUID)
-            DiskIndexLog.shared.record(.index, .info, "überwachung nach fehler medium=\(mediumUUID)")
-            onRunIndexed?(mediumUUID, volume)
+            if watchHandedOn {
+                DiskIndexLog.shared.record(.index, .info, "überwachung übergeben medium=\(mediumUUID)")
+            } else {
+                DiskIndexLog.shared.record(.index, .info, "überwachung nach fehler medium=\(mediumUUID)")
+                onRunIndexed?(mediumUUID, volume)
+            }
         }
         if finishedRun {
             appState.scheduleDatabaseMaintenance()
         }
-        if !superseded, rerunAfterFinish.contains(mediumUUID) {
-            rerunAfterFinish.remove(mediumUUID)
-            if let coordinator, let volume = coordinator.volume(for: mediumUUID) {
-                DiskIndexLog.shared.record(.index, .info, "abgleich nachgeholt medium=\(mediumUUID)")
-                start(mediumUUID: mediumUUID, volume: volume, fromScratch: false)
-            }
+        if rerunAfterFinish.remove(mediumUUID) != nil, let coordinator, let volume = coordinator.volume(for: mediumUUID) {
+            // bug.0.4.204: wartet als Start am Marker und läuft erst nach `endLifecycle` an.
+            DiskIndexLog.shared.record(.index, .info, "abgleich nachgeholt medium=\(mediumUUID)")
+            start(mediumUUID: mediumUUID, volume: volume, fromScratch: false)
         }
         BulkDirectoryReader.flushReadLogSummary(force: true)
-        if !newerRunOwns(mediumUUID) {
-            coordinator?.clearIndexRequest(mediumID: mediumUUID)
-        }
+        guardLifecycle(mediumUUID, token, .ends, "abschluss ende")
+        endLifecycle(mediumUUID, token)
     }
 
     /// bug.0.4.201 (b): eingehängt laut Koordinator (das Aushängen trägt den Pfad vor jedem `await` aus); ohne
@@ -652,9 +734,24 @@ nonisolated struct IndexRunKind: Sendable {
     }
 }
 
-/// bug.0.4.202: Art eines Laufs mit seinem Token; `confirmedByStore` = aus dem Speicher (sonst aus der Anzeige).
-private struct RememberedRunKind {
+/// bug.0.4.204 (d): Stellen, an denen der Wächter prüft.
+private enum LifecycleStep {
+    case begins, closes, ends, terminates
+}
+
+/// bug.0.4.204: Lebenszyklus eines Laufs (je Medium höchstens einer).
+private struct RunLifecycle {
     let token: UUID
+    /// Schlussmarker: `finish` bzw. `cancel` läuft (gesetzt vor der Freigabe).
+    var closing = false
+    /// (a) Aushängen, Sperre, Nein oder Pause während des Abschlusses.
+    var abortedWhileClosing = false
+    /// Wartende `cancel` bzw. `waitUntilIdle`, je genau einmal in `endLifecycle` fortgesetzt.
+    var waiters: [CheckedContinuation<Void, Never>] = []
+}
+
+/// bug.0.4.202: Art eines Laufs; `confirmedByStore` = aus dem Speicher (sonst aus der Anzeige).
+private struct RememberedRunKind {
     let kind: IndexRunKind
     let confirmedByStore: Bool
     /// bug.0.4.203 (b): für die Prüfung gegen den Speicher in `cancel`.

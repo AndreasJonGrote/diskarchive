@@ -1,0 +1,12 @@
+# Test: RunLifecycleTests/scratchRestartDuringARunStartsAfterTheCancel()
+# bug.0.4.204 (5): Neustart von vorn während eines Laufs wird nicht als wartender Start gemerkt.
+--- a/diskindex/diskindex/Indexing/IndexingService.swift
++++ b/diskindex/diskindex/Indexing/IndexingService.swift
+@@ -235,7 +235,6 @@
+             }
+             // bug.0.4.162 (f): Neustart von vorn – wartet als Start am Marker, bis der Abbruch dieses Laufs fertig ist.
+             scratchRestartPending.insert(mediumUUID)
+-            startsWaitingForCancel[mediumUUID] = (volume, true)
+             Task {
+                 // Nur diesen Lauf abbrechen (endete er inzwischen, läuft der Neustart schon).
+                 guard lifecycles[mediumUUID]?.token == running.token else { return }

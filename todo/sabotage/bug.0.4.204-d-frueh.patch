@@ -1,0 +1,20 @@
+# Test: RunLifecycleTests/secondCancelWaitsForTheFirst()
+# bug.0.4.204 (d): cancel löst den Marker zu früh (vor dem Ende des Tasks) – Wächter bzw. Test rot.
+--- a/diskindex/diskindex/Indexing/IndexingService.swift
++++ b/diskindex/diskindex/Indexing/IndexingService.swift
+@@ -442,6 +442,7 @@
+         appState.updateMedium(id: mediumUUID) {
+             $0.indexStatus = IndexStatus(rawValue: restored.rawValue) ?? .pending
+         }
++        endLifecycle(mediumUUID, token)
+         #if DEBUG
+         await cancelBeforeAwaitHookForTesting?(mediumUUID)
+         #endif
+@@ -449,7 +450,6 @@
+         tasks[mediumUUID] = nil
+         BulkDirectoryReader.flushReadLogSummary(force: true)
+         guardLifecycle(mediumUUID, token, .ends, "abbruch ende")
+-        endLifecycle(mediumUUID, token)
+     }
+ 
+     /// Popover-Schalter „Automatisches Indizieren“.

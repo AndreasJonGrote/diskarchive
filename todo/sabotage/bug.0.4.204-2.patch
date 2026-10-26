@@ -1,0 +1,20 @@
+# Test: RunLifecycleTests/startAndCancelInTheReadWindowWaitForTheOldFinish()
+# bug.0.4.204 (2): finish löst den Marker direkt nach der Freigabe statt als letzten Schritt.
+--- a/diskindex/diskindex/Indexing/IndexingService.swift
++++ b/diskindex/diskindex/Indexing/IndexingService.swift
+@@ -563,6 +563,7 @@
+         runs[mediumUUID] = nil
+         // bug.0.4.204: die Anforderung gehört diesem Lauf; was ab jetzt angefordert wird, dem nächsten Lebenszyklus.
+         coordinator?.clearIndexRequest(mediumID: mediumUUID)
++        endLifecycle(mediumUUID, token)
+         #if DEBUG
+         await finishAfterReleaseHookForTesting?(mediumUUID)
+         #endif
+@@ -672,7 +673,6 @@
+         }
+         BulkDirectoryReader.flushReadLogSummary(force: true)
+         guardLifecycle(mediumUUID, token, .ends, "abschluss ende")
+-        endLifecycle(mediumUUID, token)
+     }
+ 
+     /// bug.0.4.201 (b): eingehängt laut Koordinator (das Aushängen trägt den Pfad vor jedem `await` aus); ohne
