@@ -138,4 +138,4 @@ In jedem Zustand werden zuerst wartende Starts, Neustarts von vorn und `rerunAft
 
 Ein Fund, der nur diese Fenster nennt, ist kein Fehler.
 
-**Offen (Paket 32, `bug.0.4.207`):** Ein Stream-Unmount gilt nur für den Stream, der ihn meldet. `handleStreamUnmount` prüft dessen Generation am Anfang und nach `saveCursor`, sonst räumt es eine neuere Überwachung ab.
+**Stream-Unmount (`bug.0.4.207`):** Er gilt nur für den Stream, der ihn meldet. `handleStreamUnmount` prüft dessen Generation am Anfang und nach `saveCursor`, eine neuere Überwachung bleibt stehen. Dieselbe Generation ist das `since` des Neustarts.

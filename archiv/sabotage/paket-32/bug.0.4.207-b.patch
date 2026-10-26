@@ -1,0 +1,13 @@
+# Test: WatchStartCheckTests/streamUnmountAfterStopRestartsNothing()
+# Test: WatchStartCheckTests/streamUnmountSparesANewerWatch()
+# bug.0.4.207 (b): nach saveCursor die aktuelle statt der Generation des Streams – ein stop dazwischen wird übersehen: Neustart nach stop, nach stop und neuem Start bricht er den neuen ab und startet ein zweites Mal.
+--- a/diskindex/diskindex/Indexing/ChangeWatcher.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcher.swift
+@@ -316,6 +316,7 @@
+         #if DEBUG
+         await streamUnmountAfterSaveHookForTesting?(mediumID)
+         #endif
++        let generation = watchGeneration(mediumID)
+         guard isCurrentStream(mediumID, generation) else { return }
+         quietTasks[mediumID]?.cancel()
+         quietTasks[mediumID] = nil

@@ -1,0 +1,12 @@
+# Test: WatchStartCheckTests/streamUnmountSparesANewerWatch()
+# bug.0.4.207 (a): keine Prüfung der Generation nach saveCursor – der alte Stream-Unmount räumt die neue Überwachung ab.
+--- a/diskindex/diskindex/Indexing/ChangeWatcher.swift
++++ b/diskindex/diskindex/Indexing/ChangeWatcher.swift
+@@ -316,7 +316,6 @@
+         #if DEBUG
+         await streamUnmountAfterSaveHookForTesting?(mediumID)
+         #endif
+-        guard isCurrentStream(mediumID, generation) else { return }
+         quietTasks[mediumID]?.cancel()
+         quietTasks[mediumID] = nil
+         tasks[mediumID]?.cancel()

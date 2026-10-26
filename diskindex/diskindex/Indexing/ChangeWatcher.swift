@@ -73,6 +73,10 @@ final class ChangeWatcher {
     /// Tests (bug.0.4.204 K5, bug.0.4.205): läuft in jedem Startweg der Überwachung (`LiveWiring.startWatching`,
     /// `applyPause`, `restartWatchIfConnected`) nach dem Lesen des Speichers, vor `mayStartWatching`. Je Instanz.
     var startAfterReadHookForTesting: (@MainActor (UUID) async -> Void)?
+    /// Tests (bug.0.4.207): läuft in `handleStreamUnmount` nach `saveCursor`, vor der Prüfung der Generation. Je Instanz.
+    var streamUnmountAfterSaveHookForTesting: (@MainActor (UUID) async -> Void)?
+    /// Tests (bug.0.4.207): der zuletzt angestoßene Neustart nach Stream-Unmount je Medium, zum Abwarten.
+    var streamRestartForTesting: [UUID: Task<Void?, Never>] = [:]
     func pendingPathsForTesting(_ mediumID: UUID) -> Set<String> { pending[mediumID] ?? [] }
     func pendingItemEventCountForTesting(_ mediumID: UUID) -> Int { pendingItemEvents[mediumID]?.count ?? 0 }
     func watchGenerationForTesting(_ mediumID: UUID) -> Int { watchGenerations[mediumID, default: 0] }
@@ -122,7 +126,7 @@ final class ChangeWatcher {
             defer { Task { @MainActor in await self?.watchStreamEnded(mediumID, generation: generation) } }
             for await change in source.changes() {
                 guard let self else { return }
-                await self.ingest(mediumID, change)
+                await self.ingest(mediumID, change, generation: generation)
             }
         }
         DiskIndexLog.shared.record(.watcher, .info, "start medium=\(mediumID)")
@@ -302,12 +306,17 @@ final class ChangeWatcher {
         }
     }
 
-    private func handleStreamUnmount(mediumID: UUID) async {
+    /// bug.0.4.207: Ein Stream-Unmount gilt nur für den Stream, der ihn meldet (`generation` aus `start`). Am Anfang
+    /// und nach `saveCursor` geprüft: Ein `stop` (und neuer Start) dazwischen gewinnt, die neuere Überwachung bleibt
+    /// stehen. Dieselbe Generation ist das `since` des Neustarts (bug.0.4.206).
+    private func handleStreamUnmount(mediumID: UUID, generation: Int) async {
+        guard isCurrentStream(mediumID, generation) else { return }
         DiskIndexLog.shared.record(.watcher, .info, "stream unmount medium=\(mediumID)")
-        // bug.0.4.206: Stand vor dem ersten `await` merken – ein `stop` während `saveCursor` oder vor dem Lesen im
-        // Neustart-Task gewinnt.
-        let since = watchGeneration(mediumID)
         await saveCursor(mediumID: mediumID)
+        #if DEBUG
+        await streamUnmountAfterSaveHookForTesting?(mediumID)
+        #endif
+        guard isCurrentStream(mediumID, generation) else { return }
         quietTasks[mediumID]?.cancel()
         quietTasks[mediumID] = nil
         tasks[mediumID]?.cancel()
@@ -315,7 +324,20 @@ final class ChangeWatcher {
         sources[mediumID] = nil
         // bug.0.4.205: Wir laufen im eben abgebrochenen Überwachungs-Task – das Lesen des Speichers darin würfe
         // `CancellationError`, der Neustart käme nie an. Darum in einem eigenen Task, der den Abbruch nicht erbt.
-        Task { [weak self] in await self?.restartWatchIfConnected(mediumID: mediumID, since: since) }
+        let restart = Task { [weak self] in await self?.restartWatchIfConnected(mediumID: mediumID, since: generation) }
+        #if DEBUG
+        streamRestartForTesting[mediumID] = restart
+        #else
+        _ = restart
+        #endif
+    }
+
+    private func isCurrentStream(_ mediumID: UUID, _ generation: Int) -> Bool {
+        guard watchGenerations[mediumID, default: 0] == generation else {
+            DiskIndexLog.shared.record(.watcher, .info, "stream unmount veraltet medium=\(mediumID)")
+            return false
+        }
+        return true
     }
 
     private func watchStreamEnded(_ mediumID: UUID, generation: Int) async {
@@ -350,11 +372,11 @@ final class ChangeWatcher {
         )
     }
 
-    private func ingest(_ mediumID: UUID, _ change: VolumeChange) async {
+    private func ingest(_ mediumID: UUID, _ change: VolumeChange, generation: Int) async {
         let previous = cursors[mediumID]?.eventID ?? 0
         cursors[mediumID] = (change.fileSystemUUID ?? cursors[mediumID]?.uuid, max(previous, change.eventID))
         if change.unmounted {
-            await handleStreamUnmount(mediumID: mediumID)
+            await handleStreamUnmount(mediumID: mediumID, generation: generation)
             return
         }
         if change.rootChanged {

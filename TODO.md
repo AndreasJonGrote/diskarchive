@@ -5,7 +5,7 @@
 | Datei | Inhalt | Wer liest |
 |---|---|---|
 | [todo/regeln.md](todo/regeln.md) | 15 Regeln für den Worker (verbindlich, neu gefasst 23.10.) | Worker immer, Host bei Bedarf |
-| [todo/paket-32.md](todo/paket-32.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
+| `todo/paket-NN.md` | aktuelles Paket (zurzeit keins, alle abgenommen) | Worker, Host beim Prüfen |
 | [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | Checkliste der Abnahmerunde `todo.0.4.040` | Nutzer |
 | [todo/backlog.md](todo/backlog.md) | nicht freigegeben, nach Zielversion | nur bei Planung |
 | `archiv/todo-stand-*.md` | alte Fassungen (Volltexte abgenommener Pakete) | nur bei Bedarf |
@@ -19,9 +19,9 @@
 
 ## Stand
 
-**Stand 26.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 31** (DONE.md; `bug.0.4.206`; Ablauf: [konzept/lauf-lebenszyklus.md](konzept/lauf-lebenszyklus.md)). **Gesamtlauf 26.10. 17:38–18:06 grün** (seriell 1158/1158, parallel 3× grün, Sabotage 3/3, 0 Warnungen, keine `.ips`). **Paket 32 freigegeben** ([todo/paket-32.md](todo/paket-32.md), `bug.0.4.207`: Ein Stream-Unmount gilt nur für den Stream, der ihn meldet). **Offen vor `todo.0.4.040`:** Paket 32. Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). „Keine Schwelle“ bleibt (Nutzer 23.10.). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
+**Stand 26.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 32** (DONE.md; `bug.0.4.207`; Ablauf: [konzept/lauf-lebenszyklus.md](konzept/lauf-lebenszyklus.md)). **Gesamtlauf 26.10. 18:33–19:01 grün** (seriell 1161/1161, parallel 3× grün, Sabotage 2/2, 0 Warnungen, keine `.ips`). **Kein Paket offen. Als Nächstes: Abnahmerunde des Nutzers `todo.0.4.040`.** Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). „Keine Schwelle“ bleibt (Nutzer 23.10.). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
 
-**Prüfung Host 26.10. 17:38–18:06 (Paket 31, Code in 5c2471c, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`):** Debug mit Testziel und Release 0 Warnungen, seriell 1158/1158, Parallel 1–3 grün (je 1152 bestanden, 6 übersprungen), keine neuen `.ips`, Sabotage **3/3 rot ✓**, App des Nutzers 18:06:19, Version 0.4.0. Prüf-Agent (Sonnet): keine fälschliche Ablehnung; ein Befund (niedrig bis mittel, vom Host bestätigt): `handleStreamUnmount` räumt nach `saveCursor` eine neuere Überwachung ab → `bug.0.4.207`. Frage des Workers (Fenster `onRunIndexed` → `Task`): bewusst offen, unschädlich (`konzept/lauf-lebenszyklus.md`). Ältere Prüfungen: `archiv/paket-*-abgenommen-*.md`.
+**Prüfung Host 26.10. 18:33–19:01 (Paket 32, Arbeitsbaum uncommittet seit e5718a9, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`):** Debug mit Testziel und Release 0 Warnungen, seriell 1161/1161, Parallel 1–3 grün (je 1155 bestanden, 6 übersprungen), keine neuen `.ips`, Sabotage **2/2 rot ✓**, App des Nutzers 19:01:30, Version 0.4.0. Prüf-Agent (Sonnet): keine Befunde. Ältere Prüfungen: `archiv/paket-*-abgenommen-*.md`.
 
 **Abnahmekriterien 0.4.0 (alle müssen erfüllt sein):** (1) alle Kennungen von 0.4.0 vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) App des Nutzers aktuell (Regel 14); (7) Abnahmerunde des Nutzers `todo.0.4.040`; (8) keine offene „Frage:“; (9) alle Sabotage-Patches rot (ab Paket 17).
 
@@ -51,8 +51,8 @@
 | **29** | **0.4.0** | ~~`bug.0.4.204`~~ | Abschluss und Abbruch je Medium nacheinander (Umbau), schwache Tests → [archiv](archiv/paket-29-abgenommen-2026-10-26.md) | **abgenommen 26.10.** |
 | 30 | **0.4.0** | ~~`bug.0.4.205`~~ | Überwachung: eine Prüfstelle für alle drei Startwege → [archiv](archiv/paket-30-abgenommen-2026-10-26.md) | **abgenommen 26.10.** |
 | 31 | **0.4.0** | ~~`bug.0.4.206`~~ | Überwachung: `stop` im Lesefenster gewinnt (Generation je Medium) → [archiv](archiv/paket-31-abgenommen-2026-10-26.md) | **abgenommen 26.10.** |
-| **32** | **0.4.0** | `bug.0.4.207` | Überwachung: Stream-Unmount nur für den eigenen Stream → [todo/paket-32.md](todo/paket-32.md) | **freigegeben 26.10.** |
-| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | nach Paket 32 |
+| 32 | **0.4.0** | ~~`bug.0.4.207`~~ | Überwachung: Stream-Unmount nur für den eigenen Stream → [archiv](archiv/paket-32-abgenommen-2026-10-26.md) | **abgenommen 26.10.** |
+| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | **jetzt dran** |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 
 ## Entscheidungen des Nutzers

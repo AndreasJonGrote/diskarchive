@@ -149,4 +149,74 @@ struct WatchStartCheckTests {
             #expect(result.starts == 0, "Überwachung trotz \(event) während des Lesens")
         }
     }
+
+    // MARK: - Stream-Unmount gilt nur für seinen Stream (bug.0.4.207)
+
+    enum AfterSave: String {
+        case none, stop
+        /// `stop` und neuer Start wie beim Aufwachen (`LiveWiring.startWatching`).
+        case stopAndStart
+    }
+
+    /// Stream-Unmount, im Haken nach `saveCursor` `event`; danach wird ein angestoßener Neustart abgewartet.
+    private static func afterStreamUnmount(_ event: AfterSave) async throws -> (starts: Int, watching: Bool) {
+        let setup = try await GapMediumBehavesOnlineTests.gapMedium("UNMOUNT\(event.rawValue.uppercased())")
+        defer { setup.tearDown() }
+        let watcher = setup.rig.watcher
+        let id = setup.id
+        let sources = Self.countStarts(setup)
+        await LiveWiring.startWatching(id: id, volume: setup.volume, store: setup.harness.store, watcher: watcher, appState: setup.app)
+        let first = try #require(sources.made.first, "Voraussetzung: Überwachung läuft")
+        try #require(watcher.isWatching(mediumID: id))
+        let hook = Hook()
+        watcher.streamUnmountAfterSaveHookForTesting = { savedID in
+            guard savedID == id, !hook.ran else { return }
+            hook.ran = true
+            // Eigener Task wie beim Aufwachen: Der Haken läuft im Überwachungs-Task, den `stop` abbricht.
+            await Task { @MainActor in
+                switch event {
+                case .none:
+                    break
+                case .stop:
+                    await watcher.stop(mediumID: id)
+                case .stopAndStart:
+                    await watcher.stop(mediumID: id)
+                    await LiveWiring.startWatching(
+                        id: id, volume: setup.volume, store: setup.harness.store, watcher: watcher, appState: setup.app
+                    )
+                }
+            }.value
+            hook.done = true
+        }
+        first.emit(VolumeChange(path: setup.volume.mountPath, eventID: 1, unmounted: true))
+        // `done` am Ende des Hakens: danach läuft `handleStreamUnmount` ohne weiteres `await` zu Ende.
+        try #require(await waitUntil { hook.done }, "Haken nach saveCursor lief nicht (\(event))")
+        await watcher.streamRestartForTesting[id]?.value
+        let result = (sources.made.count - 1, watcher.isWatching(mediumID: id))
+        watcher.streamUnmountAfterSaveHookForTesting = nil
+        await watcher.stop(mediumID: id)
+        return result
+    }
+
+    /// Gegenprobe: ohne Ereignis nach `saveCursor` kommt der Neustart an und die Überwachung läuft wieder.
+    @Test func streamUnmountRestartsTheWatch() async throws {
+        let result = try await Self.afterStreamUnmount(.none)
+        #expect(result.starts == 1, "Gegenprobe: kein Neustart nach dem Stream-Unmount")
+        #expect(result.watching, "Gegenprobe: Überwachung läuft nicht wieder")
+    }
+
+    /// `stop` und neuer Start während `saveCursor` → der alte Stream-Unmount lässt die neue Überwachung stehen und
+    /// startet nichts weiter.
+    @Test func streamUnmountSparesANewerWatch() async throws {
+        let result = try await Self.afterStreamUnmount(.stopAndStart)
+        #expect(result.watching, "Neue Überwachung vom alten Stream-Unmount abgeräumt")
+        #expect(result.starts == 1, "Genau ein Start (der neue), kein weiterer durch den Neustart")
+    }
+
+    /// Nur `stop` während `saveCursor` → kein Neustart.
+    @Test func streamUnmountAfterStopRestartsNothing() async throws {
+        let result = try await Self.afterStreamUnmount(.stop)
+        #expect(result.starts == 0, "Neustart trotz stop während saveCursor")
+        #expect(!result.watching, "Überwachung trotz stop während saveCursor")
+    }
 }
