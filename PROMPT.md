@@ -1,5 +1,12 @@
 ⚠ Worker – Minimum Sonnet 5.5 Medium (sonst in der ersten Zeile melden und auf Bestätigung warten).
 
+**Fortsetzung (Host 26.10. 15:00):** Deine letzte Sitzung brach wegen eines Neustarts des Rechners ab. Code, Tests (`WatchStartEvent.stop`, `.disconnect`) und die Patches `bug.0.4.206-a` bis `-c` sind schon da und im Commit `5c2471c`. Es fehlen noch die Belege und der Abschluss.
+1. Prüfe den Stand gegen `todo/paket-31.md` und ergänze, was fehlt.
+2. Belege Rot vor dem Fix (Regel 8). Geht das nicht mehr, weise das Rot mit den Patches nach: Uhrzeit und Testname.
+3. Lass `WatchStartCheckTests`, `ChangeWatcherTests`, `RunLifecycleTests` und `IndexingWiringTests` 20× parallel laufen, dazu die Sabotage-Patches.
+4. Prüfe 0 Warnungen, mache die Selbstprüfung und baue die App des Nutzers.
+5. Fülle das Status-Feld, schreibe den Bericht und ersetze `PROMPT.md` durch die Kurzmeldung.
+
 Rolle: **Worker**. Lies `AGENTS.md`, `todo/regeln.md` (verbindlich), `konzept/lauf-lebenszyklus.md` (Abschnitt „Übergabe Lauf → Überwachung“) und `todo/paket-31.md`. Setze **bug.0.4.206** um, nur diese Aufgabe.
 
 - Jeder der drei Startwege der Überwachung merkt sich **vor** seinem ersten `await` die Generation des Mediums (`watchGenerations`): `LiveWiring.startWatching`, `applyPause` und `restartWatchIfConnected`.
