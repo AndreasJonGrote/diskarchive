@@ -129,4 +129,13 @@ In jedem Zustand werden zuerst wartende Starts, Neustarts von vorn und `rerunAft
 
 `start` selbst prüft nur `tasks[id] == nil` und die Sperre. Den Flush der Überwachung hält `isRunActive` zurück, solange ein Lebenszyklus oder ein wartender Start besteht.
 
-**Offen (Paket 31, `bug.0.4.206`):** Ein `stop` mit neuem Lauf (`stopWatcherAndStartIndex`) im Lesefenster eines Startwegs wird übergangen. Nach Paket 31 vergleicht jeder Startweg die Generation der Überwachung des Mediums (`watchGenerations`) von vor dem Lesen mit der danach. Ein `stop` oder `start` dazwischen gewinnt.
+**Generation je Medium (`bug.0.4.206`):** `start`, `stop` und die Sperre zählen `watchGenerations[id]` hoch. Jeder Startweg merkt sie sich vor seinem ersten `await` und gibt sie `mayStartWatching` mit. Hat sie sich geändert, lehnt die Prüfstelle ab: Ein `stop` oder `start` im Lesefenster gewinnt. Gestartet wird mit dem aktuellen Volume des Koordinators (`currentVolume`).
+
+**Bewusst offen (Host 26.10.):** Zwischen einem Auslöser (`onRunIndexed` → `Task`, `pauseChanged` → `applyPause`, Aufwachen) und dem Merken der Generation kann ein `stopWatcherAndStartIndex` für dasselbe Medium ganz durchlaufen. Dann startet die Überwachung neben dem neuen Lauf. Das ist unschädlich, wie beim Nachhol-Abgleich:
+- Der Flush wartet über `isRunActive`.
+- Der Start nimmt das aktuelle Volume.
+- Ereignisse aus der Laufzeit werden nach dem Lauf nur noch einmal abgeglichen.
+
+Ein Fund, der nur diese Fenster nennt, ist kein Fehler.
+
+**Offen (Paket 32, `bug.0.4.207`):** Ein Stream-Unmount gilt nur für den Stream, der ihn meldet. `handleStreamUnmount` prüft dessen Generation am Anfang und nach `saveCursor`, sonst räumt es eine neuere Überwachung ab.

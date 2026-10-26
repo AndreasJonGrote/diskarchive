@@ -75,10 +75,15 @@ ergebnis() {
     | python3 -I -c 'import sys,json; d=json.load(sys.stdin); print("gruen" if d.get("result")=="Passed" and d.get("failedTests",0)==0 else "rot")' 2>/dev/null
 }
 # .xcresult eines grünen Laufs löschen (je ~140 MB); rote, abgestürzte (Exit ≠ 0 ohne gezählten roten Test) und nicht
-# lesbare bleiben zur Fehlersuche (Host 26.10.: nur bei result == Passed löschen).
+# lesbare bleiben zur Fehlersuche (Host 26.10.: nur bei result == Passed löschen). Zweites Argument: Exit-Code von
+# xcodebuild – bei Exit ≠ 0 bleibt das Ergebnis auch bei „Passed“ (Paket 31: Klone im Parallelmodus fehlen darin).
 gruen_weg() {
   [ "${KEEP:-0}" = "1" ] && return
   [ -d "$1" ] || return
+  if [ -n "${2:-}" ] && [ "$2" != "0" ]; then
+    [ "$(ergebnis "$1")" = "gruen" ] && log "   ACHTUNG: Exit $2, aber Ergebnis „Passed“ – rote Tests im Log suchen (grep 'failed' $(basename "${1%.xcresult}").log)"
+    return
+  fi
   [ "$(ergebnis "$1")" = "gruen" ] && rm -rf "$1"
 }
 # Sabotage (Regel 9): jeder Patch in einer Kopie des Projekts, die in "# Test:" genannten Tests müssen rot werden.
@@ -154,15 +159,17 @@ if [ "$MODUS" = "schnell" ]; then
   xcodebuild test-without-building "${BASIS[@]}" -derivedDataPath "$DD" "${ARGS[@]}" \
     -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 \
     -resultBundlePath "$S/schnell.xcresult" > "$S/schnell.log" 2>&1
-  log "Gezielt (${SUITES[*]:-alle}): Exit $?  $(testzeile "$S/schnell.log")  $START–$(zeit)"
-  gruen_weg "$S/schnell.xcresult"
+  RC=$?
+  log "Gezielt (${SUITES[*]:-alle}): Exit $RC  $(testzeile "$S/schnell.log")  $START–$(zeit)"
+  gruen_weg "$S/schnell.xcresult" "$RC"
 else
   # 2. Seriell
   START=$(zeit)
   xcodebuild test-without-building "${BASIS[@]}" -derivedDataPath "$DD" "${TESTOPT[@]}" \
     -parallel-testing-enabled NO -resultBundlePath "$S/seriell.xcresult" > "$S/seriell.log" 2>&1
-  log "Seriell: Exit $?  $(testzeile "$S/seriell.log")  $START–$(zeit)"
-  gruen_weg "$S/seriell.xcresult"
+  RC=$?
+  log "Seriell: Exit $RC  $(testzeile "$S/seriell.log")  $START–$(zeit)"
+  gruen_weg "$S/seriell.xcresult" "$RC"
 
   # 3. Parallel, dreimal
   for i in 1 2 3; do
@@ -177,7 +184,7 @@ else
 d=json.load(sys.stdin)
 print("   Ergebnis %s, gesamt %s, bestanden %s, rot %s, übersprungen %s" % (d.get("result"),d.get("totalTestCount"),d.get("passedTests"),d.get("failedTests"),d.get("skippedTests")))
 for f in d.get("testFailures",[]): print("   ROT:",f.get("testName"),"-",f.get("failureText"))' | tee -a "$SUM"
-      gruen_weg "$S/par$i.xcresult"
+      gruen_weg "$S/par$i.xcresult" "$RC"
     fi
   done
 

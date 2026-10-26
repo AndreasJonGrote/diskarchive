@@ -1,20 +1,14 @@
 ⚠ Worker – Minimum Sonnet 5.5 Medium (sonst in der ersten Zeile melden und auf Bestätigung warten).
 
-**Fortsetzung (Host 26.10. 15:00):** Deine letzte Sitzung brach wegen eines Neustarts des Rechners ab. Code, Tests (`WatchStartEvent.stop`, `.disconnect`) und die Patches `bug.0.4.206-a` bis `-c` sind schon da und im Commit `5c2471c`. Es fehlen noch die Belege und der Abschluss.
-1. Prüfe den Stand gegen `todo/paket-31.md` und ergänze, was fehlt.
-2. Belege Rot vor dem Fix (Regel 8). Geht das nicht mehr, weise das Rot mit den Patches nach: Uhrzeit und Testname.
-3. Lass `WatchStartCheckTests`, `ChangeWatcherTests`, `RunLifecycleTests` und `IndexingWiringTests` 20× parallel laufen, dazu die Sabotage-Patches.
-4. Prüfe 0 Warnungen, mache die Selbstprüfung und baue die App des Nutzers.
-5. Fülle das Status-Feld, schreibe den Bericht und ersetze `PROMPT.md` durch die Kurzmeldung.
+Rolle: **Worker**. Lies `AGENTS.md`, `todo/regeln.md` (verbindlich), `konzept/lauf-lebenszyklus.md` (Abschnitt „Übergabe Lauf → Überwachung“) und `todo/paket-32.md`. Setze **bug.0.4.207** um, nur diese Aufgabe.
 
-Rolle: **Worker**. Lies `AGENTS.md`, `todo/regeln.md` (verbindlich), `konzept/lauf-lebenszyklus.md` (Abschnitt „Übergabe Lauf → Überwachung“) und `todo/paket-31.md`. Setze **bug.0.4.206** um, nur diese Aufgabe.
+- Ein Stream-Unmount gilt nur für den Stream, der ihn meldet: `start` gibt die Generation des Streams an `ingest` und `handleStreamUnmount` weiter.
+- `handleStreamUnmount` prüft sie am Anfang und nach `saveCursor`. Weicht die Generation des Mediums ab, tut es nichts weiter (Protokollzeile).
+- Die Generation des Streams ist das `since` des Neustarts.
+- Neuer Haken `streamUnmountAfterSaveHookForTesting` (je Instanz) nach `saveCursor`. Dazu drei Tests in `WatchStartCheckTests`: `stop` mit neuem Start, nur `stop`, Gegenprobe zuerst.
+- Patches `bug.0.4.207-a` und `-b` wie im Paket beschrieben.
+- Die Fenster zwischen `onRunIndexed`/`pauseChanged`/Aufwachen und einem `stopWatcherAndStartIndex` **nicht** schließen (Konzept: bewusst offen).
 
-- Jeder der drei Startwege der Überwachung merkt sich **vor** seinem ersten `await` die Generation des Mediums (`watchGenerations`): `LiveWiring.startWatching`, `applyPause` und `restartWatchIfConnected`.
-- `mayStartWatching` lehnt ab, wenn sich die Generation seitdem geändert hat. Ein `stop` oder `start` im Lesefenster gewinnt.
-- Gestartet wird mit dem aktuellen Volume.
-- Tests je Weg: im Haken nach dem Lesen `watcher.stop(id)`, Erwartung „keine Überwachung“, mit Gegenprobe. Dazu `applyPause` mit dem Fall „nicht mehr angeschlossen“.
-- Patches `bug.0.4.206-a` bis `-c` wie im Paket beschrieben.
-
-Vor Beginn `df -h /` (mindestens 25 GB frei). Builds und Testergebnisse nur in den festen Ordnern unter `$TMPDIR`, am Ende löschen (Regel 13). Rot vor dem Fix belegen (Regel 8). Selbstprüfung (Regel 12). Zum Schluss die App des Nutzers bauen (Regel 14). Gesamtlauf nur bei Last < 3, sonst weglassen und im Status vermerken.
+Vor Beginn `df -h /` (mindestens 25 GB frei). Builds und Testergebnisse nur in den festen Ordnern unter `$TMPDIR`, am Ende löschen (Regel 13). Rot vor dem Fix belegen (Regel 8). Bei 20× parallel zählt ein `Test case … failed` im Protokoll auch dann als rot, wenn das `.xcresult` „Passed“ zeigt. Selbstprüfung (Regel 12). Zum Schluss die App des Nutzers bauen (Regel 14). Gesamtlauf nur bei Last < 3, sonst weglassen und im Status vermerken.
 
 Schreibe nur das Feld „Status“ der Aufgabe (höchstens 5 Zeilen, „Bereit zur Prüfung“), dann den Bericht nach Regel 15. Ersetze zum Schluss diese Datei durch „Erledigt (Bereit zur Prüfung): … Offen/blockiert: … HALT.“ **HALT.**
