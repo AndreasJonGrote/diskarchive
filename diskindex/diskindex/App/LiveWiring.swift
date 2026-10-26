@@ -27,6 +27,18 @@ enum LiveWiring {
             stored = nil
         }
         guard let stored, stored.decision == .index else { return }
+        #if DEBUG
+        await watcher.startAfterReadHookForTesting?(id)
+        #endif
+        // bug.0.4.204 K5: Vergessen, „Nein“, Pause oder Sperre während des Lesens – der Speicher kennt das womöglich
+        // noch nicht (`pendingMediumWrites`), und `stop`/`applyPause` davor fanden keine laufende Überwachung. Darum
+        // nach dem letzten `await` gegen den aktuellen Stand prüfen.
+        guard appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
+              let medium = appState.medium(with: id), medium.decision == .index, medium.allowIndexing,
+              medium.connectionStatus == .connected else {
+            DiskIndexLog.shared.record(.watcher, .info, "überwachung nicht gestartet medium=\(id)")
+            return
+        }
         watcher.start(
             mediumID: id,
             volume: volume,

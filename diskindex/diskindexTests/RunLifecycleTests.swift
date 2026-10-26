@@ -75,7 +75,7 @@ struct RunLifecycleTests {
     /// Anforderung und Überwachung gehören dann ihm.
     @Test func newRunStartsOnlyAfterTheOldFinish() async throws {
         let setup = try await Self.gapMedium("WARTEN")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         setup.app.indexingFailure = nil
         let service = setup.rig.service
         let coordinator = setup.rig.coordinator
@@ -110,7 +110,7 @@ struct RunLifecycleTests {
     /// Anforderung des wartenden Laufs bleibt.
     @Test func startAndCancelInTheReadWindowWaitForTheOldFinish() async throws {
         let setup = try await Self.gapMedium("LESEFENSTER")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         setup.app.indexingFailure = nil
         let service = setup.rig.service
         let coordinator = setup.rig.coordinator
@@ -154,7 +154,7 @@ struct RunLifecycleTests {
     /// zwei `cancel` direkt.)
     @Test func secondCancelWaitsForTheFirst() async throws {
         let setup = try await Self.gapMedium("ZWEIABBRUCH")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let coordinator = setup.rig.coordinator
         let id = setup.id
@@ -193,7 +193,7 @@ struct RunLifecycleTests {
     /// neu, der Abgleich zeigt „Fehler“, nie „wird indiziert“.
     @Test func quietReconcileBehindARunNeverShowsIndexing() async throws {
         let setup = try await Self.gapMedium("STILLDAHINTER")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         setup.app.indexingFailure = nil
         let service = setup.rig.service
         let id = setup.id
@@ -228,7 +228,7 @@ struct RunLifecycleTests {
     /// (5) Keine Verklemmung: ein im Lauf vorgemerkter Nachhol-Abgleich wartet am Marker und läuft nach dem Abschluss an.
     @Test func rerunAfterTheFinishStarts() async throws {
         let setup = try await Self.gapMedium("NACHHOLEN")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let id = setup.id
         try await Self.finishWithPendingRerun(setup) {}
@@ -241,7 +241,7 @@ struct RunLifecycleTests {
     /// (5) Keine Verklemmung: „Neu indizieren“ während eines Laufs bricht ihn ab und startet danach von vorn.
     @Test func scratchRestartDuringARunStartsAfterTheCancel() async throws {
         let setup = try await Self.gapMedium("VONVORNNEU")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let id = setup.id
         setup.hold.set(true)
@@ -261,7 +261,7 @@ struct RunLifecycleTests {
             await MainActor.run { box.count += 1 }
         }
         let coordinator = setup.rig.coordinator
-        defer { coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let id = setup.id
         let log = Self.log(setup)
@@ -277,6 +277,8 @@ struct RunLifecycleTests {
             renaming = Task { await coordinator.handle(.renamed(oldPath: oldPath, volume: renamedVolume)) }
             _ = await waitUntil(timeout: 3) { log.cancelArrived || service.hasWaitingStartForTesting(id) }
         }
+        // Der erste Lauf aus `gapMedium` startet seine Überwachung im Task aus `onRunIndexed` – erst danach zählen.
+        try #require(await waitUntil { box.count >= 1 }, "Überwachung nach dem ersten Lauf startet nicht")
         let baseline = box.count
         try #require(await setup.runToEnd(), "Lauf endet nicht")
         await renaming?.value
@@ -294,7 +296,7 @@ struct RunLifecycleTests {
     @Test func disappearDiscardsTheWaitingStart() async throws {
         let setup = try await Self.gapMedium("KABELWEG")
         let coordinator = setup.rig.coordinator
-        defer { coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let id = setup.id
         let volume = setup.volume
@@ -324,7 +326,7 @@ struct RunLifecycleTests {
     @Test func unmountDuringTheFinishKeepsTheEndState() async throws {
         let setup = try await Self.gapMedium("ABSCHLUSSWEG")
         let coordinator = setup.rig.coordinator
-        defer { coordinator.stop() }
+        defer { setup.tearDown() }
         setup.memory.markReadable("bad")
         let service = setup.rig.service
         let id = setup.id
@@ -349,7 +351,7 @@ struct RunLifecycleTests {
     /// (a) Sperre im Abschluss: Endstand bleibt, kein Nachhol-Abgleich, keine Überwachung.
     @Test func versionLockDuringTheFinishKeepsTheEndState() async throws {
         let setup = try await Self.gapMedium("ABSCHLUSSSPERRE")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         setup.memory.markReadable("bad")
         let service = setup.rig.service
         let app = setup.app
@@ -374,7 +376,7 @@ struct RunLifecycleTests {
     /// „x % indiziert“), kein Hinweis.
     @Test func declineDuringTheFinishEndsLikeNo() async throws {
         let setup = try await Self.gapMedium("ABSCHLUSSNEIN")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let app = setup.app
         let id = setup.id
@@ -397,10 +399,149 @@ struct RunLifecycleTests {
         #expect(setup.rig.starts(id).count == 2, "Läufe: \(setup.rig.starts(id))")
     }
 
+    private enum ReadWindowEvent: String, CaseIterable {
+        case none, forget, decline, pause
+    }
+
+    /// K5: `LiveWiring.startWatching` für das angeschlossene Medium mit „Ja“; `event` tritt nach dem Lesen des Speichers
+    /// ein. Ergebnis: überwacht direkt nach dem Ende von `startWatching`, und ob der Haken lief.
+    private static func watchingAfterTheRead(_ event: ReadWindowEvent) async throws -> (watching: Bool, hookRan: Bool) {
+        let setup = try await Self.gapMedium("LESEN\(event.rawValue.uppercased())")
+        defer { setup.tearDown() }
+        let app = setup.app
+        let id = setup.id
+        let watcher = setup.rig.watcher
+        try #require(!watcher.isWatching(mediumID: id), "Voraussetzung: noch nicht überwacht")
+        var hookRan = false
+        watcher.startAfterReadHookForTesting = { _ in
+            hookRan = true
+            switch event {
+            case .none:
+                break
+            case .forget:
+                app.forgetMedium(id: id)
+            case .decline:
+                app.updateMedium(id: id, persist: true) {
+                    $0.decision = .dontIndex
+                    $0.allowIndexing = false
+                }
+            case .pause:
+                app.globalAutoIndexPaused = true
+                app.onAutoIndexPauseChanged?()
+            }
+        }
+        await LiveWiring.startWatching(id: id, volume: setup.volume, store: setup.harness.store, watcher: watcher, appState: app)
+        let watching = watcher.isWatching(mediumID: id)
+        watcher.startAfterReadHookForTesting = nil
+        await watcher.stop(mediumID: id)
+        return (watching, hookRan)
+    }
+
+    /// K5 (Supervisor 26.10.): Vergessen, „Nein“ oder Pause, während `startWatching` den Speicher liest → keine
+    /// Überwachung. Gegenprobe ohne Ereignis: sie läuft.
+    @Test func startWatchingChecksTheStateAfterTheRead() async throws {
+        let plain = try await Self.watchingAfterTheRead(.none)
+        try #require(plain.hookRan, "Haken nach dem Lesen lief nicht")
+        #expect(plain.watching, "Gegenprobe: ohne Ereignis keine Überwachung")
+        for event in [ReadWindowEvent.forget, .decline, .pause] {
+            let result = try await Self.watchingAfterTheRead(event)
+            try #require(result.hookRan, "Haken nach dem Lesen lief nicht (\(event))")
+            #expect(!result.watching, "Überwachung trotz \(event) während des Lesens")
+        }
+    }
+
+    /// K4 (204 b „`fromScratch` zusammenführen“): zwei Starts im Abschluss, der erste von vorn → genau ein Lauf danach,
+    /// und zwar von vorn.
+    @Test func twoStartsDuringTheFinishRunOnceFromScratch() async throws {
+        let setup = try await Self.gapMedium("ZWEISTARTS")
+        defer { setup.tearDown() }
+        let service = setup.rig.service
+        let id = setup.id
+        var waiting: Bool?
+        service.finishAfterReleaseHookForTesting = { _ in
+            guard waiting == nil else { return }
+            setup.hold.set(true)
+            service.start(mediumUUID: id, volume: setup.volume, fromScratch: true)
+            service.start(mediumUUID: id, volume: setup.volume, fromScratch: false)
+            waiting = service.hasWaitingStartForTesting(id)
+        }
+        let before = setup.rig.starts(id).count
+        try #require(await setup.runToEnd(), "alter Lauf endet nicht")
+        #expect(waiting == true, "Starts im Abschluss warten nicht")
+        try #require(await Self.heldAtGate(setup), "wartender Lauf startet nach dem Abschluss nicht")
+        service.finishAfterReleaseHookForTesting = nil
+        let finished = setup.recorder.finished
+        await setup.gate.open()
+        try #require(await waitUntil { setup.recorder.finished > finished }, "wartender Lauf endet nicht")
+        await service.waitUntilIdle(id)
+        #expect(Array(setup.rig.starts(id).dropFirst(before)) == [false, true], "Läufe: \(setup.rig.starts(id))")
+    }
+
+    /// K2: Lauf von vorn mit nicht lesbarem Ordner (keine stille Lücke, also mit Hinweis); `decline`: „Nein“ direkt
+    /// nach der Freigabe im Abschluss. Gemessen an der Entscheidung über die Überwachung, also nach der Hinweis-Stelle
+    /// und vor `endFailureAfterDecline`.
+    private static func hintedRunAtTheDecision(_ name: String, decline: Bool) async throws -> (hint: Bool, notice: Bool, shownBefore: Int, shownAfter: Int) {
+        let setup = try await Self.gapMedium(name)
+        defer { setup.tearDown() }
+        let service = setup.rig.service
+        let app = setup.app
+        let id = setup.id
+        app.indexingFailure = nil
+        app.failureNoticeMedia.remove(id)
+        let shownBefore = Self.failureShownCount(id)
+        setup.hold.set(true)
+        service.start(mediumUUID: id, volume: setup.volume, fromScratch: true)
+        try #require(await heldAtGate(setup), "Lauf hält nicht am Tor")
+        var declined = false
+        service.finishAfterReleaseHookForTesting = { _ in
+            guard decline, !declined else { return }
+            declined = true
+            app.updateMedium(id: id, persist: true) {
+                $0.decision = .dontIndex
+                $0.allowIndexing = false
+            }
+        }
+        var measured: (hint: Bool, notice: Bool, shownAfter: Int)?
+        let counted = service.finishDecisionHookForTesting
+        service.finishDecisionHookForTesting = { finishedID in
+            if measured == nil {
+                measured = (app.indexingFailure?.id == id, app.failureNoticeMedia.contains(id), Self.failureShownCount(id))
+            }
+            await counted?(finishedID)
+        }
+        let before = setup.recorder.finished
+        await setup.gate.open()
+        try #require(await waitUntil { setup.recorder.finished > before }, "Lauf endet nicht")
+        await service.waitUntilIdle(id)
+        let result = try #require(measured, "Entscheidung nicht erreicht")
+        try #require(declined == decline, "„Nein“ nicht im Abschluss")
+        return (result.hint, result.notice, shownBefore, result.shownAfter)
+    }
+
+    private static func failureShownCount(_ id: UUID) -> Int {
+        let data = AppDefaults.current.data(forKey: AppState.failureCountsKey) ?? Data()
+        let counts = (try? JSONDecoder().decode([String: FailureCount].self, from: data)) ?? [:]
+        return counts[id.uuidString]?.shown ?? 0
+    }
+
+    /// K2 (204 a „Nein → kein Hinweis, keine Mitteilung“): „Nein“ im Abschluss eines Laufs mit Hinweis zeigt weder
+    /// Hinweis noch Mitteilung und zählt nicht in der Drossel; Gegenprobe ohne „Nein“: der Hinweis erscheint.
+    @Test func declineDuringTheFinishShowsNoHint() async throws {
+        let shown = try await Self.hintedRunAtTheDecision("HINWEISJA", decline: false)
+        #expect(shown.hint, "Gegenprobe: kein Hinweis ohne „Nein“")
+        #expect(shown.notice, "Gegenprobe: keine Mitteilung ohne „Nein“")
+        #expect(shown.shownAfter == shown.shownBefore + 1, "Gegenprobe: Drossel zählte nicht")
+
+        let declined = try await Self.hintedRunAtTheDecision("HINWEISNEIN", decline: true)
+        #expect(!declined.hint, "Hinweis nach „Nein“ im Abschluss")
+        #expect(!declined.notice, "Mitteilung nach „Nein“ im Abschluss")
+        #expect(declined.shownAfter == declined.shownBefore, "Drossel zählte einen Hinweis nach „Nein“")
+    }
+
     /// (a) Pause im Abschluss: Endstand bleibt, kein Nachhol-Abgleich, keine Überwachung.
     @Test func pauseDuringTheFinishKeepsTheEndState() async throws {
         let setup = try await Self.gapMedium("ABSCHLUSSPAUSE")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         setup.memory.markReadable("bad")
         let service = setup.rig.service
         let app = setup.app
@@ -425,7 +566,7 @@ struct RunLifecycleTests {
     @Test func unmountDiscardsTheWaitingStart() async throws {
         let setup = try await Self.gapMedium("WARTENDWEG")
         let coordinator = setup.rig.coordinator
-        defer { coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let id = setup.id
         let volume = setup.volume
@@ -455,7 +596,7 @@ struct RunLifecycleTests {
     /// (b) Ein Start wartet auf den Abschluss, dann endet die App: kein Lauf, nichts bleibt hängen.
     @Test func terminationDiscardsTheWaitingStart() async throws {
         let setup = try await Self.gapMedium("WARTENDENDE")
-        defer { setup.rig.coordinator.stop() }
+        defer { setup.tearDown() }
         let service = setup.rig.service
         let id = setup.id
         let volume = setup.volume

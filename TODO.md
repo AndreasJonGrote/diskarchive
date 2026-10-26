@@ -5,7 +5,7 @@
 | Datei | Inhalt | Wer liest |
 |---|---|---|
 | [todo/regeln.md](todo/regeln.md) | 15 Regeln für den Worker (verbindlich, neu gefasst 23.10.) | Worker immer, Host bei Bedarf |
-| [todo/paket-29.md](todo/paket-29.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
+| [todo/paket-30.md](todo/paket-30.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
 | [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | Checkliste der Abnahmerunde `todo.0.4.040` | Nutzer |
 | [todo/backlog.md](todo/backlog.md) | nicht freigegeben, nach Zielversion | nur bei Planung |
 | `archiv/todo-stand-*.md` | alte Fassungen (Volltexte abgenommener Pakete) | nur bei Bedarf |
@@ -19,9 +19,9 @@
 
 ## Stand
 
-**Stand 25.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 28** (DONE.md). **Gesamtlauf 25.10. 23:01–23:33 grün** (seriell 1140/1140, parallel 3× grün, Sabotage 10/10, 0 Warnungen, keine `.ips`). **Paket 29** ([todo/paket-29.md](todo/paket-29.md), `bug.0.4.204`, Umbau statt weiterer Flicken): Prüfung 26.10. 08:28–09:00 – Umbau richtig, Sabotage 12/12, 0 Warnungen, aber `forgetStopsWatcherAndCoordinatorMapping` in jedem Lauf rot (Test hing am alten Abfragen) → **Korrektur 1 freigegeben** (K1–K4, dazu K5 vom Supervisor: Überwachung nach dem Lesen des Speichers neu prüfen). **Offen vor `todo.0.4.040`:** Paket 29. Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). „Keine Schwelle“ bleibt (Nutzer 23.10.). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
+**Stand 26.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 29** (DONE.md; `bug.0.4.204` mit Korrektur 1, danach Tabelle [konzept/lauf-lebenszyklus.md](konzept/lauf-lebenszyklus.md)). **Gesamtlauf 26.10. 10:43–11:15 grün** (seriell 1156/1156, parallel 3× grün, Sabotage 15/15, 0 Warnungen, keine `.ips`). **Paket 30 freigegeben** ([todo/paket-30.md](todo/paket-30.md), `bug.0.4.205`: eine Prüfstelle für alle drei Startwege der Überwachung). **Offen vor `todo.0.4.040`:** Paket 30. Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). „Keine Schwelle“ bleibt (Nutzer 23.10.). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
 
-**Prüfung Host 25.10. 23:01–23:33 (Paket 28, Arbeitsbaum uncommittet seit Paket 27, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`, ruhiger Rechner):** Debug mit Testziel und Release 0 Warnungen, seriell 1140/1140, Parallel 1–3 grün (je 1134 bestanden, 6 übersprungen), keine neuen `.ips`, Sabotage **10/10 rot ✓**, App des Nutzers 23:32:54, Version 0.4.0. Prüf-Agent (Sonnet): kein hoher oder mittlerer Befund; die niedrigen betreffen alle das Nebeneinander zweier Läufe und gehen ohne neue Kennung in `bug.0.4.204` (Supervisor/Nutzer 25.10.). Ältere Prüfungen: `archiv/paket-*-abgenommen-*.md`.
+**Prüfung Host 26.10. 10:43–11:15 (Paket 29 mit Korrektur 1, Arbeitsbaum uncommittet seit 2f21f62, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`, ruhiger Rechner):** Debug mit Testziel und Release 0 Warnungen, seriell 1156/1156, Parallel 1–3 grün (je 1150 bestanden, 6 übersprungen), keine neuen `.ips`, Sabotage **15/15 rot ✓**, App des Nutzers 11:15:36, Version 0.4.0. Vorher 08:28–09:00 ein Test in jedem Lauf rot → Korrektur 1. Prüf-Agenten (Sonnet): kein hoher oder mittlerer Befund. Reste (Frage des Workers: zwei weitere Startwege der Überwachung ohne Prüfung nach dem Lesen; Beweislücke „angeschlossen“) → `bug.0.4.205`. Ältere Prüfungen: `archiv/paket-*-abgenommen-*.md`.
 
 **Abnahmekriterien 0.4.0 (alle müssen erfüllt sein):** (1) alle Kennungen von 0.4.0 vom Host abgenommen und in DONE.md; (2) Debug und Release inklusive Testziel 0 Warnungen; (3) serieller Gesamtlauf grün; (4) Parallellauf grün, dreimal hintereinander; (5) keine neuen `Disk Archive*.ips`; (6) App des Nutzers aktuell (Regel 14); (7) Abnahmerunde des Nutzers `todo.0.4.040`; (8) keine offene „Frage:“; (9) alle Sabotage-Patches rot (ab Paket 17).
 
@@ -48,8 +48,9 @@
 | 26 | **0.4.0** | `bug.0.4.199`–`201` | Dauerhafte Lücke = „Fehler“, Details „Indiziert x %“, Reste aus der Prüfung → [archiv/paket-26-abgenommen-2026-10-25.md](archiv/paket-26-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
 | 27 | **0.4.0** | `bug.0.4.202` | Zeitfenster am Laufende, Beweislücken (Reste aus 26) → [archiv/paket-27-abgenommen-2026-10-25.md](archiv/paket-27-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
 | 28 | **0.4.0** | `bug.0.4.203` | `finish`/`cancel` ganz am Token, Beweislücke, wackliger Test (Reste aus 27) → [archiv/paket-28-abgenommen-2026-10-25.md](archiv/paket-28-abgenommen-2026-10-25.md) | **abgenommen 25.10.** |
-| **29** | **0.4.0** | `bug.0.4.204` | Abschluss und Abbruch je Medium nacheinander (Umbau), schwache Tests → [todo/paket-29.md](todo/paket-29.md) | **Korrektur 1 freigegeben 26.10.** (Gesamtlauf: 1 Test rot) |
-| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | nach Paket 29 |
+| **29** | **0.4.0** | ~~`bug.0.4.204`~~ | Abschluss und Abbruch je Medium nacheinander (Umbau), schwache Tests → [archiv](archiv/paket-29-abgenommen-2026-10-26.md) | **abgenommen 26.10.** |
+| **30** | **0.4.0** | `bug.0.4.205` | Überwachung: eine Prüfstelle für alle drei Startwege → [todo/paket-30.md](todo/paket-30.md) | **freigegeben 26.10.** |
+| – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | nach Paket 30 |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 
 ## Entscheidungen des Nutzers

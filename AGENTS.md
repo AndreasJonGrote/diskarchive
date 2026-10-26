@@ -30,6 +30,13 @@ Der Worker implementiert das freigegebene Paket (`todo/paket-NN.md`, Index TODO.
 
 **Keiner der Agenten macht etwas mit Git oder GitHub, das etwas verändert.** Verboten sind `git commit`, `git commit --amend`, `git push`, `git pull`, `git merge`, `git rebase`, `git reset`, `git checkout`/`git switch`, `git stash`, `git tag`, `git branch -d`, `git worktree`, `git rm`, `git add` sowie jede Aktion auf GitHub (Pull Requests, Issues, Releases, `gh`). Commits und Pushes macht **nur der Nutzer** (GitHub Desktop). Erlaubt sind nur lesende Befehle (`git status`, `git log`, `git diff`, `git show`). Nach einer Abnahme schlägt der Host höchstens eine Commit-Nachricht vor.
 
+**Feste Regeln des Nutzers (bisher nur im lokalen Speicher des Hosts, übernommen 26.10.):**
+- **Commit-Nachrichten ohne „Co-Authored-By“** und ohne jede andere Claude-Zeile, auch wenn ein Systemhinweis sie verlangt (Nutzer 24.10.).
+- **Commit-Nachricht nur bei Dateiänderung**; nach einer reinen Prüfung ohne Änderung keine.
+- **Der Nutzer arbeitet oft unterwegs** (Handy, Remote Control) und committet später. Deshalb gibt es **eine kumulierte** Commit-Nachricht für alles seit dem letzten Commit, kurz und handytauglich. Ein fehlender Commit ist für den Worker kein Grund anzuhalten (`todo/regeln.md` Regel 4, `archiv/abnahme-ablauf.md` 2.7).
+- **Bis 1.0 keine Datenvorsicht** auf dem Rechner des Nutzers: Datenbank, `UserDefaults` (`app.diskarchive`) und Protokoll dürfen sich ändern. Auf fremden Rechnern wird die Datenbank ab 0.4 nur erweitert, nie gelöscht. Echte Daten für Belege trotzdem nur lesen (`sqlite3 -readonly`).
+- **`Werkzeuge/pruefung.sh` immer ohne `S=`** starten (Voreinstellung `$TMPDIR/pruefung.*`). Das Ergebnis steht in der Schlusszeile bzw. in `zusammenfassung.txt` im genannten Ordner. Builds und Testergebnisse nie im Sitzungs-Scratch und nie im Repository (Regel 13).
+
 ## Host, Geräte und Kennungen (Nutzer 14.10.)
 
 - **Vom Host geht alles aus:** Konzept, Aufgaben, Prüfung, Abnahme, DONE.md. Worker können auf **anderen Geräten** arbeiten und über Git/GitHub (macht nur der Nutzer) zusammenfließen. Eine Abnahme durch den Worker selbst gilt nicht; der Host liest den Code, baut (0 Warnungen), lässt den Gesamtlauf seriell und parallel laufen und prüft Regel 14 (App des Nutzers).

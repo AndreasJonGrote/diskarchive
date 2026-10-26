@@ -89,14 +89,18 @@ struct IndexingWiringTests {
         rig.app.onNewMediumChoice?(mediumID, true, true)
         await rig.coordinator.waitForChoice()
         await rig.service.waitUntilIdle(mediumID)
-        #expect(rig.watcher.isWatching(mediumID: mediumID))
+        // bug.0.4.204 K1: waitUntilIdle kommt mit dem Ende des Lebenszyklus zurück, die Überwachung startet danach
+        // im Task aus onRunIndexed – auf sie warten statt sie vorauszusetzen.
+        let watching = await waitUntil { rig.watcher.isWatching(mediumID: mediumID) }
+        #expect(watching)
         #expect(!rig.coordinator.connectedVolumes().isEmpty)
 
         rig.app.forgetMedium(id: mediumID)
-        let stopped = await waitUntil(timeout: 10) {
-            !rig.watcher.isWatching(mediumID: mediumID)
+        // Beides kommt aus onMediaForgotten; erst nach beiden positiven Signalen die Negativprüfungen.
+        let forgotten = await waitUntil(timeout: 10) {
+            !rig.watcher.isWatching(mediumID: mediumID) && rig.coordinator.connectedVolumes().isEmpty
         }
-        #expect(stopped)
+        #expect(forgotten)
         #expect(!rig.watcher.isWatching(mediumID: mediumID))
         #expect(rig.coordinator.connectedVolumes().isEmpty)
         await rig.coordinator.handle(.appeared(rig.volume))

@@ -1,0 +1,12 @@
+# Test: RunLifecycleTests/twoStartsDuringTheFinishRunOnceFromScratch()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift
++++ b/diskindex/diskindex/Indexing/IndexingService.swift
+@@ -225,7 +225,7 @@
+             // Schritt startet (bug.0.4.073). bug.0.4.080 a): Weitere Starts in dieser Zeit (LiveWiring und Koordinator)
+             // gehen in denselben Neustart.
+             let waiting = startsWaitingForCancel[mediumUUID]
+-            startsWaitingForCancel[mediumUUID] = (volume, (waiting?.fromScratch ?? false) || fromScratch)
++            startsWaitingForCancel[mediumUUID] = (volume, fromScratch)
+             return
+         }
+         if let running = lifecycles[mediumUUID] {

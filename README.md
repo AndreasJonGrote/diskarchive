@@ -28,6 +28,7 @@ Das Konzept steht in Themendateien unter `konzept/`. **Nur die Datei zum Thema l
 | [konzept/regelliste-artefakte.md](konzept/regelliste-artefakte.md) | Regelliste Artefakte (Spezifikation) | 7 KB |
 | [konzept/datenbank.md](konzept/datenbank.md) | Datenbank (seit 0.3, Schema eingefroren) | 8 KB |
 | [konzept/architektur.md](konzept/architektur.md) | Architektur (Aufbau der Software) | 4 KB |
+| [konzept/lauf-lebenszyklus.md](konzept/lauf-lebenszyklus.md) | Lauf-Lebenszyklus je Medium: Zustand × Ereignis (seit bug.0.4.204, Maßstab der Prüf-Agenten) | 6 KB |
 
 # Konzept (aktuell gültig)
 

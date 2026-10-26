@@ -1,0 +1,16 @@
+# Test: RunLifecycleTests/startWatchingChecksTheStateAfterTheRead()
+--- a/diskindex/diskindex/App/LiveWiring.swift
++++ b/diskindex/diskindex/App/LiveWiring.swift
+@@ -33,12 +33,6 @@
+         // bug.0.4.204 K5: Vergessen, „Nein“, Pause oder Sperre während des Lesens – der Speicher kennt das womöglich
+         // noch nicht (`pendingMediumWrites`), und `stop`/`applyPause` davor fanden keine laufende Überwachung. Darum
+         // nach dem letzten `await` gegen den aktuellen Stand prüfen.
+-        guard appState.featureAccess.canWriteIndex, !appState.globalAutoIndexPaused,
+-              let medium = appState.medium(with: id), medium.decision == .index, medium.allowIndexing,
+-              medium.connectionStatus == .connected else {
+-            DiskIndexLog.shared.record(.watcher, .info, "überwachung nicht gestartet medium=\(id)")
+-            return
+-        }
+         watcher.start(
+             mediumID: id,
+             volume: volume,

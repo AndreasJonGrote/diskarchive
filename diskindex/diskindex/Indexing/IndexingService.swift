@@ -625,14 +625,15 @@ final class IndexingService {
         }
         // bug.0.4.200 (c): stiller Abgleich mit bleibender Lücke → kein neuer Hinweis, keine neue Mitteilung; ein
         // unterbrochener Abgleich (Pause, Abbruch) ist nie ein neuer Fehler. (e): Hinweis nur für angeschlossene Medien
-        // (Konzept 2b).
+        // (Konzept 2b). bug.0.4.204 K2: „Nein“ im Abschluss (der `cancel` wartet am Marker) → kein Hinweis, keine Mitteilung.
         #if DEBUG
         await finishBeforeFailureHookForTesting?(mediumUUID)
         #endif
         let quietGap = kind?.quietGap ?? false
         let gapRemains = quietGap && outcome.failureReason == .unreadableFolders
         if outcome.status == .error, !gapRemains, !outcome.interrupted,
-           let medium = appState.medium(with: mediumUUID), medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
+           let medium = appState.medium(with: mediumUUID), medium.decision == .index, medium.allowIndexing,
+           medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
         }
         #if DEBUG
@@ -647,7 +648,9 @@ final class IndexingService {
         // bug.0.4.202 (b): keine Überwachung für ein beim Laufende ausgehängtes Medium (wie beim Hinweis).
         let mounted = isStillMounted(mediumUUID)
         // bug.0.4.204: nach einem Abbruch im Abschluss keine Überwachung (a); wartet ein Start, überwacht sein Lauf an
-        // seinem Ende – nicht schon jetzt neben ihm (er startet ohne `ChangeWatcher.stop`).
+        // seinem Ende – nicht schon jetzt neben ihm (er startet ohne `ChangeWatcher.stop`). Der Nachhol-Abgleich
+        // (`rerunAfterFinish`, unten) startet ebenso ohne `stop`, übernimmt die Überwachung aber bewusst nicht: sie läuft
+        // neben ihm weiter, ihr Flush wartet über `isRunActive` (Entscheidung „so lassen“, Paket 29).
         let watchHandedOn = lifecycles[mediumUUID]?.abortedWhileClosing == true || startsWaitingForCancel[mediumUUID] != nil
         if finishedRun, mounted, watchHandedOn {
             DiskIndexLog.shared.record(.index, .info, "überwachung übergeben medium=\(mediumUUID)")

@@ -41,7 +41,7 @@ Aufruf aus beliebigem Ordner, im Hintergrund starten, **ohne `S=`** (Voreinstell
 
 **Platz und Aufräumen (Host 26.10., nach 167 GB Testresten bei 12 GB frei):**
 - **Beim Start:** unter **25 GB** frei → Abbruch „zu wenig Platz“ (Exit 3) statt falscher Roter (Build, SQLite „disk full“). Danach werden ältere `pruefung.*`-Ordner unter `$TMPDIR` bis auf die **zwei neuesten** gelöscht; ein Ordner mit lebendem Lauf (PID in `.laeuft`) bleibt immer.
-- **Während des Laufs:** das `.xcresult` jedes **grünen** Laufs (seriell, Parallel 1–3, schnell) wird sofort gelöscht, ebenso das eines **erwartungsgemäß roten** Sabotage-Patches (rot ✓). Es bleiben nur die zur Fehlersuche nötigen: rote Läufe, nicht lesbare Ergebnisse, Patches mit „GRÜN ✗“. Logs und `zusammenfassung.txt` bleiben immer. Die Schlusszeile nennt die behaltenen `.xcresult`, die Ordnergröße und den freien Platz.
+- **Während des Laufs:** das `.xcresult` jedes **grünen** Laufs (seriell, Parallel 1–3, schnell; grün heißt `result == Passed` und 0 rote Tests, ein Absturz ohne gezählten roten Test bleibt also erhalten) wird sofort gelöscht, ebenso das eines **erwartungsgemäß roten** Sabotage-Patches (rot ✓). Es bleiben nur die zur Fehlersuche nötigen: rote Läufe, nicht lesbare Ergebnisse, Patches mit „GRÜN ✗“. Logs und `zusammenfassung.txt` bleiben immer. Die Schlusszeile nennt die behaltenen `.xcresult`, die Ordnergröße und den freien Platz.
 - `KEEP=1` behält DerivedData und alle `.xcresult` (nur zur Fehlersuche, danach von Hand löschen).
 - Sitzungs-Scratch (`/private/tmp/claude-501/…/scratchpad`) räumt das Skript nicht; Host und Worker legen dort keine Builds und Testergebnisse ab (Regel 13).
 

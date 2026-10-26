@@ -40,6 +40,12 @@ struct GapMediumBehavesOnlineTests {
         let recorder: Recorder
         var id: UUID { harness.mediumID }
 
+        /// Koordinator anhalten und die Datenbank schließen (Suiten, die 20× im Parallellauf laufen).
+        func tearDown() {
+            rig.coordinator.stop()
+            harness.closeDatabase()
+        }
+
         func storedStatus() async throws -> StoredIndexStatus? {
             try await harness.store.medium(uuid: id)?.indexStatus
         }

@@ -70,6 +70,9 @@ final class ChangeWatcher {
     #if DEBUG
     /// Tests (bug.0.4.076 d): läuft im Flush nach dem Vorbereiten, vor der erneuten Sperr-Prüfung. Je Instanz.
     var flushAfterPrepareHookForTesting: (@MainActor () async -> Void)?
+    /// Tests (bug.0.4.204 K5): läuft in `LiveWiring.startWatching` nach dem Lesen des Speichers, vor der letzten
+    /// Prüfung gegen `AppState`. Je Instanz.
+    var startAfterReadHookForTesting: (@MainActor (UUID) async -> Void)?
     func pendingPathsForTesting(_ mediumID: UUID) -> Set<String> { pending[mediumID] ?? [] }
     func pendingItemEventCountForTesting(_ mediumID: UUID) -> Int { pendingItemEvents[mediumID]?.count ?? 0 }
     func watchGenerationForTesting(_ mediumID: UUID) -> Int { watchGenerations[mediumID, default: 0] }

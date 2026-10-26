@@ -37,12 +37,20 @@ struct ScanHarness {
     let store: IndexStoreV3
     let mediumID: UUID
     let fsType: String
+    /// Die Datenbank aus `make` (bug.0.4.204 K: Tests mit vielen Wiederholungen schließen sie am Ende, sonst bleiben
+    /// ihre Dateien offen, solange etwas den Speicher hält).
+    let database: TestDatabase?
     private let indexer = DirectoryIndexer()
 
-    init(store: IndexStoreV3, mediumID: UUID, fsType: String = "apfs") {
+    init(store: IndexStoreV3, mediumID: UUID, fsType: String = "apfs", database: TestDatabase? = nil) {
         self.store = store
         self.mediumID = mediumID
         self.fsType = fsType
+        self.database = database
+    }
+
+    func closeDatabase() {
+        try? database?.close()
     }
 
     static func make(fsType: String = "apfs") async throws -> ScanHarness {
@@ -53,7 +61,7 @@ struct ScanHarness {
         let store = IndexStoreV3(database: database)
         let medium = StoredMedium(fsType: fsType, volumeTotalBytes: 1_000, name: "TEST", type: .usb, decision: .index)
         try await store.upsertMedium(medium)
-        return ScanHarness(store: store, mediumID: medium.uuid, fsType: fsType)
+        return ScanHarness(store: store, mediumID: medium.uuid, fsType: fsType, database: database)
     }
 
     func volume(at path: String) -> VolumeInfo {

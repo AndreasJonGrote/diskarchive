@@ -69,16 +69,17 @@ TESTOPT=(-only-testing:diskindexTests -test-timeouts-enabled YES -maximum-test-e
 zeit() { date '+%H:%M:%S'; }
 log()  { echo "$*" | tee -a "$SUM"; }
 warnungen() { grep "warning:" "$1" | grep -v appintents | sort -u | wc -l | tr -d ' '; }
-# Zahl der roten Tests eines .xcresult; leer, wenn nicht lesbar (dann behalten).
-rotzahl() {
+# „gruen“ nur bei result == Passed und 0 roten Tests; sonst anderes Wort oder leer (nicht lesbar).
+ergebnis() {
   xcrun xcresulttool get test-results summary --path "$1" --compact 2>/dev/null \
-    | python3 -I -c 'import sys,json; print(json.load(sys.stdin).get("failedTests",0))' 2>/dev/null
+    | python3 -I -c 'import sys,json; d=json.load(sys.stdin); print("gruen" if d.get("result")=="Passed" and d.get("failedTests",0)==0 else "rot")' 2>/dev/null
 }
-# .xcresult eines grünen Laufs löschen (je ~140 MB); rote und nicht lesbare bleiben zur Fehlersuche.
+# .xcresult eines grünen Laufs löschen (je ~140 MB); rote, abgestürzte (Exit ≠ 0 ohne gezählten roten Test) und nicht
+# lesbare bleiben zur Fehlersuche (Host 26.10.: nur bei result == Passed löschen).
 gruen_weg() {
   [ "${KEEP:-0}" = "1" ] && return
   [ -d "$1" ] || return
-  [ "$(rotzahl "$1")" = "0" ] && rm -rf "$1"
+  [ "$(ergebnis "$1")" = "gruen" ] && rm -rf "$1"
 }
 # Sabotage (Regel 9): jeder Patch in einer Kopie des Projekts, die in "# Test:" genannten Tests müssen rot werden.
 sabotage() {
