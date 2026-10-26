@@ -197,6 +197,13 @@ for f in d.get("testFailures",[]): print("   ROT:",f.get("testName"),"-",f.get("
   NEU=$(find ~/Library/Logs/DiagnosticReports -name 'Disk Archive*.ips' -newer "$BEZUG" 2>/dev/null | wc -l | tr -d ' ')
   log "Neue Absturzberichte seit Start: $NEU (Ziel 0)"
 
+  # 5a. Ein Ordner (bug.0.4.208): Tests schreiben nichts nach ~/Library/Preferences. Nur app.diskarchive.plist
+  # (Sprache, Fensterposition – schreibt macOS bzw. die echte App) darf sich ändern.
+  PREFS=$(find ~/Library/Preferences -maxdepth 1 -newer "$BEZUG" \( -name 'app.diskarchive*' -o -name '*diskindex*' \) \
+    ! -name 'app.diskarchive.plist' 2>/dev/null)
+  log "Neue Dateien in ~/Library/Preferences seit Start: $(printf '%s' "$PREFS" | grep -c . | tr -d ' ') (Ziel 0)"
+  [ -n "$PREFS" ] && printf '%s\n' "$PREFS" | head -5 | sed 's/^/   /' | tee -a "$SUM"
+
   # 5b. Sabotage-Patches (Regel 9)
   sabotage
 

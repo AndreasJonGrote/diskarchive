@@ -1,11 +1,14 @@
 # Checkliste Abnahmerunde 0.4.0 (`todo.0.4.040`, Nutzer)
 
-Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 32). Geschrieben vom Host 25.10. (`todo.0.4.045`). Funde schreibst du einfach in den Chat, der Host macht daraus `bug.0.4.xxx`.
+Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 33, Umbau „ein Ordner“). Geschrieben vom Host 25.10. (`todo.0.4.045`). Funde schreibst du einfach in den Chat, der Host macht daraus `bug.0.4.xxx`.
 
 ## Vorher
 
-1. Alte Test-Dateien löschen (Rest des letzten Testlaufs, harmlos):
-   `rm ~/Library/Preferences/app.diskarchive.tests.*.plist`
+1. Reste von vor dem Umbau „ein Ordner“ (`bug.0.4.208`) löschen. Seitdem liegt alles in `~/Library/Application Support/Disk Archive/`, und Tests schreiben nichts mehr in die Voreinstellungen.
+   - Alte Test-Einstellungen: `rm ~/Library/Preferences/app.diskarchive.tests.*.plist`
+   - Alter Protokollordner: `rm -r ~/Library/Logs/Disk\ Archive`
+   - Danach **den Mac einmal neu starten**. Dann vergisst der Einstellungsdienst (`cfprefsd`) die gelöschten Test-Domänen.
+   - `~/Library/Preferences/app.diskarchive.plist` bleibt. Darin stehen nur noch Sprache und Fensterposition.
 2. Die App aus `DerivedData/…/Build/Products/Debug/` starten (der Host nennt dir den Stand), Version 0.4.0.
 3. **Alle Medien neu indizieren** (Einstellungen → Speichermedien → „Neu indizieren“), damit nichts aus alten Läufen mitspielt.
 

@@ -79,6 +79,6 @@ Stand: 06.10.2026. Ziel: **macOS-App-Standard** (String Catalogs, `InfoPlist`-Lo
 
 ## Hinweise
 
-- **Sandbox / Tests:** `AppState(store:defaults: suite)` führt `bootstrap` mit dem Test-`UserDefaults` aus — keine Vermischung mit `.standard`.
-- **Menüleiste & Launch Agent:** gleiche Bundle-ID; Sprache folgt dem gleichen `AppSettings`-Speicher in `UserDefaults` der App.
+- **Tests:** `bootstrap` läuft mit dem App-Zustand im Speicher, ohne `UserDefaults`-Suite und ohne `.standard` (`bug.0.4.208`, `konzept/architektur.md` „Speicherung“).
+- **Menüleiste & Launch Agent:** gleiche Bundle-ID. Die Sprache folgt der Anzeigesprache in `app-state.plist`; `AppleLanguages` bleibt in `app.diskarchive.plist`, weil macOS es von dort liest (`bug.0.4.208`).
 - **ProposalCopy** (rote Vorschlagstexte): bleibt bis Layout-Freigabe getrennt; EN parallel planen.

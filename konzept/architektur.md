@@ -21,7 +21,20 @@ Teil des Konzepts, ausgelagert aus [README.md](../README.md) am 23.10.2026 (gilt
 
 **Ablauf beim Anschließen:** Ereignis → Kandidat? → bekannt? (Volume-UUID) → unbekannt: Zugriffsprobe, Eintrag `.undecided`, Erkennungs-Dialog → „Indizieren“: Lauf (ebenenweise, jede Ebene wird gespeichert, Abbruch durch Abziehen setzt später fort) **und sofort Live-Überwachung** (Nutzer 09.10.: Änderungen nach dem Erstlauf kamen nicht an) → **bekannt und `indexed`: vollständiger Abgleich** (jeder Ordner wird gelesen, neu/geändert/entfernt) und danach Live-Überwachung. Abziehen: Überwachung stoppen, Stand speichern, Medium „Offline“, Index bleibt durchsuchbar.
 
-**Speicherung:** `~/Library/Application Support/Disk Archive/archive.sqlite` (Tabellen und Regeln: Abschnitt „Datenbank“). Einstellungen liegen in der Tabelle `settings` (Ausnahmen: Sprache und Fensterposition in den Voreinstellungen). Fehlerberichte und Versions-Check laufen über die Warteschlange `api_queue`.
+**Speicherung (ein Ordner, Nutzer 26.10., `bug.0.4.208`):** Alles liegt in `~/Library/Application Support/Disk Archive/`:
+
+| Datei | Inhalt |
+|---|---|
+| `archive.sqlite` | Index und Einstellungen (Tabelle `settings`; Tabellen und Regeln: Abschnitt „Datenbank“) |
+| `app-state.plist` | kleiner App-Zustand, der vor der Datenbank oder ohne sie gebraucht wird: globale Pause, Zähler der Fehler-Modals, „Mitteilungen erfragt“, letzte Integritätsprüfung, Termin des Aufräumens, Anzeigesprache |
+| `Logs/` | Protokoll `diskindex.log` und Absturzdatei `crash-last.txt` |
+| `outbox/` | Fehlerbericht-Ausgang |
+
+Fehlerberichte und Versions-Check laufen über die Warteschlange `api_queue`.
+
+- **Ausnahme:** Was macOS in `~/Library/Preferences/app.diskarchive.plist` führt, bleibt dort: `AppleLanguages` (macOS liest die Sprache beim Start daraus) und die Fensterposition. Sonst schreibt die App nichts in die Voreinstellungen.
+- **Tests** schreiben nichts nach `~/Library/Preferences`: keine `UserDefaults`-Suiten, kein `cfprefsd`. Grund (Nutzer 26.10.): Die Testläufe haben den Einstellungsdienst aller Apps überlastet. WhatsApp, Mail und Finder haben dabei ihre Anzeige-Einstellungen verloren. Unter Tests liegt der App-Zustand im Speicher. Dateien, die Tests brauchen, liegen in `$TMPDIR`, nie im echten Datenordner.
+- **Schreibschranke** (`WriteGuard`): Erlaubt sind nur der Datenordner und `$TMPDIR`. Ganz `~/Library/Preferences`, ganz `~/Library/Caches` und `~/Library/Logs` sind gesperrt.
 
 **Scan-Regeln:** Ebene 1 = Inhalt der Wurzel; Tiefe *d* = *d* Ebenen mit Inhalt, die Ordner der letzten Ebene bleiben ungeöffnet (Hinweis „Inhalt wird nicht indiziert“). Pakete (`.app` u. a.) zählen als Datei, Symlinks werden nicht verfolgt. Immer ausgeschlossen: siehe „Regelliste Artefakte“. Ein nicht lesbarer Ordner markiert seinen bisherigen Inhalt **nie** als entfernt. Nur Leseoperationen auf dem Medium.
 
