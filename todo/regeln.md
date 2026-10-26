@@ -8,7 +8,7 @@ Neu gefasst vom Host am 23.10.2026 (15 statt 31 Regeln, gleicher Inhalt, dazu Sa
 
 1. **Nur das freigegebene Paket**, in seiner Reihenfolge. Am Ende **HALT**.
 2. **Nichts erfinden.** Fehlt eine Vorgabe in Konzept oder Layout, oder verstößt die Vorgabe gegen eine Regel → „Frage:“ unter die Aufgabe. Neue Texte mit de und en, im Status als „Neue Texte:“.
-3. **Nur die genannten Stellen ändern**, kein Refactoring nebenbei. Zeilenangaben sind Richtwerte; es gilt der Symbolname.
+3. **Nur die genannten Stellen ändern**, kein Refactoring nebenbei und kein Umbau ohne sichtbaren Grund (z. B. Typen verschärfen, nur weil es sauberer ist). Zeilenangaben sind Richtwerte; es gilt der Symbolname.
 4. **Schreiben darfst du nur:** Quelltext unter `diskindex/`, das Feld „Status“ deiner Aufgabe (höchstens 5 Zeilen, „Bereit zur Prüfung“, nie „fertig“), Patches unter `todo/sabotage/` und zum Schluss PROMPT.md. Alles andere ist schreibgeschützt. Kein verändernder Git-Befehl (nur `status`, `log`, `diff`, `show`). Zeigt `git status` fremde Änderungen an `.swift`-Dateien → anhalten, „Frage:“. **Nicht fremd (Host 24.10.):** uncommittete Änderungen aus abgenommenen Paketen (in DONE.md bzw. `archiv/paket-*-abgenommen-*.md`) – der Nutzer committet oft erst später (unterwegs). Ein fehlender Commit ist kein Grund anzuhalten oder nachzufragen; Maßstab ist der Stand bei der Übergabe, nicht `HEAD`.
 
 ## Code
@@ -30,9 +30,23 @@ Neu gefasst vom Host am 23.10.2026 (15 statt 31 Regeln, gleicher Inhalt, dazu Sa
     4. **Alte Reste:** Können Daten früherer Läufe oder anderer Medien (Protokoll, Merker, Cache) das Ergebnis verfälschen?
     5. **Beweis:** Wird der Test mit dem Patch aus Regel 9 rot?
 
-    **Was ein Befund ist (Supervisor/Nutzer 25.10.):** eine **konkrete Folge von Ereignissen**, als Test schreibbar, **plus** das Verhalten, das dabei falsch ist. „Was wäre wenn“ ohne solche Folge zählt nicht. Ab `bug.0.4.204` gilt je Medium höchstens ein Lebenszyklus „Start → Lauf → Abschluss/Abbruch“ (`IndexingService`, Wächter in DEBUG): zwei Läufe desselben Mediums gleichzeitig heißt, Marker oder Wächter sind falsch – dort beheben, kein neuer Flicken.
+    **Was ein Befund ist (Nutzer 26.10., AGENTS.md „Befunde: drei Stufen“):**
+    - Jeder Befund nennt zuerst „Nutzer sieht: …“ und „Wann im normalen Gebrauch: …“, dann die konkrete Ereignisfolge und die Stufe. Fehlt eine Antwort, ist es Stufe 3.
+    - Gesucht wird nur im eigenen Diff.
+    - Vor dem Melden laufen die drei Prüfungen:
+      - Schon behoben? (gegen den aktuellen Code, `DONE.md`, Archiv)
+      - Bewusst so? („bewusst offen“ im Konzept, „So lassen“ in der Aufgabe)
+      - Sinnvoll? (Merkt der Nutzer die Korrektur?)
+    - Den Auftrag des Subagenten nach der Vorlage in `archiv/abnahme-ablauf.md` 2b schreiben.
 
-    Mittlere und hohe Befunde vor „Bereit“ beheben, den Rest als „Frage:“. Sind Zeitabläufe beteiligt (Scrollen, FSEvents, Warteschlangen): die Suite 20× im Parallellauf, Uhrzeit im Status.
+    Ab `bug.0.4.204` gilt je Medium höchstens ein Lebenszyklus „Start → Lauf → Abschluss/Abbruch“ (`IndexingService`, Wächter in DEBUG): zwei Läufe desselben Mediums gleichzeitig heißt, Marker oder Wächter sind falsch – dort beheben, kein neuer Flicken.
+
+    Was mit einem Befund geschieht:
+    - **Stufe 1** vor „Bereit“ beheben.
+    - **Stufe 2** nur beheben, wenn sie im realistischen Test (ohne Haken, der eine Stelle anhält) oder in der echten App auftritt. Sonst genügt eine Zeile „Stufe 2: …“ im Status.
+    - **Stufe 3** weder beheben noch als Frage stellen, höchstens eine Zeile „Stufe 3: …“.
+
+    „Frage:“ ist nur für Entscheidungen da, nicht für Befunde. „Nichts Wesentliches gefunden“ ist ein gutes Ergebnis. Sind Zeitabläufe beteiligt (Scrollen, FSEvents, Warteschlangen): die Suite 20× im Parallellauf, Uhrzeit im Status.
 
 ## Abschluss
 

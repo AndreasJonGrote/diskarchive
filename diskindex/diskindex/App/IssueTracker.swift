@@ -18,8 +18,6 @@ nonisolated enum ReportTarget {
 }
 
 nonisolated enum IssueConsent {
-    static let legacyAutoSendKey = "diskindex.autoSendCrashReports"
-
     static func autoSendEnabled() -> Bool {
         AppSettingsRuntimeCache.autoSendEnabled()
     }
@@ -213,7 +211,6 @@ nonisolated final class IssueReporter: @unchecked Sendable {
             if newValue != nil, started { refreshKnownNamesInBackground() }
         }
     }
-    var defaults: UserDefaults
     var session: URLSession
     var releaseBuild: Bool
     var now: () -> Date
@@ -240,7 +237,6 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         endpoint: URL = ReportTarget.endpoint,
         directory: URL? = nil,
         queuePool: DatabasePool? = nil,
-        defaults: UserDefaults = AppDefaults.current,
         session: URLSession? = nil,
         releaseBuild: Bool = false,
         now: @escaping () -> Date = { Date() },
@@ -254,17 +250,18 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         self.diskLog = diskLog
         self.endpoint = endpoint
         self._queuePool = queuePool
-        self.defaults = defaults
         self.releaseBuild = releaseBuild
         self.now = now
         self.log = log ?? { DiskIndexLog.shared.record(.app, .info, $0) }
         self.knownNames = { [] }
         if let directory {
             self.directory = directory
-        } else if let base = try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true) {
-            self.directory = base.appendingPathComponent("Disk Archive/outbox", isDirectory: true)
+        } else if (try? FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)) != nil {
+            self.directory = AppDataFolder.url.appendingPathComponent("outbox", isDirectory: true)
         } else {
+            // bug.0.4.208: Ausweichweg nur, wenn der Datenordner nicht anzulegen ist.
             self.directory = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("diskindex-outbox", isDirectory: true)
+            diskLog.record(.app, .error, "outbox im temporären ordner, datenordner nicht anlegbar")
         }
         if let session {
             self.session = session

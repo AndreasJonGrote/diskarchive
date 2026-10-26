@@ -684,9 +684,9 @@ nonisolated final class DiskIndexLog: @unchecked Sendable {
         return formatter.string(from: now())
     }
 
-    private static var defaultDirectory: URL {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Logs/Disk Archive", isDirectory: true)
+    /// bug.0.4.208: im Datenordner (`Disk Archive/Logs/`), mit `crash-last.txt` und Rotation.
+    static var defaultDirectory: URL {
+        AppDataFolder.url.appendingPathComponent("Logs", isDirectory: true)
     }
 
     private static let signalHandler: @convention(c) (Int32) -> Void = { signal in

@@ -17,9 +17,14 @@ Gilt, wenn ein Bericht des Workers vorliegt („check“, „next“ oder Loop m
 
 1. **Warten auf den Worker:** siehe Abschnitt 9 (Loop nur nach Rückfrage).
 2. **Prüfskript im Hintergrund:** `Werkzeuge/pruefung.sh voll` (Abschnitt 3), Dauer etwa 25 Minuten; prüft am Ende auch die Sabotage-Patches aus `todo/sabotage/` (Regel 9). Jeder Patch muss „rot ✓“ melden.
-3. **Prüf-Agenten parallel** (Sonnet, nur lesen; drei bei großen Paketen, zwei bei bis zu 8 Kennungen), Aufgaben nach Themen gebündelt. Je Agent: Akzeptanz je Unterpunkt, echte Fehler mit Datei:Zeile und Schwere, die **fünf Fragen** aus Regel 12 (Zeitfenster, Löschen, fremde Ereignisse, alte Reste, Beweis), die Invarianten aus `konzept/architektur.md`, Regel 10/11 (Kette ohne Nachhilfe, keine prozessweiten Schalter, keine festen Zeiten als Beweis), neue Texte mit de und en. „Lieber 5 belastbare als 20 Vermutungen.“ Hohe und mittlere Befunde selbst im Code bestätigen, bevor sie zählen. **Befund (Supervisor/Nutzer 25.10., gilt ab der Prüfung von Paket 28):** eine konkrete Folge von Ereignissen, als Test schreibbar, plus das falsche Verhalten; „was wäre wenn“ ohne Folge zählt nicht und kommt nicht ins Paket. Das steht so im Auftrag jedes Prüf-Agenten. **Lauf-Lebenszyklus:** Ab `bug.0.4.204` höchstens ein Lebenszyklus je Medium; ein Fund „zwei Läufe gleichzeitig“ heißt Marker oder Wächter falsch, dort beheben, keine neue Einzelprüfung. Nach 204 prüfen Agenten diese Stelle nur gegen `konzept/lauf-lebenszyklus.md` (Tabelle Zustand × Ereignis); erst wenn danach dort noch Befunde kommen, Umbau zum vollen Zustandsautomaten.
+3. **Prüf-Agenten parallel** (Sonnet, nur lesen; drei bei großen Paketen, zwei bei bis zu 8 Kennungen), Aufgaben nach Themen gebündelt. Je Agent: Akzeptanz je Unterpunkt, echte Fehler mit Datei:Zeile und Schwere, die **fünf Fragen** aus Regel 12 (Zeitfenster, Löschen, fremde Ereignisse, alte Reste, Beweis), die Invarianten aus `konzept/architektur.md`, Regel 10/11 (Kette ohne Nachhilfe, keine prozessweiten Schalter, keine festen Zeiten als Beweis), neue Texte mit de und en. „Lieber 5 belastbare als 20 Vermutungen.“ **Seit 26.10. gelten die drei Stufen (Abschnitt 2b).** Den Auftrag jedes Prüf-Agenten baut der Host nach der Vorlage in 2b. Befunde der Stufen 1 und 2 bestätigt der Host selbst im Code und legt die Stufe selbst fest; Agenten stufen oft zu hoch. **Lauf-Lebenszyklus:** Ab `bug.0.4.204` höchstens ein Lebenszyklus je Medium; ein Fund „zwei Läufe gleichzeitig“ heißt Marker oder Wächter falsch, dort beheben, keine neue Einzelprüfung. Nach 204 prüfen Agenten diese Stelle nur gegen `konzept/lauf-lebenszyklus.md` (Tabelle Zustand × Ereignis); erst wenn danach dort noch Befunde kommen, Umbau zum vollen Zustandsautomaten.
 4. **Code selbst lesen:** `git log -3 --stat`, `git show <Commit>`. Prüfen: Akzeptanzkriterien, Rot vor dem Fix (Regel 8), Sabotage-Patches vollständig (Regel 9), kein Schreiben auf Medien (WriteGuard), Invarianten, Schema nur erweitern (Regel 7), keine UI-Tests, kein Git, nichts am PHP-Server.
-5. **Abnahme je Aufgabe**, wenn ihre Tests in allen Läufen grün sind, ihre Sabotage-Patches rot melden und der Code in Ordnung ist. Ein hoher Befund oder eine Regression (auch eine, die kein Test zeigt) heißt: nicht abgenommen, Nacharbeit vorn im nächsten Paket. Mittlere und niedrige Befunde werden neue Kennungen im **nächsten** Paket, nie im laufenden. Rote Tests im Parallellauf sind ein Fehler (bug.0.4.044), auch wenn der Worker „grün“ meldet.
+5. **Abnahme je Aufgabe**, wenn ihre Tests in allen Läufen grün sind, ihre Sabotage-Patches rot melden und der Code in Ordnung ist. Was mit einem Befund geschieht, richtet sich nach der Stufe (2b):
+   - Ein Befund der **Stufe 1** im Diff der Aufgabe oder eine Regression heißt: nicht abgenommen, Nacharbeit vorn im nächsten Paket. Andere Stufe-1-Befunde werden neue Kennungen im **nächsten** Paket.
+   - **Stufe 2** kommt nur dann ins nächste Paket, wenn sie in der echten App oder in einem realistischen Test auftritt. Sonst wird sie eine Zeile im Sammeleintrag `todo/backlog.md`.
+   - **Stufe 3** bekommt keine Aufgabe, höchstens eine Zeile im Backlog.
+
+   Rote Tests im Parallellauf blockieren die Abnahme unabhängig von der Stufe (bug.0.4.044, Abnahmekriterium 4), auch wenn der Worker „grün“ meldet. Die Ursache wird in derselben Kennung behoben und bekommt keine neue Kennung.
 6. **Pflege (nur Host):**
    1. Das Paket-File nach `archiv/paket-<N>-abgenommen-<Datum>.md` verschieben (Volltext mit Status), die Patches der abgenommenen Kennungen nach `archiv/sabotage/paket-<N>/` (Patches nicht abgenommener Kennungen bleiben liegen). In `TODO.md` (Index, kurz halten): Stand-Zeile, Prüfstand-Absatz (Läufe, Commit, Befunde; nur das letzte Paket, ältere stehen in DONE.md), Paket-Tabelle. Neue Funde als `bug.<Version>.<Nr>` direkt ins nächste `todo/paket-<N+1>.md`.
    2. `DONE.md`: eine Zeile je Kennung mit Prüfzeichen (A = Gesamtlauf seriell grün, B = Symbole verifiziert, C = Code gelesen).
@@ -33,7 +38,29 @@ Gilt, wenn ein Bericht des Workers vorliegt („check“, „next“ oder Loop m
 - **Kleine Pakete:** höchstens 8 Kennungen, Sammelposten höchstens 5 Unterpunkte. Höchstens **eine schwere Aufgabe** (Datenverlust, Nebenläufigkeit, Zeitablauf in der Oberfläche) je Paket, und zwar als erste.
 - **Jede Vorgabe gegen die Invarianten** (`konzept/architektur.md`) prüfen, bevor sie rausgeht. Beispiel `bug.0.4.169`: Die Vorgabe „erst lesen, dann schreiben“ sagte nicht, was mit Zeilen ohne Vorab-Wert geschieht; daraus wurde ein Datenverlust (Invariante 1 und 2).
 - **Gegenprobe nennen:** Jede schwere Aufgabe nennt den Fall, der sie kaputt machen würde (z. B. „während ein anderes Medium indiziert“, „zweiter Lauf desselben Mediums“, „Medium hängt“), und verlangt dafür einen Test.
-- **Zweimal „Rest von“ in derselben Stelle** heißt: kein weiterer Flicken, sondern die Stelle als Ganzes neu beschreiben (Ablauf, Zustände, Invarianten), dann eine Aufgabe.
+- **Zweimal „Rest von“ in derselben Stelle** heißt: kein weiterer Flicken, sondern die Stelle als Ganzes neu beschreiben (Ablauf, Zustände, Invarianten), dann eine Aufgabe. Danach kommen dort nur noch Befunde der Stufe 1 in die laufende Version (AGENTS.md).
+- **Jede `bug`-Aufgabe** beginnt mit „Nutzer sieht: … · Wann: … · Stufe N“. Vor dem Schreiben laufen die drei Prüfungen aus 2b. Fällt eine davon durch, gibt es keine Aufgabe.
+
+## 2b. Prüfregeln: drei Stufen, drei Prüfungen (Nutzer 26.10., Host 26.10.)
+
+Regelwerk: AGENTS.md „Befunde: drei Stufen“. Es ersetzt „Keine Schwelle“ vom 20.10. und gilt ab Paket 33.
+
+**Umfang:** Der Host prüft den Diff des Pakets gegen seine Aufgaben, das Konzept und die Invarianten. Er sucht nicht in fremdem Code nach neuen Befunden und gibt das auch keinem Agenten auf.
+
+**Ablauf je Befund** (Host, Agent oder Worker):
+1. **Nutzer sieht / Wann:** Beides konkret benennen. Fehlt eins, gilt Stufe 3, und der Befund ist hier zu Ende.
+2. **Schon behoben?** Gegen den aktuellen Code prüfen. Mit `grep` in `DONE.md` und `archiv/paket-*-abgenommen-*.md` nach Stelle und Ursache suchen. Ist der Befund abgedeckt, zählt er nicht. Hält ein früherer Fix nicht, ist es eine Regression dieser Kennung.
+3. **Bewusst so?** In `konzept/` nach „bewusst offen“ suchen, in der Aufgabe nach „So lassen“, in TODO.md nach „Entscheidungen“. Steht der Fall dort, ist es kein Befund, höchstens eine Frage an den Nutzer.
+4. **Sinnvoll?** Brächte die Korrektur dem Nutzer etwas, das er bemerkt? Wenn nicht: Stufe 3.
+5. **Stufe festlegen:**
+   - **1:** Der Nutzer merkt es im normalen Gebrauch.
+   - **2:** Der Nutzer merkt es nur bei seltener Folge. Ins Paket kommt es nur, wenn ein realistischer Test (ohne Haken, der eine Stelle anhält) oder die echte App es zeigt.
+   - **3:** Sonst.
+
+**Vorlage für den Auftrag eines Prüf-Agenten** (immer mitgeben, dazu Dateien, Aufgabe und Maßstab):
+> Prüfe nur den Diff gegen die Aufgabe. Suche nicht in anderem Code nach neuen Fehlern. Nenne je Befund zuerst „Nutzer sieht: …“ und „Wann im normalen Gebrauch: …“, dann die Ereignisfolge (Datei:Zeile) und die Stufe 1/2/3 nach AGENTS.md. Melde nichts, was in `DONE.md` oder im Archiv schon behoben ist, was im Konzept als „bewusst offen“ oder in der Aufgabe unter „So lassen“ steht, und nichts über Schutzprüfungen oder Testlücken ohne Folge für den Nutzer. Bekannt und nicht zu melden: <Liste aus der letzten Abnahme>. „Nichts Wesentliches gefunden“ ist ein gutes Ergebnis.
+
+**In der Antwort an den Nutzer** stehen nur Befunde der Stufen 1 und 2, jeder mit „Nutzer sieht / Wann / Stufe“. Stufe 3 steht höchstens als ein Satz da.
 
 ## 3. Prüfskript `Werkzeuge/pruefung.sh`
 

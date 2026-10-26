@@ -13,7 +13,7 @@ enum StoreLaunchSequence {
     /// Schritt 1 (`applicationDidFinishLaunching`, nach dem Mitteilungs-Delegaten, vor dem Öffnen der Datenbank):
     /// eine bei beendeter App abgelaufene Pause auswerten (todo.0.4.027) – vor jeder Erkennung. bug.0.4.197 e: dazu die
     /// zugestellten „nicht bestätigt“-Mitteilungen der letzten Sitzung zurückziehen (`failureNoticeMedia` ist leer).
-    static func evaluatePauseAtLaunch(appState: AppState, defaults: UserDefaults = AppDefaults.current) {
+    static func evaluatePauseAtLaunch(appState: AppState, defaults: AppStateStore = .current) {
         appState.refreshGlobalPause(defaults: defaults)
         SystemNotice.withdrawStaleIndexingFailures()
     }

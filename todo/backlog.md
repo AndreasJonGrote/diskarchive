@@ -4,6 +4,19 @@ Ausgelagert aus TODO.md am 23.10.2026, nach Zielversion. Index: [TODO.md](../TOD
 
 ---
 
+### Sammeleintrag Stufe 2 und 3 (Nutzer 26.10., AGENTS.md „Befunde: drei Stufen“)
+
+Befunde, die der Nutzer nur bei seltener Ereignisfolge merkt (Stufe 2, ohne Nachweis in der echten App oder in einem realistischen Test) oder nie merkt (Stufe 3). Je Befund eine Zeile: Datum, Paket, Stelle, „Nutzer sieht / Wann“. Daraus wird keine Aufgabe, es sei denn, die echte App zeigt den Fehler; dann Stufe 1.
+
+| Datum | Paket | Stufe | Stelle | Nutzer sieht / Wann |
+|---|---|---|---|---|
+| 26.10. | 32 | 3 | `ChangeWatcher.handleStreamUnmount`, Prüfung am Anfang | nichts; Schutzprüfung ohne Test, praktisch unerreichbar |
+| 26.10. | 33 | 3 | `FilePrivacy`, erstes Anlegen von `Logs/` | nichts; 755/644 bis zum nächsten Start, danach 700/600 (schon vorher so) |
+| 26.10. | 33 | 3 | `AppStateStore`, Doppelstart im selben Moment | nichts; die zweite Instanz übergibt und beendet sich |
+| 26.10. | Abnahmerunde | 3 | `IssueTracker.noteError` bei Abbruch eines Laufs (Auswerfen, Umbenennen) | nichts; `CancellationError` steht als „app error index error category=store“ im Protokoll |
+
+---
+
 ### 0.4.0 / 0.4.1 — Open Beta (Nutzer 18.10.: 0.4.0 Release-Kandidat, 0.4.1 Release)
 
 | Kennung | Inhalt |
@@ -31,6 +44,12 @@ Ausgelagert aus TODO.md am 23.10.2026, nach Zielversion. Index: [TODO.md](../TOD
 | `todo.0.4.1.002` | **Tester-Prüfung mit Quarantäne (aus `todo.0.4.040` gelöst, Nutzer 18.10.):** die nicht notarisierte App mit Quarantäne-Merkmal auf einen Mac bringen, der sie noch nie gesehen hat (oder Benutzerkonto ohne Vorgeschichte); prüfen: Gatekeeper-Freigabe nach Anleitung, Start aus „Programme“ (keine App-Translocation), Einzelinstanz, Start beim Anmelden (`SMAppService`), Update durch Ersetzen (`todo.0.4.024`), Fehlerbericht senden. |
 
 Zu 0.4.1 gehören außerdem `todo.0.4.021` (Download-Seite mit Anleitung), `022` (macOS 14) und `024` (Update durch Ersetzen). Mit 0.4.1 geht die App an die Tester.
+
+### Neues Layout (nach 0.4.1, Nutzer 26.10.)
+
+| Kennung | Inhalt |
+|---|---|
+| `todo.0.5.003` | **Leere Spalte bei aktivem Filter (Nutzer 26.10., Abnahmerunde):** Ein Ordner, in dem der aktive Filter alles ausblendet, zeigt in der Spaltenansicht weder Inhalt noch Ladeanzeige noch Hinweis (Beispiel: großer Ordner auf „Daten“, Filter aktiv). Kein Fehler, das Verhalten ist richtig. Im neuen Layout einen Hinweis vorsehen, etwa „Filter aktiv – n Einträge ausgeblendet“ mit „Filter zurücksetzen“. Text und Gestaltung im Layout. |
 
 ### 0.5 bis 1.0 (Entwürfe, jede Funktion vor dem Start einzeln besprechen; Details ROADMAP)
 

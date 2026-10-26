@@ -84,7 +84,7 @@ struct IndexFailureReasonTests {
         await app.loadStoredMedia()
         // bug.0.4.200 (e): Hinweis nur für angeschlossene Medien (ohne Erkennung hier von Hand).
         app.updateMedium(id: medium.uuid) { $0.connectionStatus = .connected }
-        // Pausenzustand kommt aus den geteilten UserDefaults; hier ausdrücklich nicht pausiert.
+        // Pausenzustand kommt aus dem geteilten App-Zustand; hier ausdrücklich nicht pausiert.
         app.globalAutoIndexPaused = false
         app.heldForSleep = false
         let service = IndexingService(store: store, access: access, appState: app)

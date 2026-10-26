@@ -74,7 +74,6 @@ private struct RealLogHarness {
     let logDirectory: URL
     let pool: DatabasePool
     let host: String
-    let defaultsSuite: String
     let sink = LineSink()
 
     init() throws {
@@ -90,12 +89,10 @@ private struct RealLogHarness {
             throw error
         }
         host = "r\(UUID().uuidString.prefix(8).lowercased()).real-log.test"
-        defaultsSuite = "diskindex-real-log-\(UUID().uuidString)"
     }
 
-    /// bug.0.4.080 e): Testordner und UserDefaults-Suite nach dem Test entfernen.
+    /// bug.0.4.080 e): Testordner nach dem Test entfernen.
     func cleanUp() {
-        UserDefaults(suiteName: defaultsSuite)?.removePersistentDomain(forName: defaultsSuite)
         try? FileManager.default.removeItem(at: root)
     }
 
@@ -119,13 +116,11 @@ private struct RealLogHarness {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [RealLogReportStubURL.self]
         let endpoint = try #require(URL(string: "https://\(host)/api/issues/"))
-        let defaults = TestDefaults.make()
         let sink = self.sink
         let reporter = IssueReporter(
             endpoint: endpoint,
             directory: root.appendingPathComponent("outbox", isDirectory: true),
             queuePool: pool,
-            defaults: defaults,
             session: URLSession(configuration: configuration),
             releaseBuild: false,
             log: { sink.append($0) },

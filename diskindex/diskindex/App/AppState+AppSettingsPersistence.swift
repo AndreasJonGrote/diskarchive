@@ -25,15 +25,13 @@ extension AppState {
             globalAutoIndexPaused = true
             DiskIndexLog.shared.record(.store, .error, "settings unreadable")
         case .missing where persistsSettings:
+            // bug.0.4.208: keine Übernahme alter Werte aus den Voreinstellungen; die Standardwerte werden gespeichert.
             settingsUnreadable = false
-            let legacy = AppSettings.loadLegacyPersisted(from: settingsDefaults)
-            appSettings.applying(legacy)
             do {
                 try await store.savePersistedAppSettings(appSettings.persistedSnapshot())
-                clearLegacyAppSettingsKeys()
             } catch {
                 if DiskIndexLog.isOperationalFailure(error) {
-                    DiskIndexLog.shared.record(.store, .error, "settings migrate \(DiskIndexLog.errorSummary(error))")
+                    DiskIndexLog.shared.record(.store, .error, "settings save defaults \(DiskIndexLog.errorSummary(error))")
                 }
             }
         case .missing:
@@ -50,11 +48,6 @@ extension AppState {
         appSettings.autoSendCrashReports = enabled
         AppSettingsRuntimeCache.setAutoSend(enabled)
         scheduleSettingsSave()
-    }
-
-    func clearLegacyAppSettingsKeys() {
-        settingsDefaults.removeObject(forKey: AppSettings.persistenceKey)
-        settingsDefaults.removeObject(forKey: IssueConsent.legacyAutoSendKey)
     }
 
     func persistAppSettingsNow() async {

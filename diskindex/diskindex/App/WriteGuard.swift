@@ -74,23 +74,11 @@ nonisolated enum WriteGuard {
         #if DEBUG
         roots.append(contentsOf: extraAllowedRootsForTesting.map(normalizeRoot))
         #endif
-        if let data = try? IndexStoreV3.storeFileURL().deletingLastPathComponent() {
-            roots.append(normalizeRoot(data.path))
-        }
-        roots.append(normalizeRoot(logsDirectoryPath()))
+        roots.append(normalizeRoot(AppDataFolder.url.path))
+        // bug.0.4.208: nur Datenordner (mit Protokoll und App-Zustand) und `$TMPDIR`; Voreinstellungen, Caches und
+        // `~/Library/Logs` sind gesperrt.
         roots.append(normalizeRoot(NSTemporaryDirectory()))
-        if let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first {
-            roots.append(normalizeRoot(caches.path))
-        }
-        let prefs = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Preferences", isDirectory: true)
-        roots.append(normalizeRoot(prefs.path))
         return roots
-    }
-
-    private static func logsDirectoryPath() -> String {
-        FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Logs/Disk Archive", isDirectory: true).path
     }
 
     private static func normalizeRoot(_ path: String) -> String {

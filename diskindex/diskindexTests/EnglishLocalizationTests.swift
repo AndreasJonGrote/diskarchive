@@ -107,7 +107,7 @@ struct EnglishLocalizationTests {
     private static let exceptions: [(file: String, fragment: String, reason: String)] = [
         ("App/AppDelegate.swift", "logger.", "Protokollzeile, kein UI"),
         ("App/LaunchAtLogin.swift", "logger.", "Protokollzeile, kein UI"),
-        ("App/IssueTracker.swift", "Disk Archive/outbox", "Legacy-Outbox für Migration (0.3.1)"),
+        ("App/AppStateStore.swift", "Disk Archive", "Ordnername auf der Platte (Datenordner)"),
         ("Storage/V3/IndexStoreV3.swift", "Disk Archive", "Ordnername auf der Platte"),
         ("App/DiskIndexLog.swift", "Disk Archive", "Dateiname des Absturzberichts"),
         ("MenuBar/MenuBarController.swift", "Absturz testen", "nur Debug-Menü (#if DEBUG)"),

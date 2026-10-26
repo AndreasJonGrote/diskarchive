@@ -9,31 +9,20 @@ import Testing
 
 @Suite(.serialized) struct AppLanguagePolicyTests {
     @Test func bootstrapPersistsDetectedLanguageOnFirstRun() {
-        let suite = "diskindex-lang-\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let defaults = TestDefaults.make()
-        defaults.removePersistentDomain(forName: suite)
 
         let settings = AppLanguagePolicy.bootstrap(defaults: defaults)
         #expect(defaults.string(forKey: AppLanguagePolicy.displayLanguageKey) == settings.displayLanguage.rawValue)
         #expect(AppLanguagePolicy.loadDisplayLanguage(from: defaults) == settings.displayLanguage)
     }
 
-    @Test func applyAppleLanguagesSetsPrimaryAndFallback() {
-        let suite = "diskindex-lang-\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = TestDefaults.make()
-
-        AppLanguagePolicy.applyAppleLanguages(.german, defaults: defaults)
-        #expect(defaults.stringArray(forKey: AppLanguagePolicy.appleLanguagesKey)?.first == "de")
-
-        AppLanguagePolicy.applyAppleLanguages(.english, defaults: defaults)
-        #expect(defaults.stringArray(forKey: AppLanguagePolicy.appleLanguagesKey)?.first == "en")
+    /// bug.0.4.208: `AppleLanguages` schreibt nur `SystemDefaults` (unter Tests nie); geprüft wird der Wert.
+    @Test func appleLanguagesHavePrimaryAndFallback() {
+        #expect(AppLanguagePolicy.appleLanguages(for: .german) == ["de", "en", "en"])
+        #expect(AppLanguagePolicy.appleLanguages(for: .english) == ["en", "de", "en"])
     }
 
     @Test func syncFromSettingsUpdatesActiveLanguageForL10n() {
-        let suite = "diskindex-lang-\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let defaults = TestDefaults.make()
         let previous = AppLanguagePolicy.resolvedDisplayLanguage()
         defer { AppLanguagePolicy.noteActiveDisplayLanguage(previous) }

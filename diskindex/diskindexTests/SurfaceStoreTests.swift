@@ -70,7 +70,6 @@ extension WindowTestGroup {
 
     @Test func prepareForTerminationPersistsSettingsImmediately() async throws {
         let harness = try StoreHarness.make()
-        let suite = "diskindex-term-settings-\(UUID().uuidString)"
         let defaults = TestDefaults.make()
         let app = AppState(store: harness.store, defaults: defaults)
         app.attach(store: harness.store)
@@ -81,7 +80,6 @@ extension WindowTestGroup {
         restored.attach(store: harness.store)
         await restored.hydrateSettingsFromStore()
         #expect(restored.appSettings.scanDepth == 4)
-        defaults.removePersistentDomain(forName: suite)
     }
 
     @Test func prepareForTerminationFlushesPendingMediumWrite() async throws {
@@ -118,9 +116,7 @@ extension WindowTestGroup {
 
     @Test func settingsSurviveRestartAndReset() async throws {
         let harness = try StoreHarness.make()
-        let suite = "diskindex-settings-\(UUID().uuidString)"
         let defaults = TestDefaults.make()
-        defaults.removePersistentDomain(forName: suite)
         let app = AppState(defaults: defaults)
         app.attach(store: harness.store)
         await app.hydrateSettingsFromStore()
@@ -142,7 +138,6 @@ extension WindowTestGroup {
         await cleared.hydrateSettingsFromStore()
         #expect(cleared.appSettings.scanDepth == AppSettings.defaultScanDepth)
         #expect(cleared.appSettings.excludedPatterns == AppSettings.defaultExcludedPatterns)
-        defaults.removePersistentDomain(forName: suite)
     }
 
     @Test func forgetAllContinuesWhenOneDeleteFails() async throws {

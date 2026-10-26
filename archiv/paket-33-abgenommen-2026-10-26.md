@@ -10,9 +10,12 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
 
 **Reihenfolge (HALT am Ende):** `bug.0.4.208` a → e. **HALT.**
 
+**Befunde (ab diesem Paket):** Es gelten die drei Stufen (AGENTS.md „Befunde: drei Stufen“, Regel 12). Beheben musst du nur Stufe 1. Stufe 2 nur, wenn sie realistisch auftritt; Stufe 3 gar nicht.
+
 ## Umbau „ein Ordner“ (Nutzer 26.10., über den Supervisor: vor der Abnahmerunde, vor allem anderen)
 
-- **bug.0.4.208 — Alles von Disk Archive in einen Ordner; Tests schreiben nichts nach `~/Library/Preferences` (hoch).**
+- **bug.0.4.208 — Alles von Disk Archive in einen Ordner; Tests schreiben nichts nach `~/Library/Preferences`.**
+  - **Nutzer sieht:** Andere Apps (WhatsApp, Mail, Finder) verlieren ihre Anzeige-Einstellungen. **Wann:** bei jedem Testlauf. **Stufe 1.**
   - **Anlass:** Jeder Testprozess legt heute eine `UserDefaults`-Suite `app.diskarchive.tests.<pid>[.<Name>-<uuid>]` an (`AppDefaults.current`, `TestDefaults.make`, dazu eigene Suiten in einzelnen Tests). Das läuft über `cfprefsd`. Die Testläufe haben den Einstellungsdienst aller Apps überlastet: WhatsApp, Mail und Finder haben ihre Anzeige-Einstellungen verloren. Außerdem liegt das Protokoll in `~/Library/Logs/Disk Archive/`, und `WriteGuard` erlaubt ganz `~/Library/Preferences` und ganz `~/Library/Caches`.
   - **Ziel** (Konzept „Speicherung“): Alles liegt in `~/Library/Application Support/Disk Archive/`:
     - `archive.sqlite`
@@ -74,7 +77,10 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
     - Gefälschte Medien und Testdatenbanken der Tests bleiben unter `$TMPDIR` (sie sind keine Daten der App).
     - Die Tabelle `settings` bleibt, wie sie ist.
     - `AppleLanguages` bleibt in `app.diskarchive.plist`.
-  - **Status:** _(Worker)_
+  - **Status:** Bereit zur Prüfung. a) `AppStateStore` (`App/AppStateStore.swift`, mit `AppDataFolder`): `data/bool/date/string/set/remove`; App: `app-state.plist` synchron gelesen, atomar, 600, über `WriteGuard`; Lesefehler → leer, Protokollzeile erst nach dem Start des Protokolls (sonst gälte der Start als unsauber); Tests: im Speicher. Alle genannten Aufrufer umgestellt (Label `defaults:` blieb); `pruneAt` als `Date`; `IssueReporter.defaults` entfiel (nie gelesen). `UserDefaults` nur in `App/SystemDefaults.swift` (`AppleLanguages`, `NSQuitAlwaysKeepsWindows`, alte 8 Schlüssel entfernen; unter Tests nichts). Legacy-Import samt Test weg; fehlt `settings`, werden die Standardwerte gespeichert. b) `TestDefaults.make()` → Speicher im Speicher; `AppDefaults`, `AppDefaultsCleanupTests` gelöscht, `AppDefaultsTests` → `AppStateStoreTests`. c) Protokoll und `crash-last.txt` in `Disk Archive/Logs/`. d) `WriteGuard`: Datenordner + `$TMPDIR`; `storeFileURL` nutzt `AppDataFolder`; Outbox-Ausweichweg mit Protokollzeile. e) `OneFolderGuardTests` (e1–e4, Rundlauf, kaputte Datei; Gegenprobe je Test).
+    Rot vor dem Umbau 26.10. 19:49: e1–e4 alle rot. Belege: ganzes Testziel parallel grün 20:21–20:26 (1223 Zeilen, rc 0); 15 Suites mit geändertem Speicher 20× parallel grün 20:26–20:31 (rc 0, 0 rote Zeilen); **Startmarke 20:21:04, `find ~/Library/Preferences -maxdepth 1 -newer <Marke>` nach beiden Läufen: 0 neue `app.diskarchive.tests.*`/`*diskindex*`**; Sabotage a 1/1, b 1/1, c 1/1, d 2/2 rot (20:08–20:09); Debug clean mit Testziel und Release 0 Warnungen; keine `.ips`; App des Nutzers 20:33:31 (0.4.0, Signatur ok, `find -newer` leer). Gesamtlauf (`pruefung.sh voll`) weggelassen (Last 3–5).
+    App kurz gestartet (20:33–20:34): `app-state.plist` (600; Sprache, „Mitteilungen erfragt“) und `Logs/diskindex.log` + `crash-last.txt` entstehen im Datenordner, in `~/Library/Logs/Disk Archive/` nichts Neues. Unbelegt: dass die alten Schlüssel aus `app.diskarchive.plist` verschwinden – die Datei ist noch vom 19.10. (cfprefsd schreibt verzögert), und von hier liefert `defaults read` für keine Domäne etwas (auch nicht `-g AppleLocale`). Bitte beim Nutzertest prüfen.
+    Selbstprüfung (Sonnet): keine hohen/mittleren Funde. Behoben: Gegenprobe für e1, Lesefehler-Zeile vor Protokollstart, zwei Quellen des Datenordners, Zeile „settings migrate“, e4 prüft auch `DiskIndexLog.shared`. Niedrig, offen: zwei Prozesse überschreiben die ganze Datei (Doppelstart im selben Moment); Kommentarfilter des Wächters schneidet bei `//` in Zeichenketten ab; vorbestehend: der neu angelegte Ordner `Logs/` und `diskindex.log` haben beim allerersten Anlegen 755/644, `FilePrivacy.restrict` setzt 700/600 erst beim nächsten Start.
 
 **Paketende:**
 - 0 Warnungen in Debug und Release.
@@ -84,3 +90,23 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; In
   - `app-state.plist` und `Logs/diskindex.log` entstehen im Datenordner.
   - In `~/Library/Logs/Disk Archive/` kommt nichts Neues dazu.
 - **Gesamtlauf nur auf ruhigem Rechner** (Last < 3, keine Spiele). Sonst weglassen und im Status vermerken, dann macht ihn der Host.
+
+## Abnahme Host 26.10. (Gesamtlauf 20:45–21:13, erste Prüfung nach den drei Stufen)
+
+`Werkzeuge/pruefung.sh voll` ergab:
+- Debug und Release: 0 Warnungen.
+- Seriell **1164/1164** grün.
+- Parallel 1–3 **grün** (je 1158 bestanden, 6 übersprungen, Exit 0).
+- Keine neuen `.ips`.
+- **Neue Dateien in `~/Library/Preferences`: 0.**
+- Sabotage **4/4 rot ✓**.
+- App des Nutzers 21:13:32, Signatur gültig, Version 0.4.0.
+
+Den Produktcode hat der Host gelesen: `AppStateStore`, `SystemDefaults` (einzige Stelle mit `UserDefaults`, unter Tests ohne Wirkung), `WriteGuard` (nur Datenordner und `$TMPDIR`), `DiskIndexLog.defaultDirectory` (`Disk Archive/Logs/`). Prüf-Agent (Sonnet, Vorlage 2b): nichts Wesentliches gefunden, kein Befund der Stufe 1 oder 2. Der Absturzdialog findet `crash-last.txt` im neuen Ordner, und kein Aufrufer von `WriteGuard` schreibt im normalen Gebrauch außerhalb.
+
+- **Abgenommen:** `bug.0.4.208`.
+- **Offen für den Nutzertest:** Dass die alten Schlüssel aus `app.diskarchive.plist` verschwinden, ließ sich nicht belegen (cfprefsd schreibt verzögert). Das steht als Punkt in der Checkliste.
+- **Stufe 3 (Backlog, keine Aufgabe):**
+  - `Logs/` und `diskindex.log` haben beim allerersten Anlegen 755/644. `FilePrivacy` setzt 700/600 erst beim nächsten Start; das war schon vorher so.
+  - Die alten Schlüssel werden bei jedem Start entfernt, nicht nur beim ersten.
+  - Zwei Prozesse, die im selben Moment starten, können die Datei gegenseitig überschreiben.

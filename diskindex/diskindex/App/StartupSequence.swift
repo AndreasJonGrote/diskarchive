@@ -27,7 +27,7 @@ enum StartupSequence {
     @discardableResult
     static func run(
         previousRunUnclean: Bool,
-        defaults: UserDefaults,
+        defaults: AppStateStore,
         now: @escaping @Sendable () -> Date = { Date() },
         open: @escaping @Sendable () throws -> IndexStoreV3,
         wire: @escaping (IndexStoreV3) -> Void,
@@ -49,7 +49,7 @@ enum StartupSequence {
             let wired = DispatchTime.now()
             wire(store)
             log("attach", since: wired)
-            let lastCheck = defaults.object(forKey: IntegrityCheckPolicy.lastCheckKey) as? Date
+            let lastCheck = defaults.date(forKey: IntegrityCheckPolicy.lastCheckKey)
             guard IntegrityCheckPolicy.isDue(
                 previousRunUnclean: previousRunUnclean, lastCheck: lastCheck, now: now()
             ) else { return }

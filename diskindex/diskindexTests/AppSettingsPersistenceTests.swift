@@ -43,41 +43,21 @@ struct AppSettingsPersistenceTests {
         #expect(!second.appSettings.notifyAboutUpdates, "nach dem Neustart wieder an")
     }
 
-    @Test func migratesLegacyUserDefaultsIntoDatabase() async throws {
-        try await AppSettingsRuntimeCache.isolating { try await migratesLegacyUserDefaultsIntoDatabaseBody() }
-    }
-
-    private func migratesLegacyUserDefaultsIntoDatabaseBody() async throws {
-        let suite = "diskindex-settings-\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
-        let defaults = TestDefaults.make()
-        defaults.removePersistentDomain(forName: suite)
-
-        var legacy = AppSettings()
-        legacy.scanDepth = 2
-        legacy.autoSendCrashReports = true
-        legacy.save(to: defaults)
-        defaults.set(true, forKey: IssueConsent.legacyAutoSendKey)
-
+    /// bug.0.4.208: Fehlt der Eintrag, gelten die Standardwerte und werden gespeichert (keine Übernahme aus den
+    /// Voreinstellungen).
+    @Test func missingSettingsStoreTheDefaults() async throws {
         let harness = try StoreHarness.make()
-        let app = AppState(defaults: defaults)
+        let app = AppState(defaults: TestDefaults.make())
         app.attach(store: harness.store)
         await app.hydrateSettingsFromStore()
-
-        #expect(app.appSettings.scanDepth == 2)
-        #expect(app.appSettings.autoSendCrashReports == true)
-        #expect(defaults.data(forKey: AppSettings.persistenceKey) == nil)
-        #expect(defaults.object(forKey: IssueConsent.legacyAutoSendKey) == nil)
+        #expect(app.appSettings.scanDepth == AppSettings.defaultScanDepth)
         let inDB = await harness.store.loadPersistedAppSettings()
-        #expect(inDB?.scanDepth == 2)
-        #expect(inDB?.autoSendCrashReports == true)
+        #expect(inDB?.scanDepth == AppSettings.defaultScanDepth)
     }
 
     /// bug.0.4.105: Fehlende Schlüssel (älterer Stand, neues Feld) übernehmen die übrigen Werte; der gespeicherte
     /// Text bleibt unverändert.
     @Test func partialSettingsKeepStoredValues() async throws {
-        let suite = "diskindex-settings-\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let defaults = TestDefaults.make()
         let harness = try StoreHarness.make()
         let raw = #"{"scanDepth":2}"#
@@ -92,8 +72,6 @@ struct AppSettingsPersistenceTests {
     /// bug.0.4.105: Kaputter Eintrag → Voreinstellungen nur im Speicher, der gespeicherte Text wird nie
     /// überschrieben (auch nicht beim nächsten Speichern).
     @Test func unreadableSettingsAreNeverOverwritten() async throws {
-        let suite = "diskindex-settings-\(UUID().uuidString)"
-        defer { UserDefaults.standard.removePersistentDomain(forName: suite) }
         let defaults = TestDefaults.make()
         let harness = try StoreHarness.make()
         let raw = #"{"scanDepth":"#
@@ -142,7 +120,7 @@ struct AppSettingsPersistenceTests {
         try await harness.store.savePersistedAppSettings(snapshot)
 
         let dbURL = harness.directory.appendingPathComponent("archive.sqlite")
-        AppSettingsRuntimeCache.bootstrapBeforeStoreOpen(databaseURL: dbURL, defaults: TestDefaults.make())
+        AppSettingsRuntimeCache.bootstrapBeforeStoreOpen(databaseURL: dbURL)
         #expect(IssueConsent.autoSendEnabled() == true)
     }
 }

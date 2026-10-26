@@ -503,7 +503,7 @@ struct RunLifecycleTests {
     }
 
     private static func failureShownCount(_ id: UUID) -> Int {
-        let data = AppDefaults.current.data(forKey: AppState.failureCountsKey) ?? Data()
+        let data = AppStateStore.current.data(forKey: AppState.failureCountsKey) ?? Data()
         let counts = (try? JSONDecoder().decode([String: FailureCount].self, from: data)) ?? [:]
         return counts[id.uuidString]?.shown ?? 0
     }

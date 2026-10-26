@@ -17,7 +17,7 @@ struct ReadOnlyMediaGuardTests {
         ("App/DiskIndexLog.swift", "Protokoll und Absturzdatei"),
         ("App/IssueTracker.swift", "Fehlerbericht-Ausgang"),
         ("App/DatabaseCare.swift", "Datenbank-Wartung und Quarantäne"),
-        ("App/AppDefaults.swift", "Voreinstellungen"),
+        ("App/AppStateStore.swift", "App-Zustand app-state.plist"),
         ("Storage/FilePrivacy.swift", "Rechte am Datenordner"),
         ("Storage/V3/SchemaV3.swift", "Datenbank anlegen"),
         ("DebugTools/", "Debug-Ausgaben"),

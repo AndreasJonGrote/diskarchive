@@ -35,7 +35,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         guard !Self.isRunningUnitTests else { return }
-        AppDefaults.current.register(defaults: ["NSQuitAlwaysKeepsWindows": false])
+        SystemDefaults.registerWindowRestoration()
+        SystemDefaults.removeLegacyKeys()
         NSWindow.allowsAutomaticWindowTabbing = false
         AppSettingsRuntimeCache.bootstrapBeforeStoreOpen()
         launchKind = AppLaunch.kind(
@@ -51,6 +52,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             resolveSingleInstance: { resolveSingleInstance() },
             log: DiskIndexLog.shared
         )
+        if !handedOff {
+            AppStateStore.current.reportReadFailure()
+        }
         if handedOff {
             completeHandOff()
             return
@@ -79,8 +83,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // bug.0.4.076 c: Schritt 1 des Startablaufs, vor der Erkennung (`StoreLaunchSequence`).
         StoreLaunchSequence.evaluatePauseAtLaunch(appState: appState)
         SystemNotice.logAuthorizationStatus()
-        if NoticePermission.shouldRequest(arguments: CommandLine.arguments, defaults: AppDefaults.current) {
-            AppDefaults.current.set(true, forKey: NoticePermission.askedKey)
+        if NoticePermission.shouldRequest(arguments: CommandLine.arguments, defaults: AppStateStore.current) {
+            AppStateStore.current.set(true, forKey: NoticePermission.askedKey)
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
         }
         observeSleep(appState)
@@ -290,7 +294,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         storeStartupTask = StartupSequence.run(
             previousRunUnclean: DiskIndexLog.shared.previousRunUnclean,
-            defaults: AppDefaults.current,
+            defaults: AppStateStore.current,
             open: { try IndexStoreV3.openDefault() },
             wire: { [weak self] store in
                 guard generation == self?.storeStartupGeneration, !Task.isCancelled else { return }

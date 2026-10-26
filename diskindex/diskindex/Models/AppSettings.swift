@@ -112,18 +112,6 @@ nonisolated struct AppSettings: Equatable, Codable {
         return folderDepth >= limit
     }
 
-    static let persistenceKey = "diskindex.appSettings"
-
-    private static let defaultsKey = persistenceKey
-
-    nonisolated static func load(from defaults: UserDefaults) -> AppSettings {
-        guard let data = defaults.data(forKey: defaultsKey),
-              let decoded = try? JSONDecoder().decode(AppSettings.self, from: data) else {
-            return AppSettings()
-        }
-        return decoded
-    }
-
     init() {}
 
     init(from decoder: Decoder) throws {
@@ -171,11 +159,6 @@ nonisolated struct AppSettings: Equatable, Codable {
         case excludedPatterns, exclusionAddedAt, showFoldersRegardlessOfFilter, appearance
         case notificationsEnabled, notifySystem, notifyIndexed, notifyFavorites, autoSendCrashReports, displayLanguage
         case notifyAboutUpdates
-    }
-
-    func save(to defaults: UserDefaults) {
-        guard let data = try? JSONEncoder().encode(self) else { return }
-        defaults.set(data, forKey: Self.defaultsKey)
     }
 }
 

@@ -7,5 +7,5 @@ import SwiftUI
 
 @MainActor
 enum AppDelegateBridge {
-    static let appState = AppState(defaults: AppDefaults.current)
+    static let appState = AppState(defaults: AppStateStore.current)
 }

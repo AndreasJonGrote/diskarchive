@@ -56,6 +56,42 @@ Liegt im Hauptverzeichnis eine **`UEBERGABE.md`**, liest jeder neue Host sie **z
 4. Erst nach Freigabe durch den Host gilt eine Aufgabe als abgeschlossen.
 5. **Loop-Frage (Nutzer 23.10.):** Jede Freigabe-Antwort des Hosts mit Auftrag für den Worker endet nach der Commit-Nachricht mit der Frage, ob der 15-Minuten-Loop zur Kontrolle gestartet werden soll. Ohne Ja startet er keinen (`archiv/abnahme-ablauf.md`, Abschnitt 9).
 
+## Befunde: drei Stufen (Nutzer 26.10., ersetzt „Keine Schwelle“ vom 20.10.)
+
+Das gilt für jeden Befund, egal ob er vom Host, vom Supervisor, von einem Prüf-Agenten oder vom Worker kommt, ab Paket 33.
+
+**Erst die zwei Fragen, dann die Stufe.** Jeder Befund nennt zuerst zwei Dinge:
+- **Nutzer sieht:** Was bemerkt der Nutzer, wenn es passiert?
+- **Wann:** Wann passiert das im normalen Gebrauch?
+
+Fehlt eine der beiden Antworten, gilt Stufe 3.
+
+| Stufe | Der Nutzer … | Beispiele | Was geschieht |
+|---|---|---|---|
+| **1** | merkt es | Datenverlust, falsche Anzeige, Absturz, Hänger, falscher Text | eigene `bug`-Kennung, kommt in die laufende Version |
+| **2** | merkt es nur bei seltener Ereignisfolge | Rennen im Millisekundenfenster | Laufende Version nur, wenn es **in der echten App oder in einem realistischen Test** auftritt. Sonst eine Zeile im Sammeleintrag in `todo/backlog.md`. |
+| **3** | merkt es nie | Typen, Benennung, Stil, Beweislücken in Tests, theoretische Rennen ohne Folge, Schutzprüfungen ohne Test | keine Kennung, keine Korrektur, höchstens eine Zeile im Backlog |
+
+**Realistisch** heißt: Eine Nutzeraktion oder ein Systemereignis löst den Fehler aus, in normaler Reihenfolge und Geschwindigkeit. Ein Test, der den Ablauf mit einem Haken an einer gewählten Stelle anhält, um dort etwas einzuschieben, ist **kein** realistischer Test. Er kann einen Fix absichern, macht aber aus Stufe 2 nicht Stufe 1.
+
+**Weitere Regeln:**
+- **Reste** eines Fixes bekommen nur bei Stufe 1 eine neue Kennung.
+- **Die Prüfung bleibt beim Auftrag:** Geprüft wird der Diff gegen die Aufgabe. Code außerhalb des Diffs wird nicht nach neuen Befunden durchsucht. Fällt dort zufällig etwas auf, gelten dieselben Stufen.
+- **Kein Umbau ohne sichtbaren Grund.** Typen verschärfen, nur weil es sauberer ist, gehört nicht dazu.
+- **„Nichts Wesentliches gefunden“** ist ein gültiges, gutes Prüfergebnis. Niemand muss etwas finden.
+
+**Gegen Schleifen: drei Prüfungen, bevor ein Befund zählt (Host 26.10.).**
+1. **Schon behoben?**
+   - Geprüft wird gegen den **aktuellen** Code, nicht gegen einen älteren Stand, einen Sabotage-Patch oder einen Archivtext.
+   - Dazu in `DONE.md` und `archiv/paket-*-abgenommen-*.md` nach derselben Stelle und derselben Ursache suchen. Deckt eine frühere Kennung sie ab, ist es kein neuer Befund.
+   - Hält der frühere Fix nicht, ist es eine **Regression dieser Kennung**, mit der Stufe nach ihrer Folge, und keine neue Ursache.
+2. **Bewusst so?** Was im Konzept als „bewusst offen“ steht, in einer Aufgabe unter „So lassen“ oder vom Nutzer entschieden ist, ist kein Befund. Ein Beispiel sind die Fenster in `konzept/lauf-lebenszyklus.md`. Wer das ändern will, stellt eine Frage an den Nutzer, statt einen Befund zu melden.
+3. **Sinnvoll?** Brächte die Korrektur dem Nutzer etwas, das er bemerkt? Wenn nicht, ist es Stufe 3. Befunde über die eigenen Schutzmaßnahmen eines Fixes (eine zusätzliche Prüfung, ein Haken, ein fehlender Test dazu) sind immer Stufe 3.
+
+**Dieselbe Stelle zweimal nachgebessert:** Hatte eine Stelle schon zwei Folgekennungen („Reste von …“), kommen dort nur noch Befunde der Stufe 1 in die laufende Version.
+
+Einzelheiten: `archiv/abnahme-ablauf.md` Abschnitt 2b (Prüfung durch den Host und die Prüf-Agenten), `todo/regeln.md` Regel 12 (Selbstprüfung des Workers).
+
 ## Quellen der Wahrheit
 - **Konzept (aktuell gültig)**: [README.md](README.md) als Index, Inhalt in `konzept/*.md` (eine Datei je Thema) — eine Stelle für alle Produktentscheidungen. Nur die Datei zum Thema lesen. Bei Widerspruch zum Layout gilt das Konzept (außer reine Optik). Der Host pflegt es bei jeder Entscheidung des Nutzers; überholte werden ersetzt. Älterer Verlauf: [archiv/readme-verlauf-bis-2026-10-02.md](archiv/readme-verlauf-bis-2026-10-02.md).
 - **Versionen und Reihenfolge**: [konzept/roadmap.md](konzept/roadmap.md) (maßgeblich, früher README „Roadmap“). [ROADMAP.md](ROADMAP.md) ist die ausführliche Fassung und folgt der README. `TODO.md` (Index) nennt nur die laufende Version, B ist nach Zielversion sortiert.

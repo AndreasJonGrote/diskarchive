@@ -91,13 +91,4 @@ extension AppSettings {
             notifyAboutUpdates: notifyAboutUpdates
         )
     }
-
-    /// Legacy-Import: UserDefaults-Blob + optional separater Auto-Send-Key.
-    nonisolated static func loadLegacyPersisted(from defaults: UserDefaults) -> PersistedAppSettings {
-        var snapshot = load(from: defaults).persistedSnapshot()
-        if defaults.object(forKey: IssueConsent.legacyAutoSendKey) != nil {
-            snapshot.autoSendCrashReports = defaults.bool(forKey: IssueConsent.legacyAutoSendKey)
-        }
-        return snapshot
-    }
 }

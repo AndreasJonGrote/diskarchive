@@ -102,11 +102,7 @@ struct ArchiveDatabaseStartupTests {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-archive-start-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let suite = "diskindex-archive-start-\(UUID().uuidString)"
-        defer {
-            UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
-            try? FileManager.default.removeItem(at: directory)
-        }
+        defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("archive.sqlite")
         let medium = try await makeDatabaseWithoutLastMigration(at: url)
         try #require(SchemaV3.OpenCounter.shared.count(url) == 0)
@@ -124,7 +120,6 @@ struct ArchiveDatabaseStartupTests {
             endpoint: try #require(URL(string: "https://\(host)/api/issues/")),
             directory: directory.appendingPathComponent("outbox", isDirectory: true),
             queuePool: nil,
-            defaults: defaults,
             session: URLSession(configuration: configuration),
             releaseBuild: false,
             log: { _ in },

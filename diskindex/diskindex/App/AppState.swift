@@ -153,7 +153,7 @@ final class AppState {
     /// Der Start öffnet die Datenbank gerade (vom `AppDelegate` gesetzt); ohne Start (Tests, Vorschau) bleibt es `false`.
     var storeOpening = false
     var isStoreLoading: Bool { storeOpening && !storeReady && !indexStoreOpenFailed }
-    let settingsDefaults: UserDefaults
+    let settingsDefaults: AppStateStore
     let persistsSettings: Bool
     var settingsSaveTask: Task<Void, Never>?
     var settingsReady = false
@@ -314,7 +314,7 @@ final class AppState {
     var mountPath: ((UUID) -> String?)?
 
     /// `loadingMinimum`: Mindestdauer der Ladeansicht von Favoriten und Suche (eine Quelle, todo.0.4.042/043).
-    init(store: IndexStoreV3? = nil, defaults: UserDefaults? = nil, loadingMinimum: Duration = .seconds(1)) {
+    init(store: IndexStoreV3? = nil, defaults: AppStateStore? = nil, loadingMinimum: Duration = .seconds(1)) {
         favoritesLoading = MinimumLoadingIndicator(minimum: loadingMinimum)
         searchLoading = MinimumLoadingIndicator(minimum: loadingMinimum)
         indexStore = store
@@ -336,7 +336,7 @@ final class AppState {
             // Task mit Standardwerten und löscht den Termin (bug.0.4.029).
             loadPruneDeadline(schedule: false)
         } else {
-            settingsDefaults = AppDefaults.current
+            settingsDefaults = AppStateStore.current
             persistsSettings = false
         }
         indexRepository.scope = indexScope
@@ -507,13 +507,12 @@ final class AppState {
         let due = IndexSchedule.deadline(from: now)
         pruneAt = due
         guard persistsSettings else { return }
-        settingsDefaults.set(due.timeIntervalSince1970, forKey: Self.pruneAtKey)
+        settingsDefaults.set(due, forKey: Self.pruneAtKey)
         schedulePruneTask(from: now)
     }
 
     func loadPruneDeadline(schedule: Bool = true) {
-        let value = settingsDefaults.double(forKey: Self.pruneAtKey)
-        pruneAt = value > 0 ? Date(timeIntervalSince1970: value) : nil
+        pruneAt = settingsDefaults.date(forKey: Self.pruneAtKey)
         guard schedule else { return }
         schedulePruneTask(from: pruneClock())
     }
@@ -546,7 +545,7 @@ final class AppState {
     func clearPruneDeadline() {
         pruneAt = nil
         guard persistsSettings else { return }
-        settingsDefaults.removeObject(forKey: Self.pruneAtKey)
+        settingsDefaults.remove(forKey: Self.pruneAtKey)
     }
 
     func pruneIfDue(now: Date = Date()) async {

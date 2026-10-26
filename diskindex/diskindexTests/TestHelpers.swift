@@ -2,7 +2,7 @@
 //  TestHelpers.swift
 //  diskindexTests
 //
-//  Regel 20 (bug.0.4.123/124): Hilfen ohne `!` und Einstellungs-Suiten, die der nächste Testlauf aufräumt.
+//  Regel 20 (bug.0.4.123/124): Hilfen ohne `!`. bug.0.4.208: App-Zustand im Speicher, nie in den Voreinstellungen.
 //
 
 import AppKit
@@ -11,17 +11,9 @@ import Testing
 @testable import diskindex
 
 enum TestDefaults {
-    /// Eigene Suite `app.diskarchive.tests.<pid>.<Name>-<uuid>`; `AppDefaults.removeStaleTestDomains` räumt sie
-    /// samt Datei auf, sobald der Prozess beendet ist.
-    static func make(_ label: String = "t") -> UserDefaults {
-        let name = suiteName(label)
-        let defaults = UserDefaults(suiteName: name) ?? UserDefaults.standard
-        defaults.removePersistentDomain(forName: name)
-        return defaults
-    }
-
-    static func suiteName(_ label: String) -> String {
-        "\(AppDefaults.testDomainPrefix)\(ProcessInfo.processInfo.processIdentifier).\(label)-\(UUID().uuidString)"
+    /// Eigener, leerer App-Zustand im Speicher (bug.0.4.208: kein `cfprefsd`, keine Datei).
+    static func make() -> AppStateStore {
+        AppStateStore()
     }
 }
 

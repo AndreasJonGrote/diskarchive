@@ -88,13 +88,12 @@ struct IndexPruneTests {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
-        let suite = "diskindex-prune-task-\(UUID().uuidString)"
         let defaults = TestDefaults.make()
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
         try await harness.store.savePersistedAppSettings(persisted)
         let due = Date().addingTimeInterval(0.3)
-        defaults.set(due.timeIntervalSince1970, forKey: AppState.pruneAtKey)
+        defaults.set(due, forKey: AppState.pruneAtKey)
         let app = AppState(store: harness.store, defaults: defaults)
         app.pruneClock = { Date() }
         await app.hydrateSettingsFromStore()
@@ -103,7 +102,6 @@ struct IndexPruneTests {
             (try? await harness.store.storedNames().contains("deep.txt")) == false
         }
         #expect(pruned)
-        defaults.removePersistentDomain(forName: suite)
     }
 
     /// Nacharbeit 3: `pruneAt` in der Vergangenheit → `MediumRecognitionStartup.bootstrap` → bereinigt
@@ -112,10 +110,8 @@ struct IndexPruneTests {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
-        let suite = "diskindex-prune-bootstrap-\(UUID().uuidString)"
         let defaults = TestDefaults.make()
-        defer { defaults.removePersistentDomain(forName: suite) }
-        defaults.set(Date().addingTimeInterval(-60).timeIntervalSince1970, forKey: AppState.pruneAtKey)
+        defaults.set(Date().addingTimeInterval(-60), forKey: AppState.pruneAtKey)
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
         try await harness.store.savePersistedAppSettings(persisted)
@@ -168,7 +164,6 @@ struct IndexPruneTests {
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
         _ = try await SampleTree.plant(in: harness.store, medium: medium.uuid)
         let start = Date(timeIntervalSince1970: 1_700_000_000)
-        let suite = "diskindex-prune-restart-\(UUID().uuidString)"
         let defaults = TestDefaults.make()
         var persisted = PersistedAppSettings()
         persisted.scanDepth = 2
@@ -187,7 +182,6 @@ struct IndexPruneTests {
         await restored.pruneIfDue(now: start.addingTimeInterval(3_600))
         #expect(!(try await harness.store.storedNames().contains("deep.txt")))
         #expect(restored.pruneAt == nil)
-        defaults.removePersistentDomain(forName: suite)
     }
 
     @Test func aFavoriteBeyondTheDepthIsDeleted() async throws {
@@ -222,7 +216,6 @@ struct IndexPruneTests {
     @Test func cleanNowRemovesDepthHiddenArtifactsAndExclusions() async throws {
         let harness = try StoreHarness.make()
         let medium = try await harness.insert(name: "Platte", fsType: "apfs", bytes: 1_000)
-        let suite = "diskindex-prune-button-\(UUID().uuidString)"
         let app = AppState(store: harness.store, defaults: TestDefaults.make())
         let root = try await harness.store.children(mediumUUID: medium.uuid, parentID: nil)
         #expect(root.isEmpty)
@@ -263,7 +256,6 @@ struct IndexPruneTests {
         let names = Set(try await harness.store.storedNames())
         #expect(names == ["docs", "readme.txt"])
         #expect(app.pruneAt == nil)
-        defaultsCleanup(suite)
     }
 
     @Test func switchesAndPatternsHideAndShowWithoutDeleting() async throws {
@@ -397,10 +389,6 @@ struct IndexPruneTests {
             }
             return result
         }
-    }
-
-    private func defaultsCleanup(_ suite: String) {
-        UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
     }
 }
 

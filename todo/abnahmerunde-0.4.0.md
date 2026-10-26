@@ -8,7 +8,8 @@ Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 33, U
    - Alte Test-Einstellungen: `rm ~/Library/Preferences/app.diskarchive.tests.*.plist`
    - Alter Protokollordner: `rm -r ~/Library/Logs/Disk\ Archive`
    - Danach **den Mac einmal neu starten**. Dann vergisst der Einstellungsdienst (`cfprefsd`) die gelöschten Test-Domänen.
-   - `~/Library/Preferences/app.diskarchive.plist` bleibt. Darin stehen nur noch Sprache und Fensterposition.
+   - `~/Library/Preferences/app.diskarchive.plist` bleibt. Nach dem ersten Start der neuen App stehen darin nur noch Sprache (`AppleLanguages`) und Fensterposition. Zum Nachsehen: `defaults read app.diskarchive`. Steht dort noch ein Schlüssel mit `diskindex.` oder `lastIntegrityCheck`, schreib es in den Chat.
+   - Die App setzt nach dem Umbau Pause, Sprache und „Mitteilungen erfragt“ einmal auf den Anfang. Das ist gewollt, es gibt keine Übernahme.
 2. Die App aus `DerivedData/…/Build/Products/Debug/` starten (der Host nennt dir den Stand), Version 0.4.0.
 3. **Alle Medien neu indizieren** (Einstellungen → Speichermedien → „Neu indizieren“), damit nichts aus alten Läufen mitspielt.
 

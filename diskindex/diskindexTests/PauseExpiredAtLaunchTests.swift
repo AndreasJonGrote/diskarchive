@@ -13,7 +13,7 @@ import UserNotifications
 
 @Suite(.serialized) @MainActor
 struct PauseExpiredAtLaunchTests {
-    private func defaultsWithExpiredPause() throws -> UserDefaults {
+    private func defaultsWithExpiredPause() throws -> AppStateStore {
         let defaults = TestDefaults.make()
         var pause = GlobalPause()
         pause.pause(until: Date().addingTimeInterval(-3_600))
@@ -21,7 +21,7 @@ struct PauseExpiredAtLaunchTests {
         return defaults
     }
 
-    private func storedPause(_ defaults: UserDefaults) throws -> GlobalPause {
+    private func storedPause(_ defaults: AppStateStore) throws -> GlobalPause {
         let data = try #require(defaults.data(forKey: AppState.pauseKey))
         return try JSONDecoder().decode(GlobalPause.self, from: data)
     }

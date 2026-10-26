@@ -97,12 +97,10 @@ actor IndexStoreV3 {
 
     /// `Application Support/Disk Archive/archive.sqlite`. Die alte `index.sqlite` wird nie geöffnet.
     static func storeFileURL() throws -> URL {
-        let base = try FileManager.default.url(
+        _ = try FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
         )
-        return base
-            .appendingPathComponent("Disk Archive", isDirectory: true)
-            .appendingPathComponent("archive.sqlite", isDirectory: false)
+        return AppDataFolder.url.appendingPathComponent("archive.sqlite", isDirectory: false)
     }
 
     /// Der eine Pool des Prozesses (bug.0.4.086), gemeinsam mit Warteschlange und Fehlerbericht.

@@ -171,14 +171,10 @@ import Testing
             let directory = try makeDirectory()
             defer { try? FileManager.default.removeItem(at: directory) }
             let pool = try ApiQueuePersistence.openQueuePool(at: directory.appendingPathComponent("queue.sqlite"))
-            let suiteName = "diskindex-crash-\(UUID().uuidString)"
-            let defaults = TestDefaults.make()
-            defer { defaults.removePersistentDomain(forName: suiteName) }
             let reporter = IssueReporter(
                 endpoint: try #require(URL(string: "file:///dev/null")),
                 directory: directory.appendingPathComponent("outbox", isDirectory: true),
                 queuePool: pool,
-                defaults: defaults,
                 session: URLSession(configuration: .ephemeral),
                 log: { _ in },
                 makeDraft: { kind in

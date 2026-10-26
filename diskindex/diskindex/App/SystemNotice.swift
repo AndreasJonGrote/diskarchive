@@ -413,7 +413,7 @@ nonisolated enum FailureModalThrottle {
 nonisolated enum NoticePermission {
     static let askedKey = "diskindex.noticePermissionAsked"
 
-    static func shouldRequest(arguments: [String], defaults: UserDefaults) -> Bool {
+    static func shouldRequest(arguments: [String], defaults: AppStateStore) -> Bool {
         if arguments.contains(AppLaunch.backgroundArgument) {
             return false
         }

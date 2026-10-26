@@ -59,11 +59,8 @@ nonisolated enum AppSettingsRuntimeCache {
         setAutoSend(persisted.autoSendCrashReports)
     }
 
-    /// Vor `DiskIndexLog.start`: SQLite-Peek, sonst Legacy-UserDefaults, Default false.
-    static func bootstrapBeforeStoreOpen(
-        databaseURL: URL? = try? IndexStoreV3.storeFileURL(),
-        defaults: UserDefaults = AppDefaults.current
-    ) {
+    /// Vor `DiskIndexLog.start`: SQLite-Peek, sonst Default false (bug.0.4.208: keine Übernahme aus den Voreinstellungen).
+    static func bootstrapBeforeStoreOpen(databaseURL: URL? = try? IndexStoreV3.storeFileURL()) {
         #if DEBUG
         if let isolated = isolatedStorage {
             isolated.lock.lock()
@@ -92,7 +89,6 @@ nonisolated enum AppSettingsRuntimeCache {
             update(from: persisted)
             return
         }
-        let legacy = AppSettings.loadLegacyPersisted(from: defaults)
-        update(from: legacy)
+        update(from: PersistedAppSettings())
     }
 }

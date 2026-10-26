@@ -682,7 +682,6 @@ private func makeReporter(
     }
     let dbDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let pool = try ApiQueuePersistence.openQueuePool(at: dbDirectory.appendingPathComponent("archive.sqlite"))
-    let defaults = TestDefaults.make()
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [IssueStubURL.self]
     configuration.httpAdditionalHeaders = [IssueStubURL.header: IssueStubURL.register(stub)]
@@ -690,7 +689,6 @@ private func makeReporter(
     let reporter = IssueReporter(
         directory: directory,
         queuePool: pool,
-        defaults: defaults,
         session: session,
         releaseBuild: release,
         now: now,

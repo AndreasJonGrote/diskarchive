@@ -1,0 +1,15 @@
+# Test: OneFolderGuardTests/pauseSurvivesReopeningTheFile()
+# Test: OneFolderGuardTests/brokenFileGivesAnEmptyState()
+# bug.0.4.208 (d): die Dateiausführung schreibt nicht (set ohne Speichern).
+--- a/diskindex/diskindex/App/AppStateStore.swift
++++ b/diskindex/diskindex/App/AppStateStore.swift
+@@ -82,8 +82,7 @@
+         } else {
+             guard values.removeValue(forKey: key) != nil else { return }
+         }
+-        guard let fileURL else { return }
+-        Self.write(values, to: fileURL)
++        guard fileURL != nil else { return }
+     }
+ 
+     private static func read(_ url: URL) -> ([String: Any], failure: String?) {

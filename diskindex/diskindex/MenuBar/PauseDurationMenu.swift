@@ -61,7 +61,7 @@ struct MenuBarPauseDropdownRoot: View {
 
 extension AppState {
     /// bug.0.4.059: Pause aus dem Menü mit gewählter Dauer; die Spanne wird mit der Pause gespeichert.
-    func pauseIndexing(span: PauseSpan, defaults: UserDefaults = AppDefaults.current, now: Date = Date()) {
+    func pauseIndexing(span: PauseSpan, defaults: AppStateStore = .current, now: Date = Date()) {
         pauseIndexing(until: span.endDate(from: now), defaults: defaults, now: now)
         storedPause.pause(span: span, now: now)
         savePause(defaults)

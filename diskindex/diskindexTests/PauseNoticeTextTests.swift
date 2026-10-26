@@ -13,7 +13,7 @@ import UserNotifications
 @MainActor
 @Suite(.serialized)
 struct PauseNoticeTextTests {
-    private func posted(_ body: (AppState, UserDefaults) -> Void) -> [String] {
+    private func posted(_ body: (AppState, AppStateStore) -> Void) -> [String] {
         let defaults = TestDefaults.make()
         let app = AppState()
         app.appSettings.notificationsEnabled = true

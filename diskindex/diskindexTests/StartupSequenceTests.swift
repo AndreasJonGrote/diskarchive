@@ -17,7 +17,7 @@ private final class Counter: @unchecked Sendable {
     var value: Int { lock.lock(); defer { lock.unlock() }; return count }
 }
 
-private func freshDefaults() throws -> UserDefaults {
+private func freshDefaults() throws -> AppStateStore {
     TestDefaults.make()
 }
 
@@ -113,7 +113,7 @@ struct StartupSequenceTests {
             previousRunUnclean: false, defaults: defaults, now: { now },
             open: { store }, wire: { _ in }, integrityCheck: { _ in }, onFailure: { _ in }
         ).value
-        let saved = try #require(defaults.object(forKey: IntegrityCheckPolicy.lastCheckKey) as? Date)
+        let saved = try #require(defaults.date(forKey: IntegrityCheckPolicy.lastCheckKey))
         #expect(abs(saved.timeIntervalSince(now)) < 1)
 
         let failures = Counter()
@@ -125,7 +125,7 @@ struct StartupSequenceTests {
             onFailure: { _ in failures.add() }
         ).value
         #expect(failures.value == 1)
-        #expect(other.object(forKey: IntegrityCheckPolicy.lastCheckKey) == nil)
+        #expect(other.date(forKey: IntegrityCheckPolicy.lastCheckKey) == nil)
     }
 
     @Test func realIntegrityCheckPassesOnAHealthyDatabase() async throws {
