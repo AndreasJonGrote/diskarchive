@@ -1,6 +1,14 @@
 # Funde der Abnahmerunde 0.4.0 (`todo.0.4.040`, Nutzer 26.10.)
 
-Gesammelt vom Host während der Runde, nach den drei Stufen (AGENTS.md). **Noch nicht freigegeben.** Nach der Runde wird daraus `todo/paket-34.md`.
+Gesammelt vom Host während der Runde, nach den drei Stufen (AGENTS.md). Der Supervisor hat den Bericht am 27.10. bestätigt.
+
+**Paketschnitt (Supervisor 27.10.):**
+
+| Paket | Inhalt | Stand |
+|---|---|---|
+| 34 | 210 (schwer, zuerst), 209 + 216 als eine Aufgabe | freigegeben 27.10. |
+| 35 | 215 (schwer, zuerst), 212, 213, 214 | nach Paket 34 |
+| 36 | 211, 217, 218, 219, 220 und die Funde aus dem Rest des Layout-Durchgangs | erst nach dem Durchgang schneiden; über 8 Kennungen → Paket 37 |
 
 ## Stand der Runde (Host, 26.10. 23:05)
 
@@ -33,7 +41,11 @@ Gesammelt vom Host während der Runde, nach den drei Stufen (AGENTS.md). **Noch 
   - Nach dem Wiederherstellen der Rechte und Anstecken: „Online“ und 100 %.
   - Ausgeschlossene Systemordner zählen nicht.
   - Dazu Tests und Sabotage-Patches von `bug.0.4.199` lesen (`archiv/paket-26-abgenommen-2026-10-25.md`, `archiv/sabotage/paket-26/`).
-  - Diese Prüfung steht als eigener Schritt in Paket 34 (Host).
+  - **Erledigt (Supervisor 27.10.):**
+    - Code-Trace vollständig.
+    - Ein echter Lesefehler auf dem Mac des Nutzers ist belegt (open errno 13, FileManager 257, kein leeres Lesen).
+    - `pruefung.sh schnell` 00:15–00:17: 0 Warnungen, 36 Tests in 4 Suites grün.
+    - Nutzer: 199 gilt als geprüft. Der Host-Schritt in Paket 34 entfällt.
 
 **Offen:**
 - Layout-Durchgang hell und dunkel: Bis 23:35 sind Dashboard und Spaltenansicht gesehen. Es fehlen Suche, Favoriten, Einstellungen, Medium-Details, Dialoge und Menüleiste.
