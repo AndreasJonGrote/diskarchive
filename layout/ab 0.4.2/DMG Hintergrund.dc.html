@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="ds-disk-archive.css">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>
+    body { margin:0; background:#e9e8e8; }
+    a { color:#1f1f1f; } a:hover { color:#000; }
+    @keyframes dmgFlow { from { background-position:0 0; } to { background-position:28px 0; } }
+    @keyframes dmgSpin { from { transform:translate(-50%,-50%) rotate(0deg); } to { transform:translate(-50%,-50%) rotate(360deg); } }
+    @keyframes dmgBreath { 0%,100% { opacity:.75; } 50% { opacity:1; } }
+  </style>
+</helmet>
+
+<div style="padding:var(--space-8); display:flex; flex-direction:column; gap:var(--space-8); max-width:1440px; margin:0 auto; font-family:var(--font-body); color:#1f1f1f;">
+
+  <div style="display:flex; flex-direction:column; gap:var(--space-2); max-width:720px;">
+    <div class="card-kicker">RELEASE — DMG-HINTERGRUND</div>
+    <h2 style="margin:0;">Installationsfenster</h2>
+    <p style="font-size:13px; line-height:1.5; margin:0; color:color-mix(in srgb, #1f1f1f 60%, transparent); text-wrap:pretty;">Hintergrund für das Finder-Fenster beim Öffnen des DMG, im Stil des Lizenz-Tabs: schwarzer Grund, weicher Lichtverlauf oben links, „Danke“-Headline. Das passende Element sind die Ringe einer Plattenscheibe hinter dem App-Icon; ein laufender Pfeil führt zum Programme-Ordner. Maß 660 × 400 pt, Export als @1x (660 × 400 px) und @2x (1320 × 800 px), zusammengeführt als TIFF.</p>
+  </div>
+
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(680px, 1fr)); gap:var(--space-8); align-items:start;">
+
+    <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+      <div style="display:flex; align-items:center; gap:8px;"><span class="tag tag-outline">A</span><span style="font-size:12px; font-weight:600;">Finder-Vorschau</span></div>
+      <p style="font-size:12px; line-height:1.5; margin:0; max-width:620px; color:color-mix(in srgb, #1f1f1f 60%, transparent);">So sieht das Fenster nach dem Öffnen aus. App-Icon und Programme-Ordner setzt der Finder selbst an die Positionen 170/250 und 490/250. Finder spielt keine Animation im DMG-Hintergrund ab – die Bewegung ist für Release-Video, Website und Social vorbereitet; ins DMG geht das Standbild.</p>
+      <div style="width:660px; border-radius:12px; overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.28), 0 0 0 1px rgba(0,0,0,.4);">
+        <div style="height:28px; background:#2a2a2a; display:flex; align-items:center; gap:8px; padding:0 12px; border-bottom:1px solid #000;">
+          <span style="width:12px; height:12px; border-radius:50%; background:#ff5f57;"></span>
+          <span style="width:12px; height:12px; border-radius:50%; background:#febc2e;"></span>
+          <span style="width:12px; height:12px; border-radius:50%; background:#28c840;"></span>
+          <span style="flex:1; text-align:center; font-size:12px; font-weight:600; color:#bdbdbd; margin-right:52px;">Disk Archive 0.4.1 Beta</span>
+        </div>
+        <div style="position:relative; width:660px; height:400px; background:#000; overflow:hidden; color:#eae9e9;">
+          <div style="position:absolute; left:-120px; top:-180px; width:720px; height:520px; background:radial-gradient(ellipse at 50% 40%, rgba(234,233,233,.16) 0%, rgba(234,233,233,.05) 42%, transparent 70%);"></div>
+          <div style="position:absolute; right:-160px; bottom:-220px; width:560px; height:440px; background:radial-gradient(ellipse at 50% 50%, rgba(234,233,233,.06) 0%, transparent 65%);"></div>
+          {{ rings }}
+          <div style="position:absolute; left:40px; top:36px; right:40px; display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:26px; font-weight:700; line-height:1.15; letter-spacing:-.03em;">Danke, dass du die Beta testest.</div>
+            <div style="font-size:13px; line-height:1.5; color:rgba(234,233,233,.6);">Zum Installieren Disk Archive auf den Ordner „Programme“ ziehen.</div>
+          </div>
+          {{ arrow }}
+          <sc-if value="{{ showIcons }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute; left:106px; top:186px; width:128px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <svg width="96" height="96" viewBox="0 0 256 256" style="display:block; filter:drop-shadow(0 10px 18px rgba(0,0,0,.6));"><defs><linearGradient id="dmgIco" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#575757"></stop><stop offset="1" stop-color="#1f1f1f"></stop></linearGradient></defs><rect width="256" height="256" rx="58" fill="url(#dmgIco)"></rect><rect x=".75" y=".75" width="254.5" height="254.5" rx="57.5" fill="none" stroke="#ffffff" stroke-opacity=".16" stroke-width="1.5"></rect><path transform="translate(19.2 19.2) scale(.85)" fill="#f2f2f2" d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="font-size:12px; font-weight:500; color:#eae9e9;">Disk Archive</span>
+            </div>
+            <div style="position:absolute; left:426px; top:186px; width:128px; display:flex; flex-direction:column; align-items:center; gap:6px;">
+              <div style="width:96px; height:96px; display:flex; align-items:center; justify-content:center;"><i class="ph-fill ph-folder-simple" style="font-size:92px; color:#5ba8f0;"></i></div>
+              <span style="font-size:12px; font-weight:500; color:#eae9e9;">Programme</span>
+            </div>
+          </sc-if>
+          <div style="position:absolute; left:40px; right:40px; bottom:22px; display:flex; justify-content:space-between; gap:var(--space-4); font-size:11px; color:rgba(234,233,233,.42);">
+            <span>Beta 0.4.1 · Feedback willkommen</span>
+            <span>disk-archive.app</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:var(--space-3);">
+      <div style="display:flex; align-items:center; gap:8px;"><span class="tag tag-outline">B</span><span style="font-size:12px; font-weight:600;">Export-Bild · 660 × 400</span></div>
+      <p style="font-size:12px; line-height:1.5; margin:0; max-width:620px; color:color-mix(in srgb, #1f1f1f 60%, transparent);">Das eigentliche Hintergrundbild ohne Fensterrahmen und ohne Icons, im Standbild. Daraus wird die @1x- und @2x-Datei exportiert.</p>
+      <div data-om-raster="" style="position:relative; width:660px; height:400px; background:#000; overflow:hidden; color:#eae9e9;">
+        <div style="position:absolute; left:-120px; top:-180px; width:720px; height:520px; background:radial-gradient(ellipse at 50% 40%, rgba(234,233,233,.16) 0%, rgba(234,233,233,.05) 42%, transparent 70%);"></div>
+        <div style="position:absolute; right:-160px; bottom:-220px; width:560px; height:440px; background:radial-gradient(ellipse at 50% 50%, rgba(234,233,233,.06) 0%, transparent 65%);"></div>
+        {{ ringsStatic }}
+        <div style="position:absolute; left:40px; top:36px; right:40px; display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:26px; font-weight:700; line-height:1.15; letter-spacing:-.03em;">Danke, dass du die Beta testest.</div>
+          <div style="font-size:13px; line-height:1.5; color:rgba(234,233,233,.6);">Zum Installieren Disk Archive auf den Ordner „Programme“ ziehen.</div>
+        </div>
+        {{ arrowStatic }}
+        <div style="position:absolute; left:40px; right:40px; bottom:22px; display:flex; justify-content:space-between; gap:var(--space-4); font-size:11px; color:rgba(234,233,233,.42);">
+          <span>Beta 0.4.1 · Feedback willkommen</span>
+          <span>disk-archive.app</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showIcons&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;glow&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:60,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  makeRings(animate) {
+    const h = React.createElement;
+    const sizes = [150, 196, 244, 296];
+    const glow = (this.props.glow ?? 60) / 100;
+    return h('div', { style: { position:'absolute', left:170, top:234, width:0, height:0 } },
+      sizes.map((s, i) => h('div', { key:i, style: {
+        position:'absolute', left:0, top:0, width:s, height:s, borderRadius:'50%',
+        border:'1px solid rgba(234,233,233,' + (0.16 - i * 0.03) * (0.6 + glow) + ')',
+        borderTopColor:'rgba(234,233,233,' + (0.34 - i * 0.06) * (0.6 + glow) + ')',
+        transform:'translate(-50%,-50%)',
+        animation: animate ? `dmgSpin ${28 + i * 10}s linear infinite${i % 2 ? ' reverse' : ''}` : 'none'
+      }})).concat([h('div', { key:'g', style: {
+        position:'absolute', left:0, top:0, width:200, height:200, borderRadius:'50%', transform:'translate(-50%,-50%)',
+        background:`radial-gradient(circle, rgba(234,233,233,${0.14 * glow}) 0%, transparent 65%)`,
+        animation: animate ? 'dmgBreath 4s ease-in-out infinite' : 'none'
+      }})])
+    );
+  }
+  makeArrow(animate) {
+    const h = React.createElement;
+    return h('div', { style: { position:'absolute', left:262, top:228, width:136, height:12, display:'flex', alignItems:'center' } },
+      h('div', { style: { flex:1, height:2, backgroundImage:'linear-gradient(90deg, rgba(234,233,233,.55) 0 8px, transparent 8px 14px)', backgroundSize:'14px 2px', WebkitMaskImage:'linear-gradient(90deg, transparent, #000 30%)', maskImage:'linear-gradient(90deg, transparent, #000 30%)', animation: animate ? 'dmgFlow .9s linear infinite' : 'none' } }),
+      h('i', { className:'ph-bold ph-caret-right', style: { fontSize:16, color:'rgba(234,233,233,.75)', marginLeft:-2 } })
+    );
+  }
+  renderVals() {
+    const animate = this.props.animate ?? true;
+    return {
+      showIcons: this.props.showIcons ?? true,
+      rings: this.makeRings(animate),
+      arrow: this.makeArrow(animate),
+      ringsStatic: this.makeRings(false),
+      arrowStatic: this.makeArrow(false)
+    };
+  }
+}
+</script>
+</body>
+</html>

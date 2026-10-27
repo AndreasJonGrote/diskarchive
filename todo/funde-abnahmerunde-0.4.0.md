@@ -8,7 +8,7 @@ Gesammelt vom Host während der Runde, nach den drei Stufen (AGENTS.md). Der Sup
 |---|---|---|
 | 34 | 210 (schwer, zuerst), 209 + 216 als eine Aufgabe | **abgenommen 27.10.** (Gesamtlauf 01:29–01:58 grün) |
 | 35 | 215 (schwer, zuerst), 212, 213, 214 | **abgenommen 27.10.** (Gesamtlauf 09:25–10:12 grün) |
-| 36 | 211, 218, 219, 220, 217 (Layout-Durchgang ohne neue Funde) | freigegeben 27.10. |
+| 36 | 211, 218, 219, 220, 217 (Layout-Durchgang ohne neue Funde) | **abgenommen 27.10.** (Gesamtlauf 12:37–13:20 grün) |
 
 ## Stand der Runde (Host, 26.10. 23:05)
 

@@ -80,3 +80,27 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
 - Alle Patches unter `todo/sabotage/` rot.
 - App des Nutzers gebaut.
 - **Gesamtlauf nur auf ruhigem Rechner** (Last < 3, keine Spiele). Sonst weglassen und im Status vermerken, dann macht ihn der Host.
+
+## Abnahme Host 27.10. (Gesamtlauf 12:37–13:20, Sabotage 13:23–13:27)
+
+`Werkzeuge/pruefung.sh voll` ergab:
+- Debug und Release: 0 Warnungen.
+- Seriell **1196/1196** grün.
+- Parallel 1–3 **grün** (je 1190 bestanden, 6 übersprungen, Exit 0).
+- Keine neuen `.ips`; neue Dateien in `~/Library/Preferences`: 0.
+- App des Nutzers 13:20:44, Signatur gültig, Version 0.4.0.
+
+Bei der Sabotage meldeten 218-a bis -c zuerst „kein Test gefunden“: Die `# Test:`-Zeile nannte zwei Tests mit Komma, das Skript las nur einen je Zeile. Es nimmt jetzt beides an (`pruefung.sh`, Regel 9 ergänzt). Der zweite Lauf `pruefung.sh sabotage` zeigte **8/8 rot ✓** (218-a bis -c je 2 von 2).
+
+Den Commit `06f467c` hat der Host gelesen:
+- **211:** Die Mindestbreite ist 220. Die Zeitzeilen haben kein `fixedSize` mehr, der Chip bleibt ganz.
+- **218:** Die Breite gilt je Spalte (`folderColumnWidths`). Sie fällt weg, wenn sich der Pfad links davon ändert. Gezogen wird in Fensterkoordinaten, das war die Ursache des Ruckelns.
+- **219:** Alle drei Flächen haben `DesignColor.toolbar`.
+- **220:** Der Pfad beginnt bei `sidebarWidth + rowInset + iconLeading`, aus denselben Konstanten wie die Zeile.
+- **217:** Der Spinner ist 12 × 12 mit Strich 2.
+
+Prüf-Agent (Sonnet, Vorlage 2b): nichts Wesentliches, kein Befund der Stufe 1 oder 2.
+
+- **Abgenommen:** `bug.0.4.211`, `bug.0.4.217`, `bug.0.4.218`, `bug.0.4.219`, `bug.0.4.220`.
+- **Stufe 2 (Backlog):** Benennt der Nutzer einen geöffneten Ordner im Finder um, fällt die gezogene Breite der Spalte rechts davon weg.
+- **Stufe 3 (keine Aufgabe):** Beim Wechsel des Mediums bleibt die gezogene Breite der ersten Ordnerspalte. Das war schon vorher so.

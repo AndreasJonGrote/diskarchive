@@ -34,6 +34,28 @@ Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 33, U
 
 - [x] (27.10., Funde → Paket 36) Alle Ansichten gegen `layout/` hell und dunkel (Dashboard, Spalten, Suche, Favoriten, Einstellungen, Details, Dialoge, Menüleiste). Abweichungen per Screenshot.
 
+## 4. Nachtest nach den Paketen 34–36 (27.10.)
+
+Mit der App vom letzten Gesamtlauf (gebaut 27.10. 13:20) und nach einem Neustart der App.
+- [ ] **Fortschritt (`bug.0.4.210`):** Nachtest 27.10.: bestanden bis auf 1 % Versatz nach dem Wiedereinstecken → `bug.0.4.222` (Paket 37).
+  - Stick mitten im Lauf abziehen: kein Sprung auf 100 %, offline derselbe Wert wie zuletzt online.
+  - Wieder anstecken: Er beginnt beim gespeicherten Stand, nicht bei 0 %.
+  - „Neu indizieren“ beginnt unten, nicht bei 99 %.
+- [ ] **Dialoge (`209`, `216`):** Nachtest 27.10.: Fokus nicht bestanden → `bug.0.4.221` (Paket 37). Stapel nicht gemeldet.
+  - Während du in einer anderen App schreibst, ein Medium einstecken: Der Dialog nimmt den Fokus einmal. Ein Klick zurück in die andere App legt ihn dahinter, danach bleibt der Fokus dort.
+  - Zwei Medien kurz nacheinander: Die Dialoge liegen gestapelt.
+- [x] **Ersetzen (`215`):** Nachtest 27.10. bestanden. Stick mit gleichem Namen neu formatieren → zuerst nur „Ersetzt dieses Medium?“.
+- [x] **Spaltenansicht (`212`–`214`):** Nachtest 27.10. bestanden.
+  - Filter offen, Spalte scrollt.
+  - → öffnet einen Ordner, ← geht zurück.
+  - Eine ausgewählte Datei im Finder verschieben → Auswahl weg, Ansicht bleibt.
+- [x] **Layout (`211`, `217`–`220`), hell und dunkel:** Nachtest 27.10. bestanden.
+  - Dashboard-Kacheln gleich breit.
+  - Nur die gezogene Spalte ändert ihre Breite, ohne Ruckeln.
+  - Seitenleiste, Offline-Leiste und Details in einem Grauton.
+  - Fußzeilenpfad bündig mit dem Ordner-Icon, auch nach dem Ziehen der Seitenleiste.
+  - Spinner klein (12 pt).
+
 ## Danach
 
 Fehlerbericht über die App senden, falls etwas auffiel. Sind alle Funde behoben und abgenommen, ist 0.4.0 der Release-Kandidat.

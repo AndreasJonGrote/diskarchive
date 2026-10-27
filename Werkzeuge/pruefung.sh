@@ -96,7 +96,8 @@ sabotage() {
   rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/diskindex" "$K/"
   for p in "${P[@]}"; do
     local name; name=$(basename "$p" .patch)
-    local tests; tests=$(grep -E '^# Test:' "$p" | sed -E 's/^# Test:[[:space:]]*//')
+    # Mehrere Tests: je Zeile einer oder in einer Zeile mit Komma getrennt (Paket 36).
+    local tests; tests=$(grep -E '^# Test:' "$p" | sed -E 's/^# Test:[[:space:]]*//' | tr ',' '\n' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
     if [ -z "$tests" ]; then log "Sabotage $name: FEHLT # Test:-Zeile"; bad=$((bad+1)); continue; fi
     if ! (cd "$K" && patch -p1 --forward --silent < "$p") > "$S/sab-$name-patch.log" 2>&1; then
       log "Sabotage $name: Patch passt nicht auf den Endstand"; bad=$((bad+1))

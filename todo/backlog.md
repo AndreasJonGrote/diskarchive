@@ -16,6 +16,7 @@ Befunde, die der Nutzer nur bei seltener Ereignisfolge merkt (Stufe 2, ohne Nach
 | 27.10. | Abnahmerunde (Supervisor) | 2 | `DirectoryIndexer`, `parentsFor` + `readFolderWithRetry` | Wird ein schon indizierter Ordner nachträglich gesperrt, liest jeder Lauf auch alle alten Unterordner einzeln, mit je ~14 s Wartezeit. Der Lauf dauert dann lange; nur bei nachträglich gesperrten Ordnern |
 | 27.10. | 35 | 2 | `MediumCoordinator`, App-Start mit zwei gleichnamigen Medien (eines neu) | Wird das neue vor dem bekannten verarbeitet, zählt das bekannte noch als offline: Rückfrage „Ersetzt …?“ zu einem angeschlossenen Medium. Nur beim Start mit beiden Medien zugleich, nicht beobachtet |
 | 27.10. | 35 | 2 | `MediumCoordinator.requestDialog`, „Behalten“ nicht gemerkt | Nach „Behalten“ und ohne Antwort im Erkennungsdialog kommt beim nächsten Anschließen wieder die Rückfrage statt des Erkennungsdialogs. Nur, wenn der Nutzer den Erkennungsdialog offen lässt |
+| 27.10. | 36 | 2 | `ColumnBrowserState.pathStack.didSet` (Breite je Spalte nach Namen) | Benennt der Nutzer einen geöffneten Ordner im Finder um, fällt die gezogene Breite der Spalte rechts davon weg (wieder 230 pt). Nur nach Ziehen und Umbenennen von außen |
 | 26.10. | Abnahmerunde | 3 | `IssueTracker.noteError` bei Abbruch eines Laufs (Auswerfen, Umbenennen) | nichts; `CancellationError` steht als „app error index error category=store“ im Protokoll |
 
 ---

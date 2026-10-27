@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="ds-disk-archive.css">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    button, .btn { cursor: pointer; }
+    a, a:hover { color: var(--color-text); }
+  </style>
+</helmet>
+<div style="max-width:1280px; margin:0 auto; padding:var(--space-8); display:flex; flex-direction:column; gap:var(--space-8);">
+  <div>
+    <div class="card-kicker">KOMPONENTENKATALOG</div>
+    <h2 style="margin:0 0 var(--space-2);">Disk Archive — Bausteine</h2>
+    <p style="font-size:13px; max-width:720px; margin:0; color:color-mix(in srgb, var(--color-text) 65%, transparent);">Einzige Quelle für Maße, Farben und Zustände. Jede Komponente links hell, rechts dunkel. Abweichungen in den Screens gelten als Fehler und werden auf diese Werte zurückgeführt.</p>
+  </div>
+
+  <sc-for list="{{ themes }}" as="th" hint-placeholder-count="2">
+  <section style="{{ th.vars }}">
+    <div style="display:flex; align-items:baseline; gap:var(--space-3); margin-bottom:var(--space-6);"><h3 style="margin:0; color:var(--color-text);">{{ th.name }}</h3></div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(520px,1fr)); gap:var(--space-6);">
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">SCHRIFTGRÖSSEN</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <div style="font-size:14px;">14 · Button groß</div>
+            <div style="font-size:13px;">13 · Fließtext, Listenzeilen</div>
+            <div style="font-size:12px;">12 · Button klein, Detail, Beschreibung</div>
+            <div style="font-size:11px;">11 · Meta, Fußzeile</div>
+            <div style="font-size:10px; letter-spacing:.08em;">10 · CHIP, SPALTENKOPF, LABEL</div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">ABSTÄNDE · RADIEN</div>
+          <div style="display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap;">
+            <div style="font-size:11px; text-align:center;"><div style="width:2px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>2</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:4px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>4</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:6px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>6</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:8px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>8</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:12px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>12</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:16px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>16</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:24px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>24</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:32px; height:20px; background:var(--color-text); margin:0 auto 4px;"></div>32</div>
+            <div style="flex:1;"></div>
+            <div style="font-size:11px; text-align:center;"><div style="width:36px; height:36px; border:1px solid var(--color-text); border-radius:var(--radius-sm); margin:0 auto 4px;"></div>6 klein</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:36px; height:36px; border:1px solid var(--color-text); border-radius:var(--radius-md); margin:0 auto 4px;"></div>8 mittel</div>
+            <div style="font-size:11px; text-align:center;"><div style="width:36px; height:36px; border:1px solid var(--color-text); border-radius:var(--radius-lg); margin:0 auto 4px;"></div>14 groß</div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">FARBROLLEN</div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; font-size:11px;">
+            <div><div style="height:28px; background:var(--c-green); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Grün · Online, indiziert</div>
+            <div><div style="height:28px; background:var(--c-red); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Rot · Fehler, destruktiv</div>
+            <div><div style="height:28px; background:var(--c-yellow); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Gelb · nicht erfasst</div>
+            <div><div style="height:28px; background:var(--c-blue); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Blau · Filter, Suche</div>
+            <div><div style="height:28px; background:var(--c-violet); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Violett · Favoriten</div>
+            <div><div style="height:28px; background:var(--c-teal); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Türkis · Einstellungen</div>
+            <div><div style="height:28px; background:var(--c-grey); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Grau · aus, offline</div>
+            <div><div style="height:28px; background:var(--color-text); border-radius:var(--radius-sm); margin-bottom:4px;"></div>Schwarz · Bedienung</div>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">BUTTON GROSS · 14 / 10·18 / 1 PX</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700);">Primär</button>
+            <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500);">Sekundär</button>
+            <button class="btn btn-ghost" style="font-weight:600; font-size:14px; padding:10px 18px;">Ghost</button>
+            <button class="btn" style="font-weight:600; font-size:14px; padding:10px 18px; color:var(--c-red); border:1px solid var(--c-red);">Destruktiv</button>
+            <button class="btn" style="font-weight:600; font-size:14px; padding:10px 18px; color:#fff; background:var(--c-red); border:1px solid var(--c-red-d);">Bestätigen</button>
+            <button class="btn" style="font-weight:600; font-size:14px; padding:10px 18px; color:#fff; background:#2E9E5B; border:1px solid #237A46;">Bestätigt</button>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">BUTTON KLEIN · 12 / 4·12 / 1 PX</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <button class="btn btn-primary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-accent-700);">Primär</button>
+            <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Sekundär</button>
+            <button class="btn btn-ghost" style="font-weight:600; font-size:12px; padding:4px 12px;">Ghost</button>
+            <button class="btn" style="font-weight:600; font-size:12px; padding:4px 12px; color:var(--c-red); border:1px solid var(--c-red);">Destruktiv</button>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">SELECTGROUP · GLEICHE HÖHE WIE BUTTON KLEIN</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+              <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:var(--color-bg);">Ja</button>
+              <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Nein</button>
+            </div>
+            <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-neutral-700);">
+              <button style="border:none; padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Ja</button>
+              <button style="border:none; border-left:1px solid var(--color-neutral-700); padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-neutral-800); color:var(--color-bg);">Nein</button>
+            </div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">CHIP · 10 PX / 3·10 / 1 PX · FLÄCHE 5 % (DARK 12 %)</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+            <span class="tag" style="background:color-mix(in srgb, var(--c-green) var(--tint), transparent); color:var(--c-green); border:1px solid var(--c-green);">Online</span>
+            <span class="tag" style="background:transparent; color:var(--c-green); border:1px dashed var(--c-green); gap:4px;"><span style="width:7px; height:7px; border-radius:50%; border:1.6px solid var(--c-green); border-top-color:transparent; animation:spin .9s linear infinite; box-sizing:border-box;"></span>92 % indiziert</span>
+            <span class="tag" style="background:color-mix(in srgb, var(--c-red) var(--tint), transparent); color:var(--c-red); border:1px solid var(--c-red);">Fehler</span>
+            <span class="tag" style="background:transparent; color:var(--c-grey); border:1px dashed var(--c-grey);">Offline</span>
+            <span class="tag" style="background:transparent; color:var(--c-yellow); border:1px dashed var(--c-yellow);">Inhalt nicht erfasst</span>
+            <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue);">PDF ✕</span>
+            <span class="tag" style="background:color-mix(in srgb, var(--c-violet) var(--tint), transparent); color:var(--c-violet); border:1px solid var(--c-violet);">Favorit</span>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">MEDIENZEILE · SEITENLEISTE · 13 PX / 7·10 / GAP 8</div>
+          <div style="width:220px; padding:var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); border-radius:var(--radius-md);">
+            <div style="padding:7px 10px; margin-bottom:2px; font-size:13px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-hard-drive" style="font-size:15px;"></i><span style="flex:1;">Backup SSD</span></div>
+            <div style="padding:7px 10px; margin-bottom:2px; font-size:13px; font-weight:600; background:var(--color-text); color:var(--color-bg); display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-hard-drive" style="font-size:15px;"></i><span style="flex:1;">Studio Backup</span></div>
+            <div style="padding:7px 10px; margin-bottom:2px; font-size:13px; opacity:.4; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-hard-drive" style="font-size:15px;"></i><span style="flex:1;">Reise-SSD (offline)</span></div>
+            <div style="padding:7px 10px; font-size:13px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-hard-drive" style="font-size:15px;"></i><span style="flex:1; min-width:0; overflow:hidden; white-space:nowrap; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Hochzeitsvideos Archiv Externe Festplatte 2018–2021</span></div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">ORDNER- UND DATEIZEILE · SPALTE 180 PX</div>
+          <div style="width:180px; padding:var(--space-2); border:1px solid var(--color-divider); border-radius:var(--radius-md);">
+            <div style="padding:7px 10px; margin-bottom:2px; font-size:13px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-folder" style="font-size:14px;"></i><span style="flex:1;">Kunde A</span></div>
+            <div style="padding:7px 10px; margin-bottom:2px; font-size:13px; font-weight:600; background:var(--color-text); color:var(--color-bg); display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-folder" style="font-size:14px;"></i><span style="flex:1; min-width:0; overflow:hidden; white-space:nowrap; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Hochzeit Müller-Schneider – Rohmaterial</span></div>
+            <div style="padding:7px 10px; margin-bottom:2px; font-size:13px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-folder" style="font-size:14px; color:var(--c-yellow);"></i><span style="flex:1;">Rohdaten Kamera 2019</span></div>
+            <div style="padding:7px 10px; font-size:13px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-file-pdf" style="font-size:14px;"></i><span style="flex:1;">Notizen.pdf</span></div>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">KACHEL · 220 PX</div>
+          <div class="card elev-md" style="border:1px solid var(--color-divider); width:240px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <i class="ph ph-hard-drive" style="font-size:26px;"></i>
+              <span class="tag" style="background:color-mix(in srgb, var(--c-green) var(--tint), transparent); color:var(--c-green); border:1px solid var(--c-green);">Online</span>
+            </div>
+            <div class="card-title">Studio Backup</div>
+            <div class="card-body">HDD · 4,1 TB · 238.421 Dateien</div>
+            <div class="card-meta" style="display:flex; justify-content:space-between; gap:8px;"><span>72 % belegt</span><span style="display:inline-flex; align-items:center; gap:4px;"><i class="ph ph-clock" style="font-size:12px;"></i>heute, 09:14</span></div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">TABELLENZEILE · 13 PX / 11·10</div>
+          <table class="table" style="margin:0; width:100%;">
+            <thead><tr><th style="padding:11px 10px;">Name</th><th style="padding:11px 10px;">Datum</th><th style="padding:11px 10px; text-align:right;">Status</th></tr></thead>
+            <tbody><tr><td style="padding:11px 10px; font-weight:600;">rechnung_2021_q1.pdf</td><td style="padding:11px 10px;">12. Feb. 2021</td><td style="padding:11px 10px; text-align:right;"><span class="tag" style="background:transparent; color:var(--c-grey); border:1px dashed var(--c-grey);">Offline</span></td></tr></tbody>
+          </table></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-wrap:wrap; gap:var(--space-6); align-items:flex-start;">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">DIALOG · 340 PX</div>
+          <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
+            <i class="ph ph-hard-drive" style="font-size:30px;"></i>
+            <div class="dialog-title" style="font-size:16px;">Neues Speichermedium erkannt</div>
+            <div class="dialog-body" style="font-size:13px;">„Externe Platte 5“ wurde angeschlossen. Soll sie indiziert werden?</div>
+            <div class="dialog-actions">
+              <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Nicht indizieren</button>
+              <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Indizieren</button>
+            </div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">KONTEXTMENÜ · 13 PX / 7·12</div>
+          <div style="width:230px; padding:var(--space-1); background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md); font-size:13px;">
+            <div style="padding:7px 12px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm);"><i class="ph ph-arrow-square-out" style="font-size:14px;"></i>Im Finder anzeigen</div>
+            <div style="height:1px; background:var(--color-divider); margin:4px 0;"></div>
+            <div style="padding:7px 12px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm); color:var(--c-violet);"><i class="ph-duotone ph-bookmark-simple" style="font-size:14px;"></i>Als Favorit markieren</div>
+            <div style="height:1px; background:var(--color-divider); margin:4px 0;"></div>
+            <div style="padding:7px 12px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm); opacity:.4;"><i class="ph ph-magnifying-glass" style="font-size:14px;"></i>Nach Namen suchen</div>
+            <div style="height:1px; background:var(--color-divider); margin:4px 0;"></div>
+            <div style="padding:7px 12px; display:flex; align-items:center; gap:8px; border-radius:var(--radius-sm); color:var(--c-red);"><i class="ph ph-prohibit" style="font-size:14px;"></i>Ordnernamen ignorieren</div>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">CHIP ENTFERNBAR · ✕ 10 PX, GAP 4</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+            <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue); gap:4px; cursor:pointer;">PDF<i class="ph ph-x" style="font-size:10px;"></i></span>
+            <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue); gap:4px; cursor:pointer;">Letzte 30 Tage<i class="ph ph-x" style="font-size:10px;"></i></span>
+            <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue); gap:4px; cursor:pointer;">Archiv 2019–2021<i class="ph ph-x" style="font-size:10px;"></i></span>
+            <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue); gap:4px; cursor:pointer;">.indd<i class="ph ph-x" style="font-size:10px;"></i></span>
+            <span class="tag" style="background:color-mix(in srgb, var(--c-red) var(--tint), transparent); color:var(--c-red); border:1px solid var(--c-red); gap:4px; cursor:pointer;">*.tmp<i class="ph ph-x" style="font-size:10px;"></i></span>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">AUSWAHL-CHIP IM FILTER-POPOVER · NICHT ENTFERNBAR</div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+            <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue);">PDF ✓</span>
+            <span class="tag" style="background:transparent; color:var(--color-text); border:1px solid var(--color-text);">Text</span>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">SUCHFELD MIT RESET-X</div>
+          <div style="position:relative; width:260px;">
+            <input class="input" value="rechnung" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <i class="ph ph-magnifying-glass" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:12px; opacity:.5;"></i>
+            <span style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; border-radius:50%; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center; cursor:pointer;"><i class="ph ph-x" style="font-size:9px;"></i></span>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6) var(--space-6) 110px; background:var(--color-surface); display:flex; flex-wrap:wrap; gap:var(--space-8); align-items:flex-start;">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">POPOVER MIT NASE · AUSGEKLAPPT AM ELEMENT</div>
+          <div style="position:relative; width:230px; height:190px;">
+            <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+              <button style="border:none; padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent);">An</button>
+              <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:var(--color-bg);">Pausiert</button>
+            </div>
+            <div style="position:absolute; left:0; top:36px; width:210px; padding:5px; background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-md); box-shadow:var(--shadow-lg);">
+              <div style="position:absolute; top:-6px; left:56px; width:11px; height:11px; background:var(--color-bg); border:1px solid var(--color-divider); border-bottom:none; border-right:none; transform:rotate(45deg);"></div>
+              <div style="font-size:10px; letter-spacing:.1em; opacity:.55; padding:6px 10px 4px;">PAUSIEREN FÜR</div>
+              <div style="padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);">30 Minuten</div>
+              <div style="padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);">1 Stunde</div>
+              <div style="padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);">Bis morgen</div>
+              <div style="padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);">Für immer</div>
+            </div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">POPOVER OHNE NASE · AUSWAHL-DROPDOWN</div>
+          <div style="width:200px;">
+            <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500); display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;">Deutsch<i class="ph ph-caret-down" style="font-size:11px;"></i></button>
+            <div style="margin-top:4px; padding:4px; background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md); font-size:12px;">
+              <div style="padding:4px 12px; border-radius:var(--radius-sm); font-weight:600;">Deutsch</div>
+              <div style="padding:4px 12px; border-radius:var(--radius-sm);">English</div>
+            </div>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">OFFLINE-BALKEN · FLÄCHE 55 % TEXT, SCHRIFT 5 % TEXT · 11 PX</div>
+          <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); overflow:hidden;"><div style="display:flex; align-items:center; gap:8px; padding:6px var(--space-4); background:color-mix(in srgb, var(--color-text) 55%, var(--color-bg)); font-size:11px; color:color-mix(in srgb, var(--color-text) 5%, var(--color-bg));"><span style="width:6px; height:6px; border-radius:50%; border:1.5px solid color-mix(in srgb, var(--color-text) 5%, var(--color-bg)); flex:none;"></span>Offline</div></div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">STATUS-ICON · BOX 20 × 20 PX</div>
+          <div style="display:flex; flex-wrap:wrap; gap:var(--space-6); align-items:center; font-size:11px;">
+            <div style="display:flex; align-items:center; gap:8px;"><span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center;"><span style="width:20px; height:20px; border-radius:50%; border:2.5px solid var(--c-green); border-top-color:transparent; animation:spin .9s linear infinite; box-sizing:border-box;"></span></span>Wird indiziert</div>
+            <div style="display:flex; align-items:center; gap:8px;"><span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center;"><span style="width:20px; height:20px; border-radius:50%; border:2.5px solid var(--color-text); border-top-color:transparent; animation:spin .9s linear infinite; box-sizing:border-box;"></span></span>Wird geladen</div>
+            <div style="display:flex; align-items:center; gap:8px;"><span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center;"><i class="ph ph-warning-circle" style="font-size:25px; line-height:25px; width:25px; height:25px; flex:none; display:block; color:var(--c-yellow);"></i></span>Jenseits der Scan-Tiefe</div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">CHECKBOX-ZEILE · EINSTELLUNGEN · 11 PX TITEL, 12 PX TEXT</div>
+          <div style="display:flex; gap:var(--space-8); align-items:flex-start;">
+            <div style="flex:1 1 50%; min-width:0;"><div style="font-size:11px; font-weight:700; letter-spacing:.06em; margin-bottom:6px;">UPDATES</div><p style="font-size:12px; line-height:1.5; margin:0; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Disk Archive weist dich in der Menüleiste darauf hin, sobald eine neue Version verfügbar ist.</p></div>
+            <div style="flex:1 1 50%; min-width:0;"><label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:600;"><input type="checkbox" checked="{{ true }}" style="width:16px; height:16px; accent-color:var(--color-accent); margin:0; flex:none;">Auf Updates hinweisen</label></div>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">DETAIL-SPALTE · 260 PX · LABEL LINKS, WERT RECHTS · UNBEKANNT = „–“</div>
+          <div style="display:flex; flex-wrap:wrap; gap:var(--space-4); align-items:flex-start;">
+            <div style="width:260px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden;"><div style="padding:var(--space-4); font-size:12px; background:color-mix(in srgb, var(--color-text) 4%, transparent); display:flex; flex-direction:column; gap:var(--space-3);">
+              <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent);">DETAIL</div>
+              <div style="position:relative; aspect-ratio:16/9; background:color-mix(in srgb, var(--color-text) 12%, var(--color-bg)); display:flex; align-items:center; justify-content:center;"><i class="ph ph-play" style="font-size:26px;"></i><span style="position:absolute; right:6px; bottom:6px; font-size:10px; padding:1px 5px; background:var(--color-text); color:var(--color-bg);">00:00:41</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start;"><i class="ph ph-file-video" style="font-size:18px; flex:none;"></i><div style="font-weight:600; word-break:break-word;">Zugspitze_Drohne_4K.mov</div></div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Geändert</span><span style="text-align:right;">12. Mai 2021</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Größe</span><span style="text-align:right;">1,8 GB</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Auflösung</span><span style="text-align:right;">3840 × 2160</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Dauer</span><span style="text-align:right;">00:00:41</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">FPS</span><span style="text-align:right;">59,94</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Codec</span><span style="text-align:right;">HEVC</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Farbraum</span><span style="text-align:right;">Rec.2020 · HDR</span></div>
+              </div>
+              <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; color:color-mix(in srgb, var(--color-text) 60%, transparent);"><i class="ph ph-clock" style="font-size:12px; flex:none;"></i>vor 34 Tagen</div>
+            </div></div>
+            <div style="width:260px; border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden;"><div style="padding:var(--space-4); font-size:12px; background:color-mix(in srgb, var(--color-text) 4%, transparent); display:flex; flex-direction:column; gap:var(--space-3);">
+              <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent);">DETAIL</div>
+              <div style="position:relative; aspect-ratio:16/9; background:color-mix(in srgb, var(--color-text) 12%, var(--color-bg)); display:flex; align-items:center; justify-content:center;"><i class="ph ph-play" style="font-size:26px;"></i><span style="position:absolute; right:6px; bottom:6px; font-size:10px; padding:1px 5px; background:var(--color-text); color:var(--color-bg);">00:02:48</span></div>
+              <div style="display:flex; gap:8px; align-items:flex-start;"><i class="ph ph-file-video" style="font-size:18px; flex:none;"></i><div style="font-weight:600; word-break:break-word;">Teamcall_Aufzeichnung.mp4</div></div>
+              <div style="display:flex; flex-direction:column; gap:6px;">
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Geändert</span><span style="text-align:right;">3. Mär. 2021</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Größe</span><span style="text-align:right;">412 MB</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Auflösung</span><span style="text-align:right;">1920 × 1080</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Dauer</span><span style="text-align:right;">00:02:48</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">FPS</span><span style="text-align:right;">–</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Codec</span><span style="text-align:right;">H.264</span></div>
+                <div style="display:flex; justify-content:space-between; gap:12px;"><span style="flex:none; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Farbraum</span><span style="text-align:right;">–</span></div>
+              </div>
+              <div style="display:flex; justify-content:flex-end; align-items:center; gap:4px; color:color-mix(in srgb, var(--color-text) 60%, transparent);"><i class="ph ph-clock" style="font-size:12px; flex:none;"></i>vor 34 Tagen</div>
+            </div></div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">VORSCHAU-TYPEN · VIDEO 16:9 · FOTO 3:2 · AUDIO 16:9 · PDF 3:2</div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:var(--space-2);">
+            <div style="aspect-ratio:16/9; background:color-mix(in srgb, var(--color-text) 12%, var(--color-bg)); display:flex; align-items:center; justify-content:center;"><i class="ph ph-play" style="font-size:20px;"></i></div>
+            <div style="aspect-ratio:16/9; background:color-mix(in srgb, var(--color-text) 12%, var(--color-bg)); display:flex; align-items:center; justify-content:center;"><i class="ph ph-image" style="font-size:20px;"></i></div>
+            <div style="aspect-ratio:16/9; background:color-mix(in srgb, var(--color-text) 8%, var(--color-bg)); display:flex; align-items:center; gap:2px; padding:0 8px; box-sizing:border-box;"><span style="flex:1; height:6px; background:var(--color-text); opacity:.75;"></span><span style="flex:1; height:16px; background:var(--color-text); opacity:.75;"></span><span style="flex:1; height:26px; background:var(--color-text); opacity:.75;"></span><span style="flex:1; height:12px; background:var(--color-text); opacity:.75;"></span><span style="flex:1; height:20px; background:var(--color-text); opacity:.75;"></span><span style="flex:1; height:8px; background:var(--color-text); opacity:.75;"></span></div>
+            <div style="aspect-ratio:16/9; background:color-mix(in srgb, var(--color-text) 12%, var(--color-bg)); display:flex; align-items:center; justify-content:center;"><div style="height:80%; aspect-ratio:210/297; background:var(--color-bg); box-shadow:var(--shadow-sm); display:flex; align-items:center; justify-content:center;"><i class="ph ph-file-pdf" style="font-size:16px;"></i></div></div>
+          </div></div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-6); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-6);">
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">UPDATEDIALOG · 340 PX · KEINE ICONS IN BUTTONS</div>
+          <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
+            <i class="ph ph-hard-drives" style="font-size:30px; display:block;"></i>
+            <div class="dialog-title" style="font-size:16px;">Es ist eine neue Version verfügbar</div>
+            <div class="dialog-body" style="font-size:13px;">Lade die neue Version von Disk Archive herunter.</div>
+            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span>Auf Updates hinweisen</label>
+            <div class="dialog-actions">
+              <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0;">Schließen</button>
+              <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0; white-space:nowrap;">Zur neuen Version</button>
+            </div>
+          </div></div>
+        <div><div style="font-size:10px; letter-spacing:.08em; margin-bottom:8px; opacity:.55;">ICON-GRÖSSEN (PX)</div>
+          <div style="display:flex; flex-wrap:wrap; gap:var(--space-4); align-items:flex-end; font-size:11px; text-align:center;">
+            <div><i class="ph ph-folder" style="font-size:10px; display:block; margin:0 auto 4px;"></i>10<br>Pfeil</div>
+            <div><i class="ph ph-folder" style="font-size:14px; display:block; margin:0 auto 4px;"></i>14<br>Ordner</div>
+            <div><i class="ph ph-hard-drive" style="font-size:15px; display:block; margin:0 auto 4px;"></i>15<br>Medium</div>
+            <div><i class="ph ph-file-pdf" style="font-size:16px; display:block; margin:0 auto 4px;"></i>16<br>Datei</div>
+            <div><i class="ph ph-gear" style="font-size:18px; display:block; margin:0 auto 4px;"></i>18<br>Toolbar</div>
+            <div><i class="ph ph-hard-drive" style="font-size:20px; display:block; margin:0 auto 4px;"></i>20<br>Status</div>
+            <div><i class="ph ph-hard-drive" style="font-size:26px; display:block; margin:0 auto 4px;"></i>26<br>Kachel</div>
+            <div><i class="ph ph-hard-drive" style="font-size:30px; display:block; margin:0 auto 4px;"></i>30<br>Dialog</div>
+          </div></div>
+      </div>
+
+      <div style="grid-column:1/-1; border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden; background:var(--color-surface);">
+        <div style="padding:var(--space-2) var(--space-4); font-size:10px; letter-spacing:.08em; opacity:.55; border-bottom:1px solid var(--color-divider);">SPALTENANSICHT · LEER · ALLE TOOLBAR-BUTTONS, ICONS, FILTERLEISTE UND FUSSZEILE</div>
+        <div style="display:flex; align-items:center; gap:6px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 6%, transparent);">
+          <button class="btn btn-icon" style="width:30px; height:30px;" title="Zur Übersicht"><i class="ph ph-squares-four" style="font-size:17px;"></i></button>
+          <button class="btn btn-icon" style="width:30px; height:30px;" title="Favoriten"><i class="ph ph-bookmarks-simple" style="font-size:17px;"></i></button>
+          <div style="width:1px; height:20px; background:var(--color-divider);"></div>
+          <button class="btn btn-icon" style="width:30px; height:30px;" title="Einstellungen"><i class="ph ph-gear" style="font-size:17px;"></i></button>
+          <div style="flex:1;"></div>
+          <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><i class="ph ph-funnel" style="font-size:17px;"></i></button>
+          <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><i class="ph ph-magnifying-glass" style="font-size:17px;"></i></button>
+          <div style="position:relative; width:320px; margin-left:7px;">
+            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <i class="ph ph-magnifying-glass" style="position:absolute; left:8px; top:50%; transform:translateY(-50%); font-size:12px; opacity:.5;"></i>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-2) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--c-blue); color:var(--c-blue);">Filter</button>
+          <button class="btn btn-icon" style="width:26px; height:26px; border:1px solid var(--color-neutral-500); border-radius:var(--radius-sm);" title="Verknüpfung Oder/Und"><i class="ph ph-link" style="font-size:14px;"></i></button>
+          <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue); gap:4px;">PDF<i class="ph ph-x" style="font-size:10px;"></i></span>
+          <span class="tag" style="background:color-mix(in srgb, var(--c-blue) var(--tint), transparent); color:var(--c-blue); border:1px solid var(--c-blue); gap:4px;">Letzte 30 Tage<i class="ph ph-x" style="font-size:10px;"></i></span>
+          <div style="flex:1;"></div>
+        </div>
+        <div style="display:flex; height:200px;">
+          <div style="width:200px; flex:none; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent);">
+            <div style="position:relative; margin-bottom:var(--space-3);"><input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;"><i class="ph ph-magnifying-glass" style="position:absolute; left:7px; top:50%; transform:translateY(-50%); font-size:11px; opacity:.5;"></i></div>
+            <div style="font-size:10px; letter-spacing:.08em; opacity:.55; padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
+          </div>
+          <div style="width:180px; border-right:1px solid var(--color-divider); padding:var(--space-2);"><div style="font-size:10px; letter-spacing:.08em; opacity:.55; padding:4px 8px 6px;">MEDIUM</div></div>
+          <div style="flex:1;"></div>
+        </div>
+        <div style="display:flex; align-items:center; font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); background:color-mix(in srgb, var(--color-text) 5%, transparent); border-top:1px solid var(--color-divider);">
+          <span style="width:200px; flex:none; padding:6px var(--space-4);">2,4 GB frei von 500 GB</span>
+          <span style="flex:1; padding:6px var(--space-4);">Pfad</span>
+          <span style="padding:6px var(--space-4);">0 Objekte</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const base = '--color-neutral-100:#f8f4f4; --color-neutral-200:#eae7e7; --color-neutral-300:#d7d3d3; --color-neutral-400:#bab6b6; --color-neutral-500:#9b9797; --color-neutral-600:#7d7979; --color-neutral-700:#605d5d; --color-neutral-800:#444141; --color-neutral-900:#2d2b2b;';
+    const light = base + ' --c-green:oklch(0.62 0.16 150); --c-blue:oklch(0.62 0.16 255); --c-violet:oklch(0.62 0.16 305); --c-teal:oklch(0.62 0.16 195); --c-grey:oklch(0.62 0 0); --c-red:#E04830; --c-red-d:#B5381F; --c-yellow:#EDA12D; --tint:5%; background:var(--color-bg); color:var(--color-text); padding:24px; border-radius:14px;';
+    const dark = '--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --c-green:oklch(0.72 0.14 150); --c-blue:oklch(0.72 0.14 255); --c-violet:oklch(0.72 0.14 305); --c-teal:oklch(0.72 0.14 195); --c-grey:oklch(0.72 0 0); --c-red:oklch(0.70 0.17 35); --c-red-d:#B5381F; --c-yellow:#EDA12D; --tint:12%; background:var(--color-bg); color:var(--color-text); padding:24px; border-radius:14px;';
+    return { themes: [{ name: 'Hell', vars: light }, { name: 'Dunkel', vars: dark }] };
+  }
+}
+</script>
+</body>
+</html>
