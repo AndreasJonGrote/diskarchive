@@ -33,6 +33,9 @@ struct ColumnScrollTarget: Equatable {
 }
 
 struct ColumnFolderContents<Row: View>: View {
+    /// Einzug der Zeilen in der Spalte (bug.0.4.220: auch Maß für den Fußzeilenpfad).
+    static var rowInset: CGFloat { 8 }
+
     let mediumID: UUID
     let path: [String]
     let filteredItems: [IndexedItem]
@@ -99,7 +102,7 @@ struct ColumnFolderContents<Row: View>: View {
                 Color.clear
             } else if usesTableView {
                 ColumnFolderTableView(items: filteredItems, selectedIDs: selectedIDs, scrollTarget: scrollTarget, scrollDone: scrollDone, row: row)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, Self.rowInset)
             } else {
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -110,7 +113,7 @@ struct ColumnFolderContents<Row: View>: View {
                                     .transition(.move(edge: .leading).combined(with: .opacity))
                             }
                         }
-                        .padding(.horizontal, 8)
+                        .padding(.horizontal, Self.rowInset)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                     }
                     .scrollIndicators(.automatic)

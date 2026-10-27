@@ -1,0 +1,13 @@
+# Test: WindowTestGroup/ColumnWidthPerColumnTests/onlyTheDraggedColumnChanges(appearance:), WindowTestGroup/ColumnWidthPerColumnTests/draggingTheFirstColumnLeavesTheOthers()
+# bug.0.4.218-c: Ziehen wieder lokal gemessen (Ursache des Ruckelns)
+--- a/diskindex/diskindex/Views/ColumnBrowser/ColumnResizeHandle.swift	2026-10-27 11:08:02
++++ b/diskindex/diskindex/Views/ColumnBrowser/ColumnResizeHandle.swift	2026-10-27 11:08:02
+@@ -30,7 +30,7 @@
+             .gesture(
+                 // bug.0.4.218: Weg in Fensterkoordinaten. Lokal gemessen wanderte der Griff mit der Spalte mit, jeder
+                 // Schritt zog die eigene Verschiebung ab – die Breite folgte der Maus nur halb und ruckelte hin und her.
+-                DragGesture(minimumDistance: 0, coordinateSpace: .global)
++                DragGesture(minimumDistance: 0)
+                     .updating($dragTranslation) { value, state, _ in
+                         state = value.translation.width
+                     }

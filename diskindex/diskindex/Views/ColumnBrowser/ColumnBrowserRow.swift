@@ -8,6 +8,12 @@ import SwiftUI
 struct ColumnBrowserRow: View {
     @Environment(AppState.self) private var appState
 
+    static let horizontalPadding: CGFloat = 10
+    static let iconBox: CGFloat = 16
+    static let iconSize: CGFloat = 15
+    /// bug.0.4.220: linke Kante des Icons in der Zeile (Fußzeilenpfad bündig).
+    static var iconLeading: CGFloat { horizontalPadding + (iconBox - iconSize) / 2 }
+
     let title: String
     let isSelected: Bool
     /// Template-Asset (Phosphor) aus dem Asset-Katalog.
@@ -30,21 +36,23 @@ struct ColumnBrowserRow: View {
             HStack(spacing: 8) {
                 Group {
                     if showsIndexingSpinner {
+                        // bug.0.4.217: Layout 12 × 12 mit 2 pt Strich (Rand innen), mittig in der Icon-Box.
                         IndexingSpinnerRing(
                             color: isSelected ? iconColorOnSelection : iconColor,
-                            lineWidth: 1.5
+                            lineWidth: 2
                         )
-                        .frame(width: 14, height: 14)
+                        .padding(1)
+                        .frame(width: 12, height: 12)
                     } else {
                         Image(iconAsset)
                             .renderingMode(.template)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 15, height: 15)
+                            .frame(width: Self.iconSize, height: Self.iconSize)
                             .foregroundStyle(isSelected ? iconColorOnSelection : iconColor)
                     }
                 }
-                .frame(width: 16, height: 16)
+                .frame(width: Self.iconBox, height: Self.iconBox)
 
                 FadeMaskText(
                     text: title,
@@ -55,7 +63,7 @@ struct ColumnBrowserRow: View {
                 .layoutPriority(0)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 10)
+            .padding(.horizontal, Self.horizontalPadding)
             .padding(.vertical, 7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()

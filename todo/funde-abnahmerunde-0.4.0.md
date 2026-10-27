@@ -8,7 +8,7 @@ Gesammelt vom Host während der Runde, nach den drei Stufen (AGENTS.md). Der Sup
 |---|---|---|
 | 34 | 210 (schwer, zuerst), 209 + 216 als eine Aufgabe | **abgenommen 27.10.** (Gesamtlauf 01:29–01:58 grün) |
 | 35 | 215 (schwer, zuerst), 212, 213, 214 | **abgenommen 27.10.** (Gesamtlauf 09:25–10:12 grün) |
-| 36 | 211, 217, 218, 219, 220 und die Funde aus dem Rest des Layout-Durchgangs | erst nach dem Durchgang schneiden; über 8 Kennungen → Paket 37 |
+| 36 | 211, 218, 219, 220, 217 (Layout-Durchgang ohne neue Funde) | freigegeben 27.10. |
 
 ## Stand der Runde (Host, 26.10. 23:05)
 
@@ -48,7 +48,8 @@ Gesammelt vom Host während der Runde, nach den drei Stufen (AGENTS.md). Der Sup
     - Nutzer: 199 gilt als geprüft. Der Host-Schritt in Paket 34 entfällt.
 
 **Offen:**
-- Layout-Durchgang hell und dunkel: Bis 23:35 sind Dashboard und Spaltenansicht gesehen. Es fehlen Suche, Favoriten, Einstellungen, Medium-Details, Dialoge und Menüleiste.
+- ~~Layout-Durchgang~~ **abgeschlossen** (Nutzer 27.10.: außer den bekannten Funden nichts Neues).
+- Die Nachtests nach Paket 34 und 35 (Fortschritt, Stapel und Fokus, ← →, Filter-Scrollen, Ersetzen zuerst, Live-Verschieben) und nach Paket 36 (Layout) macht der Nutzer gesammelt vor dem Release-Kandidaten.
 
 
 ## bug.0.4.209 — Dialoge der App nehmen den Tastaturfokus (Stufe 1)

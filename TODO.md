@@ -5,7 +5,7 @@
 | Datei | Inhalt | Wer liest |
 |---|---|---|
 | [todo/regeln.md](todo/regeln.md) | 15 Regeln für den Worker (verbindlich, neu gefasst 23.10.) | Worker immer, Host bei Bedarf |
-| – | **kein aktuelles Paket** (Paket 36 wird nach dem Layout-Durchgang geschnitten) | – |
+| [todo/paket-36.md](todo/paket-36.md) | **aktuelles Paket** mit Aufgaben und Status-Feldern | Worker, Host beim Prüfen |
 | [todo/funde-abnahmerunde-0.4.0.md](todo/funde-abnahmerunde-0.4.0.md) | Funde der Abnahmerunde (`bug.0.4.209`–`220`), Stand der Runde, Paketschnitt | Host |
 | [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | Checkliste der Abnahmerunde `todo.0.4.040` | Nutzer |
 | [todo/backlog.md](todo/backlog.md) | nicht freigegeben, nach Zielversion | nur bei Planung |
@@ -20,7 +20,7 @@
 
 ## Stand
 
-**Stand 27.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 35** (DONE.md; `bug.0.4.209`, `210`, `212`–`216`; Ablauf: [konzept/lauf-lebenszyklus.md](konzept/lauf-lebenszyklus.md)). **Gesamtlauf 27.10. 09:25–10:12 grün** (seriell 1189/1189, parallel 3× grün, Sabotage 10/10, 0 Warnungen, keine `.ips`, 0 neue Dateien in `~/Library/Preferences`). **Abnahmerunde `todo.0.4.040` läuft** (26.10.; offen ist der Rest des Layout-Durchgangs). Sie hat 12 Funde der Stufe 1 ergeben (`bug.0.4.209`–`220`, [todo/funde-abnahmerunde-0.4.0.md](todo/funde-abnahmerunde-0.4.0.md)), vom Supervisor bestätigt. Als Nächstes: **Rest des Layout-Durchgangs** der Abnahmerunde (Nutzer), danach Paket 36 (`211`, `217`–`220` und neue Layout-Funde). Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). Befunde nach den drei Stufen (Nutzer 26.10., unten). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
+**Stand 27.10.2026 (Host):** Version im Xcode-Projekt **0.4.0**. Abgenommen bis einschließlich **Paket 35** (DONE.md; `bug.0.4.209`, `210`, `212`–`216`; Ablauf: [konzept/lauf-lebenszyklus.md](konzept/lauf-lebenszyklus.md)). **Gesamtlauf 27.10. 09:25–10:12 grün** (seriell 1189/1189, parallel 3× grün, Sabotage 10/10, 0 Warnungen, keine `.ips`, 0 neue Dateien in `~/Library/Preferences`). **Abnahmerunde `todo.0.4.040` läuft** (26.10.; offen ist der Rest des Layout-Durchgangs). Sie hat 12 Funde der Stufe 1 ergeben (`bug.0.4.209`–`220`, [todo/funde-abnahmerunde-0.4.0.md](todo/funde-abnahmerunde-0.4.0.md)), vom Supervisor bestätigt. Layout-Durchgang abgeschlossen (Nutzer 27.10.: keine neuen Funde). **Paket 36 freigegeben** (27.10.: `bug.0.4.211`, `218`, `219`, `220`, `217`, Layout). Danach sind alle Funde der Abnahmerunde abgearbeitet; 0.4.0 wird Release-Kandidat, wenn Paket 36 abgenommen ist. Checkliste der Abnahmerunde: [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md). Befunde nach den drei Stufen (Nutzer 26.10., unten). Verfahren seit Paket 17: `todo/regeln.md` (15 Regeln), Sabotage als Patch (`Werkzeuge/pruefung.sh sabotage`, Regel 9), Invarianten in `konzept/architektur.md`, kleine Pakete (`archiv/abnahme-ablauf.md` 2a).
 
 **Prüfung Host 26.10. 20:45–21:13 (Paket 33, Arbeitsbaum uncommittet seit e5718a9, macOS 15.7.4, Xcode 26.3, `Werkzeuge/pruefung.sh voll`, erste Prüfung nach den drei Stufen):** Debug mit Testziel und Release 0 Warnungen, seriell 1164/1164, Parallel 1–3 grün (je 1158 bestanden, 6 übersprungen), keine neuen `.ips`, 0 neue Dateien in `~/Library/Preferences`, Sabotage **4/4 rot ✓**, App des Nutzers 21:13:32, Version 0.4.0. Prüf-Agent (Sonnet): nichts Wesentliches gefunden. Ältere Prüfungen: `archiv/paket-*-abgenommen-*.md`.
 
@@ -61,7 +61,7 @@ Dazu kommen drei Prüfungen gegen Schleifen: schon behoben, bewusst so, sinnvoll
 | 33 | **0.4.0** | ~~`bug.0.4.208`~~ | Ein Ordner: alles in `Application Support/Disk Archive/`, Tests ohne `UserDefaults`, Schreibschranke enger → [archiv](archiv/paket-33-abgenommen-2026-10-26.md) | **abgenommen 26.10.** |
 | **34** | **0.4.0** | `bug.0.4.210`, `209` + `216` | Fortschritt: eine Rechnung; Dialoge: Fokus nur beim Erscheinen, Stapel → [archiv/paket-34-abgenommen-2026-10-27.md](archiv/paket-34-abgenommen-2026-10-27.md) | **abgenommen 27.10.** |
 | 35 | **0.4.0** | `bug.0.4.215`, `212`, `213`, `214` | Ersetzen zuerst, Filter und Scrollen, ← →, Auswahl bei Live-Verschieben → [archiv/paket-35-abgenommen-2026-10-27.md](archiv/paket-35-abgenommen-2026-10-27.md) | **abgenommen 27.10.** |
-| 36 | **0.4.0** | `bug.0.4.211`, `217`–`220` + Rest Layout | Layout (über 8 Kennungen → 37) | nach dem Layout-Durchgang |
+| **36** | **0.4.0** | `bug.0.4.211`, `218`, `219`, `220`, `217` | Layout: Kacheln, Spaltenbreite, Grauton, Pfad bündig, Spinner → [todo/paket-36.md](todo/paket-36.md) | **freigegeben 27.10.** |
 | – | **0.4.0** | `todo.0.4.040` (Nutzer) | Abnahmerunde: echte Medien, Layout → Release-Kandidat; Checkliste [todo/abnahmerunde-0.4.0.md](todo/abnahmerunde-0.4.0.md) | **läuft** (Rest Layout-Durchgang) |
 | – | **0.4.1** | `todo.0.4.021`, `022`, `024`, `todo.0.4.1.001`, `002` | Release der Open Beta → [todo/backlog.md](todo/backlog.md) | Backlog |
 

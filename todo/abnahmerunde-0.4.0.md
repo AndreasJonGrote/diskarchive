@@ -32,7 +32,7 @@ Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 33, U
 
 ## 3. Layout-Durchgang
 
-- [ ] Alle Ansichten gegen `layout/` hell und dunkel (Dashboard, Spalten, Suche, Favoriten, Einstellungen, Details, Dialoge, Menüleiste). Abweichungen per Screenshot.
+- [x] (27.10., Funde → Paket 36) Alle Ansichten gegen `layout/` hell und dunkel (Dashboard, Spalten, Suche, Favoriten, Einstellungen, Details, Dialoge, Menüleiste). Abweichungen per Screenshot.
 
 ## Danach
 

@@ -147,6 +147,7 @@ struct ColumnBrowserView: View {
             .frame(maxHeight: .infinity)
 
             ColumnBrowserPathFooter(
+                sidebarWidth: appState.columnBrowserState.sidebarWidth,
                 freeCapacityLabel: medium?.freeOfTotalLabel ?? "",
                 pathLabel: columnBrowserPathLabel(medium: medium),
                 objectCountLabel: objectCountLabel
@@ -246,16 +247,11 @@ struct ColumnBrowserView: View {
         if let preview = columnResizePreview, preview.columnIndex == columnIndex {
             return preview.width
         }
-        return appState.columnBrowserState.folderColumnWidth
+        return appState.columnBrowserState.folderColumnWidth(at: columnIndex)
     }
 
-    private func totalFolderColumnsWidth(depth: Int) -> CGFloat {
-        guard depth > 0 else { return 0 }
-        let base = appState.columnBrowserState.folderColumnWidth
-        guard let preview = columnResizePreview else {
-            return CGFloat(depth) * base
-        }
-        return CGFloat(depth - 1) * base + preview.width
+    private func totalFolderColumnsWidth(_ folderColumns: [ColumnBrowserFolderColumn]) -> CGFloat {
+        folderColumns.reduce(0) { $0 + folderColumnWidth(for: $1.columnIndex) }
     }
 
     private func sidebar(selectedMedium: Medium?) -> some View {
@@ -297,7 +293,8 @@ struct ColumnBrowserView: View {
         }
         .frame(width: appState.columnBrowserState.sidebarWidth)
         .clipped()
-        .background(DesignColor.text.opacity(0.06))
+        // bug.0.4.219: eine Fläche für Seitenleiste, Offline-Leiste und Detailspalte (Katalog „Seitenleiste“).
+        .background(DesignColor.toolbar)
         .overlay(alignment: .trailing) {
             HStack(spacing: 0) {
                 ColumnResizeHandle(
@@ -337,7 +334,7 @@ struct ColumnBrowserView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(DesignColor.text.opacity(0.05))
+        .background(DesignColor.toolbar)
     }
 
     private func columnsArea(medium: Medium?, folderColumns: [ColumnBrowserFolderColumn]) -> some View {
@@ -352,7 +349,7 @@ struct ColumnBrowserView: View {
                 return shouldShowDetailColumn(medium: medium, in: geometry, folderColumns: folderColumns)
                     && !(selectedColumn.map { columnShowsStatusRestFill(medium: medium, column: $0) } ?? false)
             }()
-            let folderWidth = totalFolderColumnsWidth(depth: folderColumns.count)
+            let folderWidth = totalFolderColumnsWidth(folderColumns)
             let detailWidth = showDetail
                 ? detailColumnWidth(in: geometry, folderColumns: folderColumns)
                 : 0
@@ -697,7 +694,7 @@ struct ColumnBrowserView: View {
                 HStack(spacing: 0) {
                     if !statusRest {
                         ColumnResizeHandle(
-                            committedWidth: folderColumnWidthBinding,
+                            committedWidth: folderColumnWidthBinding(column.columnIndex),
                             onPreviewWidthChange: { preview in
                                 var transaction = Transaction()
                                 transaction.disablesAnimations = true
@@ -839,8 +836,7 @@ struct ColumnBrowserView: View {
         in geometry: GeometryProxy,
         folderColumns: [ColumnBrowserFolderColumn]
     ) -> CGFloat {
-        let depth = folderColumns.count
-        let folderTotal = totalFolderColumnsWidth(depth: depth)
+        let folderTotal = totalFolderColumnsWidth(folderColumns)
         let remaining = geometry.size.width - folderTotal
         return max(DesignSpacing.columnBrowserDetailWidth, remaining)
     }
@@ -916,7 +912,7 @@ struct ColumnBrowserView: View {
         }
         .frame(width: width, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .top)
-        .background(DesignColor.text.opacity(0.04))
+        .background(DesignColor.toolbar)
     }
 
     private func selectMedium(_ id: UUID) {
@@ -927,10 +923,11 @@ struct ColumnBrowserView: View {
         DiskIndexLog.shared.ui("medium id=\(id)")
     }
 
-    private var folderColumnWidthBinding: Binding<CGFloat> {
+    /// bug.0.4.218: nur die gezogene Spalte.
+    private func folderColumnWidthBinding(_ columnIndex: Int) -> Binding<CGFloat> {
         Binding(
-            get: { appState.columnBrowserState.folderColumnWidth },
-            set: { appState.columnBrowserState.folderColumnWidth = $0 }
+            get: { appState.columnBrowserState.folderColumnWidth(at: columnIndex) },
+            set: { appState.columnBrowserState.setFolderColumnWidth($0, at: columnIndex) }
         )
     }
 

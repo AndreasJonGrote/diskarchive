@@ -6,7 +6,8 @@
 import CoreGraphics
 
 enum DashboardGridLayout {
-    static let minCardWidth: CGFloat = 200
+    /// Katalog „Kachel“: Mindestbreite 220 (bug.0.4.211).
+    static let minCardWidth: CGFloat = 220
     static let maxCardWidth: CGFloat = 255
     static let spacing: CGFloat = 16
 

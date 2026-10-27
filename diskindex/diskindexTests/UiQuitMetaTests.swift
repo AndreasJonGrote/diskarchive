@@ -14,7 +14,7 @@ import Testing
         let app = AppState()
         let mediumID = testUUID("D0070001-0000-4000-8000-000000000007")
         let sidebar = app.columnBrowserState.sidebarWidth
-        let column = app.columnBrowserState.folderColumnWidth
+        let column = app.columnBrowserState.folderColumnWidth(at: 0)
         app.mainWindowDestination = .columnBrowser
         app.columnBrowserState.selectedMediumID = mediumID
         app.columnBrowserState.pathStack = ["A", "B"]
@@ -25,6 +25,6 @@ import Testing
         #expect(app.columnBrowserState.pathStack.isEmpty)
         #expect(app.columnBrowserState.selectedUncapturedFolderID == nil)
         #expect(app.columnBrowserState.sidebarWidth == sidebar)
-        #expect(app.columnBrowserState.folderColumnWidth == column)
+        #expect(app.columnBrowserState.folderColumnWidth(at: 0) == column)
     }
 }

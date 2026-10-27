@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct ColumnBrowserPathFooter: View {
+    /// Aktuelle (gezogene) Breite der Seitenleiste.
+    let sidebarWidth: CGFloat
     let freeCapacityLabel: String
     let pathLabel: String
     let objectCountLabel: String
@@ -15,18 +17,25 @@ struct ColumnBrowserPathFooter: View {
     var body: some View {
         StatusFooterBar {
             Text(freeCapacityLabel)
-                .frame(width: DesignSpacing.columnBrowserSidebarWidth, alignment: .leading)
+                .lineLimit(1)
                 .padding(.leading, 16)
+                .frame(width: pathLeading, alignment: .leading)
 
             Text(pathLabel)
                 .lineLimit(1)
                 .truncationMode(.middle)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 8)
+                .padding(.trailing, 8)
                 .help(pathLabel)
 
             Text(objectCountLabel)
                 .padding(.trailing, 16)
         }
+    }
+
+    /// bug.0.4.220: Der Pfad beginnt bündig mit dem Icon der ersten Ordnerspalte (Seitenleiste + Zeileneinzug der Spalte
+    /// + Icon-Kante in der Zeile) und folgt dem Ziehen der Seitenleiste.
+    private var pathLeading: CGFloat {
+        sidebarWidth + ColumnFolderContents<EmptyView>.rowInset + ColumnBrowserRow.iconLeading
     }
 }

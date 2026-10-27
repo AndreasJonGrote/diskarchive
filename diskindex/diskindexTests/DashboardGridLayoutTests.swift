@@ -28,7 +28,7 @@ import Testing
     }
 
     @Test func columnCountsForFixtureWidths() {
-        #expect(DashboardGridLayout.columnCount(containerWidth: 868) == 4)
-        #expect(DashboardGridLayout.columnCount(containerWidth: 1368) == 6)
+        #expect(DashboardGridLayout.columnCount(containerWidth: 868) == 3)  // bug.0.4.211: Mindestbreite 220
+        #expect(DashboardGridLayout.columnCount(containerWidth: 1368) == 5)
     }
 }

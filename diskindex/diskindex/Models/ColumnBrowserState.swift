@@ -10,6 +10,10 @@ struct ColumnBrowserState: Equatable {
     var pathStack: [String] = [] {
         didSet {
             if openFolderRowIDs.count > pathStack.count { openFolderRowIDs.removeSubrange(pathStack.count...) }
+            // bug.0.4.218: Spalte `i` zeigt `pathStack.prefix(i)`. Ändert sich der Pfad davor, zeigt sie etwas anderes
+            // (oder schließt) – ihre gezogene Breite fällt weg.
+            let kept = zip(oldValue, pathStack).prefix { $0 == $1 }.count
+            folderColumnWidths = folderColumnWidths.filter { $0.key <= kept }
         }
     }
     /// bug.0.4.147: Zeilenkennung des offenen Ordners je Pfadebene (soweit durch Klick/Taste bekannt). Damit folgt der
@@ -18,8 +22,8 @@ struct ColumnBrowserState: Equatable {
     var selection = ColumnSelection()
     /// Ordner jenseits der Scan-Tiefe — Detail statt weiterer Spalte (19.10). Nur bei Einzelauswahl.
     var selectedUncapturedFolderID: UUID?
-    /// Gemeinsame Breite aller Ordner-Spalten (Nutzer per Drag-Handle, Standard 230pt).
-    var folderColumnWidth: CGFloat = DesignSpacing.columnBrowserColumnWidth
+    /// bug.0.4.218: gezogene Breite je Ordnerspalte (Index); sonst Standard 230 pt. Nicht gespeichert.
+    private(set) var folderColumnWidths: [Int: CGFloat] = [:]
     /// Medien-Seitenleiste (200–420 pt, Aufgabe 123).
     var sidebarWidth: CGFloat = DesignSpacing.columnBrowserSidebarWidth
     /// Pfade, deren Ladehinweis gerade sichtbar ist (Aufgabe 156). Nicht schon ab `isLoading`.
@@ -43,6 +47,14 @@ struct ColumnBrowserState: Equatable {
     }
 
     static let sidebarWidthRange: ClosedRange<CGFloat> = 200...420
+
+    func folderColumnWidth(at columnIndex: Int) -> CGFloat {
+        folderColumnWidths[columnIndex] ?? DesignSpacing.columnBrowserColumnWidth
+    }
+
+    mutating func setFolderColumnWidth(_ width: CGFloat, at columnIndex: Int) {
+        folderColumnWidths[columnIndex] = width
+    }
 
     mutating func setSidebarWidth(_ width: CGFloat) {
         sidebarWidth = min(Self.sidebarWidthRange.upperBound, max(Self.sidebarWidthRange.lowerBound, width))

@@ -19,6 +19,7 @@ struct MediumDashboardCard: View {
             HStack(alignment: .top) {
                 MediumTypeIcon(medium: medium, size: 26)
                 Spacer(minLength: 8)
+                // bug.0.4.211: der Chip bleibt ganz; die Zeitzeilen kürzen mit „…“, die Kachel wird nie breiter als ihre Zelle.
                 StatusChip(medium: medium)
                     .fixedSize(horizontal: true, vertical: false)
             }
@@ -99,7 +100,6 @@ struct MediumDashboardCard: View {
                     )
                 )
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
             }
         } else {
             lastSeenBadge(medium: medium)
@@ -115,7 +115,6 @@ struct MediumDashboardCard: View {
                 .frame(width: 12, height: 12)
             Text(medium.lastSeenDescription())
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
         }
     }
 }

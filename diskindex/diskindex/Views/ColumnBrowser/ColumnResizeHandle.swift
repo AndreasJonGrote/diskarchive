@@ -28,7 +28,9 @@ struct ColumnResizeHandle: View {
             .contentShape(Rectangle())
             .columnResizePointerStyle()
             .gesture(
-                DragGesture(minimumDistance: 0)
+                // bug.0.4.218: Weg in Fensterkoordinaten. Lokal gemessen wanderte der Griff mit der Spalte mit, jeder
+                // Schritt zog die eigene Verschiebung ab – die Breite folgte der Maus nur halb und ruckelte hin und her.
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)
                     .updating($dragTranslation) { value, state, _ in
                         state = value.translation.width
                     }

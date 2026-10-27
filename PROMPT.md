@@ -1,1 +1,1 @@
-Kein Auftrag für den Worker (Host 27.10.): Paket 35 ist abgenommen. Paket 36 (Layout: `bug.0.4.211`, `217`–`220` und neue Funde) wird erst nach dem Rest des Layout-Durchgangs der Abnahmerunde geschnitten. HALT.
+Erledigt (Bereit zur Prüfung): bug.0.4.211, 218, 219, 220, 217 (Paket 36); Sabotage 8/8 rot, 20× grün, 0 Warnungen, App 12:27. Offen/blockiert: Gesamtlauf weggelassen (Last 3–4); Testziel parallel einmal rot in DirectoryIndexerTests (außerhalb des Diffs, danach 10× grün); Stufe 2 bei 218 (Umbenennen im Finder) nicht behoben. HALT.

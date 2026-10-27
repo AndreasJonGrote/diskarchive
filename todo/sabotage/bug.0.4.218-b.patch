@@ -1,0 +1,13 @@
+# Test: WindowTestGroup/ColumnWidthPerColumnTests/onlyTheDraggedColumnChanges(appearance:), WindowTestGroup/ColumnWidthPerColumnTests/draggingTheFirstColumnLeavesTheOthers()
+# bug.0.4.218-b: neu geöffnete Spalte erbt die zuletzt gezogene Breite
+--- a/diskindex/diskindex/Models/ColumnBrowserState.swift	2026-10-27 11:08:02
++++ b/diskindex/diskindex/Models/ColumnBrowserState.swift	2026-10-27 11:08:02
+@@ -49,7 +49,7 @@
+     static let sidebarWidthRange: ClosedRange<CGFloat> = 200...420
+ 
+     func folderColumnWidth(at columnIndex: Int) -> CGFloat {
+-        folderColumnWidths[columnIndex] ?? DesignSpacing.columnBrowserColumnWidth
++        folderColumnWidths[columnIndex] ?? folderColumnWidths.values.max() ?? DesignSpacing.columnBrowserColumnWidth
+     }
+ 
+     mutating func setFolderColumnWidth(_ width: CGFloat, at columnIndex: Int) {
