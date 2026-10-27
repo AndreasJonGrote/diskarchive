@@ -801,6 +801,16 @@ struct ColumnBrowserView: View {
             )
             return .handled
         }
+        if press.key == .rightArrow || press.key == .leftArrow {
+            // bug.0.4.213: wie im Finder; ⇧/⌘ mit Pfeil nichts Neues.
+            guard press.modifiers.isDisjoint(with: [.shift, .command, .option, .control]),
+                  let medium = resolvedSelectedMedium else { return .ignored }
+            let focus = press.key == .rightArrow
+                ? appState.openColumnSelection(columnIndex: column.columnIndex, items: column.items, medium: medium)
+                : appState.selectColumnParent(columnIndex: column.columnIndex, medium: medium)
+            if let focus { focusedColumn = focus }
+            return .handled
+        }
         return .ignored
     }
 

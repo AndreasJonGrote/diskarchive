@@ -84,4 +84,44 @@ extension AppState {
         selection.move(step: step, extend: extend, visible: visible.map(\.id), column: columnIndex)
         commitColumnSelection(selection, items: items, columnIndex: columnIndex, medium: medium)
     }
+
+    /// bug.0.4.213 (Finder): → auf einem einzeln gewählten, geöffneten Ordner wählt den ersten sichtbaren Eintrag der
+    /// nächsten Spalte. Datei, Mehrfachauswahl, leerer oder nicht geöffneter Ordner: nichts. Rückgabe: neue Fokus-Spalte.
+    @discardableResult
+    func openColumnSelection(columnIndex: Int, items: [IndexedItem], medium: Medium) -> Int? {
+        let state = columnBrowserState
+        guard state.selection.ids.count == 1, state.selection.focusColumnIndex == columnIndex,
+              let id = state.selection.ids.first,
+              let folder = items.first(where: { $0.id == id }), folder.isFolder,
+              columnIndex < state.pathStack.count, state.pathStack[columnIndex] == folder.name else { return nil }
+        let path = Array(state.pathStack.prefix(columnIndex + 1))
+        let next = indexRepository.children(mediumID: medium.id, path: path)
+        let visible = ColumnBrowserFiltering.visibleItems(
+            next,
+            openFolderName: columnIndex + 1 < state.pathStack.count ? state.pathStack[columnIndex + 1] : nil,
+            filters: searchState.filters,
+            keepFolders: appSettings.showFoldersRegardlessOfFilter
+        )
+        guard let first = visible.first else { return nil }
+        var selection = ColumnSelection()
+        selection.replace(id: first.id, column: columnIndex + 1)
+        commitColumnSelection(selection, items: next, columnIndex: columnIndex + 1, medium: medium)
+        return columnIndex + 1
+    }
+
+    /// bug.0.4.213 (Finder): ← wählt in der Spalte davor den Elternordner; Spalten rechts von dessen Inhalt schließen.
+    /// In der ersten Spalte: nichts. Rückgabe: neue Fokus-Spalte.
+    @discardableResult
+    func selectColumnParent(columnIndex: Int, medium: Medium) -> Int? {
+        let state = columnBrowserState
+        guard columnIndex > 0, columnIndex <= state.pathStack.count else { return nil }
+        let parentPath = Array(state.pathStack.prefix(columnIndex - 1))
+        let items = indexRepository.children(mediumID: medium.id, path: parentPath)
+        let name = state.pathStack[columnIndex - 1]
+        guard let parent = items.first(where: { $0.isFolder && $0.name == name }) else { return nil }
+        var selection = ColumnSelection()
+        selection.replace(id: parent.id, column: columnIndex - 1)
+        commitColumnSelection(selection, items: items, columnIndex: columnIndex - 1, medium: medium)
+        return columnIndex - 1
+    }
 }

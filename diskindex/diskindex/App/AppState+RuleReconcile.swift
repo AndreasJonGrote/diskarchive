@@ -244,6 +244,26 @@ extension AppState {
         }
     }
 
+    /// bug.0.4.214 (Konzept „Live-Änderung an der Auswahl“): Eine neu gelesene Spalte der Auswahl enthält gewählte Objekte
+    /// nicht mehr (verschoben, in einen anderen Ordner umbenannt, gelöscht) → sie verlieren die Auswahl; der Pfad bleibt,
+    /// die Details-Spalte schließt. Umbenennen am selben Ort behält die Zeile und damit die Auswahl.
+    func dropVanishedColumnSelection(mediumID: UUID, path: [String], items: [IndexedItem]) {
+        let shownMedium = columnBrowserState.selectedMediumID ?? columnBrowserMedia.first?.id
+        guard shownMedium == mediumID else { return }
+        var state = columnBrowserState
+        guard state.selection.focusColumnIndex == path.count, !state.selection.ids.isEmpty,
+              path.count <= state.pathStack.count, Array(state.pathStack.prefix(path.count)) == path else { return }
+        let before = state.selection.ids
+        let present = Set(items.map(\.id))
+        state.selection.dropInvisible(present)
+        guard state.selection.ids != before else { return }
+        if let uncaptured = state.selectedUncapturedFolderID, !present.contains(uncaptured) {
+            state.selectedUncapturedFolderID = nil
+        }
+        DiskIndexLog.shared.ui("selection vanished column=\(path.count) count=\(before.count - state.selection.ids.count)")
+        columnBrowserState = state
+    }
+
     func resumeAfterRuleReconcile() async {
         // bug.0.4.088/090: veraltet statt leer – kein Ladezustand, wieder freigegebene Einträge erscheinen an ihrem Platz.
         indexRepository.markAllStale()

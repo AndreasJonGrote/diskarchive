@@ -20,7 +20,9 @@ struct ProgressHoldTests {
         let id = testUUID("D1610001-0000-4000-8000-000000000161")
         let start = Date(timeIntervalSince1970: 80_000)
         app.media = [medium(id: id, indexing: true)]
-        app.noteIndexSample(id: id, status: .indexing, fraction: 1, now: start)
+        // bug.0.4.210: Ein Lauf meldet zuerst seinen Anfangswert (Erstlauf 0); die Rampe beginnt dort.
+        app.noteIndexSample(id: id, status: .indexing, fraction: 0, now: start)
+        app.noteIndexSample(id: id, status: .indexing, fraction: 1, now: start.addingTimeInterval(0.05))
         if let index = app.media.firstIndex(where: { $0.id == id }) { app.media[index].indexStatus = .indexed }
         app.noteIndexSample(id: id, status: .indexed, fraction: 1, now: start.addingTimeInterval(0.1))
 

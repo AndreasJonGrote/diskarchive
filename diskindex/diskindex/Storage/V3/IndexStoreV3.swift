@@ -551,12 +551,14 @@ actor IndexStoreV3 {
     }
     #endif
 
+    /// Gibt zurück, um wie viel sich die Zahl der Einträge geändert hat (neu gespeicherte, abzüglich entfernter).
+    @discardableResult
     func applyDirectories(
         mediumUUID: UUID,
         batches: [(parentID: Int64?, path: String?, depth: Int?, entries: [ScannedEntry], finalize: Bool)],
         seenAt: Date,
         mountPath: String? = nil
-    ) async throws {
+    ) async throws -> MediumCountDelta {
         do {
             if directoryWritesFail { throw IndexStoreError.directoryWriteFailed }
             let forceMeta = batches.contains { $0.finalize }
@@ -622,6 +624,7 @@ actor IndexStoreV3 {
             }
             emit(.items(mediumUUID, folderPaths: uniquePaths))
             emit(.counts(mediumUUID))
+            return result.delta
         } catch {
             DiskIndexLog.shared.record(.store, .error, "applyDirectories \(DiskIndexLog.errorSummary(error))")
             throw error

@@ -56,7 +56,10 @@ struct MediumChipTests {
         medium.connectionStatus = .offline
         medium.indexingProgress = 0.47
         medium.completedDepth = 1
-        medium.fileCount = 500
+        // bug.0.4.210: offline zählt der gespeicherte Stand (470 von 1.000), nicht der Restwert des Laufs.
+        medium.fileCount = 470
+        medium.folderCount = 0
+        medium.scanTotal = 1_000
         let chip = MediumChip.presentation(medium)
         #expect(chip.text == "47 % indiziert, offline")
         #expect(chip.offlineGray)
@@ -69,6 +72,9 @@ struct MediumChipTests {
         running.indexStatus = .indexing
         running.connectionStatus = .connected
         running.indexingProgress = 0.47
+        running.fileCount = 470
+        running.folderCount = 0
+        running.scanTotal = 1_000
         let before = MediumChip.presentation(running).text
 
         var unplugged = running

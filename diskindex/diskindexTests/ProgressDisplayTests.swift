@@ -143,9 +143,11 @@ struct ProgressCase: Sendable {
     var indexingProgress: Double
     var fileCount: Int
 
-    static let counting = ProgressCase(fraction: 0, chipText: "0 % indiziert", popoverText: "0 %", phase: .counting, indexingProgress: 0.5, fileCount: 100)
-    static let fortyFive = ProgressCase(fraction: 0.45, chipText: "45 % indiziert", popoverText: "45 %", phase: .indexing, indexingProgress: 0, fileCount: 450)
-    static let ninetyNine = ProgressCase(fraction: 0.99, chipText: "99 % indiziert", popoverText: "99 %", phase: .indexing, indexingProgress: 0, fileCount: 990)
+    // bug.0.4.210: Ein Lauf zeigt seinen Wert (`indexingProgress`, beginnt beim gespeicherten Stand); die Zählphase mit
+    // gespeicherter Gesamtzahl zeigt den gespeicherten Stand, nicht 0 %.
+    static let counting = ProgressCase(fraction: 0.1, chipText: "10 % indiziert", popoverText: "10 %", phase: .counting, indexingProgress: 0.1, fileCount: 100)
+    static let fortyFive = ProgressCase(fraction: 0.45, chipText: "45 % indiziert", popoverText: "45 %", phase: .indexing, indexingProgress: 0.45, fileCount: 450)
+    static let ninetyNine = ProgressCase(fraction: 0.99, chipText: "99 % indiziert", popoverText: "99 %", phase: .indexing, indexingProgress: 0.99, fileCount: 990)
 
     @MainActor
     var medium: Medium {

@@ -129,7 +129,7 @@ struct MenuBarConnectedMediumRow: View {
             let done = Int64((fraction * Double(total)).rounded())
             return "\(Self.byteLabel(done)) / \(Self.byteLabel(total))"
         }
-        return "\(Int(floor(fraction * 100))) %"
+        return "\(IndexProgress.percent(fraction)) %"
     }
 
     private static func byteLabel(_ count: Int64) -> String {
@@ -137,6 +137,11 @@ struct MenuBarConnectedMediumRow: View {
     }
 
     private func rowPrimaryTap() {
+        // bug.0.4.215: offene Rückfrage „Ersetzt dieses Medium?“ zuerst – nicht der Erkennungs-Dialog daneben.
+        if appState.replaceMediumPrompt?.newID == medium.id {
+            AppWindowPresenter.revealReplaceMediumPrompt(appState: appState)
+            return
+        }
         // todo.0.4.026: auch ein erneut gefragtes Medium öffnet zuerst den Erkennungs-Dialog.
         if medium.decision == .undecided || appState.needsNewMediumDialog(medium.id) {
             appState.enqueueNewMediumDecision(medium.id)

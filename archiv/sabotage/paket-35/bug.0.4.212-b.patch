@@ -1,0 +1,14 @@
+# Test: WindowTestGroup/FilterPopoverScrollTests/clickOutsideClosesWithoutSelectingAndEscapeCloses()
+# bug.0.4.212 (b): ein Klick neben das Panel schließt den Filter nicht.
+--- a/diskindex/diskindex/DesignSystem/OutsideClickMonitor.swift
++++ b/diskindex/diskindex/DesignSystem/OutsideClickMonitor.swift
+@@ -63,8 +63,7 @@
+     private func closesOnClick(at location: NSPoint, windowNumber: Int) -> Bool {
+         guard let window, window.windowNumber == windowNumber else { return false }
+         guard !bounds.contains(convert(location, from: nil)) else { return false }
+-        action()
+-        return true
++        return false
+     }
+ 
+     func removeMonitor() {

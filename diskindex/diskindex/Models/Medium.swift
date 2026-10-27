@@ -79,24 +79,19 @@ struct Medium: Identifiable, Equatable, Hashable {
     }
 
     /// Fortschritt 0…1; 100 % nur bei `indexStatus == .indexed` (Aufgabe 105 erweitert `scanTotal`).
+    /// bug.0.4.210: nach der einen Rechnung (`IndexProgress.displayed`). Während eines Laufs dessen Wert
+    /// (`indexingProgress`: gleiche Rechnung im Indexer, nie fallend, auch in der Zählphase), sonst der gespeicherte
+    /// Stand – online und offline gleich.
     var indexProgressFraction: Double {
-        if indexStatus == .indexed { return 1 }
-        if indexStatus == .indexing, indexRunPhase == .counting { return 0 }
-        let storedEntries = fileCount + folderCount
-        if indexStatus == .indexing, indexingProgress > 0 {
-            return min(0.99, indexingProgress)
+        if indexStatus == .indexing {
+            return min(0.99, max(indexingProgress, 0))
         }
-        if scanTotal > 0 {
-            let total = max(scanTotal, storedEntries)
-            return min(0.99, Double(storedEntries) / Double(total))
-        }
-        return min(max(indexingProgress, 0), 0.99)
+        return IndexProgress.displayed(entries: fileCount + folderCount, total: scanTotal, indexed: indexStatus == .indexed)
     }
 
     /// Anzeige-Prozent 0…99, abgerundet; 100 nur bei vollständig indiziert.
     var indexProgressPercent: Int {
-        if indexStatus == .indexed { return 100 }
-        return Int(floor(indexProgressFraction * 100))
+        IndexProgress.percent(indexProgressFraction)
     }
 
     /// Dashboard, Seitenleiste, Suche und Favoriten: nur mit Index und Entscheidung.

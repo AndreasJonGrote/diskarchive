@@ -96,6 +96,11 @@ final class AppState {
     /// (`configureForApp`, aus `applicationDidFinishLaunching`), ein Test setzt `.offscreen` je Instanz
     /// (bug.0.3.9.005 c, bug.0.3.9.014 d: kein Prozess-Schalter).
     @ObservationIgnored var promptPanelPlacement: PromptPanelPlacement?
+    #if DEBUG
+    /// Tests (bug.0.4.209): ein Dialog dieser Instanz wird nach vorn geholt und zum Key-Fenster gemacht (im Test
+    /// außerhalb des Bildschirms nur gezählt). Wert: Art des Dialogs.
+    @ObservationIgnored var promptFocusHookForTesting: ((String) -> Void)?
+    #endif
 
     /// Einstellungen, die nur die App-Instanz bekommt (bug.0.3.9.014 d): Rückfragen mittig.
     func configureForApp() {
@@ -253,6 +258,8 @@ final class AppState {
     let searchLoading: MinimumLoadingIndicator
     var mainWindowDestinationBeforeSearch: MainWindowDestination?
     var isFilterBarVisible = false
+    /// Filter-Panel unter dem Trichter offen (bug.0.4.212: im Zustand statt in der Ansicht, testbar im Fenster).
+    var isFilterPopoverShown = false
     /// Hochzählen = Objekt-Suchfeld verliert den Fokus (Scaffold reagiert, Aufgabe 28).
     var searchFieldFocusResetCount = 0
     var detailMediumID: UUID?
@@ -267,6 +274,8 @@ final class AppState {
     var hasPendingNewMediumDecisions: Bool { newMediumDialogMediumID != nil }
     /// Medium-ID, indizieren ja/nein, „merken“. Gesetzt vom `MediumCoordinator`.
     var onNewMediumChoice: ((UUID, Bool, Bool) -> Void)?
+    /// bug.0.4.215: Antwort auf „Ersetzt dieses Medium?“ (Rückfrage, „Altes vergessen“). Gesetzt vom `MediumCoordinator`.
+    @ObservationIgnored var onReplaceMediumResolved: ((ReplaceMediumPrompt, Bool) -> Void)?
     /// Einstellungen → Speichermedien / Medium-Details: Ja/Nein steuert Lauf und Watcher (`LiveWiring`).
     @ObservationIgnored var onMediumDecisionChanged: ((UUID, StoredIndexDecision, Bool) -> Void)?
     /// „Neu indizieren“. Gesetzt vom `IndexingService`.
@@ -322,6 +331,7 @@ final class AppState {
         defer {
             indexRepository.onColumnReloaded = { [weak self] mediumID, path, previous, items in
                 self?.followOpenPathAfterReload(mediumID: mediumID, path: path, previous: previous, items: items)
+                self?.dropVanishedColumnSelection(mediumID: mediumID, path: path, items: items)
             }
         }
         if store != nil {

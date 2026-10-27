@@ -80,7 +80,9 @@ nonisolated struct DirectoryIndexer: Sendable {
             "start medium=\(mediumUUID) scratch=\(fromScratch) abgleich=\(fullReconcile) tiefe=\(stored.completedDepth) start=\(startDepth)"
         )
         var readErrors = 0
-        var entriesCompleted = stored.fileCount + stored.folderCount
+        // bug.0.4.210: Zähler = wirklich gespeicherte Einträge (erneut gelesene zählen nicht doppelt, siehe unten);
+        // bei „Neu indizieren“ nur, was dieser Lauf schreibt.
+        var entriesCompleted = fromScratch ? 0 : stored.fileCount + stored.folderCount
         var scanTotal = stored.scanTotal
         var highWater = 0.0
         var samples: [Double] = []
@@ -124,14 +126,7 @@ nonisolated struct DirectoryIndexer: Sendable {
         }
 
         func noteIndexing(finished: Bool) async {
-            let ratio: Double
-            if finished {
-                ratio = 1
-            } else if scanTotal <= 0 {
-                ratio = 0
-            } else {
-                ratio = min(0.99, Double(entriesCompleted) / Double(max(scanTotal, entriesCompleted)))
-            }
+            let ratio = finished ? 1 : IndexProgress.displayed(entries: entriesCompleted, total: scanTotal, indexed: false)
             highWater = max(highWater, ratio)
             if samples.count < 1_000, samples.last != highWater {
                 samples.append(highWater)
@@ -160,7 +155,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                 entriesCompleted = stored.fileCount + stored.folderCount
                 await onProgress(IndexProgress(
                     phase: .indexing,
-                    ratio: min(0.99, Double(entriesCompleted) / Double(max(scanTotal, entriesCompleted))),
+                    ratio: IndexProgress.displayed(entries: entriesCompleted, total: scanTotal, indexed: false),
                     filesStored: entriesCompleted,
                     filesDiscovered: scanTotal,
                     entriesTotal: scanTotal,
@@ -265,10 +260,14 @@ nonisolated struct DirectoryIndexer: Sendable {
                 guard !batch.isEmpty else { return nil }
                 do {
                     let started = ContinuousClock.now
-                    try await store.applyDirectories(
+                    let written = try await store.applyDirectories(
                         mediumUUID: mediumUUID, batches: batch, seenAt: seenAt, mountPath: volume.mountPath
                     )
                     DiskIndexLog.shared.perfIfSlow("applyDirectories", since: started)
+                    // bug.0.4.210: die Wurzel kommt nur hier; sonst zählt der Abschluss nur, was er entfernt.
+                    entriesCompleted += fromScratch
+                        ? batch.filter { $0.parentID == nil }.reduce(0) { $0 + $1.entries.count }
+                        : written.files + written.folders
                 } catch {
                     if error is CancellationError {
                         try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
@@ -306,16 +305,23 @@ nonisolated struct DirectoryIndexer: Sendable {
                     }
                     do {
                         var folderEntries: [ScannedEntry] = []
+                        // bug.0.4.210: was dieser Ordner bei „Neu indizieren“ schon gezählt hat (ein neuer Versuch liest neu).
+                        var folderCounted = 0
                         try await readFolderWithRetry(
                             access: access, url: url, limits: limits,
-                            onAttemptBegin: { folderEntries.removeAll(keepingCapacity: true) }
+                            onAttemptBegin: {
+                                folderEntries.removeAll(keepingCapacity: true)
+                                entriesCompleted -= folderCounted
+                                folderCounted = 0
+                            }
                         ) { chunk in
                             let entries = scannedEntries(from: chunk, matcher: matcher, parentPath: parentPath)
                             // bug.0.4.177: die Wurzel erst nach der Prüfung schreiben (ein fremdes Medium unter dem Pfad
                             // käme sonst schon stückweise in den Index); sie geht als ein Stapel unten in `batch`.
                             if !entries.isEmpty, parent.id != nil {
+                                let written: MediumCountDelta
                                 do {
-                                    try await store.applyDirectories(
+                                    written = try await store.applyDirectories(
                                         mediumUUID: mediumUUID,
                                         batches: [(parentID: parent.id, path: parent.path ?? "/", depth: depth, entries: entries, finalize: false)],
                                         seenAt: seenAt,
@@ -324,7 +330,13 @@ nonisolated struct DirectoryIndexer: Sendable {
                                 } catch {
                                     throw IndexWriteFailed(underlying: error)
                                 }
-                                entriesCompleted += entries.count
+                                // Fortsetzen und Abgleich: nur neu gespeicherte Zeilen (erneut gelesene zählen nicht).
+                                if fromScratch {
+                                    entriesCompleted += entries.count
+                                    folderCounted += entries.count
+                                } else {
+                                    entriesCompleted += written.files + written.folders
+                                }
                                 await noteIndexing(finished: false)
                             }
                             folderEntries.append(contentsOf: entries)

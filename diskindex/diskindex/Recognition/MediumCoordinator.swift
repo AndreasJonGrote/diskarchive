@@ -41,6 +41,9 @@ final class MediumCoordinator {
         appState.onNewMediumChoice = { [weak self] id, allowIndexing, remember in
             self?.applyChoice(mediumID: id, allowIndexing: allowIndexing, remember: remember)
         }
+        appState.onReplaceMediumResolved = { [weak self] prompt, forgetOld in
+            self?.resolveReplace(prompt, forgetOld: forgetOld)
+        }
     }
 
     func setIndexHandler(_ handler: @escaping (UUID, VolumeInfo) -> Void) {
@@ -544,10 +547,51 @@ final class MediumCoordinator {
                 requestIndex(mediumID: mediumID, volume: volume)
                 return
             }
-            // Öffnet das Panel selbst, wenn `appState.promptPanelPlacement` gesetzt ist (bug.0.3.9.005 c).
-            appState.offerReplaceMediumPrompt(newID: mediumID)
             guard allowIndexing, let volume = volume(for: mediumID) else { return }
             requestIndex(mediumID: mediumID, volume: volume)
+        }
+    }
+
+    /// bug.0.4.215 (Konzept `medien.md` Punkt 3): „Behalten“ → Erkennungs-Dialog. „Altes vergessen“ → das neue übernimmt
+    /// die Entscheidung des alten samt „Für dieses Medium merken“; nicht gemerkt → der Dialog folgt (bis zur Antwort gilt
+    /// sie wie beim erneuten Fragen). „Indizieren“ fordert den Lauf an. Danach der bestehende Vergessen-Weg.
+    private func resolveReplace(_ prompt: ReplaceMediumPrompt, forgetOld: Bool) {
+        guard forgetOld else {
+            requestDialog(prompt.newID, askReplace: false)
+            return
+        }
+        choiceTask = Task {
+            guard appState.featureAccess.canWriteIndex else { return }
+            var adopted: StoredMedium?
+            do {
+                if let old = try await store.medium(uuid: prompt.oldID), Self.isRecognitionDecision(old.decision),
+                   var row = try await store.medium(uuid: prompt.newID) {
+                    row.decision = old.decision
+                    row.allowIndexing = old.allowIndexing
+                    row.rememberDecision = old.rememberDecision
+                    try await store.updateMediumDecision(uuid: prompt.newID, row)
+                    adopted = row
+                }
+            } catch {
+                guard DiskIndexLog.isOperationalFailure(error) else { return }
+                DiskIndexLog.shared.record(.medium, .error, "ersetzen \(DiskIndexLog.errorSummary(error))")
+            }
+            appState.forgetMedium(id: prompt.oldID)
+            guard let adopted else {
+                requestDialog(prompt.newID, askReplace: false)
+                return
+            }
+            let volume = volume(for: prompt.newID)
+            publish(adopted, connection: volume != nil ? .connected : .offline)
+            DiskIndexLog.shared.record(
+                .medium, .info,
+                "ersetzen übernommen id=\(prompt.newID) entscheidung=\(adopted.decision.rawValue) gemerkt=\(adopted.rememberDecision)"
+            )
+            if !adopted.rememberDecision {
+                requestDialog(prompt.newID, askReplace: false)
+            }
+            guard adopted.decision == .index, let volume else { return }
+            requestIndex(mediumID: prompt.newID, volume: volume)
         }
     }
 
@@ -629,7 +673,13 @@ final class MediumCoordinator {
         DiskIndexLog.shared.record(.medium, .info, "abgleich read-only id=\(display.uuid)")
     }
 
-    private func requestDialog(_ id: UUID) {
+    /// bug.0.4.215: ein unentschiedenes Medium mit genau einem Offline-Medium gleichen Namens bekommt zuerst und allein
+    /// „Ersetzt dieses Medium?“ (öffnet sich selbst bei gesetzter `promptPanelPlacement`); der Erkennungs-Dialog wartet.
+    private func requestDialog(_ id: UUID, askReplace: Bool = true) {
+        if askReplace, appState.medium(with: id)?.decision == .undecided,
+           appState.offerReplaceMediumPrompt(newID: id) {
+            return
+        }
         appState.enqueueNewMediumDecision(id)
         // bug.0.4.117: Lage statt Test-Ausschluss (`promptPanelPlacement`; Tests: `nil` oder `.offscreen`).
         AppWindowPresenter.syncNewMediumPanels(appState: appState)
@@ -651,6 +701,8 @@ final class MediumCoordinator {
                 current.capacityUsedBytes = medium.capacityUsedBytes
                 current.fileCount = medium.fileCount
                 current.folderCount = medium.folderCount
+                // bug.0.4.210: dieselbe Gesamtzahl wie offline.
+                current.scanTotal = medium.scanTotal
                 current.lastSeenAt = medium.lastSeenAt
                 current.lastIndexedAt = medium.lastIndexedAt
                 current.lastIndexActivityAt = medium.lastIndexActivityAt
@@ -705,7 +757,9 @@ extension StoredMedium {
             lastIndexActivityAt: lastIndexActivityAt,
             completedDepth: completedDepth,
             isForgotten: isForgotten,
-            indexingProgress: 0,
+            // bug.0.4.210: „wird indiziert“ aus dem Speicher zeigt den gespeicherten Stand, nicht 0 %.
+            indexingProgress: indexStatus == .indexing
+                ? IndexProgress.displayed(entries: fileCount + folderCount, total: scanTotal, indexed: false) : 0,
             showAbsoluteCapacity: showAbsoluteCapacity,
             isFavorite: isFavorite,
             hasIndexGaps: hasIndexGaps

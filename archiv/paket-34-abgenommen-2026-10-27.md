@@ -51,7 +51,9 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
     2. `bug.0.4.210-b.patch`: Der Zähler addiert erneut gelesene Einträge. Tabellenzeile 2 bzw. Fortsetzen wird rot.
     3. `bug.0.4.210-c.patch`: Bei „Neu indizieren“ zählt der alte Bestand. Gegenprobe „Neu indizieren“ wird rot.
     4. `bug.0.4.210-d.patch`: „Fehler“ wird auf 100 gerundet bzw. `min(0.99)` entfällt für `.error`. Zeile „Fehler mit Lücke“ wird rot.
-  - **Status:** _(Worker)_
+  - **Status:** Bereit zur Prüfung. Reine Funktion `IndexProgress.displayed(entries:total:indexed:)` + `percent` (`IndexRunTypes.swift`); `Medium.indexProgressFraction` nutzt nur sie (während eines Laufs dessen Wert `indexingProgress`, gleiche Rechnung im Indexer, sonst gespeicherter Stand), Chip und Menüleistenzeile über `IndexProgress.percent`, alle übrigen Anzeigen über `Medium`. `DirectoryIndexer`: Fortsetzen/Abgleich zählen nur neu gespeicherte Zeilen (`applyDirectories` gibt `MediumCountDelta` zurück), „Neu indizieren“ nur diesen Lauf (neuer Leseversuch zieht ab). `IndexingService` nur beim Weitergeben: Anfangswert = gespeicherter Stand (bei `fromScratch` 0), `publish` mit `max` (nie fallend); Ablauf unverändert. `IndexProgressDisplay`: 100 % nur bei „indiziert“, die Rampe beginnt beim ersten Wert des Laufs (Befund Selbstprüfung, Stufe 1: Fortsetzen zeigte kurz 0 %). `asMedium`/`MediumCoordinator` (scanTotal) für gleiche Werte online/offline.
+    Tests `IndexProgressRuleTests`: Tabelle (Fälle 1–5, Fehler mit Lücke = Gesamtzahl → 99, indiziert, Erstlauf, Bestand > Gesamtzahl), Fortsetzen ohne Doppelzählung (echter Indexer), Abbruch nie 100 %, „Neu indizieren“ beginnt unten, zweites Medium, Rampe ab gespeichertem Stand. Rot vor dem Fix 27.10. 00:30/00:32 (Abbruch 1,0; Zählphase 0; „Neu indizieren“ 0,99; Fortsetzen 54 statt 34); „Neu indizieren“ in der endgültigen Form und die Rampe rot über Patch c bzw. e (= alter Stand). Angepasst an die eine Rechnung: `MediumChipTests` (2, realistische Zahlen statt Restwert ohne Gesamtzahl), `ProgressDisplayTests` (Laufwert, Zählphase 10 % statt 0), `ProgressHoldTests` (Lauf beginnt bei 0).
+    Sabotage a–e rot (00:46–00:47, e 01:00). Hinweis (Stufe 3 laut Selbstprüfung): ein abgebrochenes „Neu indizieren“ zeigt danach den gespeicherten Stand mit dem alten Bestand (z. B. 99 % offline) – so laut Konzept („gespeicherter Stand“), `fromScratch` löscht nichts.
 
 - **bug.0.4.209 + bug.0.4.216 — Dialoge: Fokus nur beim Erscheinen, Stapel bei jedem Abgleich (eine Aufgabe).**
   - **Nutzer sieht:** (209) Er tippt in einer anderen App, steckt eine Karte ein, und seine Tasten landen im Erkennungsdialog („dauernd der Fokus weg“); ein Return löst „Indizieren“ aus. (216) Steckt er zwei Medien kurz nacheinander ein, sieht er nur **einen** Dialog, der zweite erscheint erst nach der Antwort, statt gestapelt. **Wann:** (209) bei jedem Anschließen, während er schreibt; (216) immer, wenn ein weiteres Medium kommt, während ein Erkennungsdialog offen ist. **Stufe 1.**
@@ -87,7 +89,10 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
     1. `bug.0.4.209-a.patch`: `makeKey` wieder bei jedem `sync`. Test 3 wird rot.
     2. `bug.0.4.209-b.patch`: `.floating` beim Erkennungs-Panel zurück. Test 4 wird rot.
     3. `bug.0.4.216-a.patch`: Lage wieder nur beim Anlegen. Test 1 wird rot.
-  - **Status:** _(Worker)_
+  - **Status:** Bereit zur Prüfung. `syncNewMediumPanels`: Lage aller Panels bei jedem Abgleich (Stapel Layout 02, nach einer Antwort rücken die übrigen nach); nach vorn und Fokus (`bringForward`, einmal) nur für in diesem Abgleich neu erschienene Panels oder wenn der Nutzer selbst öffnet (`openNewMedium`, `revealDismissed`); schon offene werden nur verschoben. Alle vier Dialoge über `configureDialogPanel` (`level = .normal`, `isFloatingPanel = false`, `hidesOnDeactivate = false`); Ersetzen, Ignorieren und Absturzbericht fordern beim erneuten Öffnen keinen Fokus. Test-Haken `AppState.promptFocusHookForTesting` (je Instanz), Zugriffe `newMediumPanel(for:mediumID:)`, `crashReportPanel`.
+    Tests `PromptFocusStackTests` (WindowTestGroup): Stapel bei getrennten Abgleichen + Nachrücken (Gegenprobe selber Abgleich), Fokus nur beim Erscheinen (und vom Nutzer geöffnet), Ersetzen einmal, kein `.floating` bei allen vier. Rot vor dem Fix 27.10. 00:44 (alle vier). Sabotage 209-a, 209-b, 216-a rot (00:47–00:48).
+    Belege beider Aufgaben: ganzes Testziel parallel grün 00:59–01:04 (1233 Zeilen, rc 0); `IndexProgressRuleTests`, `PromptFocusStackTests`, `IndexingWiringTests`, `RunLifecycleTests` 20× parallel grün 01:04–01:08 (rc 0, 0 rote Zeilen; ein früherer 20×-Lauf vor dem Rampen-Fix hatte einmal `forgetStopsWatcherAndCoordinatorMapping` rot, echtes Disk-Image bei Last 5, ohne Bezug zur Änderung); Debug clean mit Testziel und Release 0 Warnungen; keine `.ips`; App des Nutzers 01:10:18 (0.4.0, Signatur ok, `find -newer` leer). Gesamtlauf weggelassen (Last 5–11).
+    Selbstprüfung (Sonnet, drei Stufen): ein Befund Stufe 1 (Rampe ab 0 beim Fortsetzen) behoben, sonst Stufe 3: ein vom Nutzer verschobenes Panel springt beim nächsten Abgleich in den Stapel zurück; ein Panel kann ganz hinter dem Hauptfenster liegen (so entschieden, zurück über die Menüleiste).
 
 **Paketende:**
 - 0 Warnungen in Debug und Release.
@@ -95,3 +100,23 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
 - Alle Patches unter `todo/sabotage/` rot.
 - App des Nutzers gebaut.
 - **Gesamtlauf nur auf ruhigem Rechner** (Last < 3, keine Spiele). Sonst weglassen und im Status vermerken, dann macht ihn der Host.
+
+## Abnahme Host 27.10. (Gesamtlauf 01:29–01:58)
+
+`Werkzeuge/pruefung.sh voll` ergab:
+- Debug und Release: 0 Warnungen.
+- Seriell **1174/1174** grün.
+- Parallel 1–3 **grün** (je 1168 bestanden, 6 übersprungen, Exit 0).
+- Keine neuen `.ips`; neue Dateien in `~/Library/Preferences`: 0.
+- Sabotage **8/8 rot ✓** (209-a/b, 210-a–e, 216-a).
+- App des Nutzers 01:57:55, Signatur gültig, Version 0.4.0.
+
+Den Diff hat der Host gelesen:
+- **210:** `IndexProgress.displayed(entries:total:indexed:)` und `percent` sind die eine Rechnung. Alle anderen Anzeigen gehen über `Medium.indexProgressFraction` bzw. den Chip. `IndexProgressDisplay` verwirft den Lauf bei jedem Ende außer „indiziert“; die Rampe beginnt beim gespeicherten Stand. `DirectoryIndexer` zählt beim Fortsetzen nur neu gespeicherte Zeilen (`applyDirectories` → `MediumCountDelta`), bei „Neu indizieren“ nur diesen Lauf. In `IndexingService` ändert sich nur die Weitergabe (Anfangswert, `max` in `publish`), der Lebenszyklus ist unverändert.
+- **209 + 216:** `syncNewMediumPanels` setzt die Lage bei jedem Abgleich neu; `bringForward` läuft nur für neu erschienene Panels oder auf Wunsch des Nutzers. Alle vier Panels gehen über `configureDialogPanel` (`.normal`).
+
+Prüf-Agent (Sonnet, Vorlage 2b): nichts Wesentliches, kein Befund der Stufe 1 oder 2.
+
+- **Abgenommen:** `bug.0.4.209`, `bug.0.4.210`, `bug.0.4.216`.
+- **Im Nutzertest nachsehen** (Rest der Abnahmerunde): Stick abziehen und wieder einstecken (kein Sprung auf 100 % oder 0 %, online = offline); zwei Medien kurz nacheinander (gestapelt); beim Schreiben in einer anderen App ein Medium einstecken (Fokus nur einmal).
+- **Stufe 3 (keine Aufgabe):** Bei „Neu indizieren“ rechnet der Vorlauf vor der Zählung mit der alten Gesamtzahl. Ein abgebrochenes „Neu indizieren“ zeigt den gespeicherten Stand mit dem alten Bestand. Ein verschobenes Panel springt beim nächsten Abgleich in den Stapel zurück.

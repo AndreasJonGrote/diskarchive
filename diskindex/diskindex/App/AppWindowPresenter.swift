@@ -32,6 +32,14 @@ enum AppWindowPresenter {
     static func openNewMediumPanelCount(for appState: AppState) -> Int {
         newMediumPanels[ObjectIdentifier(appState)]?.count ?? 0
     }
+
+    /// Erkennungs-Panel eines Mediums dieser Instanz (Tests, bug.0.4.216).
+    static func newMediumPanel(for appState: AppState, mediumID: UUID) -> NSPanel? {
+        newMediumPanels[ObjectIdentifier(appState)]?[mediumID]
+    }
+
+    /// Offenes Absturzbericht-Panel (Tests, bug.0.4.209).
+    static var crashReportPanel: NSPanel? { crashReportWindow }
     #endif
 
     /// bug.0.4.142: Lage, die ein `open*` tatsächlich benutzt. Im Testprozess immer außerhalb des Bildschirms (Regel 19/21),
@@ -155,8 +163,8 @@ enum AppWindowPresenter {
         }
     }
 
-    /// Pro unentschiedenem oder erneut gefragtem Medium (todo.0.4.026) ein schwebendes Panel (0.3.2), unten rechts
-    /// gestapelt. Lage über `appState.promptPanelPlacement` (bug.0.4.117): `nil` = kein Panel, `.offscreen` (Tests)
+    /// Pro unentschiedenem oder erneut gefragtem Medium (todo.0.4.026) ein Panel, gestapelt nach Layout 02 (todo.0.4.048).
+    /// Lage über `appState.promptPanelPlacement` (bug.0.4.117): `nil` = kein Panel, `.offscreen` (Tests)
     /// außerhalb des Bildschirms und nie Key.
     static func syncNewMediumPanels(appState: AppState, revealDismissed: Bool = false) {
         guard let placement = newMediumPanelPlacement(for: appState) else { return }
@@ -172,21 +180,23 @@ enum AppWindowPresenter {
             closeNewMediumPanel(mediumID: id, appState: appState, userDismissed: false)
         }
 
+        // bug.0.4.216: die Lage aller Panels bei jedem Abgleich (Stapel nach Layout 02) – ein später gekommenes Medium
+        // liegt nicht über dem älteren, und nach einer Antwort rücken die übrigen nach.
+        var appeared: [UUID] = []
         for (stackIndex, id) in activeIDs.enumerated() {
-            openOrUpdateNewMediumPanel(
-                mediumID: id,
-                appState: appState,
-                stackIndex: stackIndex,
-                stackCount: activeIDs.count,
-                placement: placement
-            )
+            guard let (panel, isNew) = newMediumPanel(mediumID: id, appState: appState) else { continue }
+            if isNew { appeared.append(id) }
+            placeNewMediumPanel(panel, depthFromNewest: activeIDs.count - 1 - stackIndex, placement: placement)
         }
 
-        if let frontID = activeIDs.last, let panel = newMediumPanels[key]?[frontID] {
-            panel.orderFrontRegardless()
-            if placement == .centered {
-                panel.makeKey()
-            }
+        // bug.0.4.209: nach vorn und Fokus nur, wenn ein Panel neu erscheint (oder der Nutzer den Dialog selbst öffnet);
+        // ein schon offenes wird nur verschoben.
+        let shown = revealDismissed ? activeIDs : appeared
+        for id in shown.dropLast() {
+            newMediumPanels[key]?[id]?.orderFrontRegardless()
+        }
+        if let frontID = shown.last, let panel = newMediumPanels[key]?[frontID] {
+            bringForward(panel, placement: placement, appState: appState, kind: "neues-medium")
         }
     }
 
@@ -236,15 +246,13 @@ enum AppWindowPresenter {
         }
     }
 
-    /// Rückfrage „Ersetzt dieses Medium?“ als schwebendes Panel wie der Erkennungs-Dialog (bug.0.4.031 c).
+    /// Rückfrage „Ersetzt dieses Medium?“ als Panel wie der Erkennungs-Dialog (bug.0.4.031 c).
     static func openReplaceMediumPrompt(appState: AppState, placement requested: PromptPanelPlacement = .centered) {
         guard appState.replaceMediumPrompt != nil else { return }
         let placement = effectivePlacement(requested)
         let key = ObjectIdentifier(appState)
-        if let panel = replaceMediumPanels[key] {
-            show(panel, placement: placement)
-            return
-        }
+        // bug.0.4.209: schon offen → den Fokus nicht neu anfordern.
+        guard replaceMediumPanels[key] == nil else { return }
         let hosting = NSHostingView(
             rootView: ReplaceMediumDialogWindowHost(onDone: { replaceMediumPanels[key]?.close() })
                 .environment(appState)
@@ -256,13 +264,7 @@ enum AppWindowPresenter {
             backing: .buffered,
             defer: false
         )
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
+        configureDialogPanel(panel)
         panel.contentView = hosting
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
@@ -272,7 +274,16 @@ enum AppWindowPresenter {
         }
         replaceMediumPanels[key] = panel
         place(panel, placement: placement)
-        show(panel, placement: placement)
+        show(panel, placement: placement, appState: appState, kind: "ersetzen")
+    }
+
+    /// bug.0.4.215: der Nutzer holt die offene Rückfrage selbst wieder vor (Menüleiste) – kein erneutes Anfordern.
+    static func revealReplaceMediumPrompt(appState: AppState) {
+        guard let panel = replaceMediumPanels[ObjectIdentifier(appState)] else {
+            openReplaceMediumPrompt(appState: appState)
+            return
+        }
+        bringForward(panel, placement: .centered, appState: appState, kind: "ersetzen")
     }
 
     /// Rückfrage vor dem Ignorieren vieler Ziele (bug.0.4.035), gleiches Panel wie die Medium-Rückfrage.
@@ -280,10 +291,8 @@ enum AppWindowPresenter {
         guard appState.ignoreConfirmationPrompt != nil else { return }
         let placement = effectivePlacement(requested)
         let key = ObjectIdentifier(appState)
-        if let panel = ignoreConfirmPanels[key] {
-            show(panel, placement: placement)
-            return
-        }
+        // bug.0.4.209: schon offen → den Fokus nicht neu anfordern.
+        guard ignoreConfirmPanels[key] == nil else { return }
         let hosting = NSHostingView(
             rootView: IgnoreConfirmDialogWindowHost(onDone: { ignoreConfirmPanels[key]?.close() })
                 .environment(appState)
@@ -294,13 +303,7 @@ enum AppWindowPresenter {
             backing: .buffered,
             defer: false
         )
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
+        configureDialogPanel(panel)
         panel.contentView = hosting
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
@@ -310,7 +313,7 @@ enum AppWindowPresenter {
         }
         ignoreConfirmPanels[key] = panel
         place(panel, placement: placement)
-        show(panel, placement: placement)
+        show(panel, placement: placement, appState: appState, kind: "ignorieren")
     }
 
     #if DEBUG
@@ -336,22 +339,40 @@ enum AppWindowPresenter {
         }
     }
 
-    /// Gleicher Responder in App und Test; nur die App macht das Panel zum Key-Fenster (Tests: Regel 19/21).
-    private static func show(_ panel: NSPanel, placement: PromptPanelPlacement) {
-        panel.orderFrontRegardless()
+    /// Erstes Erscheinen einer Rückfrage: gleicher Responder in App und Test, einmal nach vorn mit Fokus.
+    private static func show(_ panel: NSPanel, placement: PromptPanelPlacement, appState: AppState?, kind: String) {
         panel.makeFirstResponder(panel.contentView)
+        bringForward(panel, placement: placement, appState: appState, kind: kind)
+    }
+
+    /// bug.0.4.209 (Konzept `medien.md` Punkt 3): ein Dialog kommt beim Erscheinen **einmal** nach vorn und nimmt den
+    /// Fokus; nur die App macht ihn zum Key-Fenster (Tests: Regel 19/21).
+    private static func bringForward(_ panel: NSPanel, placement: PromptPanelPlacement, appState: AppState?, kind: String) {
+        #if DEBUG
+        appState?.promptFocusHookForTesting?(kind)
+        #endif
+        panel.orderFrontRegardless()
         if placement == .centered {
             panel.makeKey()
         }
     }
 
+    /// bug.0.4.209: kein `.floating` – ein Klick in ein anderes Fenster (auch einer anderen App) legt den Dialog dahinter;
+    /// er bleibt offen, bis der Nutzer entscheidet.
+    private static func configureDialogPanel(_ panel: NSPanel) {
+        panel.isFloatingPanel = false
+        panel.level = .normal
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
+        panel.hasShadow = false
+        panel.hidesOnDeactivate = false
+        panel.isMovableByWindowBackground = true
+    }
+
     static func openCrashReport() {
         let placement = effectivePlacement(.centered)
-        if let window = crashReportWindow {
-            window.orderFrontRegardless()
-            if placement == .centered { window.makeKey() }
-            return
-        }
+        // bug.0.4.209: schon offen → den Fokus nicht neu anfordern.
+        guard crashReportWindow == nil else { return }
         let hosting = NSHostingView(
             rootView: CrashReportDialog {
                 DiskIndexLog.shared.acknowledgeCrashDialog()
@@ -365,55 +386,37 @@ enum AppWindowPresenter {
             backing: .buffered,
             defer: false
         )
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
+        configureDialogPanel(panel)
         panel.contentView = hosting
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
         place(panel, placement: placement)
         register(panel) { crashReportWindow = nil }
         crashReportWindow = panel
-        panel.orderFrontRegardless()
-        if placement == .centered { panel.makeKey() }
+        bringForward(panel, placement: placement, appState: nil, kind: "absturzbericht")
     }
 
-    private static func openOrUpdateNewMediumPanel(
-        mediumID: UUID,
-        appState: AppState,
-        stackIndex: Int,
-        stackCount: Int,
-        placement: PromptPanelPlacement
-    ) {
+    /// Das Panel des Mediums; legt es an, wenn es fehlt (`isNew`). Lage und Anzeige macht `syncNewMediumPanels`.
+    private static func newMediumPanel(mediumID: UUID, appState: AppState) -> (panel: NSPanel, isNew: Bool)? {
         let key = ObjectIdentifier(appState)
-        let hosting: NSHostingView<AnyView>
-        if let panel = newMediumPanels[key]?[mediumID], let existing = panel.contentView as? NSHostingView<AnyView> {
-            hosting = existing
-        } else {
-            hosting = NSHostingView(
-                rootView: AnyView(
-                    NewMediumDialogWindowHost(mediumID: mediumID)
-                        .environment(appState)
-                )
-            )
-            let panel = makeNewMediumPanel(hosting: hosting)
-            register(panel) {
-                newMediumPanels[key]?.removeValue(forKey: mediumID)
-                if newMediumPanels[key]?.isEmpty == true {
-                    newMediumPanels[key] = nil
-                }
-            }
-            newMediumPanels[key, default: [:]][mediumID] = panel
-            let depthFromNewest = stackCount - 1 - stackIndex
-            placeNewMediumPanel(panel, depthFromNewest: depthFromNewest, placement: placement)
+        if let panel = newMediumPanels[key]?[mediumID], panel.contentView is NSHostingView<AnyView> {
+            return (panel, false)
         }
-
-        guard let panel = newMediumPanels[key]?[mediumID] else { return }
-        panel.orderFrontRegardless()
+        let hosting = NSHostingView(
+            rootView: AnyView(
+                NewMediumDialogWindowHost(mediumID: mediumID)
+                    .environment(appState)
+            )
+        )
+        let panel = makeNewMediumPanel(hosting: hosting)
+        register(panel) {
+            newMediumPanels[key]?.removeValue(forKey: mediumID)
+            if newMediumPanels[key]?.isEmpty == true {
+                newMediumPanels[key] = nil
+            }
+        }
+        newMediumPanels[key, default: [:]][mediumID] = panel
+        return (panel, true)
     }
 
     /// Erkennungs-Panel ohne Lage und ohne Anzeige (bug.0.3.9.014 a: dieselbe Erzeugung in App und Test).
@@ -424,13 +427,7 @@ enum AppWindowPresenter {
             backing: .buffered,
             defer: false
         )
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.backgroundColor = .clear
-        panel.isOpaque = false
-        panel.hasShadow = false
-        panel.hidesOnDeactivate = false
-        panel.isMovableByWindowBackground = true
+        configureDialogPanel(panel)
         panel.becomesKeyOnlyIfNeeded = false
         panel.contentView = hosting
         hosting.wantsLayer = true

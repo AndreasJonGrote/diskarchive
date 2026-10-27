@@ -1,0 +1,13 @@
+# Test: IndexProgressRuleTests/resumedRunNeverDipsBelowTheStoredValue()
+# bug.0.4.210 (e, Selbstprüfung): die Rampe „mindestens 1 s sichtbar“ beginnt wieder bei 0 – ein fortgesetzter Lauf zeigt kurz 0 %.
+--- a/diskindex/diskindex/App/AppState+Media.swift
++++ b/diskindex/diskindex/App/AppState+Media.swift
+@@ -443,7 +443,7 @@
+         guard let run = runs[id] else {
+             return indexing ? fallback : nil
+         }
+-        let clock = max(run.floor, min(1, max(0, now.timeIntervalSince(run.startedAt) / Self.minimumDuration)))
++        let clock = min(1, max(0, now.timeIntervalSince(run.startedAt) / Self.minimumDuration))
+         guard let expiresAt = run.expiresAt else { return min(run.real, clock) }
+         if clock < 1 { return clock }
+         return now < expiresAt ? 1 : nil

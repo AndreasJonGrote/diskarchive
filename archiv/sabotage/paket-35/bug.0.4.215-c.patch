@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/ReplaceFirstTests/keepShowsTheRecognitionDialog()
+# bug.0.4.215 (c): „Behalten“ ohne Erkennungsdialog.
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift
+@@ -557,7 +557,6 @@
+     /// sie wie beim erneuten Fragen). „Indizieren“ fordert den Lauf an. Danach der bestehende Vergessen-Weg.
+     private func resolveReplace(_ prompt: ReplaceMediumPrompt, forgetOld: Bool) {
+         guard forgetOld else {
+-            requestDialog(prompt.newID, askReplace: false)
+             return
+         }
+         choiceTask = Task {

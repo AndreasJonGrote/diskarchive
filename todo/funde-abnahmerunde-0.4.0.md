@@ -6,8 +6,8 @@ Gesammelt vom Host während der Runde, nach den drei Stufen (AGENTS.md). Der Sup
 
 | Paket | Inhalt | Stand |
 |---|---|---|
-| 34 | 210 (schwer, zuerst), 209 + 216 als eine Aufgabe | freigegeben 27.10. |
-| 35 | 215 (schwer, zuerst), 212, 213, 214 | nach Paket 34 |
+| 34 | 210 (schwer, zuerst), 209 + 216 als eine Aufgabe | **abgenommen 27.10.** (Gesamtlauf 01:29–01:58 grün) |
+| 35 | 215 (schwer, zuerst), 212, 213, 214 | **abgenommen 27.10.** (Gesamtlauf 09:25–10:12 grün) |
 | 36 | 211, 217, 218, 219, 220 und die Funde aus dem Rest des Layout-Durchgangs | erst nach dem Durchgang schneiden; über 8 Kennungen → Paket 37 |
 
 ## Stand der Runde (Host, 26.10. 23:05)

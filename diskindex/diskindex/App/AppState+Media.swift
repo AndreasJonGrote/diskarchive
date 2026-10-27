@@ -180,11 +180,13 @@ extension AppState {
         pendingNewMediumDecisionIDs.removeAll()
     }
 
-    /// Neues Medium nach der Entscheidung im Erkennungs-Dialog: genau ein Offline-Medium gleichen Namens → Rückfrage.
-    /// Mehrere Treffer: keine Rückfrage. Nie automatisch vergessen.
+    /// bug.0.4.215: neues Medium, genau ein Offline-Medium gleichen Namens → zuerst und allein die Rückfrage (vor dem
+    /// Erkennungs-Dialog). Mehrere Treffer oder schon eine offene Rückfrage: keine. Nie automatisch vergessen.
     @discardableResult
     func offerReplaceMediumPrompt(newID: UUID) -> Bool {
-        guard let newMedium = medium(with: newID) else { return false }
+        // Schon gefragt (z. B. umgesteckt, während die Rückfrage offen ist): kein zweiter Dialog daneben.
+        if replaceMediumPrompt?.newID == newID { return true }
+        guard replaceMediumPrompt == nil, let newMedium = medium(with: newID) else { return false }
         let offlineNamesakes = media.filter {
             $0.id != newID && !$0.isForgotten && $0.connectionStatus == .offline && $0.name == newMedium.name
         }
@@ -197,11 +199,16 @@ extension AppState {
         return true
     }
 
-    /// „Altes vergessen“ geht über den bestehenden Vergessen-Weg; „Behalten“ ändert nichts.
+    /// „Altes vergessen“ geht über den bestehenden Vergessen-Weg; „Behalten“ ändert nichts. Mit Coordinator übernimmt das
+    /// neue Medium die Entscheidung des alten, und der Erkennungs-Dialog folgt, wo er nötig ist (bug.0.4.215).
     func resolveReplaceMediumPrompt(forgetOld: Bool) {
         guard let prompt = replaceMediumPrompt else { return }
         replaceMediumPrompt = nil
         DiskIndexLog.shared.ui("replace prompt forgetOld=\(forgetOld)")
+        if let onReplaceMediumResolved {
+            onReplaceMediumResolved(prompt, forgetOld)
+            return
+        }
         if forgetOld {
             forgetMedium(id: prompt.oldID)
         }
@@ -398,7 +405,8 @@ extension AppState {
 
 }
 
-/// Hält die Fortschrittsanzeige mindestens `minimumDuration` und danach `holdAtFull` bei 100 %.
+/// Hält die Fortschrittsanzeige mindestens `minimumDuration` und danach `holdAtFull` bei 100 % – nur für einen Lauf, der
+/// mit „indiziert“ endet (bug.0.4.210); Abbruch, Pause, Offline und Fehler zeigen sofort den gespeicherten Stand.
 final class IndexProgressDisplay {
     static let minimumDuration: TimeInterval = 0.6
     static let holdAtFull: TimeInterval = 0.3
@@ -406,6 +414,8 @@ final class IndexProgressDisplay {
     struct Run {
         var startedAt: Date
         var real: Double
+        /// bug.0.4.210: erster Wert des Laufs (gespeicherter Stand beim Fortsetzen) – die Rampe beginnt hier, nicht bei 0.
+        var floor: Double
         var endedAt: Date?
 
         var expiresAt: Date? {
@@ -423,9 +433,13 @@ final class IndexProgressDisplay {
                 run.real = max(run.real, min(fraction, 0.99))
                 runs[id] = run
             } else {
-                runs[id] = Run(startedAt: now, real: min(fraction, 0.99), endedAt: nil)
+                runs[id] = Run(startedAt: now, real: min(fraction, 0.99), floor: min(fraction, 0.99), endedAt: nil)
             }
         } else if var run = runs[id], run.endedAt == nil {
+            guard status == .indexed else {
+                runs[id] = nil
+                return
+            }
             run.endedAt = now
             run.real = 1
             runs[id] = run
@@ -436,7 +450,7 @@ final class IndexProgressDisplay {
         guard let run = runs[id] else {
             return indexing ? fallback : nil
         }
-        let clock = min(1, max(0, now.timeIntervalSince(run.startedAt) / Self.minimumDuration))
+        let clock = max(run.floor, min(1, max(0, now.timeIntervalSince(run.startedAt) / Self.minimumDuration)))
         guard let expiresAt = run.expiresAt else { return min(run.real, clock) }
         if clock < 1 { return clock }
         return now < expiresAt ? 1 : nil

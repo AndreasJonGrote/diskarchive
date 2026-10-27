@@ -14,6 +14,8 @@ Befunde, die der Nutzer nur bei seltener Ereignisfolge merkt (Stufe 2, ohne Nach
 | 26.10. | 33 | 3 | `FilePrivacy`, erstes Anlegen von `Logs/` | nichts; 755/644 bis zum nächsten Start, danach 700/600 (schon vorher so) |
 | 26.10. | 33 | 3 | `AppStateStore`, Doppelstart im selben Moment | nichts; die zweite Instanz übergibt und beendet sich |
 | 27.10. | Abnahmerunde (Supervisor) | 2 | `DirectoryIndexer`, `parentsFor` + `readFolderWithRetry` | Wird ein schon indizierter Ordner nachträglich gesperrt, liest jeder Lauf auch alle alten Unterordner einzeln, mit je ~14 s Wartezeit. Der Lauf dauert dann lange; nur bei nachträglich gesperrten Ordnern |
+| 27.10. | 35 | 2 | `MediumCoordinator`, App-Start mit zwei gleichnamigen Medien (eines neu) | Wird das neue vor dem bekannten verarbeitet, zählt das bekannte noch als offline: Rückfrage „Ersetzt …?“ zu einem angeschlossenen Medium. Nur beim Start mit beiden Medien zugleich, nicht beobachtet |
+| 27.10. | 35 | 2 | `MediumCoordinator.requestDialog`, „Behalten“ nicht gemerkt | Nach „Behalten“ und ohne Antwort im Erkennungsdialog kommt beim nächsten Anschließen wieder die Rückfrage statt des Erkennungsdialogs. Nur, wenn der Nutzer den Erkennungsdialog offen lässt |
 | 26.10. | Abnahmerunde | 3 | `IssueTracker.noteError` bei Abbruch eines Laufs (Auswerfen, Umbenennen) | nichts; `CancellationError` steht als „app error index error category=store“ im Protokoll |
 
 ---

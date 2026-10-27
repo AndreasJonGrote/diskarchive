@@ -14,7 +14,6 @@ struct MainWindowScreenScaffold<Content: View>: View {
     @ViewBuilder var content: () -> Content
 
     @FocusState private var isSearchFocused: Bool
-    @State private var showFilterPopover = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,7 +24,7 @@ struct MainWindowScreenScaffold<Content: View>: View {
             )
 
             if appState.showsFilterBar {
-                MainWindowFilterBar(showFilterPopover: $showFilterPopover)
+                MainWindowFilterBar(showFilterPopover: Bindable(appState).isFilterPopoverShown)
             }
 
             content()
@@ -33,38 +32,34 @@ struct MainWindowScreenScaffold<Content: View>: View {
                 .background(DesignColor.bg)
         }
         .overlayPreferenceValue(FilterButtonAnchorKey.self, alignment: .topLeading) { anchor in
-            if showFilterPopover, let anchor {
+            if appState.isFilterPopoverShown, let anchor {
                 filterPopover(anchor: anchor)
             }
         }
         .dismissObjectSearchFocusOnOutsideClick(isFocused: $isSearchFocused)
         .onChange(of: appState.mainWindowDestination) { _, _ in
-            showFilterPopover = false
+            appState.isFilterPopoverShown = false
         }
         .onChange(of: appState.searchFieldFocusResetCount) { _, _ in
             isSearchFocused = false
         }
         .onChange(of: appState.showsFilterBar) { _, isShown in
-            if !isShown { showFilterPopover = false }
+            if !isShown { appState.isFilterPopoverShown = false }
         }
     }
 
-    /// Über allem: transparente Klickfläche (Klick daneben schließt) + Panel unter dem Filter-Button.
+    /// Panel unter dem Filter-Button. bug.0.4.212: keine fensterfüllende Fläche (sie schluckte das Scrollen) – ein Klick
+    /// daneben schließt über `onClickOutside` und löst dort nichts aus; Escape schließt ebenso.
     private func filterPopover(anchor: Anchor<CGRect>) -> some View {
         GeometryReader { proxy in
             let buttonFrame = proxy[anchor]
-            ZStack(alignment: .topLeading) {
-                Color.black.opacity(0.001)
-                    .contentShape(Rectangle())
-                    .onTapGesture { showFilterPopover = false }
-
-                SearchFilterPopoverPanel()
-                    .fixedSize()
-                    // Nasenspitze ca. 4 pt unter dem Filter-Button.
-                    .offset(x: buttonFrame.minX, y: buttonFrame.maxY + 4 + SearchFilterPopoverPanel.noseHeight)
-            }
+            SearchFilterPopoverPanel()
+                .fixedSize()
+                .onClickOutside { appState.isFilterPopoverShown = false }
+                // Nasenspitze ca. 4 pt unter dem Filter-Button.
+                .offset(x: buttonFrame.minX, y: buttonFrame.maxY + 4 + SearchFilterPopoverPanel.noseHeight)
         }
         .zIndex(1)
-        .onEscapeKey { showFilterPopover = false }
+        .onEscapeKey { appState.isFilterPopoverShown = false }
     }
 }

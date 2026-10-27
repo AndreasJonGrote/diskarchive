@@ -1,0 +1,14 @@
+# Test: WindowTestGroup/ReplaceFirstTests/rememberedDecisionIsAdoptedWithoutRecognitionDialog()
+# bug.0.4.215 (b): „Altes vergessen“ übernimmt die Entscheidung des alten nicht.
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift
+@@ -566,9 +566,6 @@
+             do {
+                 if let old = try await store.medium(uuid: prompt.oldID), Self.isRecognitionDecision(old.decision),
+                    var row = try await store.medium(uuid: prompt.newID) {
+-                    row.decision = old.decision
+-                    row.allowIndexing = old.allowIndexing
+-                    row.rememberDecision = old.rememberDecision
+                     try await store.updateMediumDecision(uuid: prompt.newID, row)
+                     adopted = row
+                 }

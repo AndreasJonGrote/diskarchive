@@ -1,0 +1,13 @@
+# Test: WindowTestGroup/PromptFocusStackTests/focusOnlyWhenAPanelAppears()
+# bug.0.4.209 (a): jeder Abgleich holt das vorderste Panel wieder nach vorn und macht es zum Key-Fenster.
+--- a/diskindex/diskindex/App/AppWindowPresenter.swift
++++ b/diskindex/diskindex/App/AppWindowPresenter.swift
+@@ -191,7 +191,7 @@
+ 
+         // bug.0.4.209: nach vorn und Fokus nur, wenn ein Panel neu erscheint (oder der Nutzer den Dialog selbst öffnet);
+         // ein schon offenes wird nur verschoben.
+-        let shown = revealDismissed ? activeIDs : appeared
++        let shown = activeIDs
+         for id in shown.dropLast() {
+             newMediumPanels[key]?[id]?.orderFrontRegardless()
+         }

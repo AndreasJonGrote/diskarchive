@@ -1,0 +1,23 @@
+# Test: WindowTestGroup/ReplaceFirstTests/rememberedDecisionIsAdoptedWithoutRecognitionDialog()
+# bug.0.4.215 (a): die Rückfrage kommt wieder erst nach der Antwort im Erkennungsdialog (Stand vor dem Fix).
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift
+@@ -534,6 +534,7 @@
+             publish(stored, connection: connection)
+             // todo.0.4.026: die Antwort beantwortet den Dialog; sonst bliebe ein entschiedenes Medium in der Warteschlange.
+             appState.completeNewMediumDecision(mediumID)
++            if !Self.isRecognitionDecision(previous) { appState.offerReplaceMediumPrompt(newID: mediumID) }
+             if Self.isRecognitionDecision(previous) {
+                 // todo.0.4.026: erneut gefragtes Medium. Keine Ersetzen-Rückfrage (kein neues Medium); eine geänderte
+                 // Antwort wirkt wie die Änderung in 05/06 (Nein stoppt Lauf und Überwachung, Ja fordert an).
+@@ -676,10 +677,6 @@
+     /// bug.0.4.215: ein unentschiedenes Medium mit genau einem Offline-Medium gleichen Namens bekommt zuerst und allein
+     /// „Ersetzt dieses Medium?“ (öffnet sich selbst bei gesetzter `promptPanelPlacement`); der Erkennungs-Dialog wartet.
+     private func requestDialog(_ id: UUID, askReplace: Bool = true) {
+-        if askReplace, appState.medium(with: id)?.decision == .undecided,
+-           appState.offerReplaceMediumPrompt(newID: id) {
+-            return
+-        }
+         appState.enqueueNewMediumDecision(id)
+         // bug.0.4.117: Lage statt Test-Ausschluss (`promptPanelPlacement`; Tests: `nil` oder `.offscreen`).
+         AppWindowPresenter.syncNewMediumPanels(appState: appState)

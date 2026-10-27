@@ -90,7 +90,7 @@ enum MediumChip {
         displayedFraction: Double? = nil
     ) -> Presentation {
         let connected = medium.connectionStatus == .connected
-        let percent = displayedFraction.map { Int(floor($0 * 100)) } ?? medium.indexProgressPercent
+        let percent = IndexProgress.percent(displayedFraction ?? medium.indexProgressFraction)
         let stillShowing = displayedFraction != nil
         if !medium.hasIndex {
             if medium.decision.refusesIndexing {

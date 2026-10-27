@@ -1,0 +1,13 @@
+# Test: WindowTestGroup/ReplaceFirstTests/replugWhileAskingKeepsOnlyThePrompt()
+# bug.0.4.215 (d, Selbstprüfung): bei offener Rückfrage umgesteckt → Erkennungsdialog zusätzlich daneben.
+--- a/diskindex/diskindex/App/AppState+Media.swift
++++ b/diskindex/diskindex/App/AppState+Media.swift
+@@ -184,8 +184,6 @@
+     /// Erkennungs-Dialog). Mehrere Treffer oder schon eine offene Rückfrage: keine. Nie automatisch vergessen.
+     @discardableResult
+     func offerReplaceMediumPrompt(newID: UUID) -> Bool {
+-        // Schon gefragt (z. B. umgesteckt, während die Rückfrage offen ist): kein zweiter Dialog daneben.
+-        if replaceMediumPrompt?.newID == newID { return true }
+         guard replaceMediumPrompt == nil, let newMedium = medium(with: newID) else { return false }
+         let offlineNamesakes = media.filter {
+             $0.id != newID && !$0.isForgotten && $0.connectionStatus == .offline && $0.name == newMedium.name

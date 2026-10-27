@@ -265,7 +265,7 @@ struct MediumIdentityTests {
         await access.open()
     }
 
-    /// c) Offline-Medium „USB“ + neues Medium „USB“ → nach der Entscheidung im Dialog die Rückfrage; „Behalten“ → beide bleiben.
+    /// c) Offline-Medium „USB“ + neues Medium „USB“ → zuerst die Rückfrage (bug.0.4.215); „Behalten“ → beide bleiben.
     @Test func namesakeOfOfflineMediumAsksAndKeepLeavesBoth() async throws {
         let store = try freshStore()
         let old = try await offlineMedium(named: "USB", in: store)
@@ -274,13 +274,12 @@ struct MediumIdentityTests {
         let rig = WiredRig(store: store, access: GrantedAccess(), app: app)
 
         await rig.coordinator.handle(.appeared(testVolume(path: "/Volumes/USB", name: "USB")))
-        let newID = try #require(app.newMediumDialogMediumID)
-        #expect(app.replaceMediumPrompt == nil)
-        app.onNewMediumChoice?(newID, false, true)
-        await rig.coordinator.waitForChoice()
+        let newID = try #require(app.replaceMediumPrompt?.newID)
         #expect(app.replaceMediumPrompt == ReplaceMediumPrompt(newID: newID, oldID: old.uuid, name: "USB"))
+        #expect(app.newMediumDialogMediumID == nil)
 
         app.resolveReplaceMediumPrompt(forgetOld: false)
+        #expect(app.newMediumDialogMediumID == newID)
         #expect(app.replaceMediumPrompt == nil)
         try await Task.sleep(for: .milliseconds(200))
         #expect(app.medium(with: old.uuid) != nil)
@@ -297,12 +296,11 @@ struct MediumIdentityTests {
         let rig = WiredRig(store: store, access: GrantedAccess(), app: app)
 
         await rig.coordinator.handle(.appeared(testVolume(path: "/Volumes/USB", name: "USB")))
-        let newID = try #require(app.newMediumDialogMediumID)
-        app.onNewMediumChoice?(newID, false, true)
-        await rig.coordinator.waitForChoice()
+        let newID = try #require(app.replaceMediumPrompt?.newID)
         #expect(app.replaceMediumPrompt?.oldID == old.uuid)
 
         app.resolveReplaceMediumPrompt(forgetOld: true)
+        await rig.coordinator.waitForChoice()
         #expect(app.medium(with: old.uuid) == nil)
         let gone = await waitUntil { (try? await store.medium(uuid: old.uuid)) == nil }
         #expect(gone)

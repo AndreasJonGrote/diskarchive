@@ -1,0 +1,13 @@
+# Test: WindowTestGroup/SelectionMovedAwayTests/renameInPlaceKeepsTheSelection()
+# bug.0.4.214 (b): jede neu gelesene Spalte der Auswahl verwirft sie, auch beim Umbenennen am selben Ort.
+--- a/diskindex/diskindex/App/AppState+RuleReconcile.swift
++++ b/diskindex/diskindex/App/AppState+RuleReconcile.swift
+@@ -254,7 +254,7 @@
+         guard state.selection.focusColumnIndex == path.count, !state.selection.ids.isEmpty,
+               path.count <= state.pathStack.count, Array(state.pathStack.prefix(path.count)) == path else { return }
+         let before = state.selection.ids
+-        let present = Set(items.map(\.id))
++        let present = Set(items.filter { !before.contains($0.id) }.map(\.id))
+         state.selection.dropInvisible(present)
+         guard state.selection.ids != before else { return }
+         if let uncaptured = state.selectedUncapturedFolderID, !present.contains(uncaptured) {

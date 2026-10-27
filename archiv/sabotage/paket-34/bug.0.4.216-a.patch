@@ -1,0 +1,17 @@
+# Test: WindowTestGroup/PromptFocusStackTests/panelsStackOnEverySync()
+# bug.0.4.216 (a): Lage wieder nur beim Anlegen.
+--- a/diskindex/diskindex/App/AppWindowPresenter.swift
++++ b/diskindex/diskindex/App/AppWindowPresenter.swift
+@@ -185,8 +185,10 @@
+         var appeared: [UUID] = []
+         for (stackIndex, id) in activeIDs.enumerated() {
+             guard let (panel, isNew) = newMediumPanel(mediumID: id, appState: appState) else { continue }
+-            if isNew { appeared.append(id) }
+-            placeNewMediumPanel(panel, depthFromNewest: activeIDs.count - 1 - stackIndex, placement: placement)
++            if isNew {
++                appeared.append(id)
++                placeNewMediumPanel(panel, depthFromNewest: activeIDs.count - 1 - stackIndex, placement: placement)
++            }
+         }
+ 
+         // bug.0.4.209: nach vorn und Fokus nur, wenn ein Panel neu erscheint (oder der Nutzer den Dialog selbst öffnet);

@@ -169,11 +169,12 @@ final class IndexingService {
         runs[mediumUUID] == token
     }
 
-    fileprivate func markRunIndexing(_ mediumUUID: UUID) {
+    /// `progress`: Anfangswert der Anzeige (bug.0.4.210: gespeicherter Stand, bei „Neu indizieren“ 0).
+    fileprivate func markRunIndexing(_ mediumUUID: UUID, progress: Double) {
         appState.noteMenuBarIndexingSpinner(mediumUUID, active: true)
         appState.updateMedium(id: mediumUUID) {
             $0.indexStatus = .indexing
-            $0.indexingProgress = 0
+            $0.indexingProgress = progress
         }
     }
 
@@ -319,7 +320,13 @@ final class IndexingService {
                 )
             }
             let kind = await bridge.rememberRunKind(mediumUUID, token, storedKind)
-            let began = await bridge.beginRunUI(mediumUUID, token: token, reconcileRun: kind?.reconcileRun ?? false)
+            // bug.0.4.210: dieselbe Rechnung wie die Anzeige des gespeicherten Stands; „Neu indizieren“ zählt nur sich.
+            let initialProgress = fromScratch ? 0 : storedBeforeRun.map {
+                IndexProgress.displayed(entries: $0.fileCount + $0.folderCount, total: $0.scanTotal, indexed: false)
+            } ?? 0
+            let began = await bridge.beginRunUI(
+                mediumUUID, token: token, reconcileRun: kind?.reconcileRun ?? false, initialProgress: initialProgress
+            )
             guard began else { return }
             let outcome = await indexer.run(
                 store: store,
@@ -541,7 +548,8 @@ final class IndexingService {
                 if progress.entriesTotal > 0 {
                     $0.scanTotal = progress.entriesTotal
                 }
-                $0.indexingProgress = progress.ratio
+                // bug.0.4.210: nie fallend innerhalb eines Laufs (eine neue Zählung kann die Gesamtzahl erhöhen).
+                $0.indexingProgress = max($0.indexingProgress, progress.ratio)
             }
         }
         #if DEBUG
@@ -776,11 +784,11 @@ private final class Bridge: @unchecked Sendable {
     }
 
     /// false, wenn der Lauf zwischenzeitlich abgebrochen wurde (sonst setzt UI wieder `.indexing`).
-    func beginRunUI(_ mediumUUID: UUID, token: UUID, reconcileRun: Bool) async -> Bool {
+    func beginRunUI(_ mediumUUID: UUID, token: UUID, reconcileRun: Bool, initialProgress: Double) async -> Bool {
         await MainActor.run {
             guard let service, service.isRunToken(mediumUUID, token) else { return false }
             if !reconcileRun {
-                service.markRunIndexing(mediumUUID)
+                service.markRunIndexing(mediumUUID, progress: initialProgress)
             }
             return true
         }

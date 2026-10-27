@@ -36,6 +36,22 @@ nonisolated struct IndexProgress: Sendable, Equatable {
     var finished: Bool
 }
 
+extension IndexProgress {
+    /// bug.0.4.210: die eine Rechnung jeder Fortschrittsanzeige (Konzept „Fortschritt“, „Eine Rechnung“), rein und ohne
+    /// Uhr. `entries` = gespeicherte Einträge (bei „Neu indizieren“ nur die dieses Laufs), `total` = Gesamtzahl
+    /// (0 = noch nicht gezählt → 0). 1 nur bei „indiziert“, sonst höchstens 0,99 – auch „Fehler“ mit Lücke.
+    nonisolated static func displayed(entries: Int, total: Int, indexed: Bool) -> Double {
+        if indexed { return 1 }
+        guard total > 0, entries > 0 else { return 0 }
+        return min(0.99, Double(entries) / Double(max(total, entries)))
+    }
+
+    /// Ganze Prozent, abgerundet.
+    nonisolated static func percent(_ fraction: Double) -> Int {
+        Int(floor(fraction * 100))
+    }
+}
+
 nonisolated struct IndexRunOutcome: Sendable, Equatable {
     var status: StoredIndexStatus
     var readErrors: Int
