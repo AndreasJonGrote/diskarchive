@@ -69,7 +69,9 @@ import Testing
         #expect(outcome.status == .indexed)
         #expect(samples.values.count >= 2)
         #expect(zip(samples.values, samples.values.dropFirst()).allSatisfy { $0 <= $1 })
-        #expect(samples.values.dropLast().allSatisfy { $0 < 0.99 })
+        // Korrektur Host 27.10.: höchstens 99 % bis zum Ende (`konzept/indizieren.md`); seit bug.0.4.222 geht jeder neue
+        // Prozentwert durch, ein langsamer Lauf meldet 0,99 darum auch mehrmals.
+        #expect(samples.values.dropLast().allSatisfy { $0 <= 0.99 })
         #expect(outcome.progress.last == 1)
         if let first = samples.values.first {
             #expect(first < 0.25)

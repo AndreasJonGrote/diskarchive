@@ -57,6 +57,28 @@ struct NewMediumStackTests {
         AppWindowPresenter.closeNewMediumPanel(mediumID: first, appState: rig.appState, userDismissed: true)
         #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1)
     }
+
+    /// bug.0.4.221 (Korrektur Host 27.10.): Dialog ohne Antwort geschlossen, Medium ausgehängt und in derselben Sitzung
+    /// wieder eingesteckt → der Dialog erscheint wieder (Konzept `medien.md` 3: jedes Anschließen zählt).
+    @Test func dismissedDialogReappearsWhenTheMediumIsPluggedInAgain() async throws {
+        let rig = try await StackRecognitionRig.make()
+        rig.appState.promptPanelPlacement = .offscreen
+        let volume = rig.volume()
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.pendingNewMediumDecisionIDs.first)
+        defer { AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false) }
+        try #require(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1)
+
+        AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: true)
+        try #require(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 0)
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        try #require(await waitUntil { rig.appState.medium(with: id)?.connectionStatus == .offline })
+
+        await rig.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { rig.appState.medium(with: id)?.connectionStatus == .connected })
+        #expect(rig.appState.pendingNewMediumDecisionIDs == [id])
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.appState) == 1, "Dialog erscheint nicht wieder")
+    }
 }
 }
 

@@ -246,9 +246,113 @@ struct IndexProgressRuleTests {
         await chain.gate.open()
     }
 
+    /// bug.0.4.222: Abziehen mitten in einer Ebene (mehrere Stücke schon geschrieben, das nächste Schreiben trifft den
+    /// Abbruch) und Wiedereinstecken: zuletzt online, offline und zu Beginn nach dem Wiedereinstecken derselbe ganze
+    /// Prozentwert. Verdrahtete Kette, Medium im Speicher (Ebene 3: `a` und `b` mit je zwei Stücken bei Stückgröße 2000).
+    /// Das zweite Stück von `a` hat einen Eintrag, kommt also Millisekunden nach dem ersten und hebt die Anzeige genau von
+    /// 49 auf 50 % (2005 von 4010): Eine Drossel, die es verschluckt, zeigt beim Abziehen den älteren Wert.
+    @Test func unplugMidLayerKeepsThePercent() async throws {
+        let harness = try await ScanHarness.make()
+        let volume = testVolume(path: "/Volumes/STECKER", name: "STECKER")
+        try await harness.store.recordIdentity(mediumUUID: harness.mediumID, volume.identity)
+        let memory = MemoryVolume(mountPath: volume.mountPath)
+        for (folder, count) in [("a", 2_001), ("b", 2_004), ("c", 1)] {
+            for index in 0..<count { memory.file("top/\(folder)/f\(index).txt") }
+        }
+        let gate = ReplugGate(memory)
+        let app = AppState(store: harness.store, defaults: TestDefaults.make())
+        let rig = WiredRig(store: harness.store, access: gate, app: app)
+        defer {
+            rig.coordinator.stop()
+            harness.closeDatabase()
+        }
+        let id = harness.mediumID
+
+        // Ebene 3: `a` ist geschrieben (zwei Stücke), `b` wartet (der erste Lesevorgang von `b` ist die Zählphase).
+        let held = gate.arm(path: volume.mountPath + "/top/b", skip: 1)
+        await rig.coordinator.handle(.appeared(volume))
+        await held.wait()
+        try #require(app.medium(with: id)?.indexStatus == .indexing, "Gegenprobe: der Lauf zeigt „wird indiziert“")
+        // Positives Signal: die Anzeige hat alles Geschriebene erreicht (Ebene 1–2: `top`, `a`, `b`, `c`; dazu `a` mit
+        // 2001 Dateien, zusammen 2005 von 4010 Einträgen). Die Meldung kommt nach dem Schreiben über einen Sprung auf den
+        // Haupt-Thread an.
+        let online = Self.percent(entries: 4 + 2_001, total: 4_010)
+        let shown = await waitUntil(timeout: 5) { app.medium(with: id)?.indexProgressPercent == online }
+        #expect(shown, "der Lauf zeigt \(app.medium(with: id)?.indexProgressPercent ?? -1) % statt \(online) % für alles Geschriebene")
+
+        // Abziehen: das nächste Schreiben (erstes Stück von `b`) trifft den Abbruch.
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        gate.release()
+        await rig.service.waitUntilIdle(id)
+        let offline = try #require(app.medium(with: id))
+        try #require(offline.connectionStatus == .offline && offline.indexStatus != .indexed, "Voraussetzung: abgebrochen und offline")
+
+        // Wiedereinstecken: der Folgelauf beginnt Ebene 3 mit `a` und wartet dort.
+        let resumedHold = gate.arm(path: volume.mountPath + "/top/a", skip: 0)
+        await rig.coordinator.handle(.appeared(volume))
+        await resumedHold.wait()
+        let resumed = try #require(app.medium(with: id))
+        try #require(resumed.indexStatus == .indexing, "Gegenprobe: der Folgelauf läuft")
+
+        #expect(offline.indexProgressPercent == online, "offline \(offline.indexProgressPercent) %, zuletzt online \(online) %")
+        #expect(resumed.indexProgressPercent == online, "nach dem Wiedereinstecken \(resumed.indexProgressPercent) %, zuletzt online \(online) %")
+        gate.release()
+        await rig.service.waitUntilIdle(id)
+    }
+
     private static func percent(entries: Int, total: Int) -> Int {
         guard total > 0 else { return 0 }
         return min(99, Int(floor(Double(entries) / Double(max(total, entries)) * 100)))
+    }
+}
+
+/// Tor, das nach dem Öffnen erneut scharf gestellt werden kann (Abziehen und Wiedereinstecken desselben Mediums).
+private final class ReplugGate: MediumAccess, @unchecked Sendable {
+    private let volume: MemoryVolume
+    private let lock = NSLock()
+    private var rule: (path: String, skip: Int, signal: SurfaceAsyncSignal)?
+    private var released = false
+
+    init(_ volume: MemoryVolume) {
+        self.volume = volume
+    }
+
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool { true }
+    func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
+
+    /// Hält das `skip + 1`-te Lesen von `path` an; das Signal meldet das Anhalten.
+    func arm(path: String, skip: Int) -> SurfaceAsyncSignal {
+        let signal = SurfaceAsyncSignal()
+        lock.withLock {
+            rule = (path, skip, signal)
+            released = false
+        }
+        return signal
+    }
+
+    func release() {
+        lock.withLock { released = true }
+    }
+
+    func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] {
+        let path = url.standardizedFileURL.path
+        let hit: SurfaceAsyncSignal? = lock.withLock {
+            guard let current = rule, current.path == path else { return nil }
+            if current.skip > 0 {
+                rule = (current.path, current.skip - 1, current.signal)
+                return nil
+            }
+            rule = nil
+            return current.signal
+        }
+        if let hit {
+            await hit.signal()
+            // Auch nach dem Abbruch bis `release()`: das Lesen liefert, und erst das Schreiben trifft den Abbruch.
+            while !lock.withLock({ released }) {
+                if Task.isCancelled { await Task.yield() } else { try? await Task.sleep(for: .milliseconds(5)) }
+            }
+        }
+        return try await volume.listDirectory(at: url)
     }
 }
 

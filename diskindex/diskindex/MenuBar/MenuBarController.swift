@@ -167,9 +167,7 @@ final class MenuBarController: NSObject {
     private func appStateDidChange() {
         guard !isUninstalledFromStatusBar, let appState, let button = statusItem?.button else { return }
         updateBadgeOverlay(badge: appState.effectiveMenuBarBadge, on: button)
-        if appState.hasPendingNewMediumDecisions {
-            AppWindowPresenter.openNewMedium(appState: appState)
-        }
+        AppWindowPresenter.newMediumStateChanged(appState: appState)
     }
 
     private func updateBadgeOverlay(badge: MenuBarBadgePreview, on button: NSStatusBarButton) {

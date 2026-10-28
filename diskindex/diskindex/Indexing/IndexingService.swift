@@ -534,7 +534,10 @@ final class IndexingService {
     fileprivate func publish(_ mediumUUID: UUID, _ progress: IndexProgress) async {
         guard runs[mediumUUID] != nil else { return }
         let now = Date()
-        if !progress.finished, let last = lastUIUpdate[mediumUUID], now.timeIntervalSince(last) < 0.25 {
+        // bug.0.4.222: wie im Indexer gedrosselt nur, solange der ganze Prozentwert gleich bleibt.
+        let shownPercent = appState.medium(with: mediumUUID).map { IndexProgress.percent($0.indexingProgress) }
+        let samePercent = progress.phase == .counting || IndexProgress.percent(progress.ratio) == shownPercent
+        if !progress.finished, samePercent, let last = lastUIUpdate[mediumUUID], now.timeIntervalSince(last) < 0.25 {
             return
         }
         lastUIUpdate[mediumUUID] = now

@@ -72,7 +72,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 **Ziel:** Mehrere neu angeschlossene Medien dürfen sich nicht gegenseitig den Erkennungs-Dialog wegnehmen; ohne explizite Ja/Nein-Entscheidung startet **keine** Indizierung. Dashboard-Kacheln zeigen Belegung und Scan-Zeit konsistent unten in der Kachel.
 
-**Layout zuerst (README, Layout-Reminder):** Vor Aufgaben im TODO die Mockups in `layout/Disk Index App.dc.html` anpassen — **Screen 02** (Warteschlange: n Dialoge nacheinander bzw. gestapelt, je Dialog genau ein Medium; Schließen ohne Entscheidung entfernt das Medium nicht aus der Warteschlange) und **Screen 04** (`card-meta`: Belegung links, „Zuletzt indiziert“ rechts in **einer** unteren Zeile; kein Verschwinden der Uhr beim Umschalten Prozent ↔ absolute Größe). Optional **03**, wenn Popover bei „Entscheidung ausstehend“ einen Weg zum Dialog braucht (kein „Neu indizieren“ ohne Entscheidung).
+**Layout zuerst (README, Layout-Reminder):** Vor Aufgaben im TODO die Mockups in `layout/bis 0.4.1/Disk Index App.dc.html` anpassen — **Screen 02** (Warteschlange: n Dialoge nacheinander bzw. gestapelt, je Dialog genau ein Medium; Schließen ohne Entscheidung entfernt das Medium nicht aus der Warteschlange) und **Screen 04** (`card-meta`: Belegung links, „Zuletzt indiziert“ rechts in **einer** unteren Zeile; kein Verschwinden der Uhr beim Umschalten Prozent ↔ absolute Größe). Optional **03**, wenn Popover bei „Entscheidung ausstehend“ einen Weg zum Dialog braucht (kein „Neu indizieren“ ohne Entscheidung).
 
 **Inhalt (Produkt):**
 

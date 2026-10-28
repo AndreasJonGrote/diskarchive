@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/PromptFocusStackTests/menuBarStateChangeKeepsOpenDialogsQuiet()
+--- a/diskindex/diskindex/App/AppWindowPresenter.swift	2026-10-27 17:47:20
++++ b/diskindex/diskindex/App/AppWindowPresenter.swift	2026-10-27 17:47:20
+@@ -210,7 +210,7 @@
+     /// ruhig – vorher holte jede Änderung den Dialog mit Fokus wieder vor.
+     static func newMediumStateChanged(appState: AppState) {
+         guard appState.hasPendingNewMediumDecisions else { return }
+-        syncNewMediumPanels(appState: appState)
++        syncNewMediumPanels(appState: appState, revealDismissed: true)
+     }
+ 
+     /// Schließen ohne Ja/Nein: Panel weg, Medium bleibt `undecided` (Queue/Badge).

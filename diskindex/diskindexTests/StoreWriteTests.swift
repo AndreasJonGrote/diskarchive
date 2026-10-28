@@ -158,7 +158,8 @@ struct StoreWriteTests {
         }
     }
 
-    @Test func metaCommitBatchesRapidChunksUntilFlush() async throws {
+    /// bug.0.4.222: der Zähler gilt mit jedem Schreiben (selber Schreibvorgang wie die Einträge), nicht erst nach `flush`.
+    @Test func metaCommitCountsEveryChunkAtOnce() async throws {
         let store = try TestStore.make()
         let medium = try await store.insert(name: "Batch", bytes: 100)
         let stamp = Date(timeIntervalSince1970: 1_800_000_000)
@@ -173,7 +174,7 @@ struct StoreWriteTests {
             batches: [(nil, "/", 1, [ScannedEntry(name: "a.txt", isFolder: false), ScannedEntry(name: "b.txt", isFolder: false)], false)],
             seenAt: stamp
         )
-        #expect(try await store.writer.medium(uuid: medium.uuid)?.fileCount == 1)
+        #expect(try await store.writer.medium(uuid: medium.uuid)?.fileCount == 2)
         try await store.writer.flushMediumMeta(mediumUUID: medium.uuid, force: true)
         #expect(try await store.writer.medium(uuid: medium.uuid)?.fileCount == 2)
     }

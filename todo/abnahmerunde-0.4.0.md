@@ -37,13 +37,15 @@ Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 33, U
 ## 4. Nachtest nach den Paketen 34–36 (27.10.)
 
 Mit der App vom letzten Gesamtlauf (gebaut 27.10. 13:20) und nach einem Neustart der App.
-- [ ] **Fortschritt (`bug.0.4.210`):** Nachtest 27.10.: bestanden bis auf 1 % Versatz nach dem Wiedereinstecken → `bug.0.4.222` (Paket 37).
+- [ ] **Fortschritt (`bug.0.4.210`):** Nachtest 27.10.: bestanden bis auf 1 % Versatz nach dem Wiedereinstecken → `bug.0.4.222`, abgenommen 27.10. (Paket 37). **Bitte jetzt nachtesten** (App 28.10. 01:35).
   - Stick mitten im Lauf abziehen: kein Sprung auf 100 %, offline derselbe Wert wie zuletzt online.
   - Wieder anstecken: Er beginnt beim gespeicherten Stand, nicht bei 0 %.
   - „Neu indizieren“ beginnt unten, nicht bei 99 %.
-- [ ] **Dialoge (`209`, `216`):** Nachtest 27.10.: Fokus nicht bestanden → `bug.0.4.221` (Paket 37). Stapel nicht gemeldet.
+- [ ] **Dialoge (`209`, `216`):** Nachtest 27.10.: Fokus nicht bestanden → `bug.0.4.221`, Stapel nicht bestanden → `bug.0.4.223`. Beide wurden am 28.10. mit Paket 38 abgenommen. **Bitte jetzt nachtesten** (App 28.10. 01:35, vorher neu starten).
   - Während du in einer anderen App schreibst, ein Medium einstecken: Der Dialog nimmt den Fokus einmal. Ein Klick zurück in die andere App legt ihn dahinter, danach bleibt der Fokus dort.
-  - Zwei Medien kurz nacheinander: Die Dialoge liegen gestapelt.
+  - Zwei oder drei Medien kurz nacheinander: Der älteste Dialog liegt hinten links oben, jeder neue nach rechts unten versetzt darüber. Der neueste liegt vorn und hat den Fokus.
+  - Das Hauptfenster liegt hinter der anderen App: Es bleibt dort, nur der Dialog kommt nach vorn.
+  - Einen Dialog mit X schließen, das Medium auswerfen und wieder einstecken: Der Dialog erscheint wieder.
 - [x] **Ersetzen (`215`):** Nachtest 27.10. bestanden. Stick mit gleichem Namen neu formatieren → zuerst nur „Ersetzt dieses Medium?“.
 - [x] **Spaltenansicht (`212`–`214`):** Nachtest 27.10. bestanden.
   - Filter offen, Spalte scrollt.

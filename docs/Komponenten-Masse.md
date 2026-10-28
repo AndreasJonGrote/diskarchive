@@ -1,6 +1,6 @@
-# Komponenten-Maße (aus `layout/Komponenten.dc.html`, gemessen von Claude am 07.10.2026)
+# Komponenten-Maße (aus `layout/bis 0.4.1/Komponenten.dc.html`, gemessen von Claude am 07.10.2026)
 
-**Quelle der Wahrheit für Maße, Farben und Zustände:** die Layout-Seite „Komponentenkatalog“ (`layout/Komponenten.dc.html`, jede Komponente hell und dunkel). Abweichungen in Screens gelten als Fehler. Diese Datei ist nur die gemessene Zusammenfassung (px im Layout = pt in der App); bei Widerspruch gilt die Layout-Seite. Cursor liest Zahlen aus dieser Datei und prüft sie im Test, ändert sie nicht.
+**Quelle der Wahrheit für Maße, Farben und Zustände:** die Layout-Seite „Komponentenkatalog“ (`layout/bis 0.4.1/Komponenten.dc.html`, jede Komponente hell und dunkel). Abweichungen in Screens gelten als Fehler. Diese Datei ist nur die gemessene Zusammenfassung (px im Layout = pt in der App); bei Widerspruch gilt die Layout-Seite. Cursor liest Zahlen aus dieser Datei und prüft sie im Test, ändert sie nicht.
 
 ## Schrift
 14 Button groß · 13 Fließtext, Listenzeilen · 12 Button klein, Detail, Beschreibung, Eingabefeld · 11 Meta, Fußzeile, Tabellenkopf · 10 Chip, Spaltenkopf, Label.

@@ -14,7 +14,8 @@ struct LayoutCopyTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let html = try String(contentsOf: root.appendingPathComponent("layout/Disk Index App.dc.html"), encoding: .utf8)
+        // todo.0.4.049: für 0.4.0 gilt das Layout bis 0.4.1.
+        let html = try String(contentsOf: root.appendingPathComponent("layout/bis 0.4.1/Disk Index App.dc.html"), encoding: .utf8)
         let layoutCopySource = try String(
             contentsOf: root.appendingPathComponent("diskindex/diskindex/DesignSystem/LayoutCopy.swift"),
             encoding: .utf8

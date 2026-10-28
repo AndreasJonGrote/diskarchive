@@ -1,0 +1,17 @@
+# Test: WindowTestGroup/PromptFocusStackTests/bringForwardActivatesOnlyWhenCentered()
+--- a/diskindex/diskindex/App/AppWindowPresenter.swift	2026-10-28 00:01:38
++++ b/diskindex/diskindex/App/AppWindowPresenter.swift	2026-10-28 00:01:38
+@@ -366,13 +366,6 @@
+         panel.orderFrontRegardless()
+         guard placement == .centered else { return }
+         panel.makeKey()
+-        #if DEBUG
+-        if let hook = appState?.promptActivationHookForTesting {
+-            hook(kind)
+-            return
+-        }
+-        #endif
+-        NSApp.activate(ignoringOtherApps: true)
+     }
+ 
+     /// bug.0.4.209: kein `.floating` – ein Klick in ein anderes Fenster (auch einer anderen App) legt den Dialog dahinter;

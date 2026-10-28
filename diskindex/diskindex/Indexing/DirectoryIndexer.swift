@@ -90,6 +90,7 @@ nonisolated struct DirectoryIndexer: Sendable {
         var consecutiveTimeouts = 0
         var queuedParents: [(id: Int64?, path: String?)]?
         var lastProgressNote: ContinuousClock.Instant?
+        var lastNotedPercent = -1
         let matcher = configuration.matcher
         let seenAt = Date()
         var foldersProcessed = 0
@@ -134,10 +135,14 @@ nonisolated struct DirectoryIndexer: Sendable {
             // Vorlauf: Anzeige wie in der Zählphase, keine Ereignisse (und keine Prozentzahl) vor der Zählung.
             if needsCounting { return }
             let now = ContinuousClock.now
-            if !finished, let lastProgressNote, lastProgressNote.duration(to: now) < .milliseconds(250) {
+            // bug.0.4.222: gedrosselt nur, solange der ganze Prozentwert gleich bleibt – sonst zeigte die Anzeige beim
+            // Abziehen einen älteren Wert als den gespeicherten.
+            let percent = IndexProgress.percent(highWater)
+            if !finished, let lastProgressNote, lastProgressNote.duration(to: now) < .milliseconds(250), percent == lastNotedPercent {
                 return
             }
             lastProgressNote = now
+            lastNotedPercent = percent
             await onProgress(IndexProgress(
                 phase: .indexing,
                 ratio: highWater,

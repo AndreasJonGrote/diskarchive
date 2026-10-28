@@ -120,7 +120,7 @@ struct MediumCoordinatorTests {
                 AppWindowPresenter.closeNewMediumPanel(mediumID: id, appState: rig.appState, userDismissed: false)
             }
         }
-        let panels = NSApp.windows.filter { $0 is KeyablePanel && $0.isVisible }
+        let panels = NSApp.windows.filter { $0 is DialogPanel && $0.isVisible }
         #expect(panels.count >= 2)
         for panel in panels {
             let onScreen = NSScreen.screens.contains { $0.frame.intersects(panel.frame) }

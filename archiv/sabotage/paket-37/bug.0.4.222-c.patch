@@ -1,0 +1,15 @@
+# Test: IndexProgressRuleTests/unplugMidLayerKeepsThePercent()
+--- a/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-27 15:30:49
++++ b/diskindex/diskindex/Indexing/IndexingService.swift	2026-10-27 15:30:49
+@@ -534,10 +534,7 @@
+     fileprivate func publish(_ mediumUUID: UUID, _ progress: IndexProgress) async {
+         guard runs[mediumUUID] != nil else { return }
+         let now = Date()
+-        // bug.0.4.222: wie im Indexer gedrosselt nur, solange der ganze Prozentwert gleich bleibt.
+-        let shownPercent = appState.medium(with: mediumUUID).map { IndexProgress.percent($0.indexingProgress) }
+-        let samePercent = progress.phase == .counting || IndexProgress.percent(progress.ratio) == shownPercent
+-        if !progress.finished, samePercent, let last = lastUIUpdate[mediumUUID], now.timeIntervalSince(last) < 0.25 {
++        if !progress.finished, let last = lastUIUpdate[mediumUUID], now.timeIntervalSince(last) < 0.25 {
+             return
+         }
+         lastUIUpdate[mediumUUID] = now

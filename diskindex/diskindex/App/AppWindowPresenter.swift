@@ -205,6 +205,14 @@ enum AppWindowPresenter {
         syncNewMediumPanels(appState: appState, revealDismissed: true)
     }
 
+    /// bug.0.4.221: Reaktion der Menüleiste auf geänderten Zustand (jede Änderung an `media`, z. B. ein Prozentschritt
+    /// eines anderen Mediums). Nur abgleichen: ein neues Panel kommt nach vorn, ein offenes oder weggeklicktes bleibt
+    /// ruhig – vorher holte jede Änderung den Dialog mit Fokus wieder vor.
+    static func newMediumStateChanged(appState: AppState) {
+        guard appState.hasPendingNewMediumDecisions else { return }
+        syncNewMediumPanels(appState: appState)
+    }
+
     /// Schließen ohne Ja/Nein: Panel weg, Medium bleibt `undecided` (Queue/Badge).
     static func closeNewMediumPanel(mediumID: UUID, appState: AppState, userDismissed: Bool) {
         if userDismissed {
@@ -258,9 +266,9 @@ enum AppWindowPresenter {
                 .environment(appState)
         )
         let size = hosting.fittingSize
-        let panel = KeyablePanel(
+        let panel = DialogPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -297,9 +305,9 @@ enum AppWindowPresenter {
             rootView: IgnoreConfirmDialogWindowHost(onDone: { ignoreConfirmPanels[key]?.close() })
                 .environment(appState)
         )
-        let panel = KeyablePanel(
+        let panel = DialogPanel(
             contentRect: NSRect(origin: .zero, size: hosting.fittingSize),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -347,14 +355,24 @@ enum AppWindowPresenter {
 
     /// bug.0.4.209 (Konzept `medien.md` Punkt 3): ein Dialog kommt beim Erscheinen **einmal** nach vorn und nimmt den
     /// Fokus; nur die App macht ihn zum Key-Fenster (Tests: Regel 19/21).
-    private static func bringForward(_ panel: NSPanel, placement: PromptPanelPlacement, appState: AppState?, kind: String) {
+    /// bug.0.4.221: dabei wird die App aktiv (die Panels sind kein `.nonactivatingPanel`), sonst gäbe eine andere App
+    /// den Fokus nicht mehr zurück. Erzwungen (Nutzer 27.10.): `activate(options: [])` ist seit macOS 14 kooperativ und
+    /// gäbe dem Dialog keinen Fokus, solange eine andere App aktiv ist. Das Panel kann Main werden (`DialogPanel`), so
+    /// kommt nur der Dialog nach vorn, nicht das Hauptfenster.
+    static func bringForward(_ panel: NSPanel, placement: PromptPanelPlacement, appState: AppState?, kind: String) {
         #if DEBUG
         appState?.promptFocusHookForTesting?(kind)
         #endif
         panel.orderFrontRegardless()
-        if placement == .centered {
-            panel.makeKey()
+        guard placement == .centered else { return }
+        panel.makeKey()
+        #if DEBUG
+        if let hook = appState?.promptActivationHookForTesting {
+            hook(kind)
+            return
         }
+        #endif
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     /// bug.0.4.209: kein `.floating` – ein Klick in ein anderes Fenster (auch einer anderen App) legt den Dialog dahinter;
@@ -380,9 +398,9 @@ enum AppWindowPresenter {
             }
         )
         let size = hosting.fittingSize
-        let panel = KeyablePanel(
+        let panel = DialogPanel(
             contentRect: NSRect(origin: .zero, size: size),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
@@ -420,10 +438,10 @@ enum AppWindowPresenter {
     }
 
     /// Erkennungs-Panel ohne Lage und ohne Anzeige (bug.0.3.9.014 a: dieselbe Erzeugung in App und Test).
-    static func makeNewMediumPanel(hosting: NSHostingView<AnyView>) -> KeyablePanel {
-        let panel = KeyablePanel(
+    static func makeNewMediumPanel(hosting: NSHostingView<AnyView>) -> DialogPanel {
+        let panel = DialogPanel(
             contentRect: NSRect(origin: .zero, size: hosting.fittingSize),
-            styleMask: [.borderless, .nonactivatingPanel],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )

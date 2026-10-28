@@ -45,5 +45,31 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
 
 ## Status
 
-- **bug.0.4.221:** 
-- **bug.0.4.222:** 
+- **bug.0.4.221:** **Frage:** nichts geändert, HALT für diese Aufgabe. (1) Nachstellen in der echten App geht für mich nicht: kein Stick, Disk-Images zählen nicht als Medium (`VolumeCandidateRule`), Klicken/Tippen in eine andere App braucht Eingabe-Berechtigung (`CGPreflightPostEventAccess` = false).
+  Ersatzbeleg 15:03–15:05 mit zwei Hilfsprogrammen in `$TMPDIR` (Panel wie `makeNewMediumPanel`: `.nonactivatingPanel`, `.normal`, `orderFrontRegardless` + `makeKey`): das Panel wird Key, die andere App bleibt aktiv und vorn; sie erneut zu aktivieren gibt ihr den Fokus **nicht** zurück (Panel bleibt Key). Mit `NSApp.activate(ignoringOtherApps: true)` vor `makeKey`: Aktivieren der anderen App gibt ihr sofort Key, das Panel gibt Key ab. Vermutung des Hosts damit gestützt.
+  (2) Ein ehrlicher automatischer Test müsste eine andere App aktivieren (`NSApp.activate` im Test verboten, Regel 10); im Testprozess bliebe nur das Zählen von Aufrufen.
+  Vorschlag: `bringForward` aktiviert die App (nur `.centered`); Dialog-Panels ohne `.nonactivatingPanel`, damit auch ein späterer Klick auf den Dialog die App aktiviert (`KeyablePanel.sendEvent` macht sonst wieder Key ohne Aktivierung). Popover unverändert. Möglich (nicht geprüft): ein offenes Hauptfenster kommt mit nach vorn. Beleg dann durch den Nutzer (TextEdit + Stick) statt Test – einverstanden?
+- **bug.0.4.222:** Bereit zur Prüfung. Ursache: Zähler des Mediums während des Laufs fast nie gespeichert (Drossel in `commitPendingMetaIfNeeded` gegen das laufkonstante `seenAt`, nur Stapel mit `finalize` alle 5000 Einträge); beim Abziehen trifft das Nachschreiben den Abbruch (`CancellationError`, wie im Protokoll 13:57:44) → gespeichert bis zu einem Stapel weniger als online gezählt. Dazu zwei 250-ms-Drosseln (Indexer, `IndexingService.publish`), die die letzte Meldung verschlucken konnten. Fix: `applyDirectories` schreibt den Zähler im selben Schreibvorgang wie die Einträge; beide Drosseln lassen eine Meldung mit neuem ganzem Prozentwert immer durch. Lebenszyklus unverändert.
+  Nachstellen in der echten App nicht möglich (kein Stick zum Abziehen), Beleg über das Protokoll des Nutzers und den Kettentest. Test `IndexProgressRuleTests/unplugMidLayerKeepsThePercent()` (Kette, Medium im Speicher, je zwei Stücke in `a` und `b`, Abziehen hält `b` an, das nächste Schreiben trifft den Abbruch): rot vor dem Fix 15:10 (online 0 %, Drossel) und 15:11 (online 42, offline 0, nach Wiedereinstecken 0), grün 15:11/15:32. Angepasst: `StoreWriteTests/metaCommitBatchesRapidChunksUntilFlush` → `metaCommitCountsEveryChunkAtOnce` (prüfte genau das alte Aufschieben).
+  Sabotage a (Zähler getrennt), b (Drossel Indexer), c (Drossel `publish`) je 3× rot 15:32–15:34. Erst 6/20 rot unter Last (zweite Drossel), danach 20× parallel grün 15:35–15:37 (1720 Zeilen, 0 rot). Ganzes Testziel parallel 15:38–15:43: 1262 grün, 1 rot `LayoutCopyTests/windowLinesFromTheLayoutAreInLayoutCopy()` (Datei `layout/Disk Index App.dc.html` fehlt seit der Umsortierung in `layout/bis 0.4.1`/`ab 0.4.2`, außerhalb des Diffs). Debug clean und Release 0 Warnungen, keine `.ips`, App des Nutzers 15:45:21 (0.4.0, Signatur ok, `find -newer` leer).
+  Selbstprüfung (Sonnet, zweimal): nichts Wesentliches; Stufe 3: Vergleich in `publish` gegen `ratio` statt Maximum lässt selten eine Meldung mehr durch. Gesamtlauf weggelassen (Last 5–12).
+
+## Abnahme Host 27.10. (Gesamtlauf 15:59–16:30)
+
+`Werkzeuge/pruefung.sh voll` ergab:
+- Debug und Release: 0 Warnungen.
+- Seriell 1196/1197, parallel 1–3 je 1 rot (1190 bestanden, 6 übersprungen). Der rote Test ist jedes Mal `LayoutCopyTests/windowLinesFromTheLayoutAreInLayoutCopy()`: Die Datei `layout/Disk Index App.dc.html` fehlt, weil der Nutzer `layout/` in `bis 0.4.1/` und `ab 0.4.2/` umsortiert hat (Commit 59ae5bc). Das liegt außerhalb des Diffs; der Pfad wird in Paket 38 angepasst (`todo.0.4.049`).
+- Sabotage **3/3 rot ✓** (222-a 2 von 2, -b und -c je 1 von 1).
+- Keine neuen `.ips`; neue Dateien in `~/Library/Preferences`: 0.
+- App des Nutzers 16:30:25, Signatur gültig, Version 0.4.0.
+
+Den Diff hat der Host gelesen:
+- **222:** `applyDirectories` schreibt den Zähler des Mediums (`commitMediumMeta`) im selben Schreibvorgang wie die Einträge. Bei einem Abbruch fallen beide zusammen weg, sonst bleiben beide. Vorher wurde der Zähler gedrosselt nachgeschrieben, und beim Abziehen traf dieses Nachschreiben den Abbruch (Protokoll des Nutzers 13:57:44, `CancellationError`).
+- Beide 250-ms-Drosseln (Indexer, `publish`) lassen eine Meldung mit neuem ganzem Prozentwert immer durch.
+- Der Lebenszyklus von `IndexingService` ist unverändert.
+
+Prüf-Agent (Sonnet, Vorlage 2b): nichts Wesentliches, kein Befund der Stufe 1 oder 2. Es wird nichts doppelt gezählt: `pendingMetaDelta` bekommt nur noch Nullen über `flushMediumMeta`. Der Test prüft ehrlich „online = offline = nach dem Wiedereinstecken“.
+
+- **Abgenommen:** `bug.0.4.222`.
+- **Nicht erledigt:** `bug.0.4.221`. Der Worker hat eine Frage gestellt: Nachstellen in der echten App ging nicht, ein ehrlicher Test auch nicht. Sein Ersatzbeleg mit Hilfsprogrammen stützt die Ursache. Der Host nimmt den Vorschlag an (echte Aktivierung, kein `.nonactivatingPanel` bei Dialogen) und gibt Bedingungen vor → Paket 38, zusammen mit `bug.0.4.223`.
+- **Stufe 3 (keine Aufgabe):** `publish` vergleicht gegen `ratio` statt gegen das Maximum. Dadurch geht selten eine Meldung mehr durch.

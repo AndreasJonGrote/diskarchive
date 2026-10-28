@@ -100,6 +100,9 @@ final class AppState {
     /// Tests (bug.0.4.209): ein Dialog dieser Instanz wird nach vorn geholt und zum Key-Fenster gemacht (im Test
     /// außerhalb des Bildschirms nur gezählt). Wert: Art des Dialogs.
     @ObservationIgnored var promptFocusHookForTesting: ((String) -> Void)?
+    /// Tests (bug.0.4.221): statt die App zu aktivieren (`AppWindowPresenter.bringForward` bei `.centered`). Wert: Art
+    /// des Dialogs.
+    @ObservationIgnored var promptActivationHookForTesting: ((String) -> Void)?
     #endif
 
     /// Einstellungen, die nur die App-Instanz bekommt (bug.0.3.9.014 d): Rückfragen mittig.

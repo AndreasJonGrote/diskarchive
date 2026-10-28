@@ -17,6 +17,7 @@ Befunde, die der Nutzer nur bei seltener Ereignisfolge merkt (Stufe 2, ohne Nach
 | 27.10. | 35 | 2 | `MediumCoordinator`, App-Start mit zwei gleichnamigen Medien (eines neu) | Wird das neue vor dem bekannten verarbeitet, zählt das bekannte noch als offline: Rückfrage „Ersetzt …?“ zu einem angeschlossenen Medium. Nur beim Start mit beiden Medien zugleich, nicht beobachtet |
 | 27.10. | 35 | 2 | `MediumCoordinator.requestDialog`, „Behalten“ nicht gemerkt | Nach „Behalten“ und ohne Antwort im Erkennungsdialog kommt beim nächsten Anschließen wieder die Rückfrage statt des Erkennungsdialogs. Nur, wenn der Nutzer den Erkennungsdialog offen lässt |
 | 27.10. | 36 | 2 | `ColumnBrowserState.pathStack.didSet` (Breite je Spalte nach Namen) | Benennt der Nutzer einen geöffneten Ordner im Finder um, fällt die gezogene Breite der Spalte rechts davon weg (wieder 230 pt). Nur nach Ziehen und Umbenennen von außen |
+| 28.10. | 38 | 3 | `PromptFocusStackTests`, drei Reihenfolge-Tests (`newestInFront…`, `newestStays…`) | nichts; beim Worker einmal parallel rot (00:14), nicht nachstellbar (20× parallel grün, Host-Lauf 01:05–01:35 grün) |
 | 26.10. | Abnahmerunde | 3 | `IssueTracker.noteError` bei Abbruch eines Laufs (Auswerfen, Umbenennen) | nichts; `CancellationError` steht als „app error index error category=store“ im Protokoll |
 
 ---

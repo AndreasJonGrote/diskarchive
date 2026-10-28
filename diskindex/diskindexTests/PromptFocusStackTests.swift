@@ -122,6 +122,169 @@ struct PromptFocusStackTests {
         #expect(rig.focus.kinds == ["ersetzen"], "erneutes Öffnen holt den Fokus wieder: \(rig.focus.kinds)")
     }
 
+    /// Lage der Panels von vorn nach hinten (`NSWindow.windowNumbers`, die Fenster dieser App; `NSApp.orderedWindows`
+    /// enthält keine Panels); fehlt eins, steht `nil` an seiner Stelle.
+    private static func frontToBack(_ rig: Rig, _ ids: [UUID]) -> [Int?] {
+        let ordered = NSWindow.windowNumbers(options: []) ?? []
+        return ids.map { id in
+            AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: id).flatMap { panel in
+                ordered.firstIndex { $0.intValue == panel.windowNumber }
+            }
+        }
+    }
+
+    /// 223: Zwei Medien im selben Abgleich → das neuere liegt vor dem älteren.
+    @Test func newestInFrontWhenTwoComeTogether() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        rig.app.enqueueNewMediumDecision(rig.ids[0])
+        rig.app.enqueueNewMediumDecision(rig.ids[1])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        let order = Self.frontToBack(rig, [rig.ids[1], rig.ids[0]])
+        let newest = try #require(order[0], "Gegenprobe: das neuere Panel fehlt")
+        let older = try #require(order[1], "Gegenprobe: das ältere Panel fehlt")
+        #expect(newest < older, "das ältere liegt vorn (\(order))")
+    }
+
+    /// 223: Zwei Medien in zwei Abgleichen kurz nacheinander (das erste ist schon da) → das neuere liegt vorn.
+    @Test func newestInFrontWhenTwoComeApart() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        rig.app.enqueueNewMediumDecision(rig.ids[0])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        rig.app.enqueueNewMediumDecision(rig.ids[1])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        let order = Self.frontToBack(rig, [rig.ids[1], rig.ids[0]])
+        let newest = try #require(order[0], "Gegenprobe: das neuere Panel fehlt")
+        let older = try #require(order[1], "Gegenprobe: das ältere Panel fehlt")
+        #expect(newest < older, "das ältere liegt vorn (\(order))")
+    }
+
+    /// 223: Drei Medien, dann wird das mittlere entschieden → die übrigen behalten „neuester vorn“.
+    @Test func newestStaysInFrontAfterTheMiddleIsAnswered() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        for id in rig.ids {
+            rig.app.enqueueNewMediumDecision(id)
+            AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        }
+        let before = Self.frontToBack(rig, rig.ids.reversed())
+        let all = before.compactMap { $0 }
+        try #require(all.count == 3, "Gegenprobe: nicht alle drei Panels offen (\(before))")
+        #expect(all == all.sorted(), "mit drei Panels nicht neuester vorn (\(before))")
+
+        rig.app.updateMedium(id: rig.ids[1]) { $0.decision = .index }
+        rig.app.completeNewMediumDecision(rig.ids[1])
+        AppWindowPresenter.closeNewMediumPanel(mediumID: rig.ids[1], appState: rig.app, userDismissed: false)
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.app) == 2)
+        let after = Self.frontToBack(rig, [rig.ids[2], rig.ids[0]])
+        let newest = try #require(after[0], "das neueste Panel fehlt")
+        let oldest = try #require(after[1], "das älteste Panel fehlt")
+        #expect(newest < oldest, "nach der Antwort liegt das älteste vorn (\(after))")
+    }
+
+    /// 221: Die vier Dialoge aktivieren die App (kein `.nonactivatingPanel`), sonst gibt eine andere App den Fokus
+    /// nach dem Erscheinen nicht mehr zurück.
+    @Test func dialogPanelsActivateTheApp() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        rig.app.enqueueNewMediumDecision(rig.ids[0])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        rig.app.replaceMediumPrompt = ReplaceMediumPrompt(newID: rig.ids[0], oldID: rig.ids[1], name: "STICK")
+        AppWindowPresenter.openReplaceMediumPrompt(appState: rig.app)
+        rig.app.ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: 600, patterns: ["*.tmp"])
+        AppWindowPresenter.openIgnoreConfirmation(appState: rig.app)
+        AppWindowPresenter.openCrashReport()
+        defer { AppWindowPresenter.crashReportPanel?.close() }
+        let panels: [(String, NSPanel?)] = [
+            ("Erkennung", AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[0])),
+            ("Ersetzen", AppWindowPresenter.replaceMediumPromptPanel(for: rig.app)),
+            ("Ignorieren", AppWindowPresenter.ignoreConfirmationPanel(for: rig.app)),
+            ("Absturzbericht", AppWindowPresenter.crashReportPanel),
+        ]
+        for (name, panel) in panels {
+            let panel = try #require(panel, "Gegenprobe: \(name) nicht offen")
+            #expect(!panel.styleMask.contains(.nonactivatingPanel), "\(name) aktiviert die App nicht")
+        }
+    }
+
+    /// 221 (Korrektur 2): Die Dialog-Panels können Main werden – die erzwungene Aktivierung holt dann nur den Dialog nach
+    /// vorn, nicht das Hauptfenster. Das Popover-Panel (`KeyablePanel`) wird nie Main.
+    @Test func dialogPanelsCanBecomeMainThePopoverCannot() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        rig.app.enqueueNewMediumDecision(rig.ids[0])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        rig.app.replaceMediumPrompt = ReplaceMediumPrompt(newID: rig.ids[0], oldID: rig.ids[1], name: "STICK")
+        AppWindowPresenter.openReplaceMediumPrompt(appState: rig.app)
+        rig.app.ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: 600, patterns: ["*.tmp"])
+        AppWindowPresenter.openIgnoreConfirmation(appState: rig.app)
+        AppWindowPresenter.openCrashReport()
+        defer { AppWindowPresenter.crashReportPanel?.close() }
+        let panels: [(String, NSPanel?)] = [
+            ("Erkennung", AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[0])),
+            ("Ersetzen", AppWindowPresenter.replaceMediumPromptPanel(for: rig.app)),
+            ("Ignorieren", AppWindowPresenter.ignoreConfirmationPanel(for: rig.app)),
+            ("Absturzbericht", AppWindowPresenter.crashReportPanel),
+        ]
+        for (name, panel) in panels {
+            let panel = try #require(panel, "Gegenprobe: \(name) nicht offen")
+            #expect(panel.canBecomeMain, "\(name) kann nicht Main werden")
+        }
+        // Wie das Popover in `MenuBarController` (nie nach vorn geholt).
+        let popover = KeyablePanel(
+            contentRect: NSRect(origin: PromptPanelPlacement.offscreenOrigin, size: CGSize(width: 100, height: 100)),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
+        #expect(!popover.canBecomeMain, "Popover-Panel kann Main werden")
+    }
+
+    /// 221: Nach vorn mit Fokus (`.centered`) aktiviert die App, außerhalb des Bildschirms (`.offscreen`) nie.
+    /// Das Panel liegt in beiden Fällen außerhalb des Bildschirms; die Aktivierung zählt der Haken.
+    @Test func bringForwardActivatesOnlyWhenCentered() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        var activations: [String] = []
+        rig.app.promptActivationHookForTesting = { activations.append($0) }
+        rig.app.enqueueNewMediumDecision(rig.ids[0])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        let panel = try #require(AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[0]), "Panel fehlt")
+        #expect(rig.focus.kinds == ["neues-medium"], "Gegenprobe: das Panel kam nicht nach vorn")
+        #expect(activations.isEmpty, "außerhalb des Bildschirms aktiviert: \(activations)")
+
+        AppWindowPresenter.bringForward(panel, placement: .centered, appState: rig.app, kind: "neues-medium")
+        #expect(activations == ["neues-medium"], "nach vorn mit Fokus aktiviert die App nicht: \(activations)")
+    }
+
+    /// 221: Die Menüleiste meldet jede Änderung an `media` (hier ein Prozentschritt eines anderen Mediums). Ein offener
+    /// Dialog kommt dadurch nicht wieder nach vorn, ein weggeklickter nicht wieder hervor; ein neuer erscheint mit Fokus.
+    @Test func menuBarStateChangeKeepsOpenDialogsQuiet() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        rig.app.enqueueNewMediumDecision(rig.ids[0])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        #expect(rig.focus.kinds == ["neues-medium"], "Gegenprobe: beim Erscheinen kein Fokus")
+
+        rig.app.updateMedium(id: rig.ids[2]) { $0.indexingProgress = 0.42 }
+        AppWindowPresenter.newMediumStateChanged(appState: rig.app)
+        AppWindowPresenter.newMediumStateChanged(appState: rig.app)
+        #expect(rig.focus.kinds.count == 1, "offener Dialog bei Zustandsänderung wieder nach vorn: \(rig.focus.kinds)")
+
+        AppWindowPresenter.closeNewMediumPanel(mediumID: rig.ids[0], appState: rig.app, userDismissed: true)
+        rig.app.updateMedium(id: rig.ids[2]) { $0.indexingProgress = 0.43 }
+        AppWindowPresenter.newMediumStateChanged(appState: rig.app)
+        #expect(AppWindowPresenter.openNewMediumPanelCount(for: rig.app) == 0, "weggeklickter Dialog kommt wieder")
+        #expect(rig.focus.kinds.count == 1, "weggeklickter Dialog holt den Fokus: \(rig.focus.kinds)")
+
+        rig.app.enqueueNewMediumDecision(rig.ids[1])
+        AppWindowPresenter.newMediumStateChanged(appState: rig.app)
+        #expect(AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[1]) != nil, "neues Medium ohne Dialog")
+        #expect(rig.focus.kinds.count == 2, "neuer Dialog ohne Fokus: \(rig.focus.kinds)")
+    }
+
     /// 209: Keiner der vier Dialoge schwebt über anderen Fenstern.
     @Test func noPanelFloats() throws {
         let rig = try Self.rig()

@@ -561,7 +561,6 @@ actor IndexStoreV3 {
     ) async throws -> MediumCountDelta {
         do {
             if directoryWritesFail { throw IndexStoreError.directoryWriteFailed }
-            let forceMeta = batches.contains { $0.finalize }
             let partialMatching = partialMatchingEnabled
             // bug.0.4.176 (c): Das Token steht bis nach dem Laufende (169 c). In der Abschlussphase schreibt hier praktisch
             // niemand: der Lauf selbst ist fertig, und die Live-Überwachung schiebt auf, solange ein Token steht
@@ -605,6 +604,9 @@ actor IndexStoreV3 {
                     try Self.appendPendingReconnectIDs(db, storageID, inserted, maxLength: merkerMaxLength)
                     merkerWritten = true
                 }
+                // bug.0.4.222: Zähler im selben Schreibvorgang wie die Einträge – gespeichert ist, was gezählt ist. Getrennt
+                // nachgeschrieben ging er beim Abziehen verloren (das Nachschreiben trifft den Abbruch).
+                try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: seenAt, delta: delta)
                 return (delta, parentPaths, inserted, merkerWritten)
             }
             #if DEBUG
@@ -613,7 +615,6 @@ actor IndexStoreV3 {
             if trackInserts, !result.inserted.isEmpty {
                 insertedIDsDuringRun[mediumUUID, default: []].formUnion(result.inserted)
             }
-            try await commitPendingMetaIfNeeded(mediumUUID: mediumUUID, seenAt: seenAt, delta: result.delta, force: forceMeta)
             DiskIndexLog.shared.record(.store, .info, "applyDirectories count=\(batches.count)")
             var seenPaths = Set<String>()
             var uniquePaths: [[String]] = []

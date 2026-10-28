@@ -159,9 +159,11 @@ extension AppState {
     }
 
     func enqueueNewMediumDecision(_ id: UUID) {
+        // bug.0.4.221: jedes Anschließen zählt (Konzept `medien.md` 3) – auch für eine schon wartende ID ist der Merker
+        // „weggeklickt“ weg, sonst bleibt der Dialog nach dem Wiedereinstecken aus.
+        dismissedNewMediumPanelIDs.remove(id)
         guard !pendingNewMediumDecisionIDs.contains(id) else { return }
         pendingNewMediumDecisionIDs.append(id)
-        dismissedNewMediumPanelIDs.remove(id)
     }
 
     /// Erkennungs-Dialog für dieses Medium zeigen: in der Warteschlange und verbunden. Die Warteschlange enthält
