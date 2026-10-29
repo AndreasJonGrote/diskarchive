@@ -36,6 +36,7 @@
     "y": 234
   },
   "volume_icon": {
-    "badge_source": "Contents/Resources/AppIcon.icns"
+    "badge_source": "Contents/Resources/AppIcon.icns",
+    "badge_versatz_y": 0.07
   }
 }
