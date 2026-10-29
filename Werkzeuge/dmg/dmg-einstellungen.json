@@ -1,5 +1,5 @@
 {
-  "_hinweis": "Pflegt der Host (AGENTS.md). Quelle: layout/ab 0.4.2/DMG Hintergrund.dc.html, Abschnitt A und B. Koordinaten in pt, Ursprung oben links im Fensterinhalt, Mittelpunkt des Icons (wie dmgbuild icon_locations). {version} = CFBundleShortVersionString der gebauten App. Pfade relativ zu diesem Ordner bzw. zur App. Bild 660 × 440 (1x) mit 40 pt Beschnitt unten (unterste Zeile fortgesetzt, Host 28.10.); Fenster 428 hoch: zählt der Finder die Titelleiste (~28 pt) mit, sieht man genau die 400 pt der Layout-Seite, sonst 28 pt Beschnitt – nie einen grauen Rand.",
+  "_hinweis": "Pflegt der Host (AGENTS.md). Quelle: layout/ab 0.4.2/DMG Hintergrund.dc.html, Abschnitt A und B. Koordinaten in pt, Ursprung oben links im Fensterinhalt, Mittelpunkt des Icons (wie dmgbuild icon_locations). {version} = CFBundleShortVersionString der gebauten App. Pfade relativ zu diesem Ordner bzw. zur App. Bild 660 × 480 (1x) mit 80 pt Beschnitt unten (unterste Zeile fortgesetzt, Host 29.10.). Fensterhöhe 476 inkl. Titelleiste (28 pt, Nutzer-Screenshot 29.10.): mit Statusleiste und Pfadleiste (globale Finder-Einstellung, nicht abschaltbar) sieht man gut die 400 pt der Layout-Seite, ohne sie 448 pt – nie einen grauen Rand. Beschriftungsfarbe der Icons lässt sich im Finder nicht setzen (auf Bildhintergrund immer dunkel).",
   "volume_name": "Disk Archive {version} Beta",
   "output_name": "Disk-Archive-{version}.dmg",
   "format": "ULFO",
@@ -8,7 +8,7 @@
     "x": 200,
     "y": 120,
     "content_width": 660,
-    "content_height": 428
+    "content_height": 476
   },
   "show_toolbar": false,
   "show_status_bar": false,
