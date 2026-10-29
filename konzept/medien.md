@@ -71,6 +71,11 @@ Weitere Information (Dateizahl, „zuletzt gesehen …“, „Fehler vor 2 Std. 
 - **Mehrere Fehler gleichzeitig:** Modals **nacheinander**, eins je Medium. **Schlägt „Erneut versuchen“ sofort wieder fehl:** das Modal erscheint erneut, aber **höchstens 3-mal je Medium und Stunde** automatisch, danach nur noch über das „!“. **Ist das Hauptfenster beim Fehler zu:** nur Mitteilung und „!“; beim nächsten Öffnen erscheint das Modal **einmal**, wenn der Fehler noch offen ist. *(alle drei bestätigt)*
 - Das **Menüleisten-„!“** erscheint nur für **angeschlossene** Medien mit Fehler (siehe 2a).
 
+## 2c. Medientyp USB, SSD, HDD (Nutzer 29.10., `bug.0.4.230`, ersetzt „wechselbar = USB, sonst HDD“ von 28.09.)
+- **Wechselbare Medien** (Sticks, Speicherkarten, macOS „Removable Media: Removable“) sind **USB**.
+- **Sonst** entscheidet die macOS-Angabe zum Datenträger (wie „Solid State“ in `diskutil info`): **Solid State = SSD**, **Rotational = HDD**. Fehlt die Angabe, gilt **HDD** wie bisher.
+- Der Typ wird **bei jedem Anschließen** neu bestimmt und gespeichert; Medien, die gerade offline sind, behalten den alten Typ bis zum nächsten Anschließen. Er wirkt überall gleich: Icon (Karten, Popover, Seitenleiste, Dialog „Neues Medium“, Details) und Spalte „Typ“ in Einstellungen → Speichermedien.
+
 ## 3. Pausieren
 - **Begriffe und Aufbau (Nutzer 03.10.):** **Einstiegskachel** = Popover am Menüleisten-Symbol (Layout 03: 340 pt, **Radius 14 pt**, **1-pt-Rand** `divider`, Schatten `--shadow-lg` — **Ruhe und Suche gleich**), **Pausentimer** = das kleine Menü unter „Pausiert“. Die Einstiegskachel **verändert nie ihre Position** (nur die Höhe, Oberkante fest direkt unter dem Symbol). **Suchzustand:** Panel-Höhe = Kopf + Trefferliste + Fuß („Alle N Ergebnisse“); die AppKit-Höhe folgt `MenuBarPopoverLayout` **1:1** der SwiftUI-Messung (sonst schneidet `clipsToBounds` den Fuß ab). Der Pausentimer ist ein **eigenes Kindfenster** (`KeyablePanel`), **rechts bündig mit An/Pausiert**, mit **Nase (Pfeil)** am Schalter (Layout Screen 03: 210 pt, Abrundung 8 pt, Hover/Hand-Cursor auf den Dauer-Optionen); er überdeckt die Kachel teilweise und verändert sie nicht.
 - Es gibt **nur eine globale Pause** (Dropdown, 03). **Medien können nicht einzeln pausiert werden.**

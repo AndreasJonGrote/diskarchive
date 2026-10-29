@@ -180,6 +180,35 @@ struct MediumCoordinatorTests {
         #expect(stored.lastSeenAt != nil)
     }
 
+    /// bug.0.4.230 Test 3: Ein als HDD gespeichertes Medium, fest angeschlossen mit Solid State, wird SSD (gespeichert
+    /// und angezeigt).
+    @Test func knownHDDConnectedAsSolidStateBecomesSSD() async throws {
+        let rig = try await RecognitionRig.make()
+        let created = Date(timeIntervalSince1970: 1_718_102_804)
+        let existing = StoredMedium(
+            volumeUUID: "AAAAAAAA-BBBB-CCCC-DDDD-000000000230",
+            volumeCreatedAt: created,
+            fsType: "exfat",
+            volumeTotalBytes: 1_000,
+            name: "Daten I",
+            type: .hdd,
+            decision: .index,
+            rememberDecision: true,
+            indexStatus: .indexed
+        )
+        try await rig.store.upsertMedium(existing)
+        var volume = rig.volume(name: "Daten I", path: "/Volumes/Daten I", uuid: existing.volumeUUID, created: created)
+        volume.isRemovable = false
+        volume.isInternal = false
+        volume.deviceProtocol = "USB"
+        volume.deviceMedium = .solidState
+        await rig.coordinator.handle(.appeared(volume))
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.type == .ssd, "gespeicherter Typ \(stored.type) statt SSD")
+        let live = try #require(rig.appState.medium(with: existing.uuid))
+        #expect(live.type == .ssd, "angezeigter Typ \(live.type) statt SSD")
+    }
+
     @Test func reprobeKeepsIndexDecisionWithoutDialog() async throws {
         let rig = try await RecognitionRig.make()
         let created = Date(timeIntervalSince1970: 1_718_102_900)

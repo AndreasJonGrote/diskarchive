@@ -21,6 +21,8 @@ nonisolated struct VolumeInfo: Sendable, Equatable {
     var deviceProtocol: String?
     var model: String?
     var isTimeMachineSnapshot: Bool
+    /// bug.0.4.230: macOS-Angabe zum Datenträger („Medium Type“ aus IOKit), `nil` wenn keine.
+    var deviceMedium: DeviceMedium? = nil
 
     var identity: VolumeIdentity {
         VolumeIdentity(
@@ -47,8 +49,20 @@ nonisolated struct VolumeInfo: Sendable, Equatable {
     }
 
     var mediumType: StoredMediumType {
-        isRemovable ? .usb : .hdd
+        Self.mediumType(isRemovable: isRemovable, deviceMedium: deviceMedium)
     }
+
+    /// bug.0.4.230 (Konzept `medien.md` 2c): wechselbar = USB; sonst Solid State = SSD, Rotational oder keine Angabe = HDD.
+    static func mediumType(isRemovable: Bool, deviceMedium: DeviceMedium?) -> StoredMediumType {
+        if isRemovable { return .usb }
+        return deviceMedium == .solidState ? .ssd : .hdd
+    }
+}
+
+/// bug.0.4.230: Art des Datenträgers laut IOKit (`"Device Characteristics"` → `"Medium Type"`).
+nonisolated enum DeviceMedium: Sendable, Equatable {
+    case solidState
+    case rotational
 }
 
 nonisolated enum MediumEvent: Sendable, Equatable {

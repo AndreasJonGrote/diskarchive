@@ -15,6 +15,9 @@ actor IndexStoreV3 {
     /// Widerrufene Tokens → ihr Medium (bug.0.4.180 c: beim Vergessen des Mediums aufräumen).
     private var revokedIndexingTokens: [UUID: UUID] = [:]
     private var insertedIDsDuringRun: [UUID: Set<Int64>] = [:]
+    /// bug.0.4.229: je Medium die Namen, die verschwundene Ordner in diesem Lauf an andere Ordner abgegeben haben
+    /// (bisheriger Elternordner → Namen). Das Laufende vergleicht damit verschobene Ordner.
+    private var goneNamesMovedOutDuringRun: [UUID: [Int64: Set<String>]] = [:]
     /// bug.0.4.169 (b): Zeitgrenze je gelesener Teil-Prüfsumme am Laufende und für alle zusammen.
     private var partialReadTimeout: Duration = .seconds(5)
     private var partialReadBudget: Duration = .seconds(30)
@@ -74,6 +77,17 @@ actor IndexStoreV3 {
     #endif
     /// Tests: Teil-Prüfsummen-Abgleich (235b); kein globales Flag (bug.0.4.010).
     var partialMatchingEnabled = true
+    /// bug.0.4.228: Größen der Dateien mit gespeicherter Teil-Prüfsumme je Medium (`precomputedPartials`). Einmal gefragt,
+    /// danach gemerkt, bis eine Teil-Prüfsumme gespeichert wird – vorher fragte jeder Ordner das ganze Medium ab („Daten I“,
+    /// 283 000 Einträge: 0,1 s je Ordner, ein Abgleich über 30 Minuten). Gelöschte Teil-Prüfsummen (Kaskade, geänderte
+    /// Datei) lassen die Menge höchstens zu groß: dann wird eine Datei mehr gelesen, verglichen wird trotzdem richtig.
+    private var comparableSizesByMedium: [UUID: Set<Int64?>] = [:]
+    /// Zählt das Verwerfen hoch; ein Lesen, das davor begann, legt sein Ergebnis nicht mehr ab.
+    private var comparableSizesGeneration = 0
+    #if DEBUG
+    /// bug.0.4.228: Abfragen der vergleichbaren Größen (Summe, nur Tests).
+    private(set) var comparableSizeQueriesForTesting = 0
+    #endif
 
     #if DEBUG
     func setPartialMatchingEnabled(_ enabled: Bool) {
@@ -673,14 +687,18 @@ actor IndexStoreV3 {
                 partialMaps.append(map)
             }
             let batchPartials = partialMaps
-            let result = try await pool.write { db -> (delta: MediumCountDelta, parentPaths: [String], inserted: [Int64], merkerWritten: Bool) in
+            let result = try await pool.write { db -> (
+                delta: MediumCountDelta, parentPaths: [String], inserted: [Int64], movedOut: [(Int64, String)], merkerWritten: Bool
+            ) in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
                 var delta = MediumCountDelta.zero
                 var parentPaths: [String] = []
                 var inserted: [Int64] = []
+                var movedOut: [(Int64, String)] = []
                 if trackInserts {
                     writer.onInsertedItemID = { inserted.append($0) }
+                    writer.onGoneRowMovedOut = { movedOut.append(($0, $1)) }
                 }
                 for (batch, partials) in zip(batches, batchPartials) {
                     let step = try writer.apply(
@@ -703,13 +721,18 @@ actor IndexStoreV3 {
                 // bug.0.4.222: Zähler im selben Schreibvorgang wie die Einträge – gespeichert ist, was gezählt ist. Getrennt
                 // nachgeschrieben ging er beim Abziehen verloren (das Nachschreiben trifft den Abbruch).
                 try Self.commitMediumMeta(db: db, storageID: storageID, activityAt: seenAt, delta: delta)
-                return (delta, parentPaths, inserted, merkerWritten)
+                return (delta, parentPaths, inserted, movedOut, merkerWritten)
             }
             #if DEBUG
             if result.merkerWritten { pendingReconnectWritesForTesting += 1 }
             #endif
             if trackInserts, !result.inserted.isEmpty {
                 insertedIDsDuringRun[mediumUUID, default: []].formUnion(result.inserted)
+            }
+            if trackInserts, !result.movedOut.isEmpty {
+                var names = goneNamesMovedOutDuringRun[mediumUUID] ?? [:]
+                for (previousParentID, name) in result.movedOut { names[previousParentID, default: []].insert(name) }
+                goneNamesMovedOutDuringRun[mediumUUID] = names
             }
             DiskIndexLog.shared.record(.store, .info, "applyDirectories count=\(batches.count)")
             var seenPaths = Set<String>()
@@ -950,6 +973,7 @@ actor IndexStoreV3 {
         #endif
         indexingToken[mediumUUID] = token
         insertedIDsDuringRun[mediumUUID] = []
+        goneNamesMovedOutDuringRun[mediumUUID] = nil
         do {
             let pending: Set<Int64>? = try await pool.write { db in
                 guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
@@ -966,6 +990,7 @@ actor IndexStoreV3 {
                 if indexingToken[mediumUUID] == token {
                     indexingToken[mediumUUID] = nil
                     insertedIDsDuringRun[mediumUUID] = nil
+                    goneNamesMovedOutDuringRun[mediumUUID] = nil
                 }
                 return false
             }
@@ -1016,6 +1041,7 @@ actor IndexStoreV3 {
             return false
         }
         let insertedIDs = insertedIDsDuringRun.removeValue(forKey: mediumUUID) ?? []
+        let movedOutGoneNames = goneNamesMovedOutDuringRun.removeValue(forKey: mediumUUID) ?? [:]
         let partialMatching = partialMatchingEnabled
         // bug.0.4.169 (c): Lauf-Zustand erst nach dem Schreiben freigeben; bis dahin wartet ein neuer Beginn.
         finishingMedia.insert(mediumUUID)
@@ -1023,6 +1049,7 @@ actor IndexStoreV3 {
             if indexingToken[mediumUUID] == token {
                 indexingToken[mediumUUID] = nil
                 insertedIDsDuringRun[mediumUUID] = nil
+                goneNamesMovedOutDuringRun[mediumUUID] = nil
             }
             finishingMedia.remove(mediumUUID)
             for waiter in finishWaiters.removeValue(forKey: mediumUUID) ?? [] { waiter.resume() }
@@ -1128,6 +1155,7 @@ actor IndexStoreV3 {
             if !insertedIDs.isEmpty, completesRun || mountPath != nil {
                 let writer = try DirectoryWriterV3(db: db, storageID: storageID, partialMatchingEnabled: partialMatching)
                 writer.externalPartials = readPartials
+                writer.movedOutGoneNames = movedOutGoneNames
                 #if DEBUG
                 writer.partialReadHook = readHook
                 writer.partialLookupHook = lookupHook
@@ -1252,14 +1280,21 @@ actor IndexStoreV3 {
 
     /// bug.0.4.165 (a): Wiederverbinden ist möglich – das Medium hat verschwundene Zeilen (`status = 2`) oder war schon
     /// einmal vollständig indiziert (dann kann der alte Ort einer verschobenen Datei auch erst später gelesen werden).
+    /// bug.0.4.228: `status` als Literal und `INDEXED BY items_gone` – sonst las die Abfrage beim Erstindex je Stapel alle
+    /// Einträge des Mediums, in der Schreibtransaktion. Mit gebundenem Wert greift der Teilindex nicht, und auch mit Literal
+    /// nahm SQLite in der App `items_children` (Spalte `storageID` vorn, Sortierung „natural“ registriert).
     private nonisolated static func mayReconnect(_ db: Database, _ storageID: Int64) throws -> Bool {
         if try Int64.fetchOne(db, sql: "SELECT firstIndexedAt FROM storages WHERE id = ?", arguments: [storageID]) != nil {
             return true
         }
         return try Bool.fetchOne(
             db,
-            sql: "SELECT EXISTS(SELECT 1 FROM items WHERE storageID = ? AND status = ?)",
-            arguments: [storageID, ItemStatus.gone.rawValue]
+            sql: """
+                SELECT EXISTS (
+                    SELECT 1 FROM items INDEXED BY items_gone WHERE storageID = ? AND status = \(ItemStatus.gone.rawValue)
+                )
+                """,
+            arguments: [storageID]
         ) ?? false
     }
 
@@ -1604,6 +1639,9 @@ actor IndexStoreV3 {
                 arguments: [itemID, computed.partial, info]
             )
         }
+        // bug.0.4.228: erst nach dem Schreiben verwerfen – ein danach begonnenes Lesen sieht die neue Größe.
+        comparableSizesByMedium.removeAll()
+        comparableSizesGeneration += 1
     }
 
     // MARK: Bereinigen
@@ -1884,24 +1922,13 @@ actor IndexStoreV3 {
         // Vollabgleich zurück – `PackageAndTrashesWatcherTests`).
         let files = entries.filter { !$0.isFolder && !$0.isPackage }
         guard !files.isEmpty else { return nil }
-        let (segments, comparableSizes): ([String], Set<Int64?>) = try await pool.read { db in
-            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return ([], []) }
-            let rows = try Row.fetchAll(
-                db,
-                sql: """
-                    SELECT DISTINCT d.sizeBytes FROM item_checksum c
-                    JOIN items i ON i.id = c.itemID
-                    LEFT JOIN item_details d ON d.itemID = c.itemID
-                    WHERE i.storageID = ? AND i.isFolder = 0
-                    """,
-                arguments: [storageID]
-            )
-            let sizes = Set(rows.map { $0["sizeBytes"] as Int64? })
-            guard !sizes.isEmpty, let parentID else { return ([], sizes) }
-            return (try DirectoryWriterV3.segments(db, itemID: parentID), sizes)
-        }
+        let comparableSizes = try await comparableSizes(mediumUUID: mediumUUID)
         let wanted = files.filter { comparableSizes.contains($0.sizeBytes) }
         guard !wanted.isEmpty else { return nil }
+        let segments: [String] = try await pool.read { db in
+            guard let parentID else { return [] }
+            return try DirectoryWriterV3.segments(db, itemID: parentID)
+        }
         var map: [String: Data] = [:]
         #if DEBUG
         let testDelay = partialChecksumComputeDelayForTesting
@@ -1918,6 +1945,33 @@ actor IndexStoreV3 {
             }
         }
         return map.isEmpty ? nil : map
+    }
+
+    /// bug.0.4.228: vergleichbare Größen des Mediums, gemerkt bis zum nächsten Speichern einer Teil-Prüfsumme. Die Abfrage
+    /// geht von `item_checksum` aus (`CROSS JOIN` legt die Reihenfolge fest) – sonst nahm SQLite alle Einträge des Mediums
+    /// über `items_identity` und sah je Zeile in `item_checksum` nach, auch wenn die Tabelle leer ist.
+    private func comparableSizes(mediumUUID: UUID) async throws -> Set<Int64?> {
+        if let cached = comparableSizesByMedium[mediumUUID] { return cached }
+        let generation = comparableSizesGeneration
+        #if DEBUG
+        comparableSizeQueriesForTesting += 1
+        #endif
+        let sizes: Set<Int64?> = try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return [] }
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT DISTINCT d.sizeBytes FROM item_checksum c
+                    CROSS JOIN items i ON i.id = c.itemID
+                    LEFT JOIN item_details d ON d.itemID = c.itemID
+                    WHERE i.storageID = ? AND i.isFolder = 0
+                    """,
+                arguments: [storageID]
+            )
+            return Set(rows.map { $0["sizeBytes"] as Int64? })
+        }
+        if generation == comparableSizesGeneration { comparableSizesByMedium[mediumUUID] = sizes }
+        return sizes
     }
 
     /// Zähler über die Änderungs-Differenzen (nicht durch Zählen der ganzen Tabelle); `forceRecount` zählt neu.

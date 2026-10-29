@@ -5,6 +5,7 @@
 
 import DiskArbitration
 import Foundation
+import IOKit
 
 nonisolated struct DiskArbitrationAttributes: Sendable, Equatable {
     var volumeUUID: String?
@@ -12,6 +13,7 @@ nonisolated struct DiskArbitrationAttributes: Sendable, Equatable {
     var deviceProtocol: String?
     var model: String?
     var isNetwork: Bool
+    var deviceMedium: DeviceMedium? = nil
 }
 
 nonisolated enum DiskArbitrationLookup {
@@ -29,8 +31,26 @@ nonisolated enum DiskArbitrationLookup {
             mediaSizeBytes: (description[kDADiskDescriptionMediaSizeKey] as? NSNumber)?.int64Value,
             deviceProtocol: description[kDADiskDescriptionDeviceProtocolKey] as? String,
             model: description[kDADiskDescriptionDeviceModelKey] as? String,
-            isNetwork: (description[kDADiskDescriptionVolumeNetworkKey] as? NSNumber)?.boolValue ?? false
+            isNetwork: (description[kDADiskDescriptionVolumeNetworkKey] as? NSNumber)?.boolValue ?? false,
+            deviceMedium: deviceMedium(of: disk)
         )
+    }
+
+    /// bug.0.4.230: DiskArbitration kennt kein „Solid State“; die Angabe liegt in IOKit am Gerät, mehrere Ebenen über
+    /// dem Volume (bei APFS über Container und Partition).
+    static func deviceMedium(of disk: DADisk) -> DeviceMedium? {
+        let media = DADiskCopyIOMedia(disk)
+        guard media != IO_OBJECT_NULL else { return nil }
+        defer { IOObjectRelease(media) }
+        let value = IORegistryEntrySearchCFProperty(
+            media, kIOServicePlane, "Device Characteristics" as CFString, nil,
+            IOOptionBits(kIORegistryIterateParents | kIORegistryIterateRecursively)
+        )
+        switch (value as? [String: Any])?["Medium Type"] as? String {
+        case "Solid State": return .solidState
+        case "Rotational": return .rotational
+        default: return nil
+        }
     }
 
     private static func uuidString(_ value: Any?) -> String? {

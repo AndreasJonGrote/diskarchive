@@ -1,0 +1,18 @@
+# Test: MovedFolderFatTests/folderWithOtherEntriesOrEmptyStaysNew()
+--- a/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
++++ b/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
+@@ -407,12 +407,11 @@
+             // an einen anderen Ort geholt hat.
+             var goneNames = Set(try childRows(of: gone.id).filter { $0.status == ItemStatus.gone.rawValue }.map(\.name))
+             goneNames.formUnion(movedOutGoneNames[gone.id] ?? [])
+-            guard !goneNames.isEmpty else { continue }
++            _ = goneNames
+             var matches: [ListedRow] = []
+             for candidate in insertedByName[folder.name] ?? [] {
+                 guard let current = try fetchListedRow(id: candidate.id), current.status == 0 else { continue }
+-                let names = Set(try childRows(of: current.id).filter { $0.status == 0 }.map(\.name))
+-                if names == goneNames { matches.append(current) }
++                matches.append(current)
+             }
+             guard matches.count == 1, let moved = matches.first,
+                   try !subtreeHasVisibleRows(folderID: gone.id),

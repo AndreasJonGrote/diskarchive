@@ -1,0 +1,32 @@
+# Test: MovedFolderFatTests/folderMovedIntoSiblingKeepsAllIDsAndFavorites()
+--- a/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
++++ b/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
+@@ -439,28 +439,6 @@
+     ) throws {
+         // Erst die alten Einträge auf die neue Tiefe, dann kommen die neuen hinzu (die haben sie schon).
+         if old.depth != depth { try shiftDescendantDepths(folderID: old.id, by: depth - old.depth) }
+-        let oldChildren = Dictionary(try childRows(of: old.id).map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+-        let gone = ItemStatus.gone.rawValue
+-        for child in try childRows(of: new.id) {
+-            guard let match = oldChildren[child.name] else {
+-                try db.execute(sql: "UPDATE items SET parentID = ? WHERE id = ?", arguments: [old.id, child.id])
+-                continue
+-            }
+-            if match.status == gone, child.status == 0, child.isFolder, match.isFolder {
+-                try mergeMovedFolder(
+-                    new: child, into: match, parentID: old.id, depth: depth + 1, insertedIDs: insertedIDs, delta: &delta
+-                )
+-            } else if match.status == gone, child.status == 0, !child.isFolder, !match.isFolder,
+-                      insertedIDs.contains(child.id), Self.sameFile(match, child) {
+-                delta.removeVisible(isFolder: false)
+-                try db.execute(sql: "DELETE FROM item_details WHERE itemID = ?", arguments: [child.id])
+-                try db.execute(sql: "DELETE FROM items WHERE id = ?", arguments: [child.id])
+-                try revive(match, as: child, parentID: old.id, depth: depth + 1, delta: &delta)
+-            } else {
+-                try db.execute(sql: "DELETE FROM items WHERE id = ? AND status != 0", arguments: [match.id])
+-                try db.execute(sql: "UPDATE items SET parentID = ? WHERE id = ?", arguments: [old.id, child.id])
+-            }
+-        }
+         let listing = try Row.fetchOne(
+             db, sql: "SELECT contentStamp, listedAt, unreadable FROM items WHERE id = ?", arguments: [new.id]
+         )

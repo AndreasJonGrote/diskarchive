@@ -73,7 +73,7 @@ Reihenfolge: B zuerst, weil nach dem Vergessen jedes Medium neu mit dem Dialog k
 - [x] **B1** Nach deinem Vergessen von heute Morgen: Speichermedien leer, Dashboard 0, Suche findet nichts, Favoriten leer.
 - [x] **B2** Ein angeschlossenes Medium erscheint nach dem Neustart neu, mit Erkennungsdialog.
 - [x] **B3** Ein Medium indizieren, in den Details „Vergessen“ (zwei Klicks), sofort ⌘Q. Das Beenden hängt nicht. Nach dem Neustart ist es weg, und der Dialog kommt wieder.
-- [ ] **B4** (dauert lange, gern zuletzt) Die große Platte „Daten“ anstecken: Sie gilt als neu, und das Indizieren beginnt von vorn. Mit der App von 13:25 (Paket 40).
+- [x] **B4** (dauert lange, gern zuletzt) Die große Platte „Daten“ anstecken: Sie gilt als neu, und das Indizieren beginnt von vorn. Mit der App von 29.10. 16:33 (Paket 44).
 
 **C Fortschritt (`222`)**
 - [x] **C1** Stick mitten im Lauf abziehen: kein Sprung auf 100 %, offline derselbe Wert wie zuletzt online.
@@ -90,12 +90,24 @@ Reihenfolge: B zuerst, weil nach dem Vergessen jedes Medium neu mit dem Dialog k
 
 ## 6. Nachtest nach Paket 40 (28.10., App 13:25)
 
+**Ergebnis 29.10. 10:45–10:53 (Nutzer, Host):** E1 und E2 nicht bestanden. „Daten I“ stand bei 15 %, der Dialog von ZOOM_H4E kam spät, „Ja“ blieb minutenlang „Ausstehend“ → `bug.0.4.227` (Paket 43). E1–E5 nach Paket 43 wiederholen, mit der App von 29.10. 12:48 (Paket 43 abgenommen).
+
+**Ergebnis 29.10. 12:55–13:50 (App 12:48, Host aus dem Protokoll):** E1 Erstindex 12:55:56–13:21:19 (4 min Ruhezustand), 283 164 Einträge, ohne Lesefehler. E2 H4-Karte: Dialog sofort, „Ja“ nach 1,8 s, fertig nach 8 s. E3 Ruhezustand 13:06–13:10: Lauf hält an und setzt beim Aufwachen fort. E4 Auswerfen 13:49: Abbruch in 30 ms, offline ohne Hänger. **Offen:** Abgleich nach dem Einstecken/Aufwachen dauert > 30 min bei 99 % → `bug.0.4.228` (Paket 44); E5 noch nicht getestet. 13:27 USB-Fehler der SanDisk (Kernel setzt das Gerät 29× zurück) – Platte bzw. Kabel, nicht die App.
+
+**Paket 44 abgenommen 29.10. (Gesamtlauf 16:01–16:33 grün, App des Nutzers 16:33).** Nachtest offen: „Daten I“ einstecken (Abgleich ohne Änderungen, Ziel deutlich unter 25 min, kein langes Stehen bei 99 %), danach E5 und B4.
+
+**Ergebnis 29.10. 16:45–16:49 (App 16:33, Host aus dem Protokoll):** Nach „Alle vergessen“ Erstindex „Daten I“ 16:47:04–16:48:57 (**1 min 53 s** statt 25 min), 283 164 Einträge, ohne Lesefehler, kein Schreibvorgang über 1 s. **N1 bestanden:** Abgleich nach Wiederanstecken 16:55:18–16:56:32 (**1 min 14 s** statt > 30 min), ohne Lesefehler, parallel zum Erstindex von „Daten“ (B4 läuft). **E5 mit Ordner nicht bestanden (16:56):** Favorit auf den **Ordner** `250714_184701` der H4-Karte (FAT32), in `250714_184641` verschoben, 11 s nach dem Setzen abgezogen; beim Wiederanstecken neue Zeile, Favorit weg. Ursache: Konzept `datenbank.md` erkennt Ordner auf FAT/exFAT außerhalb der Überwachung nur „über Name und Eltern“, ein verschobener Ordner gilt als neu; die Überwachung kam nicht mehr zum Zug (Ruhezeit 2 s, kein Ereignis vor dem Abziehen protokolliert). Nutzer 29.10.: verschobene Ordner wiedererkennen, noch in 0.4.0 → `bug.0.4.229` (Paket 45), **abgenommen 29.10.** (Gesamtlauf 18:03–18:36 grün, App des Nutzers 18:36). Offen: E5 mit Ordner (H4-Karte) und Datei, N2, B4.
+
+**29.10. Nutzer:** Externe SSDs erscheinen als „HDD“ (Icon und Typ in den Einstellungen) → `bug.0.4.230` (Paket 46). Nachtest danach: „Daten I“ und „Daten“ zeigen SSD (Icon und Spalte „Typ“), H4-Karte bleibt USB. **Nachtest 29.10. ~20:50 mit der App von 20:38: bestanden** (S0–S4). Danach Pakete 47–49 (Nutzer „Alles“); Nachtest 47: „Daten I“ neu indizieren und Abgleich messen (Vergleich 1 min 53 s / 1 min 14 s).
+
+**Ergebnis 29.10. 22:07–22:23 (App 20:38, Paket 46; Host aus Protokoll und Datenbank, nur lesend):** Nach „Alle Speichermedien vergessen“ (22:07:47) alle Testmedien neu, **alle indiziert, 0 Lesefehler, keine Fehler- oder Warnzeile im Protokoll, keine Absturzberichte**. **B4 bestanden:** „Daten“ (2 TB, APFS) Erstindex 22:09:27–22:17:20 = **7 min 53 s**, 1 600 311 Dateien. Zugleich „Daten I“ 22:08:55–22:12:33 = 3 min 38 s (266 568 Dateien; allein waren es 1 min 53 s) und H4-Karte in 0,1 s. Danach neu: „Transfer“ (USB-SSD, exFAT), „Volume“ (NTFS-Stick), „EOS_DIGITAL“ (Kamerakarte), „INTENSO“ (Stick) je unter 1 s; Typen richtig (SSD bzw. USB). Zweite Karte „ZOOM_H4E“: Rückfrage „Ersetzt dieses Medium?“ kam, „Behalten“ → eigenes Medium, indiziert in 0,1 s. Ab- und Anstecken 22:22 ohne Hänger. **Offen: E5** (Ordner auf der H4-Karte, Datei auf „Daten I“). **Nachtest E5 29.10. (Nutzer: E0–E6 „passt“):** Datei belegt – Favorit 22:35:04 auf `2016-08_001.NEF` auf „Transfer“ (exFAT), verschoben, abgezogen 23:10:07, Abgleich 23:10:25–23:10:27 (1,8 s), Favorit an derselben Zeile (9032760). **Ordner auf der H4-Karte im Protokoll nicht zu finden** (letzter Ordner-Favorit 16:56, vor Paket 45; seit „Alle vergessen“ 22:07 kein Ordner-Favorit) → Rückfrage an den Nutzer. **Nutzer 29.10.: Ordner auf der H4-Karte „schon geprüft“, passt.** Damit **E5 bestanden** (Ordner nach Angabe des Nutzers, abgesichert durch `MovedFolderFatTests`; Datei im Protokoll belegt). **Abnahmerunde 0.4.0 ohne offenen Punkt;** Release-Kandidat nach Abnahme der Pakete 46–49 (Nutzer „Alles“).
+
 Vorher die App beenden und neu öffnen.
 - [ ] **E1** „Daten I“ anstecken und weiter indizieren lassen: Es geht zügig voran und bleibt nicht mehr bei 14 % stehen. Uhrzeit von Start und Ende notieren.
 - [ ] **E2** Während „Daten I“ indiziert, ein zweites Medium anstecken: Sein Erkennungsdialog bzw. Abgleich kommt sofort, nicht erst nach „Daten I“.
 - [ ] **E3** Mac in den Ruhezustand (Deckel zu), nach einer Minute wecken: Die anderen Medien sind nach wenigen Sekunden still abgeglichen, „Daten I“ läuft weiter.
 - [ ] **E4** „Daten I“ während des Laufs im Finder auswerfen: Sie ist nach höchstens 1–2 s offline (vorher 11 s). Die anderen Medien zeigen dabei keinen Sprung auf 99 %. Falls doch: Screenshot.
-- [ ] **E5** Ein Favorit auf „Daten I“ (oder einem Stick mit exFAT/FAT): Datei im Finder in einen anderen Ordner verschieben, Medium abziehen, wieder anstecken: Der Favorit hängt an der verschobenen Datei.
+- [x] **E5** Ein Favorit auf „Daten I“ (oder einem Stick mit exFAT/FAT): Datei im Finder in einen anderen Ordner verschieben, Medium abziehen, wieder anstecken: Der Favorit hängt an der verschobenen Datei.
 
 ## Danach
 

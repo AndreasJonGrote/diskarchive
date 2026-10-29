@@ -32,10 +32,16 @@ nonisolated final class DirectoryWriterV3 {
     private let partialMatchingEnabled: Bool
     private var extensionIDs: [String: Int64] = [:]
     private var activePrecomputedPartials: [String: Data]?
+    private var storedPartialsExist: Bool?
     /// bug.0.4.141: Teil-Prüfsumme einer Datei, die nicht vorab berechnet wurde (Wiederverbinden am Laufende), von der Platte.
     private var activePartialFallback: ((String) throws -> Data?)?
     /// Lauf-Tracking für bug.0.4.015 (Verbindungs-Nachlauf).
     var onInsertedItemID: ((Int64) -> Void)?
+    /// bug.0.4.229: Eine verschwundene Zeile kam in einen anderen Ordner (bisheriger Elternordner, bisheriger Name). Das
+    /// Laufende braucht die Namen, die ein verschwundener Ordner zu Beginn des Laufs hatte.
+    var onGoneRowMovedOut: ((Int64, String) -> Void)?
+    /// bug.0.4.229: Namen, die verschwundene Ordner in diesem Lauf an andere Ordner abgegeben haben (vom Store gesetzt).
+    var movedOutGoneNames: [Int64: Set<String>] = [:]
 
     init(db: Database, storageID: Int64, partialMatchingEnabled: Bool = true) throws {
         self.db = db
@@ -153,6 +159,13 @@ nonisolated final class DirectoryWriterV3 {
             pass1Handled.insert(entry.name)
         }
 
+        // bug.0.4.227: „verschwunden im selben Ordner“ nur, wenn der ganze Ordner gelesen ist (`finalize`). Bei einem Stück
+        // stehen in `existingByName` auch die früheren Stücke desselben Laufs und noch nicht gelesene Einträge – keiner
+        // davon ist verschwunden. Was zwischen zwei Läufen umbenannt wurde, verbindet das Laufende (neu ↔ `status = 2`).
+        let vacatedBySize = finalize && !trustsFileID
+            ? Self.vacatedRowsBySize(existingByName: existingByName, incoming: incoming)
+            : [:]
+
         for entry in sortedEntries {
             if pass1Handled.contains(entry.name) { continue }
             let ext = entry.isFolder ? nil : Self.fileExtension(entry.name)
@@ -186,12 +199,11 @@ nonisolated final class DirectoryWriterV3 {
                         try db.execute(sql: "DELETE FROM item_checksum WHERE itemID = ?", arguments: [row.id])
                     }
                 }
-            } else if let revived = try matchVacatedLocalCandidate(
+            } else if finalize, let revived = try matchVacatedLocalCandidate(
                 entry: entry,
                 parentID: parentID,
                 extID: extID,
-                existingByName: existingByName,
-                incoming: incoming,
+                vacatedBySize: vacatedBySize,
                 preservedIDs: preservedIDs,
                 mountPath: mountPath
             ) {
@@ -223,7 +235,11 @@ nonisolated final class DirectoryWriterV3 {
                     delta: &delta
                 )
                 preservedIDs.insert(revived.id)
-                if revived.parentID == parentID { vacatedNames.insert(revived.name) }
+                if revived.parentID == parentID {
+                    vacatedNames.insert(revived.name)
+                } else if let previousParentID = revived.parentID {
+                    onGoneRowMovedOut?(previousParentID, revived.name)
+                }
             } else {
                 delta.addVisible(isFolder: entry.isFolder)
                 try db.execute(
@@ -273,7 +289,7 @@ nonisolated final class DirectoryWriterV3 {
     /// lesend (für `pool.read`): der Abgleich mit den Kandidaten läuft wie beim Verbinden, statt zu lesen wird die Datei
     /// vorgemerkt. Segmente werden nur für diese Dateien geholt (bug.0.4.156 a).
     func partialReadRequests(insertedIDs: Set<Int64>, mountPath: String) throws -> [(id: Int64, url: URL)] {
-        guard !trustsFileID, !insertedIDs.isEmpty else { return [] }
+        guard !trustsFileID, !insertedIDs.isEmpty, try goneRowsExist() else { return [] }
         var requests: [(id: Int64, url: URL)] = []
         let priorFallback = activePartialFallback
         let priorPartials = activePrecomputedPartials
@@ -300,8 +316,9 @@ nonisolated final class DirectoryWriterV3 {
 
     /// Verbindet in diesem Lauf neu eingefügte Zeilen mit `status = 2` (bug.0.4.015 a), vor `deleteGoneItems`.
     func reconnectInsertedWithGone(insertedIDs: Set<Int64>, mountPath: String?) throws -> MediumCountDelta {
-        guard !trustsFileID, !insertedIDs.isEmpty else { return .zero }
-        var delta = MediumCountDelta.zero
+        guard !trustsFileID, !insertedIDs.isEmpty, try goneRowsExist() else { return .zero }
+        // bug.0.4.229: erst verschobene Ordner samt Inhalt, danach einzelne Einträge (zusammengeführte Zeilen sind weg).
+        var delta = try reconnectMovedFolders(insertedIDs: insertedIDs)
         for insertedID in insertedIDs {
             guard let inserted = try fetchListedRow(id: insertedID), inserted.status == 0 else { continue }
             let entry = scannedEntry(from: inserted)
@@ -365,6 +382,218 @@ nonisolated final class DirectoryWriterV3 {
             )
         }
         return delta
+    }
+
+    /// bug.0.4.229: Verschobene Ordner (FAT/exFAT, ohne verlässliche `fileID`). Ein in diesem Lauf eingefügter Ordner ist
+    /// derselbe wie ein verschwundener, wenn es genau einen verschwundenen Ordner dieses Namens gibt und die Namen der
+    /// direkten Einträge übereinstimmen (leere Ordner zählen nicht; mehrere passende neue Ordner: alle neu). Die alte
+    /// Zeile kommt an den neuen Ort, die Einträge darin werden zusammengeführt – in jeder Tiefe, Kennungen und Favoriten
+    /// bleiben. Verglichen wird, was der Lauf geschrieben hat (kein Plattenzugriff, Invariante 8); verschwundene Ordner
+    /// einmal nach Namen gesammelt (Invariante 9).
+    private func reconnectMovedFolders(insertedIDs: Set<Int64>) throws -> MediumCountDelta {
+        let goneByName = try goneFolderIDsByName()
+        guard !goneByName.isEmpty else { return .zero }
+        let inserted = try insertedFolders(ids: insertedIDs, named: Set(goneByName.keys))
+        let insertedByName = Dictionary(grouping: inserted, by: \.name)
+        var delta = MediumCountDelta.zero
+        var handledNames = Set<String>()
+        // Flache zuerst: ein Unterordner wird dann mit seinem verschobenen Elternordner zusammengeführt.
+        for folder in inserted where handledNames.insert(folder.name).inserted {
+            guard let goneIDs = goneByName[folder.name], goneIDs.count == 1,
+                  !insertedIDs.contains(goneIDs[0]),
+                  let gone = try fetchListedRow(id: goneIDs[0]),
+                  gone.status == ItemStatus.gone.rawValue, gone.isFolder else { continue }
+            // Namen des verschwundenen Ordners zu Beginn des Laufs: was noch darin liegt, und was der Lauf schon einzeln
+            // an einen anderen Ort geholt hat.
+            var goneNames = Set(try childRows(of: gone.id).filter { $0.status == ItemStatus.gone.rawValue }.map(\.name))
+            goneNames.formUnion(movedOutGoneNames[gone.id] ?? [])
+            guard !goneNames.isEmpty else { continue }
+            var matches: [ListedRow] = []
+            for candidate in insertedByName[folder.name] ?? [] {
+                guard let current = try fetchListedRow(id: candidate.id), current.status == 0 else { continue }
+                let names = Set(try childRows(of: current.id).filter { $0.status == 0 }.map(\.name))
+                if names == goneNames { matches.append(current) }
+            }
+            guard matches.count == 1, let moved = matches.first,
+                  try !subtreeHasVisibleRows(folderID: gone.id),
+                  try !isAncestor(moved.id, of: gone.id) else { continue }
+            try mergeMovedFolder(
+                new: moved, into: gone, parentID: moved.parentID, depth: moved.depth, insertedIDs: insertedIDs, delta: &delta
+            )
+            // Ist der bisherige Elternordner selbst verschwunden und verschoben, zählt der Name dort weiter mit.
+            if let previousParentID = gone.parentID { movedOutGoneNames[previousParentID, default: []].insert(gone.name) }
+        }
+        return delta
+    }
+
+    /// bug.0.4.229: `new` (in diesem Lauf eingefügt) geht in `old` (verschwunden) auf: `old` kommt an den Platz von `new`.
+    /// Einträge gleichen Namens: Ordner rekursiv, Dateien bei gleichen Merkmalen (Größe, Endung, Datum ±1 h) – sonst bleibt
+    /// der neue Eintrag, und der alte (verschwunden, an seinem Platz liegt etwas anderes) entfällt.
+    private func mergeMovedFolder(
+        new: ListedRow,
+        into old: ListedRow,
+        parentID: Int64?,
+        depth: Int,
+        insertedIDs: Set<Int64>,
+        delta: inout MediumCountDelta
+    ) throws {
+        // Erst die alten Einträge auf die neue Tiefe, dann kommen die neuen hinzu (die haben sie schon).
+        if old.depth != depth { try shiftDescendantDepths(folderID: old.id, by: depth - old.depth) }
+        let oldChildren = Dictionary(try childRows(of: old.id).map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
+        let gone = ItemStatus.gone.rawValue
+        for child in try childRows(of: new.id) {
+            guard let match = oldChildren[child.name] else {
+                try db.execute(sql: "UPDATE items SET parentID = ? WHERE id = ?", arguments: [old.id, child.id])
+                continue
+            }
+            if match.status == gone, child.status == 0, child.isFolder, match.isFolder {
+                try mergeMovedFolder(
+                    new: child, into: match, parentID: old.id, depth: depth + 1, insertedIDs: insertedIDs, delta: &delta
+                )
+            } else if match.status == gone, child.status == 0, !child.isFolder, !match.isFolder,
+                      insertedIDs.contains(child.id), Self.sameFile(match, child) {
+                delta.removeVisible(isFolder: false)
+                try db.execute(sql: "DELETE FROM item_details WHERE itemID = ?", arguments: [child.id])
+                try db.execute(sql: "DELETE FROM items WHERE id = ?", arguments: [child.id])
+                try revive(match, as: child, parentID: old.id, depth: depth + 1, delta: &delta)
+            } else {
+                try db.execute(sql: "DELETE FROM items WHERE id = ? AND status != 0", arguments: [match.id])
+                try db.execute(sql: "UPDATE items SET parentID = ? WHERE id = ?", arguments: [old.id, child.id])
+            }
+        }
+        let listing = try Row.fetchOne(
+            db, sql: "SELECT contentStamp, listedAt, unreadable FROM items WHERE id = ?", arguments: [new.id]
+        )
+        if new.status == 0 { delta.removeVisible(isFolder: new.isFolder) }
+        try db.execute(sql: "DELETE FROM item_details WHERE itemID = ?", arguments: [new.id])
+        try db.execute(sql: "DELETE FROM items WHERE id = ?", arguments: [new.id])
+        try revive(old, as: new, parentID: parentID, depth: depth, delta: &delta)
+        // Stand der gelesenen Ordnerebene übernehmen (sonst liest der nächste Abgleich den Ordner unnötig neu).
+        try db.execute(
+            sql: "UPDATE items SET contentStamp = ?, listedAt = ?, unreadable = ? WHERE id = ?",
+            arguments: [
+                listing?["contentStamp"] as Int64?, listing?["listedAt"] as Int64?,
+                (listing?["unreadable"] as Int?) ?? 0, old.id,
+            ]
+        )
+    }
+
+    private func revive(_ old: ListedRow, as new: ListedRow, parentID: Int64?, depth: Int, delta: inout MediumCountDelta) throws {
+        let kind = ItemKind.classify(
+            ext: Self.fileExtension(new.name), isFolder: new.isFolder, isPackage: new.isPackage
+        ).rawValue
+        try relocateRow(
+            located: old,
+            entry: scannedEntry(from: new),
+            parentID: parentID,
+            childDepth: depth,
+            extID: new.extID,
+            kind: kind,
+            modified: new.modifiedAt,
+            fileID: new.fileID,
+            delta: &delta
+        )
+    }
+
+    /// Dieselben Merkmale wie beim Wiederverbinden einzelner Dateien (`resolveIdentityMatch`), ohne Teil-Prüfsumme: der
+    /// Name ist im selben (verschobenen) Ordner schon gleich.
+    private static func sameFile(_ old: ListedRow, _ new: ListedRow) -> Bool {
+        old.isPackage == new.isPackage
+            && old.sizeBytes == new.sizeBytes
+            && old.extID == new.extID
+            && FileIdentity.timestampsMatchFAT(old.modifiedAt.map(SchemaTime.date), new.modifiedAt.map(SchemaTime.date))
+    }
+
+    /// bug.0.4.229: verschwundene Ordner des Mediums nach Namen, einmal je Laufende (Teilindex `items_gone`, Invariante 9).
+    private func goneFolderIDsByName() throws -> [String: [Int64]] {
+        let rows = try Row.fetchAll(
+            db,
+            sql: """
+                SELECT id, name FROM items INDEXED BY items_gone
+                WHERE storageID = ? AND isFolder = 1 AND status = \(ItemStatus.gone.rawValue)
+                """,
+            arguments: [storageID]
+        )
+        var byName: [String: [Int64]] = [:]
+        for row in rows { byName[row["name"], default: []].append(row["id"]) }
+        return byName
+    }
+
+    /// In diesem Lauf eingefügte, sichtbare Ordner mit einem dieser Namen, flache zuerst.
+    private func insertedFolders(ids: Set<Int64>, named names: Set<String>) throws -> [ListedRow] {
+        let all = ids.sorted()
+        var found: [ListedRow] = []
+        var start = 0
+        while start < all.count {
+            let slice = Array(all[start..<min(start + 500, all.count)])
+            start += slice.count
+            let marks = Array(repeating: "?", count: slice.count).joined(separator: ",")
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
+                    FROM items i LEFT JOIN item_details d ON d.itemID = i.id
+                    WHERE i.storageID = ? AND i.isFolder = 1 AND i.status = 0 AND i.id IN (\(marks))
+                    """,
+                arguments: StatementArguments([storageID] + slice)
+            )
+            found.append(contentsOf: rows.map(ListedRow.init).filter { names.contains($0.name) })
+        }
+        return found.sorted { ($0.depth, $0.id) < ($1.depth, $1.id) }
+    }
+
+    private func childRows(of folderID: Int64) throws -> [ListedRow] {
+        try Row.fetchAll(
+            db,
+            sql: """
+                SELECT i.id, i.parentID, i.name, i.isFolder, i.extID, i.status, i.modifiedAt, i.fileID, i.depth, d.sizeBytes, d.isPackage
+                FROM items i LEFT JOIN item_details d ON d.itemID = i.id
+                WHERE i.storageID = ? AND i.parentID = ?
+                """,
+            arguments: [storageID, folderID]
+        ).map(ListedRow.init)
+    }
+
+    /// Liegt unter dem verschwundenen Ordner noch etwas Sichtbares? Dann nicht zusammenführen (Zeilen gleichen Namens
+    /// könnten sonst nicht an ihren Platz).
+    private func subtreeHasVisibleRows(folderID: Int64) throws -> Bool {
+        try Bool.fetchOne(
+            db,
+            sql: """
+                WITH RECURSIVE sub(id) AS (
+                    SELECT id FROM items WHERE parentID = ?
+                    UNION ALL
+                    SELECT i.id FROM items i INNER JOIN sub ON i.parentID = sub.id
+                )
+                SELECT EXISTS (SELECT 1 FROM items WHERE id IN (SELECT id FROM sub) AND status = 0)
+                """,
+            arguments: [folderID]
+        ) ?? true
+    }
+
+    private func isAncestor(_ ancestorID: Int64, of itemID: Int64) throws -> Bool {
+        var current = try Int64.fetchOne(db, sql: "SELECT parentID FROM items WHERE id = ?", arguments: [itemID])
+        while let id = current {
+            if id == ancestorID { return true }
+            current = try Int64.fetchOne(db, sql: "SELECT parentID FROM items WHERE id = ?", arguments: [id])
+        }
+        return false
+    }
+
+    /// bug.0.4.227: Gibt es auf dem Medium überhaupt verschwundene Zeilen? Ohne sie hat keine neue Zeile ein Gegenstück –
+    /// das Laufende fragte beim Erstindex sonst für jede neue Zeile einzeln nach (20 000 Zeilen: knapp 3 s lesend und
+    /// noch einmal so lange in der Schreibtransaktion, in der jedes andere Medium wartete).
+    /// bug.0.4.228: `status` als Literal und `INDEXED BY items_gone` (gebunden oder ohne Vorgabe las SQLite das ganze Medium).
+    private func goneRowsExist() throws -> Bool {
+        try Bool.fetchOne(
+            db,
+            sql: """
+                SELECT EXISTS (
+                    SELECT 1 FROM items INDEXED BY items_gone WHERE storageID = ? AND status = \(ItemStatus.gone.rawValue)
+                )
+                """,
+            arguments: [storageID]
+        ) ?? false
     }
 
     private enum FolderLookup: Equatable {
@@ -697,23 +926,29 @@ nonisolated final class DirectoryWriterV3 {
         )
     }
 
+    /// bug.0.4.227: verschwundene Zeilen des Ordners einmal je `apply`, nach Größe – vorher wurde die Liste für jeden neuen
+    /// Eintrag aus dem ganzen Ordner neu gebaut.
+    private static func vacatedRowsBySize(
+        existingByName: [String: ListedRow],
+        incoming: [String: ScannedEntry]
+    ) -> [Int64?: [ListedRow]] {
+        var vacated: [Int64?: [ListedRow]] = [:]
+        for (name, row) in existingByName where incoming[name] == nil && row.status == 0 {
+            vacated[row.sizeBytes, default: []].append(row)
+        }
+        return vacated
+    }
+
     private func matchVacatedLocalCandidate(
         entry: ScannedEntry,
         parentID: Int64?,
         extID: Int64?,
-        existingByName: [String: ListedRow],
-        incoming: [String: ScannedEntry],
+        vacatedBySize: [Int64?: [ListedRow]],
         preservedIDs: Set<Int64>,
         mountPath: String?
     ) throws -> ListedRow? {
         guard !trustsFileID else { return nil }
-        var vacated: [ListedRow] = []
-        for (name, row) in existingByName {
-            if incoming[name] != nil { continue }
-            if row.status != 0 { continue }
-            if preservedIDs.contains(row.id) { continue }
-            vacated.append(row)
-        }
+        let vacated = (vacatedBySize[entry.sizeBytes] ?? []).filter { !preservedIDs.contains($0.id) }
         return try resolveIdentityMatch(
             candidates: vacated.filter { $0.isFolder == entry.isFolder },
             entry: entry,
@@ -823,9 +1058,9 @@ nonisolated final class DirectoryWriterV3 {
         guard !entry.isFolder, partialMatchingEnabled, let mountPath else { return nil }
         // bug.0.4.225: Hat keiner der Kandidaten eine gespeicherte Teil-Prüfsumme, gibt es nichts zu vergleichen – die Datei
         // nicht lesen (sonst las das Laufende bei gleich großen Dateien ohne Favoriten trotzdem).
-        let storedPartials = try candidates.compactMap { candidate in
-            try fetchPartial(itemID: candidate.id).map { (candidate, $0) }
-        }
+        // bug.0.4.227: eine Abfrage für alle Kandidaten statt einer je Kandidat.
+        let partialsByID = try fetchPartials(itemIDs: candidates.map(\.id))
+        let storedPartials = candidates.compactMap { candidate in partialsByID[candidate.id].map { (candidate, $0) } }
         guard !storedPartials.isEmpty else { return nil }
         let digest: Data?
         do {
@@ -843,7 +1078,45 @@ nonisolated final class DirectoryWriterV3 {
     }
 
     private func fetchPartial(itemID: Int64) throws -> Data? {
-        try Data.fetchOne(db, sql: "SELECT partial FROM item_checksum WHERE itemID = ?", arguments: [itemID])
+        guard try mediumHasStoredPartials() else { return nil }
+        return try Data.fetchOne(db, sql: "SELECT partial FROM item_checksum WHERE itemID = ?", arguments: [itemID])
+    }
+
+    private func fetchPartials(itemIDs: [Int64]) throws -> [Int64: Data] {
+        guard !itemIDs.isEmpty, try mediumHasStoredPartials() else { return [:] }
+        var found: [Int64: Data] = [:]
+        var start = 0
+        while start < itemIDs.count {
+            let slice = Array(itemIDs[start..<min(start + 500, itemIDs.count)])
+            let marks = Array(repeating: "?", count: slice.count).joined(separator: ",")
+            let rows = try Row.fetchAll(
+                db,
+                sql: "SELECT itemID, partial FROM item_checksum WHERE partial IS NOT NULL AND itemID IN (\(marks))",
+                arguments: StatementArguments(slice)
+            )
+            for row in rows { found[row["itemID"]] = row["partial"] }
+            start += slice.count
+        }
+        return found
+    }
+
+    /// bug.0.4.227: Hat das Medium überhaupt eine gespeicherte Teil-Prüfsumme? Einmal je Schreiber gefragt – der Schreiber
+    /// legt selbst keine an. Ohne sie gibt es nichts zu vergleichen, und jede Abfrage je Kandidat entfällt.
+    /// bug.0.4.228: von `item_checksum` aus (`CROSS JOIN`), sonst las SQLite alle Einträge des Mediums.
+    private func mediumHasStoredPartials() throws -> Bool {
+        if let storedPartialsExist { return storedPartialsExist }
+        let exists = try Bool.fetchOne(
+            db,
+            sql: """
+                SELECT EXISTS (
+                    SELECT 1 FROM item_checksum c CROSS JOIN items i ON i.id = c.itemID
+                    WHERE i.storageID = ? AND c.partial IS NOT NULL
+                )
+                """,
+            arguments: [storageID]
+        ) ?? false
+        storedPartialsExist = exists
+        return exists
     }
 
     private func incomingPartialDigest(mountPath: String, parentID: Int64?, name: String) throws -> Data? {

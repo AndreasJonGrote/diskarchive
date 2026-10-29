@@ -1,0 +1,12 @@
+# Test: MovedFolderFatTests/folderMovedIntoSiblingKeepsAllIDsAndFavorites(), MovedFolderFatTests/folderMovedUpToRootKeepsAllIDsAndFavorites()
+--- a/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
++++ b/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
+@@ -318,7 +318,7 @@
+     func reconnectInsertedWithGone(insertedIDs: Set<Int64>, mountPath: String?) throws -> MediumCountDelta {
+         guard !trustsFileID, !insertedIDs.isEmpty, try goneRowsExist() else { return .zero }
+         // bug.0.4.229: erst verschobene Ordner samt Inhalt, danach einzelne Einträge (zusammengeführte Zeilen sind weg).
+-        var delta = try reconnectMovedFolders(insertedIDs: insertedIDs)
++        var delta = MediumCountDelta.zero
+         for insertedID in insertedIDs {
+             guard let inserted = try fetchListedRow(id: insertedID), inserted.status == 0 else { continue }
+             let entry = scannedEntry(from: inserted)

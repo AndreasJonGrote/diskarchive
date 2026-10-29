@@ -209,7 +209,7 @@ nonisolated enum MediumCodecV3 {
         try db.execute(
             sql: """
                 UPDATE storages SET
-                    volumeUUID = ?, fingerprint = ?, name = ?, slug = ?, fsType = ?, totalBytes = ?, usedBytes = ?,
+                    volumeUUID = ?, fingerprint = ?, name = ?, slug = ?, type = ?, fsType = ?, totalBytes = ?, usedBytes = ?,
                     lastSeenAt = ?
                 WHERE id = ?
                 """,
@@ -218,6 +218,8 @@ nonisolated enum MediumCodecV3 {
                 fingerprint(fsType: medium.fsType, createdAt: created, totalBytes: medium.volumeTotalBytes),
                 medium.name,
                 Slug.make(medium.name),
+                // bug.0.4.230: Typ wird bei jedem Anschließen neu bestimmt (Konzept `medien.md` 2c).
+                code(medium.type),
                 fileSystemCode(medium.fsType),
                 medium.volumeTotalBytes,
                 medium.capacityUsedBytes,

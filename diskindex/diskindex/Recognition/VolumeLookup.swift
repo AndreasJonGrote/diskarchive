@@ -72,7 +72,8 @@ nonisolated enum VolumeLookup {
             isLocal: (values.volumeIsLocal ?? true) && !disk.isNetwork,
             deviceProtocol: disk.deviceProtocol,
             model: disk.model,
-            isTimeMachineSnapshot: snapshot
+            isTimeMachineSnapshot: snapshot,
+            deviceMedium: disk.deviceMedium
         )
     }
 

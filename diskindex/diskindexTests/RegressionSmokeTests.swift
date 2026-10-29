@@ -732,5 +732,24 @@ struct RegressionSmokeRows {
     @Test func slowMediumDoesNotHoldUpAnotherRun() async throws {
         try await StoreActorMediumAccessTests().slowPartialReadOfOneMediumDoesNotHoldUpAnotherRun()
     }
+
+    /// bug.0.4.227: Ein großer Ordner mit gleich großen Dateien auf exFAT ist in Sekunden indiziert; Einträge früherer
+    /// Stücke werden nicht auf neue Namen umgehängt.
+    @Test func largeSameSizeFolderIndexesFastAndKeepsRows() async throws {
+        try await LargeFolderChunkTests().firstIndexOfLargeSameSizeFolderIsFast()
+        try await LargeFolderChunkTests().earlierChunkEntryKeepsItsRow()
+    }
+
+    /// bug.0.4.228: Die vergleichbaren Größen werden je Lauf einmal gefragt (nicht je Ordner), nach dem Speichern einer
+    /// Teil-Prüfsumme neu; ein danach gesetzter Favorit folgt der verschobenen Datei.
+    @Test func comparableSizesOncePerRunAndFavoriteFollowsMove() async throws {
+        try await LargeMediumFolderCostTests().comparableSizesAreQueriedOncePerRunAndAfterStoring()
+        try await LargeMediumFolderCostTests().favoriteSetAfterSizesWereCachedFollowsMove()
+    }
+
+    /// bug.0.4.229: Ein auf FAT verschobener Ordner behält seine Kennung, alles darin seine (Favoriten bleiben).
+    @Test func movedFatFolderKeepsItsIDsAndFavorites() async throws {
+        try await MovedFolderFatTests().folderMovedIntoSiblingKeepsAllIDsAndFavorites()
+    }
 }
 }
