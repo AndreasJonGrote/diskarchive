@@ -37,11 +37,11 @@ Erst, wenn alle anderen Kennungen von 0.4.0 abgenommen sind (zuletzt Paket 33, U
 ## 4. Nachtest nach den Paketen 34–36 (27.10.)
 
 Mit der App vom letzten Gesamtlauf (gebaut 27.10. 13:20) und nach einem Neustart der App.
-- [ ] **Fortschritt (`bug.0.4.210`):** Nachtest 27.10.: bestanden bis auf 1 % Versatz nach dem Wiedereinstecken → `bug.0.4.222`, abgenommen 27.10. (Paket 37). **Bitte jetzt nachtesten** (App 28.10. 01:35).
+- [x] **Fortschritt (`bug.0.4.210`):** Nachtest 28.10. bestanden (C1–C3). Nachtest 27.10.: bestanden bis auf 1 % Versatz nach dem Wiedereinstecken → `bug.0.4.222`, abgenommen 27.10. (Paket 37). **Bitte jetzt nachtesten** (App 28.10. 01:35).
   - Stick mitten im Lauf abziehen: kein Sprung auf 100 %, offline derselbe Wert wie zuletzt online.
   - Wieder anstecken: Er beginnt beim gespeicherten Stand, nicht bei 0 %.
   - „Neu indizieren“ beginnt unten, nicht bei 99 %.
-- [ ] **Dialoge (`209`, `216`):** Nachtest 27.10.: Fokus nicht bestanden → `bug.0.4.221`, Stapel nicht bestanden → `bug.0.4.223`. Beide wurden am 28.10. mit Paket 38 abgenommen. **Bitte jetzt nachtesten** (App 28.10. 01:35, vorher neu starten).
+- [x] **Dialoge (`209`, `216`):** Nachtest 28.10. bestanden (D1–D6). Nachtest 27.10.: Fokus nicht bestanden → `bug.0.4.221`, Stapel nicht bestanden → `bug.0.4.223`. Beide wurden am 28.10. mit Paket 38 abgenommen. **Bitte jetzt nachtesten** (App 28.10. 01:35, vorher neu starten).
   - Während du in einer anderen App schreibst, ein Medium einstecken: Der Dialog nimmt den Fokus einmal. Ein Klick zurück in die andere App legt ihn dahinter, danach bleibt der Fokus dort.
   - Zwei oder drei Medien kurz nacheinander: Der älteste Dialog liegt hinten links oben, jeder neue nach rechts unten versetzt darüber. Der neueste liegt vorn und hat den Fokus.
   - Das Hauptfenster liegt hinter der anderen App: Es bleibt dort, nur der Dialog kommt nach vorn.
@@ -57,6 +57,45 @@ Mit der App vom letzten Gesamtlauf (gebaut 27.10. 13:20) und nach einem Neustart
   - Seitenleiste, Offline-Leiste und Details in einem Grauton.
   - Fußzeilenpfad bündig mit dem Ordner-Icon, auch nach dem Ziehen der Seitenleiste.
   - Spinner klein (12 pt).
+
+- [x] **Vergessen (`224`):** Nachtest 28.10. bestanden (B1–B3). Nachtest 28.10.: „Alle Speichermedien vergessen“, danach Neustart: Alle Medien sind wieder da → `bug.0.4.224` (Paket 39). Nach Paket 39: vergessen, **sofort** beenden und neu starten. Kein Medium ist mehr da, und das Beenden hängt nicht.
+
+## 5. Nachtest nach den Paketen 37–39 (28.10., App 09:41)
+
+**Ergebnis 28.10. (Nutzer):** A1, B1–B3, C1–C3, D1–D6 bestanden. B4 offen bis nach Paket 40.
+
+Reihenfolge: B zuerst, weil nach dem Vergessen jedes Medium neu mit dem Dialog kommt. Das braucht D.
+
+**A Vorher**
+- [x] **A1** App beenden und neu öffnen (App von 09:41).
+
+**B Vergessen (`224`)**
+- [x] **B1** Nach deinem Vergessen von heute Morgen: Speichermedien leer, Dashboard 0, Suche findet nichts, Favoriten leer.
+- [x] **B2** Ein angeschlossenes Medium erscheint nach dem Neustart neu, mit Erkennungsdialog.
+- [x] **B3** Ein Medium indizieren, in den Details „Vergessen“ (zwei Klicks), sofort ⌘Q. Das Beenden hängt nicht. Nach dem Neustart ist es weg, und der Dialog kommt wieder.
+- [ ] **B4** (dauert lange, gern zuletzt) Die große Platte „Daten“ anstecken: Sie gilt als neu, und das Indizieren beginnt von vorn. Mit der App von 13:25 (Paket 40).
+
+**C Fortschritt (`222`)**
+- [x] **C1** Stick mitten im Lauf abziehen: kein Sprung auf 100 %, offline derselbe Wert wie zuletzt online.
+- [x] **C2** Wieder anstecken: Es geht beim gespeicherten Stand weiter, ohne 1 % Versatz.
+- [x] **C3** „Neu indizieren“ beginnt unten, nicht bei 99 %.
+
+**D Dialoge (`221`, `223`)**
+- [x] **D1** In TextEdit tippen, Medium einstecken: Der Dialog kommt nach vorn, und die Tasten gehen in den Dialog (Return = Indizieren, Esc = schließen).
+- [x] **D2** Zurück in TextEdit klicken: TextEdit hat den Fokus, der Dialog liegt dahinter. Eine Minute weitertippen, während etwas indiziert: Der Dialog holt sich den Fokus nicht zurück.
+- [x] **D3** Das Hauptfenster offen und hinter TextEdit, Medium einstecken: Nur der Dialog kommt nach vorn, das Hauptfenster bleibt hinten.
+- [x] **D4** Zwei oder drei Medien kurz nacheinander: Der älteste liegt hinten links oben, jeder neue nach rechts unten versetzt darüber. Der neueste liegt vorn und hat den Fokus.
+- [x] **D5** Einen Dialog mit X oder Esc schließen, das Medium auswerfen und wieder einstecken: Der Dialog erscheint wieder.
+- [x] **D6** Ein Dialog liegt hinter einer anderen App: Die Zeile „Entscheidung offen“ in der Menüleiste holt ihn vor.
+
+## 6. Nachtest nach Paket 40 (28.10., App 13:25)
+
+Vorher die App beenden und neu öffnen.
+- [ ] **E1** „Daten I“ anstecken und weiter indizieren lassen: Es geht zügig voran und bleibt nicht mehr bei 14 % stehen. Uhrzeit von Start und Ende notieren.
+- [ ] **E2** Während „Daten I“ indiziert, ein zweites Medium anstecken: Sein Erkennungsdialog bzw. Abgleich kommt sofort, nicht erst nach „Daten I“.
+- [ ] **E3** Mac in den Ruhezustand (Deckel zu), nach einer Minute wecken: Die anderen Medien sind nach wenigen Sekunden still abgeglichen, „Daten I“ läuft weiter.
+- [ ] **E4** „Daten I“ während des Laufs im Finder auswerfen: Sie ist nach höchstens 1–2 s offline (vorher 11 s). Die anderen Medien zeigen dabei keinen Sprung auf 99 %. Falls doch: Screenshot.
+- [ ] **E5** Ein Favorit auf „Daten I“ (oder einem Stick mit exFAT/FAT): Datei im Finder in einen anderen Ordner verschieben, Medium abziehen, wieder anstecken: Der Favorit hängt an der verschobenen Datei.
 
 ## Danach
 

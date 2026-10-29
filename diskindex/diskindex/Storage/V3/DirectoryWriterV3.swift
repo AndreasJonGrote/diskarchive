@@ -821,6 +821,12 @@ nonisolated final class DirectoryWriterV3 {
         mountPath: String?
     ) throws -> ListedRow? {
         guard !entry.isFolder, partialMatchingEnabled, let mountPath else { return nil }
+        // bug.0.4.225: Hat keiner der Kandidaten eine gespeicherte Teil-Prüfsumme, gibt es nichts zu vergleichen – die Datei
+        // nicht lesen (sonst las das Laufende bei gleich großen Dateien ohne Favoriten trotzdem).
+        let storedPartials = try candidates.compactMap { candidate in
+            try fetchPartial(itemID: candidate.id).map { (candidate, $0) }
+        }
+        guard !storedPartials.isEmpty else { return nil }
         let digest: Data?
         do {
             digest = try incomingPartialDigest(mountPath: mountPath, parentID: parentID, name: entry.name)
@@ -831,11 +837,7 @@ nonisolated final class DirectoryWriterV3 {
             return nil
         }
         guard let incoming = digest else { return nil }
-        var hits: [ListedRow] = []
-        for candidate in candidates {
-            guard let stored = try fetchPartial(itemID: candidate.id), stored == incoming else { continue }
-            hits.append(candidate)
-        }
+        let hits = storedPartials.filter { $0.1 == incoming }.map(\.0)
         guard hits.count == 1 else { return nil }
         return hits[0]
     }
@@ -851,13 +853,14 @@ nonisolated final class DirectoryWriterV3 {
         return try activePartialFallback?(name)
     }
 
+    /// bug.0.4.226: ohne Plattenzugriff – `appendPathComponent` fragt bei Datei-URLs die Platte (`getattrlist`), ob der
+    /// Pfad ein Ordner ist; auf dem Store-Actor hielt eine langsame Platte so alle anderen Medien auf.
     static func fileURL(mountPath: String, parentSegments: [String], name: String) -> URL {
         var url = URL(fileURLWithPath: mountPath, isDirectory: true)
         for segment in parentSegments {
-            url.appendPathComponent(segment)
+            url = url.appending(component: segment, directoryHint: .isDirectory)
         }
-        url.appendPathComponent(name)
-        return url
+        return url.appending(component: name, directoryHint: .notDirectory)
     }
 
     private func context(parentID: Int64?, knownPath: String?, knownDepth: Int?) throws -> (path: String, childDepth: Int) {

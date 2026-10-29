@@ -12,7 +12,7 @@ extension View {
         modifier(PointerCursorModifier(active: active))
     }
 
-    /// Spaltenteiler-Cursor (macOS 15: `.pointerStyle(.columnResize)`, sonst `resizeLeftRight`).
+    /// Spaltenteiler-Cursor (`.pointerStyle(.columnResize)`).
     func columnResizePointerStyle() -> some View {
         modifier(ColumnResizePointerModifier())
     }
@@ -23,13 +23,7 @@ private struct PointerCursorModifier: ViewModifier {
     @State private var hovering = false
 
     func body(content: Content) -> some View {
-        Group {
-            if #available(macOS 15, *) {
-                content.pointerStyle(active ? .link : nil)
-            } else {
-                content
-            }
-        }
+        content.pointerStyle(active ? .link : nil)
         .onHover { inside in
             guard active else { return }
             hovering = inside
@@ -52,13 +46,7 @@ private struct ColumnResizePointerModifier: ViewModifier {
     @State private var hovering = false
 
     func body(content: Content) -> some View {
-        Group {
-            if #available(macOS 15, *) {
-                content.pointerStyle(.columnResize)
-            } else {
-                content
-            }
-        }
+        content.pointerStyle(.columnResize)
         .onHover { inside in
             hovering = inside
             if inside {

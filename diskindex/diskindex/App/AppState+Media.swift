@@ -269,14 +269,13 @@ extension AppState {
         let store = indexStore
         Task {
             await onMediaForgotten?(ids)
-            // Ein Löschlauf; `deleteMedium` ist idempotent (kein Doppel-Log bei schon gelöscht).
-            for id in ids {
-                do {
-                    try await store?.deleteMedium(uuid: id)
-                } catch {
-                    guard DiskIndexLog.isOperationalFailure(error) else { continue }
-                    DiskIndexLog.shared.record(.store, .error, "deleteMedium \(DiskIndexLog.errorSummary(error))")
-                }
+            // bug.0.4.224: alle in einer kurzen Transaktion markieren, erst danach die Einträge löschen – sonst blieben
+            // beim Beenden während des ersten großen Mediums auch alle folgenden registriert.
+            do {
+                try await store?.deleteMedia(uuids: ids)
+            } catch {
+                guard DiskIndexLog.isOperationalFailure(error) else { return }
+                DiskIndexLog.shared.record(.store, .error, "deleteMedium \(DiskIndexLog.errorSummary(error))")
             }
         }
         SystemNotice.post(body: LayoutCopy.noticeForgetAll, settings: appSettings)

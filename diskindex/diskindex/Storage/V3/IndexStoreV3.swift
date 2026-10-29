@@ -45,6 +45,9 @@ actor IndexStoreV3 {
     /// bug.0.4.169: läuft synchron unmittelbar vor dem Lesen einer Teil-Prüfsumme am Laufende (auf dem lesenden Faden).
     var partialReadHookForTesting: (@Sendable (URL) -> Void)?
     func setPartialReadHookForTesting(_ hook: (@Sendable (URL) -> Void)?) { partialReadHookForTesting = hook }
+    /// bug.0.4.225/226: läuft auf dem Store unmittelbar vor jedem Lesen einer Teil-Prüfsumme beim Schreiben eines Stapels
+    /// (`precomputedPartials`), als Zähler oder Signal. Je Store.
+    nonisolated let precomputeReadHookForTesting = CheckpointHook()
     /// bug.0.4.169 (b): Zeitgrenzen des Lesens am Laufende (je Datei, gesamt) – Tests kürzer.
     func setPartialReadLimitsForTesting(perFile: Duration, total: Duration) {
         partialReadTimeout = perFile
@@ -109,14 +112,19 @@ actor IndexStoreV3 {
         IndexStoreV3(pool: try archive.pool())
     }
 
+    /// bug.0.4.224: vergessene Medien zählen nicht mit, auch solange ihre Einträge noch gelöscht werden.
+    private static let inventoryMediaSQL = "SELECT COUNT(*) FROM storages WHERE \(MediumCodecV3.notPendingDeletionSQL)"
+    private static let inventoryObjectsSQL =
+        "SELECT COALESCE(SUM(fileCount + folderCount), 0) FROM storages WHERE \(MediumCodecV3.notPendingDeletionSQL)"
+
     /// Zahl der Medien und der sichtbaren Einträge für Protokoll und Fehlerbericht. „nicht lesbar“ bei fehlender Datei.
     static func inventoryLabels(using pool: DatabasePool? = nil) -> (media: String, objects: String) {
         do {
             if let pool {
                 return try pool.read { db in
                     let counts = (
-                        try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0,
-                        try Int.fetchOne(db, sql: "SELECT COALESCE(SUM(fileCount + folderCount), 0) FROM storages") ?? 0
+                        try Int.fetchOne(db, sql: Self.inventoryMediaSQL) ?? 0,
+                        try Int.fetchOne(db, sql: Self.inventoryObjectsSQL) ?? 0
                     )
                     return (String(counts.0), String(counts.1))
                 }
@@ -128,8 +136,8 @@ actor IndexStoreV3 {
             let queue = try DatabaseQueue(path: url.path, configuration: configuration)
             let counts = try queue.read { db -> (Int, Int) in
                 (
-                    try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0,
-                    try Int.fetchOne(db, sql: "SELECT COALESCE(SUM(fileCount + folderCount), 0) FROM storages") ?? 0
+                    try Int.fetchOne(db, sql: Self.inventoryMediaSQL) ?? 0,
+                    try Int.fetchOne(db, sql: Self.inventoryObjectsSQL) ?? 0
                 )
             }
             return (String(counts.0), String(counts.1))
@@ -490,34 +498,121 @@ actor IndexStoreV3 {
         }
     }
 
-    /// Einziger harter Löschweg. Alles Zugehörige fällt über `ON DELETE CASCADE` mit. Bereits gelöscht → kein Fehler.
+    /// Einziger harter Löschweg. Bereits gelöscht → kein Fehler.
     func deleteMedium(uuid: UUID) async throws {
+        try await deleteMedia(uuids: [uuid])
+    }
+
+    /// bug.0.4.224: Vergessen ist mit einer kurzen Transaktion dauerhaft (Markierung, neue Kennung, Favoriten weg); die
+    /// Einträge löscht danach `purgePendingDeletions` in Stücken. Eine Löschung in einem Zug dauerte bei 1,6 Mio.
+    /// Zeilen 25 s und rollte beim Beenden zurück. Kehrt zurück, wenn alles gelöscht ist; bricht der Prozess vorher ab,
+    /// setzt der nächste Start fort (`MediumRecognitionStartup`).
+    func deleteMedia(uuids: [UUID]) async throws {
         #if DEBUG
-        if deleteMediumFailUUIDs.contains(uuid) {
-            throw CocoaError(.fileWriteUnknown)
-        }
+        let failing = uuids.filter { deleteMediumFailUUIDs.contains($0) }
+        let uuids = uuids.filter { !deleteMediumFailUUIDs.contains($0) }
         #endif
-        clearRunLeftovers(uuid)
+        uuids.forEach(clearRunLeftovers)
         do {
-            let deleted = try await pool.write { db -> Bool in
-                // bug.0.4.108: die Kaskade löscht alle Zeilen des Mediums – als Wartungsschuld buchen, sonst bleibt die
-                // Datei groß (freie Seiten werden nie zurückgegeben).
-                let rows = try Int.fetchOne(
-                    db, sql: "SELECT fileCount + folderCount FROM storages WHERE uuid = ?", arguments: [MediumCodecV3.data(uuid)]
-                ) ?? 0
-                try db.execute(sql: "DELETE FROM storages WHERE uuid = ?", arguments: [MediumCodecV3.data(uuid)])
-                let removed = db.changesCount > 0
-                if removed { try DatabaseMaintenance.addDebt(db, rows: rows) }
-                return removed
+            let marked = try await pool.write { db -> [UUID] in
+                try uuids.filter { try Self.markForDeletion(db, uuid: $0) }
             }
-            guard deleted else { return }
-            DiskIndexLog.shared.record(.store, .info, "deleteMedium count=1")
-            emit(.removed(uuid))
+            for uuid in marked {
+                DiskIndexLog.shared.record(.store, .info, "deleteMedium count=1")
+                emit(.removed(uuid))
+            }
         } catch {
             if DiskIndexLog.isOperationalFailure(error) {
                 DiskIndexLog.shared.record(.store, .error, "deleteMedium \(DiskIndexLog.errorSummary(error))")
             }
             throw error
+        }
+        await purgePendingDeletions()
+        #if DEBUG
+        if !failing.isEmpty { throw CocoaError(.fileWriteUnknown) }
+        #endif
+    }
+
+    /// Markiert das Medium und gibt seine Kennung frei: dasselbe Medium kann sofort neu registriert werden, und kein
+    /// Schreiber findet die alte Zeile noch. `false`: schon gelöscht.
+    private nonisolated static func markForDeletion(_ db: Database, uuid: UUID) throws -> Bool {
+        guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { return false }
+        try db.execute(sql: "UPDATE storages SET uuid = ? WHERE id = ?", arguments: [MediumCodecV3.data(UUID()), id])
+        try MediumCodecV3.setMeta(db, id, .pendingDeletion, value: "1")
+        try db.execute(
+            sql: """
+                DELETE FROM favorites WHERE itemID IN (
+                    SELECT f.itemID FROM favorites f JOIN items i ON i.id = f.itemID WHERE i.storageID = ?
+                )
+                """,
+            arguments: [id]
+        )
+        return true
+    }
+
+    /// bug.0.4.224: Zeilen je Transaktion beim Löschen der Einträge eines vergessenen Mediums.
+    nonisolated static let purgeChunkSize = 10_000
+    private var purgeTask: Task<Void, Never>?
+    #if DEBUG
+    /// Tests: läuft vor jedem Stück; ein Fehler hält das Löschen an (wie ein Ende des Prozesses).
+    private var purgeChunkHookForTesting: (@Sendable () async throws -> Void)?
+    func setPurgeChunkHookForTesting(_ hook: (@Sendable () async throws -> Void)?) { purgeChunkHookForTesting = hook }
+    #endif
+
+    /// Löscht die Einträge aller markierten Medien, zuletzt ihre Zeile in `storages`. Läuft höchstens einmal zugleich;
+    /// wer währenddessen ruft, wartet und lässt danach selbst noch einen Durchgang laufen (keine Markierung bleibt liegen).
+    func purgePendingDeletions() async {
+        while let running = purgeTask { await running.value }
+        let task = Task {
+            await drainPendingDeletions()
+            purgeTask = nil
+        }
+        purgeTask = task
+        await task.value
+    }
+
+    private func drainPendingDeletions() async {
+        do {
+            while let storageID = try await pool.read({ db in try MediumCodecV3.pendingDeletionStorageIDs(db).first }) {
+                try await purgeItems(storageID: storageID)
+                try await pool.write { db in
+                    // bug.0.4.108: die gelöschten Zeilen als Wartungsschuld buchen, sonst bleibt die Datei groß.
+                    let rows = try Int.fetchOne(
+                        db, sql: "SELECT fileCount + folderCount FROM storages WHERE id = ?", arguments: [storageID]
+                    ) ?? 0
+                    try db.execute(sql: "DELETE FROM storages WHERE id = ?", arguments: [storageID])
+                    if db.changesCount > 0 { try DatabaseMaintenance.addDebt(db, rows: rows) }
+                }
+            }
+        } catch {
+            guard DiskIndexLog.isOperationalFailure(error) else { return }
+            DiskIndexLog.shared.record(.store, .error, "purgePendingDeletions \(DiskIndexLog.errorSummary(error))")
+        }
+    }
+
+    /// Von der höchsten Kennung abwärts: Kinder liegen meist über ihrem Ordner, so löscht die Kaskade je Stück kaum mehr.
+    /// `NOT INDEXED`: über die Kennung lesen, statt alle Zeilen des Mediums je Stück zu sortieren.
+    private func purgeItems(storageID: Int64) async throws {
+        var upper = Int64.max
+        while true {
+            #if DEBUG
+            try await purgeChunkHookForTesting?()
+            #endif
+            let below = upper
+            let lowest = try await pool.write { db -> Int64? in
+                let ids = try Int64.fetchAll(
+                    db,
+                    sql: "SELECT id FROM items NOT INDEXED WHERE storageID = ? AND id <= ? ORDER BY id DESC LIMIT ?",
+                    arguments: [storageID, below, Self.purgeChunkSize]
+                )
+                guard let lowest = ids.last else { return nil }
+                try db.execute(
+                    sql: "DELETE FROM items WHERE storageID = ? AND id BETWEEN ? AND ?", arguments: [storageID, lowest, below]
+                )
+                return lowest
+            }
+            guard let lowest else { return }
+            upper = lowest - 1
         }
     }
 
@@ -533,7 +628,7 @@ actor IndexStoreV3 {
     ) async throws {
         let partialMatching = partialMatchingEnabled
         let partials = try await precomputedPartials(
-            mountPath: mountPath, parentID: parentID, entries: entries, enabled: partialMatching
+            mediumUUID: mediumUUID, mountPath: mountPath, parentID: parentID, entries: entries, enabled: partialMatching
         )
         let folderPath: [String] = try await pool.write { db -> [String] in
             guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { throw IndexStoreError.unknownMedium }
@@ -572,7 +667,8 @@ actor IndexStoreV3 {
             partialMaps.reserveCapacity(batches.count)
             for batch in batches {
                 let map = try await precomputedPartials(
-                    mountPath: mountPath, parentID: batch.parentID, entries: batch.entries, enabled: partialMatching
+                    mediumUUID: mediumUUID, mountPath: mountPath, parentID: batch.parentID, entries: batch.entries,
+                    enabled: partialMatching
                 )
                 partialMaps.append(map)
             }
@@ -951,7 +1047,7 @@ actor IndexStoreV3 {
             // bug.0.4.169 (b): Zeitgrenze je Datei und gesamt; nach der ersten Zeitüberschreitung (Medium hängt) kein
             // weiteres Lesen – die übrigen Kandidaten gelten als unlesbar und bleiben.
             #if DEBUG
-            let testFolderCheck: @Sendable (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
+            let testFolderCheck: @Sendable (String) -> Bool = { MountedMediumCheck.testFolderExists($0) }
             let realCheck: @Sendable (String) -> Bool = { MountedMediumCheck.isMountPoint($0) }
             let mountPointCheck: @Sendable (String) -> Bool = mountPointCheckForTesting
                 ?? (mountCheckForTesting != nil ? testFolderCheck : realCheck)
@@ -1418,7 +1514,7 @@ actor IndexStoreV3 {
     /// Live-Rename aus FSEvents-Paar (235b).
     func applyLiveRename(mediumUUID: UUID, mountPath: String, fromPath: String, toPath: String) async throws -> Bool {
         let partialMatching = partialMatchingEnabled
-        let (renameSizeBytes, renameModifiedAt, renamePartialDigest) = try await Self.liveRenameTargetFields(
+        let (renameSizeBytes, renameModifiedAt, renamePartialDigest) = try await LiveRenameTarget.fields(
             toPath: toPath,
             partialMatching: partialMatching
         )
@@ -1483,13 +1579,10 @@ actor IndexStoreV3 {
             let isFolder: Bool = row["isFolder"]
             if isFolder { return nil }
             let path = try DirectoryWriterV3.path(db, itemID: itemID)
-            let relative = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-            guard !relative.isEmpty else { return nil }
-            var url = URL(fileURLWithPath: mountPath, isDirectory: true)
-            for part in relative.split(separator: "/") {
-                url.appendPathComponent(String(part))
-            }
-            return url
+            let parts = path.split(separator: "/").map(String.init)
+            guard let name = parts.last else { return nil }
+            // bug.0.4.226: Pfad ohne Plattenzugriff.
+            return DirectoryWriterV3.fileURL(mountPath: mountPath, parentSegments: Array(parts.dropLast()), name: name)
         }
         guard let fileURL else { return }
         #if DEBUG
@@ -1775,54 +1868,56 @@ actor IndexStoreV3 {
         }
     }
 
+    /// bug.0.4.225: Teil-Prüfsummen nur für Dateien, die gegen einen Eintrag mit gespeicherter Teil-Prüfsumme verglichen
+    /// werden können. Jeder Vergleich (`DirectoryWriterV3.resolveIdentityMatch`) verlangt dieselbe Größe; Dateien ohne
+    /// solchen Gegenpart werden nicht gelesen – beim Erstindex und ohne Favoriten also keine. Vorher las jeder Stapel
+    /// Anfang und Ende jeder Datei (exFAT mit großen Dateien: eine Datei pro Minute).
     private func precomputedPartials(
+        mediumUUID: UUID,
         mountPath: String?,
         parentID: Int64?,
         entries: [ScannedEntry],
         enabled: Bool
     ) async throws -> [String: Data]? {
         guard enabled, let mountPath else { return nil }
-        let segments: [String] = try await pool.read { db in
-            guard let parentID else { return [] }
-            return try DirectoryWriterV3.segments(db, itemID: parentID)
-        }
-        var map: [String: Data] = [:]
         // Pakete sind auf der Platte Ordner: keine Teil-Prüfsumme (das Lesen wirft, der Live-Abgleich fiel dann auf einen
         // Vollabgleich zurück – `PackageAndTrashesWatcherTests`).
-        for entry in entries where !entry.isFolder && !entry.isPackage {
+        let files = entries.filter { !$0.isFolder && !$0.isPackage }
+        guard !files.isEmpty else { return nil }
+        let (segments, comparableSizes): ([String], Set<Int64?>) = try await pool.read { db in
+            guard let storageID = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return ([], []) }
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT DISTINCT d.sizeBytes FROM item_checksum c
+                    JOIN items i ON i.id = c.itemID
+                    LEFT JOIN item_details d ON d.itemID = c.itemID
+                    WHERE i.storageID = ? AND i.isFolder = 0
+                    """,
+                arguments: [storageID]
+            )
+            let sizes = Set(rows.map { $0["sizeBytes"] as Int64? })
+            guard !sizes.isEmpty, let parentID else { return ([], sizes) }
+            return (try DirectoryWriterV3.segments(db, itemID: parentID), sizes)
+        }
+        let wanted = files.filter { comparableSizes.contains($0.sizeBytes) }
+        guard !wanted.isEmpty else { return nil }
+        var map: [String: Data] = [:]
+        #if DEBUG
+        let testDelay = partialChecksumComputeDelayForTesting
+        #else
+        let testDelay: TimeInterval? = nil
+        #endif
+        for entry in wanted {
             let url = DirectoryWriterV3.fileURL(mountPath: mountPath, parentSegments: segments, name: entry.name)
-            if let computed = try await PartialChecksum.computeOffActor(at: url) {
+            #if DEBUG
+            precomputeReadHookForTesting.run()
+            #endif
+            if let computed = try await PartialChecksum.computeOffActor(at: url, testComputeDelay: testDelay) {
                 map[entry.name] = computed.partial
             }
         }
         return map.isEmpty ? nil : map
-    }
-
-    private static func liveRenameTargetFields(
-        toPath: String,
-        partialMatching: Bool
-    ) async throws -> (Int64?, Date?, Data?) {
-        try await Task.detached(priority: .utility) {
-            let toURL = URL(fileURLWithPath: toPath)
-            guard FileManager.default.fileExists(atPath: toPath) else {
-                return (nil, nil, nil)
-            }
-            var toSizeBytes: Int64?
-            var toModifiedAt: Date?
-            var isDirectory = false
-            if let values = try? toURL.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isDirectoryKey]) {
-                toSizeBytes = values.fileSize.map(Int64.init)
-                toModifiedAt = values.contentModificationDate
-                isDirectory = values.isDirectory ?? false
-            }
-            var partial: Data?
-            // bug.0.4.131: keine Teil-Prüfsumme für Ordner (Lesen wirft) – sonst scheitert jedes Live-Umbenennen eines
-            // Ordners, und der Abgleich legt eine neue Zeile an (offener Pfad, Favoriten).
-            if partialMatching, !isDirectory {
-                partial = try PartialChecksum.compute(at: toURL)?.partial
-            }
-            return (toSizeBytes, toModifiedAt, partial)
-        }.value
     }
 
     /// Zähler über die Änderungs-Differenzen (nicht durch Zählen der ganzen Tabelle); `forceRecount` zählt neu.

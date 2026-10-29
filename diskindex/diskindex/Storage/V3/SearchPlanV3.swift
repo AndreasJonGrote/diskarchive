@@ -34,7 +34,13 @@ nonisolated struct SearchPlanV3: Sendable {
             conditions.append("i.slug LIKE ? ESCAPE '\\'")
             arguments.append(("%" + escapeLike(slug) + "%").databaseValue)
         }
-        if !filters.selectAllMedia {
+        if filters.selectAllMedia {
+            // bug.0.4.224: Einträge vergessener Medien, die noch gelöscht werden, sind nie Treffer.
+            let pending = try MediumCodecV3.pendingDeletionStorageIDs(db)
+            if !pending.isEmpty {
+                conditions.append("i.storageID NOT IN (\(pending.map(String.init).joined(separator: ",")))")
+            }
+        } else {
             let uuids = filters.mediumIDs.map { MediumCodecV3.data($0).databaseValue }
             if uuids.isEmpty {
                 conditions.append("0")

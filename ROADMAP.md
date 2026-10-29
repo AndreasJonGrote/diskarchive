@@ -18,7 +18,7 @@ Gilt zusammen mit [konzept/datenbank.md](konzept/datenbank.md) (Konzept „Daten
 | **0.3.8** | Stabilität, Teil 1 | Paket 4 (Medien-I/O, Nacharbeit, Testisolation) und Paket 5 (Entscheidung, Status, Regeln, Identität): `bug.0.3.8.001`–`002`, `bug.0.4.045`, `021`–`033` |
 | **0.3.9** | Stabilität, Teil 2 | Paket 6 (Oberfläche `034`–`040`), Paket 7 (`041`–`042`), Paket 8 (`050`–`062`), Stabilitätsprüfung |
 | **0.4.0** | **Release-Kandidat der Open Beta** | nur, was die App fehlerfrei macht; Abschluss mit der Abnahmerunde des Nutzers (`todo.0.4.040`) |
-| **0.4.1** | **Release der Open Beta** | Auslieferung: Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, macOS 14; ab hier laden andere die App |
+| **0.4.1** | **Release der Open Beta** | Auslieferung: Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, Mindest-macOS 15; ab hier laden andere die App |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
 | **0.7** | Export von CSV-Listen | |
@@ -107,7 +107,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 ## 0.4.0 — Release-Kandidat der Open Beta (bis 18.10.: „0.4 — Beta für Beta-Tester“)
 
-**Neu geordnet (Nutzer 18.10.):** 0.4.0 enthält nur, was die App fehlerfrei macht. Alles zur Auslieferung (Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, macOS 14) gehört zu 0.4.1, Signatur und Notarisierung zu 1.0. Die Punkte unten, die Auslieferung betreffen, gelten damit für 0.4.1.
+**Neu geordnet (Nutzer 18.10.):** 0.4.0 enthält nur, was die App fehlerfrei macht. Alles zur Auslieferung (Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, Mindest-macOS 15) gehört zu 0.4.1, Signatur und Notarisierung zu 1.0. Die Punkte unten, die Auslieferung betreffen, gelten damit für 0.4.1.
 
 
 **Ziel:** Die erste Version, die andere Menschen bekommen. **Alle Probleme sind erledigt** (Sprünge 0.3.8 und 0.3.9). 0.4 enthält nur noch die Voraussetzungen der Weitergabe.
@@ -118,7 +118,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 - ✓ **Versions-Check mit Update-Modal und Beta-Sperre** (gebaut und abgenommen 13.10., `todo.0.4.001`, Härtung `bug.0.4.001`; Regeln in der README, Abschnitt „Datenbank“, Netz: Vergleich `n.n`, Beta bei API ≥ 1.0 → 7 Tage, frisch installiert sofort, keine Entsperrung, 1 Monat ohne API → gesperrt, gesperrt = 100 % nur ansehen). Bisheriger Plan dazu: (sonst erreicht man die Tester später nicht): `version.json` auf der Domain mit Kanal beta/stable, Hintergrundabfrage, Dialog "Neue Version verfügbar" einmal je Version, Link nur auf die eigene Domain, Schalter in den Einstellungen. Datenschutztext. README 8 und 9 ("Kein Netzwerkcode außer dem Bericht") anpassen.
 - ✓ **Beta-Verfallsdatum** (60 bis 90 Tage nach dem Build) mit freundlicher Meldung.
 - ✓ **Zentrale Stelle "Darf der Nutzer das?"** (`FeatureAccess`), in der Beta immer "ja". Vorbereitung für 0.9.
-- ○ **Mindest-macOS 14:** Laufzeittest auf macOS 14 (z. B. VM).
+- ○ **Mindest-macOS 15 (Nutzer 27.10., vorher 14):** Umstellung `todo.0.4.1.003`; Aufwärtstest auf dem zweiten Mac des Nutzers (macOS 27) mit dem DMG. Der Test auf macOS 14 entfällt.
 - ○ **Fehlerbericht** mit echten Protokollzeilen getestet (Datenschutz); Pflicht davor: `bug.0.4.011` und `bug.0.4.012`.
 - ○ **Update-Prozess durch Ersetzen der App:** Bundle-ID und Datenordner gleich lassen, Einzelinstanz-Übergabe bei neuerer Version, Launch Agent beim Start neu registrieren.
 - **Ab jetzt nur noch erweitern (Nutzer 10.10.):** Auf anderen Rechnern wird nie etwas gelöscht. Spätere Versionen fügen nur Tabellen oder Spalten hinzu (einmalig beim Start), mit Schutz vor Rückschritt (Sicherungskopie davor erst ab 1.0, Nutzer 20.10., `bug.0.4.106`) (GRDB `hasBeenSuperseded`, ○ `bug.0.4.013`, muss vor der ersten Schema-Erweiterung stehen). Auf dem Mac des Nutzers darf bis 1.0 alles gelöscht werden.
@@ -131,10 +131,10 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 ## 0.4.1 — Release der Open Beta (Nutzer 18.10.)
 
-Auslieferung an die Tester: Download-Seite mit Anleitung (`todo.0.4.021`), Test auf macOS 14 (`022`), Update durch Ersetzen (`024`), Prüfung wie ein Tester mit Quarantäne-Merkmal (`todo.0.4.1.002`) und das DMG:
+Auslieferung an die Tester: Download-Seite mit Anleitung (`todo.0.4.021`), Mindest-macOS 15 (`todo.0.4.1.003`) mit Aufwärtstest auf macOS 27, Update durch Ersetzen (`024`), Prüfung wie ein Tester mit Quarantäne-Merkmal (`todo.0.4.1.002`) und das DMG:
 
 
-DMG mit der App, einem Verweis auf `/Applications` und einem Hintergrundbild (Pfeil „in Programme ziehen“, Hinweis zum Öffnen der nicht notarisierten Beta). Erzeugt mit **einem Befehl** („Erstelle nun das Ausgabe-DMG“ → `Werkzeuge/dmg-erstellen.sh`: Release bauen, Version lesen, DMG mit dmgbuild, Ablage im Git-Hauptverzeichnis). Positionen aus der Layout-Seite `layout/DMG.dc.html`. Aufgabe: `todo.0.4.1.001` (TODO.md). Ab 0.4.1 laden andere die App.
+DMG mit der App, einem Verweis auf `/Applications` und einem Hintergrundbild (Pfeil „in Programme ziehen“, Hinweis zum Öffnen der nicht notarisierten Beta). Erzeugt mit **einem Befehl** („Erstelle nun das Ausgabe-DMG“ → `Werkzeuge/dmg-erstellen.sh`: Release bauen, Version lesen, DMG mit dmgbuild, Ablage im Git-Hauptverzeichnis). Positionen aus der Layout-Seite `layout/ab 0.4.2/DMG Hintergrund.dc.html`. Aufgabe: `todo.0.4.1.001` (TODO.md). Ab 0.4.1 laden andere die App.
 
 ---
 
@@ -200,21 +200,21 @@ Sichere Erkennung über mehrere Medien hinweg per vollständiger Prüfsumme (BLA
 
 - **Entscheidung:** **Keine** Cloud-Dienste, **kein** API-Schlüssel. Verschlagwortet wird ausschließlich mit Apples Bordmitteln auf dem Mac; nichts verlässt das Gerät. Funktion der Stufen Pro und Max, eingeführt zusammen mit dem Lizenzmodell; Basic hat sie nicht.
 - **Ablauf:** als Nebenaufgabe im Hintergrund, **nur wenn das System gerade nichts zu tun hat** (macOS-Leerlaufplanung, z. B. `NSBackgroundActivityScheduler`), nach dem Indizieren, mit Rücksicht auf Pause, Akku und Ruhezustand; nur für angeschlossene Medien, sonst beim nächsten Anschließen. Der Nutzer legt fest, welche Dateien (Ordner, Dateitypen).
-- **Bausteine [Vorschlag, zu prüfen]:** Bilder über das Vision-Framework (Bildinhalte als Schlagwörter, ab macOS 14 vorhanden); Text über NaturalLanguage (Schlüsselwörter); auf Macs mit Apple Intelligence zusätzlich das Sprachmodell auf dem Gerät (Foundation Models) für bessere Schlagwörter. Das braucht ein neueres macOS und Apple Silicon und ist darum nur ein Zusatz, die Grundfunktion muss ohne laufen (die App unterstützt macOS 14).
+- **Bausteine [Vorschlag, zu prüfen]:** Bilder über das Vision-Framework (Bildinhalte als Schlagwörter, ab macOS 15 vorhanden wie die App); Text über NaturalLanguage (Schlüsselwörter); auf Macs mit Apple Intelligence zusätzlich das Sprachmodell auf dem Gerät (Foundation Models) für bessere Schlagwörter. Das braucht ein neueres macOS und Apple Silicon und ist darum nur ein Zusatz, die Grundfunktion muss ohne laufen (die App unterstützt macOS 15, Nutzer 27.10.).
 - **Systemvoraussetzungen (Recherche Host 18.10., vor 0.9 gegen Apples Dokumentation prüfen):**
   | Baustein | Mindestens | Auf den Entwicklungs-Macs (macOS 15)? |
   |---|---|---|
   | Bildinhalte (Vision, `VNClassifyImageRequest`) | macOS 10.15 (verbesserte Revision ab 14, neue Swift-API `ClassifyImageRequest` ab 15) | ja |
   | Text-Schlüsselwörter (NaturalLanguage) | ältere macOS-Versionen, sicher ab 14 | ja |
   | Sprachmodell auf dem Gerät (Foundation Models) | **macOS 26 (Tahoe)**, eine Quelle nennt für den neuesten Stand macOS 27; **Apple-Chip (M1 oder neuer)**; Apple Intelligence eingeschaltet, Modell geladen, unterstützte Sprache/Region | **nein** |
-- **Pflicht für die Lizenzbeschreibung (Nutzer 18.10.):** Die Beschreibung der Stufen Pro und Max (App, Download-Seite, Kaufseite) nennt ausdrücklich, ab welcher macOS-Version und auf welcher Hardware die Verschlagwortung funktioniert, getrennt nach Grundfunktion (Bilder/Text, ab macOS 14) und besserer Verschlagwortung mit dem Sprachmodell (ab macOS 26 mit Apple-Chip und Apple Intelligence). Die App zeigt im Reiter an, welche Stufe auf diesem Mac verfügbar ist, und kauft niemand etwas, das auf seinem Mac nicht läuft.
-- **Testrechner:** Für das Sprachmodell braucht es einen Mac mit Apple-Chip auf macOS 26 oder neuer. Vorschlag: einen der beiden Entwicklungs-Macs (falls Apple-Chip) auf das aktuelle macOS heben, den zweiten auf macOS 15 lassen, um den Rückfall ohne Sprachmodell zu testen. Der Test auf macOS 14 (`todo.0.4.022`, Mindestversion der App) bleibt davon getrennt.
+- **Pflicht für die Lizenzbeschreibung (Nutzer 18.10.):** Die Beschreibung der Stufen Pro und Max (App, Download-Seite, Kaufseite) nennt ausdrücklich, ab welcher macOS-Version und auf welcher Hardware die Verschlagwortung funktioniert, getrennt nach Grundfunktion (Bilder/Text, ab macOS 15) und besserer Verschlagwortung mit dem Sprachmodell (ab macOS 26 mit Apple-Chip und Apple Intelligence). Die App zeigt im Reiter an, welche Stufe auf diesem Mac verfügbar ist, und kauft niemand etwas, das auf seinem Mac nicht läuft.
+- **Testrechner:** Für das Sprachmodell braucht es einen Mac mit Apple-Chip auf macOS 26 oder neuer. Vorschlag: einen der beiden Entwicklungs-Macs (falls Apple-Chip) auf das aktuelle macOS heben, den zweiten auf macOS 15 lassen, um den Rückfall ohne Sprachmodell zu testen. Mindestversion der App ist macOS 15 (Nutzer 27.10.); der Test auf macOS 14 (`todo.0.4.022`) entfällt. Der zweite Mac des Nutzers läuft schon mit macOS 27 (Aufwärtstest mit dem DMG, `todo.0.4.1.002`).
 - **Daten:** Schlagwörter in einer neuen Tabelle (nur Erweiterung, Regel 7), durchsuchbar wie Namen; Synergie mit 0.5 (Metadaten/Text) und 0.6 (Vorschaubilder).
 - **Offen:** Welche Dateitypen zuerst (Fotos, PDF, HTML)? Schlagwörter nur zum Suchen oder auch sichtbar und bearbeitbar? Sprache der Schlagwörter (Deutsch, Englisch, nach Systemsprache)? Haben die beiden Entwicklungs-Macs einen Apple-Chip (Voraussetzung für den Testrechner)?
 
 ## 1.0 — Erste fertige Version
 
-- **Signatur und Notarisierung (Nutzer 18.10.):** erst zu 1.0 (Developer-ID-Zertifikat, `notarytool`, Stapeln; vorher `todo.0.4.020`). Bis dahin gehen alle Betas ohne Notarisierung an den kleinen Kreis der Tester, mit Anleitung auf der Download-Seite (in „Programme“ ziehen, „Trotzdem öffnen“).
+- **Signatur und Notarisierung (Nutzer 18.10.):** erst zu 1.0 (Developer-ID-Zertifikat, `notarytool`, Stapeln; vorher `todo.0.4.020`). Bis dahin gehen alle Betas ohne Notarisierung an den kleinen Kreis der Tester, mit Anleitung auf der Download-Seite (in „Programme“ ziehen, „Dennoch öffnen“).
 
 Alle Funktionen von 0.5 bis 0.9 sind drin, der Nutzer hat 1.0 selbst mehrere Wochen benutzt.
 

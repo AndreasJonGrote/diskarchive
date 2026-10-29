@@ -1,0 +1,41 @@
+{
+  "_hinweis": "Pflegt der Host (AGENTS.md). Quelle: layout/ab 0.4.2/DMG Hintergrund.dc.html, Abschnitt A und B. Koordinaten in pt, Ursprung oben links im Fensterinhalt, Mittelpunkt des Icons (wie dmgbuild icon_locations). {version} = CFBundleShortVersionString der gebauten App. Pfade relativ zu diesem Ordner bzw. zur App. Bild 660 × 440 (1x) mit 40 pt Beschnitt unten (unterste Zeile fortgesetzt, Host 28.10.); Fenster 428 hoch: zählt der Finder die Titelleiste (~28 pt) mit, sieht man genau die 400 pt der Layout-Seite, sonst 28 pt Beschnitt – nie einen grauen Rand.",
+  "volume_name": "Disk Archive {version} Beta",
+  "output_name": "Disk-Archive-{version}.dmg",
+  "format": "ULFO",
+  "filesystem": "HFS+",
+  "window": {
+    "x": 200,
+    "y": 120,
+    "content_width": 660,
+    "content_height": 428
+  },
+  "show_toolbar": false,
+  "show_status_bar": false,
+  "show_sidebar": false,
+  "show_pathbar": false,
+  "show_tab_view": false,
+  "default_view": "icon-view",
+  "icon_size": 96,
+  "text_size": 12,
+  "label_pos": "bottom",
+  "background": {
+    "1x": "hintergrund.png",
+    "2x": "hintergrund@2x.png"
+  },
+  "app": {
+    "name": "Disk Archive.app",
+    "x": 170,
+    "y": 234,
+    "hide_extension": true
+  },
+  "applications_link": {
+    "name": "Programme",
+    "target": "/Applications",
+    "x": 490,
+    "y": 234
+  },
+  "volume_icon": {
+    "badge_source": "Contents/Resources/AppIcon.icns"
+  }
+}

@@ -1,0 +1,12 @@
+# Test: PartialReadOnDemandTests/movedFavoriteReconnectsAndOnlyTheCandidateIsRead()
+--- a/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
++++ b/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
+@@ -1900,7 +1900,7 @@
+             guard !sizes.isEmpty, let parentID else { return ([], sizes) }
+             return (try DirectoryWriterV3.segments(db, itemID: parentID), sizes)
+         }
+-        let wanted = files.filter { comparableSizes.contains($0.sizeBytes) }
++        let wanted = files.filter { _ in false }
+         guard !wanted.isEmpty else { return nil }
+         var map: [String: Data] = [:]
+         #if DEBUG

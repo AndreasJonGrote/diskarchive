@@ -383,6 +383,43 @@ struct MediumCoordinatorTests {
         #expect(live.decision == .undecided)
     }
 
+    /// bug.0.4.224 (Test 4): Dasselbe Medium kommt wieder, während die Einträge des vergessenen noch gelöscht werden →
+    /// es ist neu („undecided“), der Erkennungsdialog wird angefordert, und die alte Zeile kollidiert nicht mit der neuen.
+    @Test func forgottenVolumeReturnsAsNewWhileItsEntriesAreStillDeleted() async throws {
+        let rig = try await RecognitionRig.make(attachStore: true)
+        let volume = rig.volume(uuid: "6F1D2B7C-0224-4000-8000-000000000224")
+        await rig.coordinator.handle(.appeared(volume))
+        let id = try #require(rig.appState.newMediumDialogMediumID)
+        rig.appState.onNewMediumChoice?(id, true, false)
+        await rig.coordinator.waitForChoice()
+        #expect(try await rig.store.medium(uuid: id)?.decision == .index, "Vorbedingung: Entscheidung gespeichert")
+        try await rig.store.applyDirectory(
+            mediumUUID: id, parentID: nil,
+            entries: (0..<500).map { ScannedEntry(name: "z-\($0).wav", isFolder: false) }, seenAt: Date()
+        )
+        let gate = PurgeGate()
+        await rig.store.setPurgeChunkHookForTesting { try await gate.pass() }
+        rig.appState.forgetMedium(id: id)
+        #expect(await waitUntil { gate.entered }, "Löschen der Einträge hat nicht begonnen")
+
+        await rig.coordinator.handle(.disappeared(path: volume.mountPath))
+        await rig.coordinator.handle(.appeared(volume))
+        let newID = try #require(rig.appState.newMediumDialogMediumID, "Erkennungsdialog für das wieder eingesteckte Medium fehlt")
+        #expect(newID != id)
+        let live = try #require(rig.appState.medium(with: newID))
+        #expect(live.decision == .undecided)
+        #expect(live.indexStatus == .pending)
+        #expect(rig.appState.media.count == 1, "altes Medium noch sichtbar: \(rig.appState.media.map(\.id))")
+
+        gate.open()
+        let settled = try await waitUntil {
+            let rows = try await rig.store.pool.read { db in try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages") ?? 0 }
+            return rows == 1
+        }
+        #expect(settled, "alte Zeile nicht gelöscht")
+        #expect(try await rig.store.media().map(\.uuid) == [newID])
+    }
+
     @Test func pauseShowsDialogButDefersIndexRequestUntilChoice() async throws {
         let rig = try await RecognitionRig.make()
         rig.appState.globalAutoIndexPaused = true
@@ -1010,6 +1047,19 @@ private final class RecognitionRig {
             model: "Built In SDXC Reader",
             isTimeMachineSnapshot: false
         )
+    }
+}
+
+/// bug.0.4.224: hält das Löschen der Einträge an, bis der Test es freigibt.
+private final class PurgeGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var isEntered = false
+    private var isOpen = false
+    var entered: Bool { lock.withLock { isEntered } }
+    func open() { lock.withLock { isOpen = true } }
+    func pass() async throws {
+        lock.withLock { isEntered = true }
+        while !lock.withLock({ isOpen }) { try await Task.sleep(for: .milliseconds(10)) }
     }
 }
 

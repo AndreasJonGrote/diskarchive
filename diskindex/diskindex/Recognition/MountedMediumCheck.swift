@@ -42,4 +42,11 @@ nonisolated enum MountedMediumCheck {
         let canonical = { (value: String) in URL(fileURLWithPath: value).resolvingSymlinksInPath().standardizedFileURL.path }
         return canonical(mountedOn) == canonical(path)
     }
+
+    #if DEBUG
+    /// Tests mit einem Ordner als Medium (`IndexStoreV3.setMountCheckForTesting`): Einhängepunkt, solange es ihn gibt.
+    static func testFolderExists(_ path: String) -> Bool {
+        FileManager.default.fileExists(atPath: path)
+    }
+    #endif
 }

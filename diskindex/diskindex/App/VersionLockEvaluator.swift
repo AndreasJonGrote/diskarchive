@@ -213,7 +213,10 @@ nonisolated enum VersionLockEvaluator {
     static func readSettingsAndIndexedMediaCount(pool: DatabasePool) throws -> (SystemSettingsSnapshot, Int) {
         try pool.read { db in
             let settings = try SystemSettingsPersistence.read(db)
-            let count = try Int.fetchOne(db, sql: "SELECT COUNT(*) FROM storages WHERE firstIndexedAt IS NOT NULL") ?? 0
+            // bug.0.4.224: ein vergessenes Medium zählt nicht mehr, auch solange seine Einträge noch gelöscht werden.
+            let count = try Int.fetchOne(
+                db, sql: "SELECT COUNT(*) FROM storages WHERE firstIndexedAt IS NOT NULL AND \(MediumCodecV3.notPendingDeletionSQL)"
+            ) ?? 0
             return (settings, count)
         }
     }

@@ -13,7 +13,7 @@ Teil des Konzepts, ausgelagert aus [README.md](../README.md) am 23.10.2026 (gilt
 
 **Vorschlagstexte (Nutzer 11.10.):** Alle bisher rot markierten Vorschlagstexte gelten als festgelegt; die rote Markierung entfällt. Neue Texte ohne Layout-Vorlage legt der Umsetzer normal an und listet sie zur Prüfung auf.
 
-Maßgeblich für Optik, Farben, Icons, Screen-Struktur und **alle Texte** sind [layout/bis 0.4.1/Disk Index App.dc.html](../layout/bis%200.4.1/Disk%20Index%20App.dc.html) (Sektionen 00–15) und [layout/Farbschema.dc.html](../layout/Farbschema.dc.html). Bei Widerspruch zwischen Layout und Konzept gilt das **Konzept** (außer reine Optik), das Layout wird angepasst. Jede Abweichung der App von Text oder Aufbau des Layouts ist ein Fehler.
+Maßgeblich für Optik, Farben, Icons, Screen-Struktur und **alle Texte** sind [layout/bis 0.4.1/Disk Index App.dc.html](../layout/bis%200.4.1/Disk%20Index%20App.dc.html) (Sektionen 00–15). Bei Widerspruch zwischen Layout und Konzept gilt das **Konzept** (außer reine Optik), das Layout wird angepasst. Jede Abweichung der App von Text oder Aufbau des Layouts ist ein Fehler.
 
 Neue Entscheidungen trägt Claude direkt in das Konzept ein (überholte werden ersetzt, nicht angehängt).
 

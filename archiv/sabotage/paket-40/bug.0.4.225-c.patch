@@ -1,0 +1,11 @@
+# Test: PartialReadOnDemandTests/indexingWithoutStoredPartialsReadsNoFile()
+--- a/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
++++ b/diskindex/diskindex/Storage/V3/DirectoryWriterV3.swift
+@@ -826,7 +826,6 @@
+         let storedPartials = try candidates.compactMap { candidate in
+             try fetchPartial(itemID: candidate.id).map { (candidate, $0) }
+         }
+-        guard !storedPartials.isEmpty else { return nil }
+         let digest: Data?
+         do {
+             digest = try incomingPartialDigest(mountPath: mountPath, parentID: parentID, name: entry.name)

@@ -1,1 +1,1 @@
-Rolle: **Worker** (AGENTS.md). **Kein Auftrag.** Paket 38 ist abgenommen (28.10.). Der Nutzer macht den Nachtest (`todo/abnahmerunde-0.4.0.md` Abschnitt 4). HALT.
+Rolle: **Worker** (AGENTS.md). **Kein Auftrag.** Paket 41 ist abgenommen (28.10., Gesamtlauf 19:53–20:22 grün). Der Nutzer macht den Nachtest 0.4.0 und die Sichtprüfung des DMG. Sprache Deutsch. HALT.

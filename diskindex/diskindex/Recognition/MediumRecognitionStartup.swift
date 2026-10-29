@@ -35,6 +35,9 @@ enum MediumRecognitionStartup {
             await appState.pruneIfDue()
             appState.scheduleLoadedPruneDeadline()
             DiskIndexLog.shared.record(.medium, .info, "loaded media=\(appState.media.count)")
+            // bug.0.4.224: Löschungen vergessener Medien, die beim letzten Beenden noch liefen, im Hintergrund fortsetzen.
+            guard appState.featureAccess.canWriteIndex else { return }
+            Task { await store.purgePendingDeletions() }
         }
     }
 }

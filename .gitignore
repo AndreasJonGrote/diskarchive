@@ -13,3 +13,5 @@ build/
 
 DerivedData-test/
 DerivedData-release/
+# Ausgabe-DMG
+*.dmg

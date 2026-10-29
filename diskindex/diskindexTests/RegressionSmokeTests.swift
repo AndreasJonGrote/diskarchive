@@ -717,5 +717,20 @@ struct RegressionSmokeRows {
         try await UnreadableFoldersErrorTests().runWithAnUnreadableFolderEndsAsError()
         UnreadableFoldersErrorTests().detailRowShowsTheIndexedPercent()
     }
+
+    /// bug.0.4.224: „Vergessen“ eines großen Mediums bleibt, auch wenn die App gleich danach endet.
+    @Test func forgetStaysForgottenAfterAnAbruptEnd() async throws {
+        try await ForgetDurableTests().forgottenLargeMediumStaysGoneAfterAnAbruptEnd()
+    }
+
+    /// bug.0.4.225: Indizieren und Abgleich ohne gespeicherte Teil-Prüfsumme lesen keine Datei.
+    @Test func indexingReadsNoFileWithoutStoredPartials() async throws {
+        try await PartialReadOnDemandTests().indexingWithoutStoredPartialsReadsNoFile()
+    }
+
+    /// bug.0.4.226: Eine langsam lesende Platte hält den Lauf eines anderen Mediums nicht auf.
+    @Test func slowMediumDoesNotHoldUpAnotherRun() async throws {
+        try await StoreActorMediumAccessTests().slowPartialReadOfOneMediumDoesNotHoldUpAnotherRun()
+    }
 }
 }

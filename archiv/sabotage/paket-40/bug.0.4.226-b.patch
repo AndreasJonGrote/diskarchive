@@ -1,0 +1,12 @@
+# Test: StoreActorMediumAccessTests/slowPartialReadOfOneMediumDoesNotHoldUpAnotherRun(), StoreActorMediumAccessTests/storeActorCodeHasNoMediumAccess()
+--- a/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
++++ b/diskindex/diskindex/Storage/V3/IndexStoreV3.swift
+@@ -1913,7 +1913,7 @@
+             #if DEBUG
+             precomputeReadHookForTesting.run()
+             #endif
+-            if let computed = try await PartialChecksum.computeOffActor(at: url, testComputeDelay: testDelay) {
++            if let computed = try PartialChecksum.compute(at: url, testComputeDelay: testDelay) {
+                 map[entry.name] = computed.partial
+             }
+         }

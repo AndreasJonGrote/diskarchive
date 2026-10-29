@@ -51,5 +51,6 @@ Gelten für jeden neuen Code; eine Vorgabe, die dagegen verstößt, ist ein Fehl
 5. **Nur auf eigene Ereignisse reagieren.** Ansichten und Aufträge reagieren auf Ereignisse ihres Mediums und Ordners, nie auf globale Zähler; eine Nutzeraktion (Scrollen, Auswahl) wird nur durch den Nutzer oder eine Änderung genau ihres Ziels beendet.
 6. **Gespeicherte Daten enthalten Reste.** Protokoll, Absturzdatei, Merker und Caches enthalten frühere Läufe und andere Medien; jede Auswertung grenzt auf den richtigen Lauf bzw. das richtige Medium ein.
 7. **Protokoll und Bericht ohne Namen, Pfade und Fehlertexte** (`DiskIndexLog.errorSummary`).
+8. **Der Store-Actor berührt nie ein Medium** (Host 28.10., `bug.0.4.226`). `IndexStoreV3` liest, prüft (`stat`, `getattrlist`, `fileExists`) und öffnet keine Datei auf einem Speichermedium; Pfade baut er ohne Plattenzugriff. Sonst hält eine langsame Platte alle anderen Medien auf.
 
 **Messwerte und Spike-Ergebnisse:** `archiv/readme-technik-bis-2026-10-04.md`.

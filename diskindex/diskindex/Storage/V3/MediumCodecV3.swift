@@ -25,6 +25,8 @@ nonisolated enum StorageMetaKey: String, CaseIterable, Sendable {
     case isForgotten
     /// Wirkt noch: `Medium.allowIndexing` steuert die Registeransicht.
     case allowIndexing
+    /// bug.0.4.224: vergessen, Einträge werden noch gelöscht. Laden, Erkennung, Suche und Zähler übergehen das Medium.
+    case pendingDeletion
 }
 
 nonisolated enum MediumCodecV3 {
@@ -348,6 +350,23 @@ nonisolated enum MediumCodecV3 {
 
     // MARK: Lesen
 
+    /// bug.0.4.224: Medien, deren Einträge nach dem Vergessen noch gelöscht werden (älteste zuerst).
+    static func pendingDeletionStorageIDs(_ db: Database) throws -> [Int64] {
+        try Int64.fetchAll(
+            db,
+            sql: "SELECT m.storageID FROM storage_meta m JOIN meta_keys k ON k.id = m.keyID WHERE k.key = ? ORDER BY m.storageID",
+            arguments: [StorageMetaKey.pendingDeletion.rawValue]
+        )
+    }
+
+    /// bug.0.4.224: Bedingung „nicht vergessen“ für Abfragen über `storages` (Spalte `id` der Tabelle `storages`).
+    static let notPendingDeletionSQL = """
+        NOT EXISTS (
+            SELECT 1 FROM storage_meta pm JOIN meta_keys pk ON pk.id = pm.keyID
+            WHERE pm.storageID = storages.id AND pk.key = '\(StorageMetaKey.pendingDeletion.rawValue)'
+        )
+        """
+
     static func storageRowID(_ db: Database, uuid: UUID) throws -> Int64? {
         try Int64.fetchOne(db, sql: "SELECT id FROM storages WHERE uuid = ?", arguments: [data(uuid)])
     }
@@ -369,6 +388,8 @@ nonisolated enum MediumCodecV3 {
             ) {
                 meta[entry["key"]] = (entry["value"], entry["date"])
             }
+            // bug.0.4.224: ein vergessenes Medium, dessen Einträge noch gelöscht werden, gibt es nicht mehr.
+            if meta[StorageMetaKey.pendingDeletion.rawValue] != nil { continue }
             result.append(try medium(row, meta: meta))
         }
         return result

@@ -3,6 +3,8 @@
 > **⚠ Mindestmodell (Nutzer 23.10.): Host = Opus 5.5 Low. Worker = Sonnet 5.5 Medium.**
 > Jeder Agent nennt in der **ersten Zeile** seiner ersten Antwort einer Sitzung sein Minimum und sein Modell, sobald er sie nicht erfüllt oder nicht sicher ist: „⚠ Minimum Host: Opus 5.5 Low – bitte wechseln“. Den Aufwand (Low/Medium) kann ein Agent nicht sicher erkennen; er meldet, was er sieht. Subagenten: Sonnet für Urteil, Haiku nur für Mechanik; **Tests und Builds laufen per Skript** (`Werkzeuge/pruefung.sh`), nie per Agent. Einzelheiten: `archiv/abnahme-ablauf.md`, Abschnitt 0.
 
+> **Sprache: Deutsch (Nutzer 28.10.)** für Host und Worker: Chat, Zwischenstände, Status, Berichte und Kommentare. Englisch nur in Bezeichnern, Befehlen und Zitaten.
+
 Dieses Projekt wird von Agenten in zwei Rollen bearbeitet: **Host** und **Worker**. Diese Datei legt verbindlich fest, wer was tut.
 
 ## Rollen (Nutzer 17.10.: Rolle kommt aus der Übergabe, nicht aus dem Namen)
@@ -11,13 +13,13 @@ Dieses Projekt wird von Agenten in zwei Rollen bearbeitet: **Host** und **Worker
 
 ### Host — Konzept, Review, Briefing
 Der Host macht **keine Implementierung** im Xcode-Projekt. Er ist zuständig für:
-- **Konzept**: Produktlogik, Screen-Flows, State-Modelle, Edge Cases aus dem Design-Mockup ([layout/bis 0.4.1/Disk Index App.dc.html](layout/bis%200.4.1/Disk%20Index%20App.dc.html)) und dem Farbkonzept ([layout/Farbschema.dc.html](layout/Farbschema.dc.html)) sauber in umsetzbare Aufgaben übersetzen.
-- **Design-Vermittlung**: Farbrollen, Spacing, Icons und Komponentenregeln aus dem Styleguide (Mockup-Sektion 15) und dem Farbkonzept korrekt und vollständig an den Worker weitergeben — inklusive der Feinheiten (Chip-Rezept, gestrichelt = unvollständig, Selectgroup-Regel, Tabellenregel ohne Sortierpfeile, Suchfeld-Reset, Cursor-Regel etc.) und mit exakten sRGB-Werten, wo das Layout OKLCH verwendet — damit nichts davon beim Screenshot-Abtippen verlorengeht.
+- **Konzept**: Produktlogik, Screen-Flows, State-Modelle, Edge Cases aus dem Design-Mockup ([layout/bis 0.4.1/Disk Index App.dc.html](layout/bis%200.4.1/Disk%20Index%20App.dc.html)) sauber in umsetzbare Aufgaben übersetzen.
+- **Design-Vermittlung**: Farbrollen, Spacing, Icons und Komponentenregeln aus dem Styleguide (Mockup-Sektion 15) korrekt und vollständig an den Worker weitergeben — inklusive der Feinheiten (Chip-Rezept, gestrichelt = unvollständig, Selectgroup-Regel, Tabellenregel ohne Sortierpfeile, Suchfeld-Reset, Cursor-Regel etc.) und mit exakten sRGB-Werten, wo das Layout OKLCH verwendet — damit nichts davon beim Screenshot-Abtippen verlorengeht.
 - **Briefing**: Aufgaben im Paket-File `todo/paket-NN.md` (Index: [TODO.md](TODO.md)) und den Auftrag in [PROMPT.md](PROMPT.md) so präzise formulieren, dass der Worker sie ohne Rückfragen umsetzen kann (Dateien, Screens, Verhalten, Akzeptanzkriterien).
 - **Review**: Nach jeder gemeldeten Erledigung prüft der Host den tatsächlichen Code/Diff gegen die Vorgabe im Paket-File und das Design-Spec — nicht nur die Selbstauskunft des Workers. Er gibt Freigabe oder fordert Korrektur an.
 - **Priorisierung**: Reihenfolge der Screens/Features festlegen, Abhängigkeiten erkennen (z. B. Datenmodell vor UI, Menu-Bar-Grundgerüst vor Popover-Inhalt).
 
-Der Host editiert **niemals** Quellcode im Xcode-Projekt. Er pflegt `AGENTS.md`, `TODO.md`, `PROMPT.md`, `DONE.md`, `README.md` mit `konzept/`, `ROADMAP.md`, `todo/`, `archiv/` und das Prüfskript `Werkzeuge/pruefung.sh` (der Worker ändert es nie).
+Der Host editiert **niemals** Quellcode im Xcode-Projekt. Er pflegt `AGENTS.md`, `TODO.md`, `PROMPT.md`, `DONE.md`, `README.md` mit `konzept/`, `ROADMAP.md`, `todo/`, `archiv/`, das Prüfskript `Werkzeuge/pruefung.sh` und `Werkzeuge/dmg/` (Hintergrundbild und `dmg-einstellungen.json` für das DMG; Nutzer 28.10.). Der Worker ändert beides nie; `Werkzeuge/dmg-erstellen.sh` gehört dem Worker.
 
 ### Worker — Umsetzung
 Der Worker implementiert das freigegebene Paket (`todo/paket-NN.md`, Index TODO.md) bzw. den Auftrag in `PROMPT.md` im Xcode-Projekt (SwiftUI/AppKit). Das gilt für jeden Agenten in dieser Rolle, auch für Claude. Er ist zuständig für:
@@ -95,7 +97,8 @@ Einzelheiten: `archiv/abnahme-ablauf.md` Abschnitt 2b (Prüfung durch den Host u
 ## Quellen der Wahrheit
 - **Konzept (aktuell gültig)**: [README.md](README.md) als Index, Inhalt in `konzept/*.md` (eine Datei je Thema) — eine Stelle für alle Produktentscheidungen. Nur die Datei zum Thema lesen. Bei Widerspruch zum Layout gilt das Konzept (außer reine Optik). Der Host pflegt es bei jeder Entscheidung des Nutzers; überholte werden ersetzt. Älterer Verlauf: [archiv/readme-verlauf-bis-2026-10-02.md](archiv/readme-verlauf-bis-2026-10-02.md).
 - **Versionen und Reihenfolge**: [konzept/roadmap.md](konzept/roadmap.md) (maßgeblich, früher README „Roadmap“). [ROADMAP.md](ROADMAP.md) ist die ausführliche Fassung und folgt der README. `TODO.md` (Index) nennt nur die laufende Version, B ist nach Zielversion sortiert.
-- **Design (seit 28.09.)**: [layout/bis 0.4.1/Disk Index App.dc.html](layout/bis%200.4.1/Disk%20Index%20App.dc.html) (Mockup, Sektionen 00–15) und [layout/Farbschema.dc.html](layout/Farbschema.dc.html) (Farbkonzept). Screenshot-Vorlage, nicht Code-Vorlage. Regeln für Mockups: [layout/CLAUDE.md](layout/bis%200.4.1/CLAUDE.md).
+- **Design (seit 28.09.)**: [layout/bis 0.4.1/Disk Index App.dc.html](layout/bis%200.4.1/Disk%20Index%20App.dc.html) (Mockup, Sektionen 00–15). Screenshot-Vorlage, nicht Code-Vorlage. Regeln für Mockups: [layout/CLAUDE.md](layout/bis%200.4.1/CLAUDE.md).
+- **`layout/ab 0.4.2/` ist tabu (Nutzer 28.10.)**, bis der Nutzer den Ordner freigibt: keine Aufgabe, kein Code, kein Konzept daraus. Einzige Ausnahme: [layout/ab 0.4.2/DMG Hintergrund.dc.html](layout/ab%200.4.2/DMG%20Hintergrund.dc.html) gilt für das DMG (`todo.0.4.1.001`).
 - **Komponentenkatalog (Maße, Farben, Zustände):** [layout/bis 0.4.1/Komponenten.dc.html](layout/bis%200.4.1/Komponenten.dc.html), zusammengefasst in [docs/Komponenten-Masse.md](docs/Komponenten-Masse.md) (der Host pflegt die Zusammenfassung; bei Widerspruch gilt die Layout-Seite).
 - **Erledigt**: [DONE.md](DONE.md) — Register der vom Host abgenommenen Aufgaben (nur der Host pflegt es).
 - **Aufgabenliste**: [TODO.md](TODO.md) — kurzer Index (Stand, Pakete, Entscheidungen). Aufgaben je Paket in `todo/paket-NN.md`, Regeln in `todo/regeln.md`, Backlog in `todo/backlog.md`. **Kurz halten:** große Dateien kosten bei jedem Start Tokens. Alte Fassungen und Volltexte: `archiv/prompt-*.md`.
