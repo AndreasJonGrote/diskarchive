@@ -1,4 +1,4 @@
-# Paket 42 — Zielversion 0.4.1 (freigegeben 29.10.2026)
+# Paket 42 — Zielversion 0.4.1 (freigegeben 29.10.2026, abgenommen 29.10.2026)
 
 Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln, Sprache Deutsch). Herkunft: Sichtprüfung des DMG durch den Nutzer 29.10. (Screenshot): Auf dem Laufwerks-Icon sitzt das App-Symbol zu weit oben, nicht in der Mitte der Fläche.
 
@@ -27,4 +27,9 @@ Eine Aufgabe. Am Ende **HALT**.
     - Skript einmal laufen lassen, Schlusszeilen in den Status.
     - `.VolumeIcon.icns` aus dem DMG holen (schreibgeschützt eingehängt, `-nobrowse`, wie Schritt 6), mit `iconutil -c iconset` zerlegen und `icon_256x256@2x.png` ansehen: dunkle Fläche des Symbols etwa bei y 88–332 von 512 (Mitte ~210). Gemessene Werte in den Status.
     - Kein Finder, kein `open`, kein AppleScript.
-  - **Status:**
+  - **Status:** Bereit zur Prüfung. Schritt 5 in `Werkzeuge/dmg-erstellen.sh`: `badge.py` als `$WORK/laufwerk_badge.py` kopiert, die Ecken-Zeile (genau einmal geprüft, sonst Abbruch „dmgbuild hat badge.py geändert, Versatz nicht anwendbar.“) um `volume_icon.badge_versatz_y` verschoben (fehlt: 0), `badge_disk_icon` → `laufwerk.icns`, Einstellung `icon` statt `badge_icon`. Im venv nichts geändert.
+    - Lauf 08:15–08:16 Exit 0: Release-Build ohne Warnungen, Version 0.4.0, Ecken ((0.2, 0.88), (0.8, 0.88), (0.85, 0.28), (0.15, 0.28)), Prüfung Schritt 6 vollständig, DMG 15 349 957 Bytes, Volume „Disk Archive 0.4.0 Beta“.
+    - `.VolumeIcon.icns` (schreibgeschützt, `-nobrowse` eingehängt), `icon_256x256@2x.png`: dunkle Fläche des Symbols y 88–333 von 512, Mitte 210,5 (Leiste des Laufwerks darunter bei y 415–418 und 474–477).
+    - Selbstprüfung: nichts Wesentliches gefunden. Kein Finder, kein `open`.
+
+**Abnahme Host 29.10.:** Diff gelesen (nur `Werkzeuge/dmg-erstellen.sh`, Schritt 5; Prüfung auf genau eine Ecken-Zeile, venv unverändert, Wert aus der JSON). Skript 08:30 grün, Ecken ((0.2, 0.88), (0.8, 0.88), (0.85, 0.28), (0.15, 0.28)). `.VolumeIcon.icns` aus dem DMG: `icon_256x256@2x.png` pixelgleich mit dem Versuch des Hosts (0,07), der vorher geprüft wurde. Kein Gesamtlauf nötig (kein App-Code). Gleichzeitig vom Host: Hintergrund Variante „Dunkel“ des Layouts 29.10., Icons bei y 200, Fenster 660 × 476, Beschnitt bis 480 pt; Beschriftungen bleiben dunkel (Nutzer).

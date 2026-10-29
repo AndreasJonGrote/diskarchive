@@ -81,6 +81,31 @@ echo "TIFF: $WORK/hintergrund.tiff"
 
 # 5. dmgbuild
 schritt "5/7 dmgbuild"
+# Laufwerks-Icon (bug.0.4.1.001): dmgbuilds badge.py als Kopie im Arbeitsordner, die Ecken des App-Symbols um
+# volume_icon.badge_versatz_y nach unten (fehlt der Wert: 0). Im venv ändert sich nichts.
+BADGE_PY="$(ls "$VENV"/lib/python*/site-packages/dmgbuild/badge.py 2>/dev/null | head -1 || true)"
+[ -n "$BADGE_PY" ] && [ -f "$BADGE_PY" ] || fehler "badge.py von dmgbuild nicht gefunden."
+cp "$BADGE_PY" "$WORK/laufwerk_badge.py"
+LAUFWERK_ICNS="$WORK/laufwerk.icns"
+DA_JSON="$JSON" DA_WORK="$WORK" DA_QUELLE="$APP/$(jget volume_icon.badge_source)" DA_ZIEL="$LAUFWERK_ICNS" \
+  "$VENV/bin/python" -I -c 'import json, os, sys
+E = json.load(open(os.environ["DA_JSON"]))
+versatz = float(E["volume_icon"].get("badge_versatz_y", 0))
+pfad = os.path.join(os.environ["DA_WORK"], "laufwerk_badge.py")
+alt = "corners = ((0.2, 0.95), (0.8, 0.95), (0.85, 0.35), (0.15, 0.35))"
+text = open(pfad).read()
+if text.count(alt) != 1:
+    sys.exit("dmgbuild hat badge.py geändert, Versatz nicht anwendbar.")
+y = lambda wert: round(wert - versatz, 4)
+neu = f"corners = ((0.2, {y(0.95)}), (0.8, {y(0.95)}), (0.85, {y(0.35)}), (0.15, {y(0.35)}))"
+open(pfad, "w").write(text.replace(alt, neu))
+print("Ecken des App-Symbols:", neu)
+sys.path.insert(0, os.environ["DA_WORK"])
+import laufwerk_badge
+laufwerk_badge.badge_disk_icon(os.environ["DA_QUELLE"], os.environ["DA_ZIEL"])' \
+  || fehler "Laufwerks-Icon ließ sich nicht erzeugen."
+[ -f "$LAUFWERK_ICNS" ] || fehler "Laufwerks-Icon wurde nicht erzeugt."
+echo "Laufwerks-Icon: $LAUFWERK_ICNS"
 cat > "$WORK/einstellungen.py" <<'PYEOF'
 import json, os
 E = json.load(open(os.environ["DA_JSON"]))
@@ -106,11 +131,11 @@ icon_size = E["icon_size"]
 text_size = E["text_size"]
 label_pos = E["label_pos"]
 background = os.environ["DA_BG"]
-badge_icon = os.path.join(app, E["volume_icon"]["badge_source"])
+icon = os.environ["DA_ICON"]
 PYEOF
 mkdir -p "$(dirname "$AUSGABE")"
 [ -f "$AUSGABE" ] && rm -f "$AUSGABE"   # nur genau diese Datei
-DA_JSON="$JSON" DA_APP="$APP" DA_BG="$WORK/hintergrund.tiff" \
+DA_JSON="$JSON" DA_APP="$APP" DA_BG="$WORK/hintergrund.tiff" DA_ICON="$LAUFWERK_ICNS" \
   "$VENV/bin/python" -m dmgbuild -s "$WORK/einstellungen.py" "$VOLNAME" "$AUSGABE" \
   || fehler "dmgbuild ist fehlgeschlagen."
 [ -f "$AUSGABE" ] || fehler "DMG wurde nicht erzeugt."

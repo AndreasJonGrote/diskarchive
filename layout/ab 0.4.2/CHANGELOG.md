@@ -2,6 +2,20 @@
 
 Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angegeben.
 
+## 2026-10-29
+
+### DMG-Hintergrund – Layout neu, Hell-Variante
+- Ringe kleiner, auf das App-Icon zentriert und nach außen ausgeblendet; kreuzen keinen Text mehr.
+- Icon-Zone auf y = 200 (Finder: 170/200, 490/200), Pfeil mittig dazu; Headline 24 px.
+- Neue Variante „Hell“ (hellgrauer Grund, weißer Lichtverlauf, Tinte), jeweils Finder-Vorschau + Export-Bild.
+
+## 2026-10-28
+
+### Sektion 03 + 04 – Status „Wird geprüft“ auch beim Wiederanschließen
+- Gilt jetzt für neue und wieder angeschlossene Medien: zwischen Erkennen und Start einer Indizierung „Wird geprüft“ statt kurzem Sprung auf 99 %. Folgt eine Indizierung → „x % indiziert“, sonst → Ruhezustand / „Online“.
+- 03: Variante umbenannt in „Neu oder wieder angeschlossen“, zweite Zeile „Reise-SSD“ (wieder angeschlossen) mit pulsierendem Punkt. Beschreibung ergänzt.
+- 04: Neuer Chip „Wird geprüft“ (gestrichelt grün, pulsierender Punkt) an „Reise-SSD“, hell und dunkel. Beschreibung ergänzt.
+
 ## 2026-10-10
 
 ### Sektion 05 – Tab „Lizenz“ (alle 3 Zustände)
