@@ -154,6 +154,21 @@ final class AppState {
     /// bug.0.3.9.006 b: Wiederherstellen aus der Datenbank nach fehlgeschlagenem Schreiben (nacheinander).
     @ObservationIgnored var favoriteRestoreTask: Task<Void, Never>?
     var popoverResults = PopoverSearchResults()
+    /// todo.0.4.2.003: Ordner mit Treffer im geöffneten Medium der Spaltenansicht (gilt nur für ihren Schlüssel).
+    var columnFilterHits: ColumnFilterHits?
+    /// Die Rechnung dauert länger als 1 s: Wartescreen in der Spalte des tiefsten geöffneten Ordners.
+    var columnFilterWaitVisible = false
+    /// Zeitvorgabe des Wartescreens (1 s Verzögerung, 400 ms Mindestanzeige; Tests kürzer).
+    @ObservationIgnored var columnFilterTiming: DelayedLoadingTiming = .standard
+    @ObservationIgnored var columnFilterRun = 0
+    @ObservationIgnored var columnFilterWaitShownAt: ContinuousClock.Instant?
+    @ObservationIgnored var columnFilterLiveTask: Task<Void, Never>?
+    @ObservationIgnored var columnFilterLiveDirty = false
+    @ObservationIgnored var columnFilterLastLiveRun: ContinuousClock.Instant?
+    #if DEBUG
+    /// Tests (Regel 11, Instanz-Haken): läuft nach dem Lesen jeder Rechnung, z. B. damit sie länger als 1 s dauert.
+    @ObservationIgnored var columnFilterComputeHookForTesting: ((ColumnFilterKey) async -> Void)?
+    #endif
     let indexRepository: IndexRepository
     private(set) var indexStore: IndexStoreV3?
     /// `true`, sobald die Datenbank offen und angehängt ist (Aufgabe 219). Davor zeigen Fenster und Popover den Ladezustand.

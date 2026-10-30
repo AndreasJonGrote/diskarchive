@@ -65,6 +65,7 @@ nonisolated struct AppSettings: Equatable, Codable {
     var artifactsIgnored: Bool = true
     var excludedPatterns: [String] = Self.defaultExcludedPatterns
     /// Spaltenansicht: Ordner bleiben trotz Dateityp-/Endungs-Filter sichtbar (Aufgabe 33.5). Suche/Favoriten strikt.
+    /// todo.0.4.2.003: entfallen, wird nicht mehr ausgewertet; gespeicherte Werte bleiben liegen und lesen sich weiter.
     var showFoldersRegardlessOfFilter: Bool = true
     var appearance: AppAppearance = .system
     var notificationsEnabled: Bool = true

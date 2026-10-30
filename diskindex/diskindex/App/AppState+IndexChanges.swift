@@ -565,6 +565,8 @@ extension AppState {
                 schedulePopoverSearch()
             }
         }
+        // todo.0.4.2.003: Treffermenge der Spaltenansicht leise nachrechnen.
+        columnFilterIndexChanged(id)
     }
 
     func reloadFavoritesIfVisible() async {

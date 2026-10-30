@@ -96,12 +96,7 @@ extension AppState {
               columnIndex < state.pathStack.count, state.pathStack[columnIndex] == folder.name else { return nil }
         let path = Array(state.pathStack.prefix(columnIndex + 1))
         let next = indexRepository.children(mediumID: medium.id, path: path)
-        let visible = ColumnBrowserFiltering.visibleItems(
-            next,
-            openFolderName: columnIndex + 1 < state.pathStack.count ? state.pathStack[columnIndex + 1] : nil,
-            filters: searchState.filters,
-            keepFolders: appSettings.showFoldersRegardlessOfFilter
-        )
+        let visible = ColumnBrowserFiltering.visibleItems(next, filters: searchState.filters)
         guard let first = visible.first else { return nil }
         var selection = ColumnSelection()
         selection.replace(id: first.id, column: columnIndex + 1)

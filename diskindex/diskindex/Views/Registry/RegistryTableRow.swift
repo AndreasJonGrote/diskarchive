@@ -21,8 +21,10 @@ struct RegistryTableRow: View {
             } label: {
                 HStack(spacing: 8) {
                     MediumTypeIcon(medium: medium, size: 15)
-                    Text(medium.name)
+                    Text(medium.shownName)
                         .fontWeight(.semibold)
+                        // todo.0.4.2.002: Originalname als Tooltip, wenn ein eigener Name gesetzt ist.
+                        .help(medium.customName != nil ? medium.name : "")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

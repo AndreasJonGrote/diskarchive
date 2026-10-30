@@ -83,7 +83,7 @@ struct ObjectResultsTable<Placeholder: View>: View {
         // bug.0.4.040 (REPORT 86): Mediennamen, Verbindung und Favoriten einmal je Body; die Zeilen bekommen nur Werte und
         // beobachten `media` nicht (ein Fortschritts-Tick baut sie nicht neu).
         let media = appState.media
-        let mediumNames = Dictionary(media.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let mediumNames = Dictionary(media.map { ($0.id, $0.shownName) }, uniquingKeysWith: { first, _ in first })
         let online = Dictionary(media.map { ($0.id, $0.connectionStatus == .connected) }, uniquingKeysWith: { first, _ in first })
         let favorites = appState.favoriteLookup
         let rows = sortedResults(mediumNames: mediumNames, online: online)

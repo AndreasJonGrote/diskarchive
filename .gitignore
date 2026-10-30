@@ -15,3 +15,6 @@ DerivedData-test/
 DerivedData-release/
 # Ausgabe-DMG
 *.dmg
+
+# Berichte vom Nutzer mit Datenbank-Kopien und privaten Dateinamen (Host 30.10.)
+report-*/

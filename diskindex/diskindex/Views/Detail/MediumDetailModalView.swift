@@ -55,7 +55,7 @@ struct MediumDetailModalView: View {
             MediumTypeIcon(medium: medium, size: 34)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(medium.name)
+                Text(medium.shownName)
                     .font(.system(size: 18, weight: .bold))
                 Text(medium.connectionDescription)
                     .font(.system(size: 12))
@@ -84,6 +84,10 @@ struct MediumDetailModalView: View {
 
     private func statsTable(medium: Medium) -> some View {
         VStack(spacing: 0) {
+            // todo.0.4.2.002: erste Zeile der Tabelle (Layout ab 0.4.2).
+            settingsRow(label: LayoutCopy.detailCustomName) {
+                MediumCustomNameField(medium: medium)
+            }
             detailRow(label: LayoutCopy.total, value: medium.totalCapacityLabel)
             detailRow(label: LayoutCopy.usedFree, value: medium.usedFreeLabel)
             detailRow(label: LayoutCopy.files, value: medium.filesLabel)

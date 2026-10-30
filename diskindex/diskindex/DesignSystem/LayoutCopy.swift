@@ -80,8 +80,6 @@ nonisolated enum LayoutCopy {
 
     static var columnFilterTitle: String { L10n.string("copy.settings.column_filter.title") }
     static var columnFilterText: String { L10n.string("copy.settings.column_filter.text") }
-    static var showFolders: String { L10n.string("copy.settings.column_filter.show_folders") }
-    static var showFoldersHint: String { L10n.string("copy.settings.column_filter.show_folders_hint") }
 
     static var excludeTitle: String { L10n.string("copy.settings.exclude.title") }
     static var excludeText: String { L10n.string("copy.settings.exclude.text") }
@@ -98,6 +96,22 @@ nonisolated enum LayoutCopy {
     static var searchIdleTitle: String { L10n.string("copy.search.idle.title") }
     static var searchIdleSubtitle: String { L10n.string("copy.search.idle.subtitle") }
     static var searchFilterAllMedia: String { L10n.string("copy.search.filter_all_media") }
+    /// todo.0.4.2.003: Filter in der Spaltenansicht (Status, Fußzeile, Spaltenkopf).
+    static var columnFilterNoMatchesTitle: String { L10n.string("copy.column.filter.no_matches_title") }
+    static var columnFilterNoMatchesBody: String { L10n.string("copy.column.filter.no_matches_body") }
+    static var columnFilterApplyingTitle: String { L10n.string("copy.column.filter.applying_title") }
+    static var columnFilterApplyingBody: String { L10n.string("copy.column.filter.applying_body") }
+    static var columnFilterReset: String { L10n.string("copy.column.filter.reset") }
+    static var columnFilterFooterFiltering: String { L10n.string("copy.column.filter.footer_filtering") }
+    static func columnHeaderCount(_ title: String, _ matching: Int, _ total: Int) -> String {
+        L10n.format("copy.column.filter.header_count", title, DisplayNumberFormat.groupedInteger(matching), DisplayNumberFormat.groupedInteger(total))
+    }
+    /// todo.0.4.2.002: Details-Modal, erste Zeile.
+    static var detailCustomName: String { L10n.string("copy.detail.custom_name") }
+    /// todo.0.4.2.001: Kopfzeile, wenn alle Medien angehakt sind; mit Suchtext nennt sie den Begriff.
+    static var searchFilterDeselectAll: String { L10n.string("copy.search.filter_deselect_all") }
+    static func searchFilterSelectMatching(_ term: String) -> String { L10n.format("copy.search.filter_select_matching", term) }
+    static func searchFilterDeselectMatching(_ term: String) -> String { L10n.format("copy.search.filter_deselect_matching", term) }
     /// Popover-Suche: Gruppenüberschriften (bug.0.4.058).
     static var popoverGroupMedia: String { L10n.string("copy.popover_search.group.media") }
     static var popoverGroupFiles: String { L10n.string("copy.popover_search.group.files") }

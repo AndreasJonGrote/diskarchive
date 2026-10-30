@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/ColumnFilterWindowTests/noWaitScreenUnderOneSecond()
+--- a/diskindex/diskindex/App/AppState+ColumnFilter.swift	2026-10-30 20:09:38
++++ b/diskindex/diskindex/App/AppState+ColumnFilter.swift	2026-10-30 20:09:38
+@@ -36,7 +36,7 @@
+         }
+         let timing = columnFilterTiming
+         let waiter = Task { [weak self] in
+-            try? await Task.sleep(for: timing.delayBeforeHint)
++            _ = timing.delayBeforeHint
+             guard !Task.isCancelled, let self, self.columnFilterRun == run, !self.columnFilterWaitVisible else { return }
+             self.columnFilterWaitVisible = true
+             self.columnFilterWaitShownAt = .now

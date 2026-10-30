@@ -173,6 +173,8 @@ nonisolated struct StoredMedium: Sendable, Equatable {
     var createdAt: Date
     /// bug.0.4.200: Merker `indexGaps` (nur gelesen; geschrieben von `finishIndexing`).
     var hasIndexGaps = false
+    /// todo.0.4.2.002: eigener Name (nur gelesen; geschrieben von `IndexStoreV3.setCustomName`).
+    var customName: String?
 
     init(
         uuid: UUID = UUID(),

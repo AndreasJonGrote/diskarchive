@@ -34,8 +34,6 @@ struct SettingsGeneralTab: View {
                     scanDepthSection(settings: settings)
                         .id(SettingsScrollTarget.scanDepth)
                     DesignDivider()
-                    showFoldersSection(settings: settings)
-                    DesignDivider()
                     SettingsIgnoredObjectsTab()
                 case .advanced:
                     launchAtLoginSection
@@ -209,31 +207,6 @@ struct SettingsGeneralTab: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .settingsExampleBox()
-    }
-
-    /// Aufgabe 33.5 — wirkt nur in der Spaltenansicht.
-    private func showFoldersSection(settings: Binding<AppSettings>) -> some View {
-        HStack(alignment: .top, spacing: 32) {
-            VStack(alignment: .leading, spacing: 6) {
-                SettingsSectionTitle(title: LayoutCopy.columnFilterTitle)
-                Text(LayoutCopy.columnFilterText)
-                    .font(.system(size: 12))
-                    .foregroundStyle(DesignColor.text.opacity(0.6))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Toggle(LayoutCopy.showFolders, isOn: settings.showFoldersRegardlessOfFilter)
-                    .toggleStyle(DesignCheckbox())
-                    .font(.system(size: 12.5, weight: .semibold))
-                Text(LayoutCopy.showFoldersHint)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundStyle(DesignColor.text.opacity(0.6))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
     }
 
     private func notificationsSection(settings: Binding<AppSettings>) -> some View {

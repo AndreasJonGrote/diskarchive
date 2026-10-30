@@ -115,7 +115,7 @@ struct SettingsMediaRegistryPanel: View {
             let ordered: Bool
             switch sort.column {
             case .name:
-                ordered = lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                ordered = lhs.shownName.localizedCaseInsensitiveCompare(rhs.shownName) == .orderedAscending
             case .type:
                 ordered = lhs.type.rawValue < rhs.type.rawValue
             case .indexing:

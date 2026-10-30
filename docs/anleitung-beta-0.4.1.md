@@ -1,6 +1,6 @@
 # Disk Archive Beta – Installieren und Öffnen
 
-*Entwurf Host 29.10.2026 für die Download-Seite `https://diskarchive.app/` (`todo.0.4.021`, Zielversion 0.4.1). Der Nutzer prüft und kürzt; Texte im Ton der App (du).*
+*Entwurf Host 29.10.2026, Wortlaute geprüft 30.10. auf macOS 15 und 27 für die Download-Seite `https://diskarchive.app/` (`todo.0.4.021`, Zielversion 0.4.1). Der Nutzer prüft und kürzt; Texte im Ton der App (du).*
 
 ---
 
@@ -16,9 +16,9 @@ Die Beta ist noch nicht von Apple beglaubigt (notarisiert). macOS fragt deshalb 
 
 ## Beim ersten Öffnen
 
-4. **Öffnen:** „Disk Archive“ in „Programme“ doppelklicken. macOS meldet: *„Disk Archive“ kann nicht geöffnet werden*. Auf **Fertig** klicken (nicht „In den Papierkorb“).
-5. **Freigeben:** **Systemeinstellungen → Datenschutz & Sicherheit** öffnen, ganz nach unten zum Abschnitt **Sicherheit** scrollen. Dort steht *„Disk Archive“ wurde blockiert …*. Auf **Dennoch öffnen** klicken und mit Passwort oder Touch ID bestätigen.
-6. **Noch einmal öffnen:** Im letzten Hinweis auf **Öffnen** klicken. Ab jetzt startet die App normal.
+4. **Öffnen:** „Disk Archive“ in „Programme“ doppelklicken. macOS meldet *„Disk Archive“ nicht geöffnet*. Auf **Fertig** klicken (nicht „In den Papierkorb legen“).
+5. **Freigeben:** **Systemeinstellungen → Datenschutz & Sicherheit** öffnen, ganz nach unten zum Abschnitt **Sicherheit** scrollen. Dort steht *„Disk Archive“ wurde blockiert …*. Auf **Dennoch öffnen** klicken.
+6. **Bestätigen:** macOS fragt *„Disk Archive“ öffnen?* – auf **Dennoch öffnen** klicken und mit Touch ID oder Passwort bestätigen. Ab jetzt startet die App normal.
 
 > Seit macOS 15 reicht der frühere Weg „Rechtsklick → Öffnen“ nicht mehr; die Freigabe geht nur über die Systemeinstellungen.
 
@@ -52,7 +52,7 @@ Disk Archive beenden, die App aus „Programme“ in den Papierkorb legen. Um au
 ---
 
 **Für den Host / Nutzer vor der Veröffentlichung prüfen (nicht auf die Seite):**
-- Schritt 4–6 und die Wortlaute der macOS-Hinweise mit dem echten DMG auf einem Mac ohne Vorgeschichte nachstellen (`todo.0.4.1.002`); Wortlaute auf macOS 15 und 27 vergleichen.
-- macOS 27: „Beim Anmelden starten“ mit dem heruntergeladenen DMG (Quarantäne-Merkmal, `launchd`) prüfen (`todo.0.4.022`, Backlog). Klappt es nicht, Hinweis ergänzen.
-- Ob die Rückfrage „Wechseldatenträger“ auch bei fest verbauten externen SSDs kommt.
-- Dateiname des DMG und Link der Download-Seite an `Werkzeuge/dmg-erstellen.sh` und `konzept/datenbank.md` (`/download/`) angleichen.
+- ~~Schritt 4–6 nachstellen, Wortlaute macOS 15 und 27~~ – erledigt 30.10. (`todo.0.4.1.002`, Screenshots des Nutzers auf macOS 27).
+- ~~macOS 27: „Beim Anmelden starten“ mit Quarantäne~~ – bestanden 30.10.
+- Ob die Rückfrage „Wechseldatenträger“ auch bei fest verbauten externen SSDs kommt (offen, kein Hindernis).
+- Link der Download-Seite: `https://www.diskarchive.app/download/` lieferte am 30.10. noch 404; Datei `Disk-Archive-0.4.1.dmg`.

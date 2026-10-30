@@ -18,7 +18,7 @@ struct SearchCompactMediumCard: View {
                 Spacer(minLength: 8)
                 StatusChip(medium: medium)
             }
-            Text(medium.name)
+            Text(medium.shownName)
                 .font(.system(size: 13, weight: .semibold))
                 .lineLimit(2)
         }

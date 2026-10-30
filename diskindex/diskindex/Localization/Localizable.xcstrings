@@ -7,6 +7,142 @@
     "!" : {
 
     },
+    "copy.column.filter.applying_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auf diesem Speichermedium liegen sehr viele Dateien. Das Filtern dauert einen Moment."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This storage medium contains a lot of files. Filtering takes a moment."
+          }
+        }
+      }
+    },
+    "copy.column.filter.applying_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter wird angewendet"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Applying filter"
+          }
+        }
+      }
+    },
+    "copy.column.filter.footer_filtering" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird gefiltert …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtering …"
+          }
+        }
+      }
+    },
+    "copy.column.filter.header_count" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@ von %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@ of %3$@"
+          }
+        }
+      }
+    },
+    "copy.column.filter.no_matches_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In diesem Ordner und seinen Unterordnern gibt es keine Objekte, die zum Filter passen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "There are no items in this folder or its subfolders that match the filter."
+          }
+        }
+      }
+    },
+    "copy.column.filter.no_matches_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine passenden Objekte"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matching items"
+          }
+        }
+      }
+    },
+    "copy.column.filter.reset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter zurücksetzen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset filter"
+          }
+        }
+      }
+    },
+    "copy.detail.custom_name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eigener Name"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Custom name"
+          }
+        }
+      }
+    },
     "copy.loading.favorites.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -122,6 +258,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "One moment, please."
+          }
+        }
+      }
+    },
+    "copy.search.filter_deselect_all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle abwählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect all"
+          }
+        }
+      }
+    },
+    "copy.search.filter_deselect_matching" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Medien mit „%@“ abwählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect all media matching “%@”"
+          }
+        }
+      }
+    },
+    "copy.search.filter_select_matching" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alle Medien mit „%@“ anwählen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select all media matching “%@”"
           }
         }
       }
@@ -3658,40 +3845,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start at login"
-          }
-        }
-      }
-    },
-    "copy.settings.column_filter.show_folders" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ordner weiterhin anzeigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Still show folders"
-          }
-        }
-      }
-    },
-    "copy.settings.column_filter.show_folders_hint" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ordner bleiben sichtbar, damit man sich bis zu den passenden Dateien durchklicken kann."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Folders stay visible so you can navigate to matching files."
           }
         }
       }

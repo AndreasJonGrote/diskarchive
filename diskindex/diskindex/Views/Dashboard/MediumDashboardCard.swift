@@ -24,10 +24,28 @@ struct MediumDashboardCard: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
 
-            Text(medium.name)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(DesignColor.text)
-                .lineLimit(2)
+            if medium.customName != nil {
+                // todo.0.4.2.002 (Layout ab 0.4.2 „Lauras Platte“): eigener Name, darunter der Originalname; beide
+                // einzeilig, rechts auslaufend statt „…“.
+                VStack(alignment: .leading, spacing: 2) {
+                    FadeMaskText(
+                        text: medium.shownName,
+                        applyFadeMask: true,
+                        font: .system(size: 15, weight: .bold)
+                    )
+                    FadeMaskText(
+                        text: medium.name,
+                        applyFadeMask: true,
+                        font: .system(size: 11),
+                        foreground: DesignColor.text.opacity(0.5)
+                    )
+                }
+            } else {
+                Text(medium.name)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(DesignColor.text)
+                    .lineLimit(2)
+            }
 
             Text(medium.dashboardSpecLine)
                 .font(.system(size: 12))

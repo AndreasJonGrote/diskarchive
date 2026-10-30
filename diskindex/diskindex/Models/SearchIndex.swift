@@ -35,7 +35,7 @@ struct SearchCountRequest: Equatable {
     /// Gleiche Treffermenge (Begriff und Filter), Reihenfolge egal.
     func hasSameHits(as other: SearchCountRequest?) -> Bool {
         guard let other else { return false }
-        return query == other.query && filters == other.filters
+        return query == other.query && filters.hasSameHits(as: other.filters)
     }
 }
 
@@ -112,7 +112,7 @@ enum SearchIndex {
         // bug.0.4.092 (Nutzer 18.10.): Medien erscheinen nur als Namenstreffer eines Suchbegriffs. Eine reine
         // Filtersuche zeigt keine Kacheln („hier liegt etwas“ zeigt schon die Tabelle), gleich welcher Filter.
         let matchedMedia: [Medium] = query.isEmpty ? [] : media.filter {
-            SearchItemFilter.matchesMedium($0, filters: filters) && $0.name.localizedCaseInsensitiveContains(query)
+            SearchItemFilter.matchesMedium($0, filters: filters) && $0.matchesName(query)
         }
         return SearchMatch(media: matchedMedia, items: items, itemCount: itemCount)
     }
@@ -131,7 +131,7 @@ enum SearchIndex {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return ([], [], []) }
         let matchedMedia = media.filter {
-            SearchItemFilter.matchesMedium($0, filters: filters) && $0.name.localizedCaseInsensitiveContains(query)
+            SearchItemFilter.matchesMedium($0, filters: filters) && $0.matchesName(query)
         }
         guard let store else { return (matchedMedia, [], []) }
         let scoped = scopedFilters(filters, media: media)
@@ -245,12 +245,10 @@ enum SearchItemFilter {
     /// je nach Verknüpfungs-Button (Aufgabe 33). Suchbegriff und Medium werden von den Aufrufern immer per Und ergänzt.
     /// - Parameters:
     ///   - hasSearchTerm: In der Suche mit abgeschicktem Begriff ist „Und“ nicht wirksam (33.1).
-    ///   - foldersIgnoreTypeFilter: Spaltenansicht mit „Ordner weiterhin anzeigen“ (33.5) — Ordner prüfen nur das Alter.
     static func matches(
         _ item: IndexedItem,
         filters: SearchFilters,
-        hasSearchTerm: Bool = false,
-        foldersIgnoreTypeFilter: Bool = false
+        hasSearchTerm: Bool = false
     ) -> Bool {
         let hasType = filters.hasFileTypeFilter
         let hasAge = filters.age != nil
@@ -260,10 +258,6 @@ enum SearchItemFilter {
             guard let age = filters.age, let date = item.modifiedAt else { return true }
             return age.matches(date)
         }()
-
-        if foldersIgnoreTypeFilter, item.isFolder {
-            return ageOK
-        }
 
         let typeOK: Bool = {
             guard hasType else { return true }

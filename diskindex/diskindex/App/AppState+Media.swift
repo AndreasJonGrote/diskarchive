@@ -244,6 +244,31 @@ extension AppState {
         "\(newID.uuidString) \(oldID.uuidString)"
     }
 
+    /// todo.0.4.2.002: eigener Name aus dem Details-Modal. Sofort sichtbar; der Store rechnet denselben Wert aus der
+    /// Eingabe (leer oder Originalname → Schlüssel weg) und meldet das Medium danach neu aus der Datenbank.
+    func setCustomName(mediumID: UUID, input: String) {
+        guard featureAccess.canWriteIndex, let current = medium(with: mediumID) else { return }
+        let value = Medium.normalizedCustomName(input, original: current.name)
+        guard value != current.customName else { return }
+        DiskIndexLog.shared.ui("customName id=\(mediumID) set=\(value != nil)")
+        updateMedium(id: mediumID) { $0.customName = value }
+        // Reihenfolge wie beim Laden aus der Datenbank (`MediumCodecV3.fetchAll`).
+        media.sort { lhs, rhs in
+            let left = Slug.make(lhs.shownName)
+            let right = Slug.make(rhs.shownName)
+            return left != right ? left < right : lhs.id.uuidString < rhs.id.uuidString
+        }
+        let store = indexStore
+        Task {
+            do {
+                try await store?.setCustomName(mediumUUID: mediumID, input: input)
+            } catch {
+                guard DiskIndexLog.isOperationalFailure(error) else { return }
+                DiskIndexLog.shared.record(.store, .error, "setCustomName \(DiskIndexLog.errorSummary(error))")
+            }
+        }
+    }
+
     func forgetMedium(id: UUID) {
         guard featureAccess.canWriteIndex else { return }
         DiskIndexLog.shared.ui("forget id=\(id)")

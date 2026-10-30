@@ -67,7 +67,7 @@ struct MenuBarConnectedMediumRow: View {
     @ViewBuilder
     private func rowBody(fraction: Double?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(medium.name)
+            Text(medium.shownName)
                 .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
 

@@ -1,0 +1,100 @@
+# bug.0.4.1.002-a: AppIcon.icon aus dem App-Ziel (Ausnahme im synchronisierten Ordner), AppIcon.appiconset zurück (nur Contents.json; patch kann keine PNGs).
+# Test: AppIconTests/iconComesFromTheIconComposerFile(), AppIconTests/bundleCarriesTheDarkIconForOlderSystems()
+diff -ruN a/diskindex/diskindex/Assets.xcassets/AppIcon.appiconset/Contents.json b/diskindex/diskindex/Assets.xcassets/AppIcon.appiconset/Contents.json
+--- a/diskindex/diskindex/Assets.xcassets/AppIcon.appiconset/Contents.json	1970-01-01 01:00:00
++++ b/diskindex/diskindex/Assets.xcassets/AppIcon.appiconset/Contents.json	2026-10-30 12:44:39
+@@ -0,0 +1,68 @@
++{
++  "images" : [
++    {
++      "filename" : "icon_16x16.png",
++      "idiom" : "mac",
++      "scale" : "1x",
++      "size" : "16x16"
++    },
++    {
++      "filename" : "icon_16x16@2x.png",
++      "idiom" : "mac",
++      "scale" : "2x",
++      "size" : "16x16"
++    },
++    {
++      "filename" : "icon_32x32.png",
++      "idiom" : "mac",
++      "scale" : "1x",
++      "size" : "32x32"
++    },
++    {
++      "filename" : "icon_32x32@2x.png",
++      "idiom" : "mac",
++      "scale" : "2x",
++      "size" : "32x32"
++    },
++    {
++      "filename" : "icon_128x128.png",
++      "idiom" : "mac",
++      "scale" : "1x",
++      "size" : "128x128"
++    },
++    {
++      "filename" : "icon_128x128@2x.png",
++      "idiom" : "mac",
++      "scale" : "2x",
++      "size" : "128x128"
++    },
++    {
++      "filename" : "icon_256x256.png",
++      "idiom" : "mac",
++      "scale" : "1x",
++      "size" : "256x256"
++    },
++    {
++      "filename" : "icon_256x256@2x.png",
++      "idiom" : "mac",
++      "scale" : "2x",
++      "size" : "256x256"
++    },
++    {
++      "filename" : "icon_512x512.png",
++      "idiom" : "mac",
++      "scale" : "1x",
++      "size" : "512x512"
++    },
++    {
++      "filename" : "icon_512x512@2x.png",
++      "idiom" : "mac",
++      "scale" : "2x",
++      "size" : "512x512"
++    }
++  ],
++  "info" : {
++    "author" : "xcode",
++    "version" : 1
++  }
++}
+diff -ruN a/diskindex/diskindex.xcodeproj/project.pbxproj b/diskindex/diskindex.xcodeproj/project.pbxproj
+--- a/diskindex/diskindex.xcodeproj/project.pbxproj	2026-10-30 12:44:39
++++ b/diskindex/diskindex.xcodeproj/project.pbxproj	2026-10-30 12:44:39
+@@ -41,9 +41,22 @@
+ 		FCE03510306047A800C9FEEB /* app.diskarchive.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = app.diskarchive.plist; sourceTree = "<group>"; };
+ /* End PBXFileReference section */
+ 
++/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
++		FC51000230604A0000ABCDEF /* Exceptions for "diskindex" folder in "diskindex" target */ = {
++			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
++			membershipExceptions = (
++				AppIcon.icon,
++			);
++			target = FCE034DA306047A600C9FEEB /* diskindex */;
++		};
++/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
++
+ /* Begin PBXFileSystemSynchronizedRootGroup section */
+ 		FCE034DD306047A600C9FEEB /* diskindex */ = {
+ 			isa = PBXFileSystemSynchronizedRootGroup;
++			exceptions = (
++				FC51000230604A0000ABCDEF /* Exceptions for "diskindex" folder in "diskindex" target */,
++			);
+ 			path = diskindex;
+ 			sourceTree = "<group>";
+ 		};

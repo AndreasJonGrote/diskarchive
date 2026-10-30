@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/MediumCustomNameTests/cardShowsTwoLinesAndSidebarTheCustomName()
+--- a/diskindex/diskindex/Models/Medium.swift	2026-10-30 19:39:39
++++ b/diskindex/diskindex/Models/Medium.swift	2026-10-30 19:39:39
+@@ -108,7 +108,7 @@
+ 
+     /// todo.0.4.2.002: angezeigter Name – eigener Name, sonst Originalname.
+     var shownName: String {
+-        customName ?? name
++        name
+     }
+ 
+     /// Medienlisten und Suche: findet über eigenen und Originalnamen (Umwandlung wie `Slug`).

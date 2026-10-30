@@ -133,8 +133,10 @@ nonisolated enum SearchFileTypeFilter: String, CaseIterable, Identifiable, Senda
 }
 
 nonisolated struct SearchFilters: Equatable, Sendable {
-    /// `true` = alle Medien; sonst nur IDs in `mediumIDs`.
+    /// `true` = alle Medien (kein Medium-Filter); sonst nur IDs in `mediumIDs`.
     var selectAllMedia: Bool = true
+    /// Angehakte Medien im Filter-Popover (todo.0.4.2.001). Bei `selectAllMedia` nur Anzeige: leer (Ausgangszustand)
+    /// oder alle angehakt.
     var mediumIDs: Set<UUID> = []
     var fileTypes: Set<SearchFileTypeFilter> = []
     /// Eigene Dateiendungen (Aufgabe 32), normalisiert (`.psd`), in Eingabereihenfolge, ohne Duplikate.
@@ -202,6 +204,54 @@ nonisolated struct SearchFilters: Equatable, Sendable {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_."))
         guard body.unicodeScalars.allSatisfy(allowed.contains) else { return nil }
         return "." + body
+    }
+
+    /// Gleiche Treffermenge: Bei „alle Medien“ zählen die Haken nicht (todo.0.4.2.001; Zählung und Ladeansicht
+    /// bleiben stehen, wenn nur die Anzeige der Haken wechselt). `==` bleibt vollständig, sonst meldet `@Observable`
+    /// das Anhaken nicht.
+    func hasSameHits(as other: SearchFilters) -> Bool {
+        var lhs = self
+        var rhs = other
+        if lhs.selectAllMedia { lhs.mediumIDs = [] }
+        if rhs.selectAllMedia { rhs.mediumIDs = [] }
+        return lhs == rhs
+    }
+}
+
+/// todo.0.4.2.001: Umschalter „Alle Medien“ / „Alle abwählen“ im Filter-Popover. Angehakt ist nur, was der Nutzer
+/// gewählt hat; keine Auswahl und alle angehakt heißen beide „alle Medien“ (kein Medium-Filter, kein Chip).
+extension SearchFilters {
+    /// Kopfzeile gesetzt: alle `targets` angehakt (ohne Suchtext alle Medien, mit Suchtext die Treffer der Liste).
+    func areAllMediaChecked(_ targets: [Medium]) -> Bool {
+        !targets.isEmpty && targets.allSatisfy { mediumIDs.contains($0.id) }
+    }
+
+    /// Klick auf die Kopfzeile: sind alle `targets` angehakt, verlieren nur sie den Haken, sonst bekommen sie ihn;
+    /// andere Medien bleiben, wie sie sind.
+    mutating func toggleAllMedia(_ targets: [Medium], allMedia: [Medium]) {
+        let ids = targets.map(\.id)
+        if areAllMediaChecked(targets) {
+            mediumIDs.subtract(ids)
+        } else {
+            mediumIDs.formUnion(ids)
+        }
+        normalizeMediumSelection(allMedia: allMedia)
+    }
+
+    mutating func setMedium(_ id: UUID, checked: Bool, allMedia: [Medium]) {
+        if checked {
+            mediumIDs.insert(id)
+        } else {
+            mediumIDs.remove(id)
+        }
+        normalizeMediumSelection(allMedia: allMedia)
+    }
+
+    /// Keine Auswahl oder alle angehakt → „alle Medien“; sonst echte Teilmenge.
+    mutating func normalizeMediumSelection(allMedia: [Medium]) {
+        let all = Set(allMedia.map(\.id))
+        mediumIDs.formIntersection(all)
+        selectAllMedia = mediumIDs.isEmpty || all.isSubset(of: mediumIDs)
     }
 }
 

@@ -102,9 +102,9 @@ enum PopoverSearch {
         totalCount: Int,
         allMedia media: [Medium]
     ) -> PopoverSearchResults {
-        let mediumNames = Dictionary(media.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        let mediumNames = Dictionary(media.map { ($0.id, $0.shownName) }, uniquingKeysWith: { first, _ in first })
         let mediumHits = matchedMedia.prefix(maxHitsPerGroup).map { medium in
-            PopoverSearchHit(kind: .medium, title: medium.name, location: "", target: .fromMedium(medium), result: nil)
+            PopoverSearchHit(kind: .medium, title: medium.shownName, location: "", target: .fromMedium(medium), result: nil)
         }
         func objectHits(_ items: [SearchResultItem], folders: Bool) -> [PopoverSearchHit] {
             items

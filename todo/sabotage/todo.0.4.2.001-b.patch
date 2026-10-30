@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/MediumFilterToggleTests/searchTextTogglesOnlyTheMatches()
+--- a/diskindex/diskindex/Models/SearchState.swift	2026-10-30 19:26:25
++++ b/diskindex/diskindex/Models/SearchState.swift	2026-10-30 19:26:25
+@@ -231,7 +231,7 @@
+     mutating func toggleAllMedia(_ targets: [Medium], allMedia: [Medium]) {
+         let ids = targets.map(\.id)
+         if areAllMediaChecked(targets) {
+-            mediumIDs.subtract(ids)
++            mediumIDs.removeAll()
+         } else {
+             mediumIDs.formUnion(ids)
+         }

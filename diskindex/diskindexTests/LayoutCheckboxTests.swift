@@ -25,10 +25,11 @@ struct LayoutCheckboxTests {
         )
         defer { session.close() }
         let rows = checkboxRows(in: session.window)
-        #expect(rows.count >= 3, "Zeilen \(rows.count)")
-        guard rows.count >= 3 else { return }
+        // todo.0.4.2.003: „Ordner weiterhin anzeigen“ entfällt; es bleiben „Unsichtbare Dateien“ und „Artefakte“.
+        #expect(rows.count >= 2, "Zeilen \(rows.count)")
+        guard rows.count >= 2 else { return }
         let before = session.bitmap()
-        for row in rows.prefix(3) {
+        for row in rows.prefix(2) {
             let box = CGRect(x: row.minX, y: row.minY, width: 16, height: 16)
             let ink = PixelProbe.inkBounds(
                 in: before,
@@ -44,7 +45,7 @@ struct LayoutCheckboxTests {
         }
         let first = try #require(rows.first)
         session.click(at: CGPoint(x: first.minX + 8, y: first.midY))
-        #expect(app.appSettings.showFoldersRegardlessOfFilter == false)
+        #expect(app.appSettings.ignoreHiddenFiles == false)
         let after = session.bitmap()
         let box = CGRect(x: first.minX, y: first.minY, width: 16, height: 16)
         #expect(interiorInk(in: before, rect: box) != interiorInk(in: after, rect: box))

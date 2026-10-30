@@ -1,0 +1,25 @@
+{
+  "fill" : {
+    "linear-gradient" : [
+      "srgb:0.34118,0.34118,0.34118,1.00000",
+      "srgb:0.12157,0.12157,0.12157,1.00000"
+    ],
+    "orientation" : {
+      "start" : { "x" : 0.281, "y" : 0 },
+      "stop" : { "x" : 0.719, "y" : 1 }
+    }
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "HardDrives.svg",
+          "name" : "HardDrives"
+        }
+      ]
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [ "macOS" ]
+  }
+}

@@ -27,6 +27,8 @@ nonisolated enum StorageMetaKey: String, CaseIterable, Sendable {
     case allowIndexing
     /// bug.0.4.224: vergessen, Einträge werden noch gelöscht. Laden, Erkennung, Suche und Zähler übergehen das Medium.
     case pendingDeletion
+    /// todo.0.4.2.002: eigener Name (nur Anzeige); fehlt = Originalname aus `storages.name`.
+    case customName
 }
 
 nonisolated enum MediumCodecV3 {
@@ -394,7 +396,13 @@ nonisolated enum MediumCodecV3 {
             if meta[StorageMetaKey.pendingDeletion.rawValue] != nil { continue }
             result.append(try medium(row, meta: meta))
         }
-        return result
+        // todo.0.4.2.002: Reihenfolge nach dem angezeigten Namen (ohne eigene Namen dieselbe wie `ORDER BY slug, uuid`).
+        guard result.contains(where: { $0.customName != nil }) else { return result }
+        return result.sorted { lhs, rhs in
+            let left = Slug.make(lhs.customName ?? lhs.name)
+            let right = Slug.make(rhs.customName ?? rhs.name)
+            return left != right ? left < right : lhs.uuid.uuidString < rhs.uuid.uuidString
+        }
     }
 
     private static func medium(_ row: Row, meta: [String: (value: String?, date: Int64?)]) throws -> StoredMedium {
@@ -438,6 +446,7 @@ nonisolated enum MediumCodecV3 {
         )
         stored.volumeUUID = VolumeIdentity.canonicalVolumeUUID(stored.volumeUUID)
         stored.hasIndexGaps = meta[IndexStoreV3.indexGapsKey]?.value == "1"
+        stored.customName = value(.customName)
         return stored
     }
 }

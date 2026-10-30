@@ -174,7 +174,7 @@ struct MainWindowFilterBar: View {
         case .columnBrowser:
             guard let mediumID = appState.columnBrowserState.selectedMediumID,
                   let medium = appState.medium(with: mediumID) else { return nil }
-            return LayoutCopy.filterScopeMedium(medium.name)
+            return LayoutCopy.filterScopeMedium(medium.shownName)
         default:
             return nil
         }
@@ -185,7 +185,7 @@ struct MainWindowFilterBar: View {
         // Medium-Auswahl wirkt nur in der Suche.
         if appState.mainWindowDestination == .search, !filters.wrappedValue.selectAllMedia {
             ForEach(appState.indexedMedia.filter { filters.wrappedValue.mediumIDs.contains($0.id) }) { medium in
-                FilterValueChip(label: medium.name) {
+                FilterValueChip(label: medium.shownName) {
                     var ids = filters.wrappedValue.mediumIDs
                     ids.remove(medium.id)
                     if ids.isEmpty {

@@ -337,8 +337,9 @@ struct ReindexGateTests {
             size: CGSize(width: 540, height: 460)
         )
         // Bereich relativ zur Bitmap (Knopf „Neu indizieren“ rechts in der Zeile), unabhängig von Punkt- und Pixeleinheiten.
-        // bug.0.4.199: Zeile „Indiziert“ im Modal → Knöpfe eine Zeile (36 pt) tiefer.
-        return (contrast(popover, x0: popover.size.width * 0.73, x1: popover.size.width * 0.97, y0: popover.size.height * 0.3, y1: popover.size.height * 0.72), contrast(detail, x0: 290, x1: 370, y0: 364, y1: 388))
+        // bug.0.4.199: Zeile „Indiziert“ im Modal → Knöpfe eine Zeile (36 pt) tiefer; todo.0.4.2.002: Zeile „Eigener Name“
+        // (Feld 24 pt + 2 × 10 pt) → weitere 44 pt.
+        return (contrast(popover, x0: popover.size.width * 0.73, x1: popover.size.width * 0.97, y0: popover.size.height * 0.3, y1: popover.size.height * 0.72), contrast(detail, x0: 290, x1: 370, y0: 408, y1: 432))
     }
 
     private func row(app: AppState, id: UUID) -> some View {

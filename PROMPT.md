@@ -1,1 +1,1 @@
-Kein Auftrag. Paket 50 abgenommen 30.10. (Host), Quarantäne-Test hier bestanden. Nächster Schritt: Test des Nutzers auf macOS 27 (`todo.0.4.1.002`). HALT.
+Erledigt (Bereit zur Prüfung): todo.0.4.2.001, todo.0.4.2.002 (Paket 52), todo.0.4.2.003 (Paket 53). Offen/blockiert: Frage Unterstreichungsabstand 3 pt (SwiftUI); Tempo im Debug-Build mit -O gemessen (Release-Testziel baut nicht). HALT.

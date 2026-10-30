@@ -15,7 +15,7 @@ Kurzfassung der früheren `datenbank-konzeption.md` (Volltext: [archiv/datenbank
 | Tabelle | Inhalt |
 |---|---|
 | `storages` | ein Medium: Kennungen, Name und `slug`, Typ, Dateisystem, Kapazität, Entscheidung, Status, Pause, Zähler, Zeitpunkte |
-| `storage_meta` | alles Weitere je Medium als Schlüssel/Wert (abgeschlossene Tiefe, Überwachungsstand, Anzeige absolut/Prozent …); **Einstellungen je Medium immer hier** („Medium-Wert, sonst globaler Wert“) |
+| `storage_meta` | alles Weitere je Medium als Schlüssel/Wert (abgeschlossene Tiefe, Überwachungsstand, Anzeige absolut/Prozent, eigener Name `customName` ab 0.4.2 …); **Einstellungen je Medium immer hier** („Medium-Wert, sonst globaler Wert“) |
 | `items` | der Baum: `storageID`, `parentID`, `name`, `slug`, `extID`, `kind`, `isFolder`, `depth`, `status`, `modifiedAt`, `fileID`; nur Ordner: `contentStamp`, `listedAt`, `unreadable`. **Kein gespeicherter Pfad** (Pfad = Kette der Elternordner), **kein Suchindex** |
 | `item_details` | Größe, Erstelldatum, Paket ja/nein (nur Detailansicht) |
 | `item_meta` | Metadaten je Datei als Schlüssel/Wert mit Herkunft (gelesen / Nutzer / System); angelegt, gefüllt ab 0.5 ○ |
@@ -34,7 +34,7 @@ Kurzfassung der früheren `datenbank-konzeption.md` (Volltext: [archiv/datenbank
 
 **Wartung ✓:** Schadenprüfung (`quick_check`) alle 7 Tage oder nach Absturz, im Hintergrund. Aufräumen und Verkleinern nach N = 10.000 Änderungen im Leerlauf; WAL wird nach Läufen gekürzt. Kein Startbildschirm (Menüleiste bereit nach 0,1–0,25 s). Ein Fenster „Datenbank wird aktualisiert“ gibt es nicht (siehe „Erweitern statt aktualisieren“, Nutzer/Host 18.10.).
 
-**Netz (API) ✓:** Der einzige Weg ins Netz ist die Warteschlange `api_queue`: online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Versions-Check `GET https://diskarchive.app/api/version/` (Antwort am 30.10. `{"version":"0.3.0"}`, von `diskarchive.app` per 301 auf `www.`; **nie ≥ 1.0 setzen, solange Betas laufen**, sonst sind frische Installationen sofort gesperrt); verglichen wird `n.n`.
+**Netz (API) ✓:** Der einzige Weg ins Netz ist die Warteschlange `api_queue`: online sofort leeren (macOS-Netzmeldung), offline Ping alle 60 s. Versions-Check `GET https://diskarchive.app/api/version/` (Antwort am 30.10. `{"version":"0.3.0"}`, von `diskarchive.app` per 301 auf `www.`; **nie ≥ 1.0 setzen, solange Betas laufen**, sonst sind frische Installationen sofort gesperrt); verglichen wird `n.n`. **Knopf „Nach Updates suchen“** (Nutzer 30.10., `todo.0.5.004`, Version offen): vergleicht die ganze Version `x.x.x` und zeigt jede neuere; die automatische Prüfung bleibt bei `n.n`.
 - App älter als API → Update-Modal (Layout 24.10.: Checkbox „Auf Updates hinweisen“ = Einstellung im Tab Erweitert unter „Autostart“, Standard an; „Zur neuen Version“ öffnet `https://www.diskarchive.app/download/`; Beta-Countdown und Sperre erscheinen immer; `todo.0.4.047`). Text der Einstellung ohne „in der Menüleiste“ (Nutzer 25.10.: der Hinweis ist der Dialog im Hauptfenster; `bug.0.4.198`).
 - **Beta (0.x) und API ≥ 1.0** → Hinweis und **7 Tage** Frist (`betaExpiryNoticedAt`); auf einer **frischen Installation (keine Datenbank) sofort gesperrt**. Eine gesperrte Version bleibt gesperrt (`lockedVersion`); heraus kommt man nur mit einer neueren App.
 - API 1 Monat nicht erreicht → gesperrt; Beta-Verfallsdatum 60 Tage nach dem Build → gesperrt.

@@ -436,6 +436,18 @@ actor IndexStoreV3 {
         emit(.medium(uuid))
     }
 
+    /// todo.0.4.2.002: eigener Name aus der Eingabe im Details-Modal. Leer oder gleich dem Originalnamen löscht den
+    /// Schlüssel (zurück zum Originalnamen); `storages.name` und `slug` bleiben unverändert.
+    func setCustomName(mediumUUID: UUID, input: String) async throws {
+        try await pool.write { db in
+            guard let id = try MediumCodecV3.storageRowID(db, uuid: mediumUUID),
+                  let original = try String.fetchOne(db, sql: "SELECT name FROM storages WHERE id = ?", arguments: [id])
+            else { throw IndexStoreError.unknownMedium }
+            try MediumCodecV3.setMeta(db, id, .customName, value: Medium.normalizedCustomName(input, original: original))
+        }
+        emit(.medium(mediumUUID))
+    }
+
     func updateMediumRecognition(uuid: UUID, _ medium: StoredMedium) async throws {
         try await pool.write { db in
             guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }

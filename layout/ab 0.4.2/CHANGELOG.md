@@ -4,6 +4,12 @@ Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angege
 
 ## 2026-10-29
 
+### Sektion 04 – Auswerfen beim Hover
+- Angeschlossene Medien (indiziert, Online, Wird geprüft): Hover über die Kachel ersetzt den Status-Chip durch „Auswerfen“ (Eject-Icon), hell und dunkel. Offline/Fehler unverändert.
+- Sektion 05, Tabelle Speichermedien: Hover über die Zeile legt den Auswerfen-Button exakt über den Status-Chip (gleiche Breite, Spaltenbreite bleibt). Schmale Chips (Online) zeigen nur das Eject-Icon.
+- Sektion 07 ff., Seitenleiste „Alle Speichermedien“: Hover über eine Zeile ersetzt das Medium-Icon durch einen kleinen Auswerfen-Button an gleicher Stelle (Studio Backup, Backup SSD).
+- Auswerfen ist in jedem Zustand möglich: Button jetzt auch bei Offline, „x % indiziert, offline“, Fehler, Ausstehend, Nicht erlaubt und ausgewählten Zeilen – in 04, 05 und allen Seitenleisten.
+
 ### DMG-Hintergrund – Layout neu, Hell-Variante
 - Ringe kleiner, auf das App-Icon zentriert und nach außen ausgeblendet; kreuzen keinen Text mehr.
 - Icon-Zone auf y = 200 (Finder: 170/200, 490/200), Pfeil mittig dazu; Headline 24 px.

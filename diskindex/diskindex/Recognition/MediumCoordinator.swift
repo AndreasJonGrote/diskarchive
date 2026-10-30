@@ -793,7 +793,8 @@ extension StoredMedium {
                 ? IndexProgress.displayed(entries: fileCount + folderCount, total: scanTotal, indexed: false) : 0,
             showAbsoluteCapacity: showAbsoluteCapacity,
             isFavorite: isFavorite,
-            hasIndexGaps: hasIndexGaps
+            hasIndexGaps: hasIndexGaps,
+            customName: customName
         )
     }
 }

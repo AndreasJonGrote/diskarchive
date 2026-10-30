@@ -100,31 +100,17 @@ struct SearchFilterPopover: View {
 
     private func mediumGroup(filters: Binding<SearchFilters>) -> some View {
         let allMedia = appState.indexedMedia
-        let filtered = mediumFilterQuery.isEmpty
+        let query = mediumFilterQuery
+        let filtered = query.isEmpty
             ? allMedia
-            : allMedia.filter { $0.name.localizedCaseInsensitiveContains(mediumFilterQuery) }
+            : allMedia.filter { $0.matchesName(query) }
 
         return VStack(alignment: .leading, spacing: 8) {
             groupHeader(LayoutCopy.searchFilterGroupMedium)
 
             MediumSidebarSearchField(text: $mediumFilterQuery, placeholder: LayoutCopy.searchPlaceholderMedium)
 
-            Toggle(isOn: Binding(
-                get: { filters.wrappedValue.selectAllMedia },
-                set: { isOn in
-                    filters.wrappedValue.selectAllMedia = isOn
-                    if isOn {
-                        filters.wrappedValue.mediumIDs.removeAll()
-                    } else {
-                        filters.wrappedValue.mediumIDs = Set(allMedia.map(\.id))
-                    }
-                }
-            )) {
-                Text(LayoutCopy.searchFilterAllMedia)
-                    .foregroundStyle(filters.wrappedValue.selectAllMedia ? DesignColor.filterSearch : DesignColor.text)
-            }
-            .toggleStyle(DesignCheckbox(tint: DesignColor.filterSearch))
-            .font(.system(size: 11, weight: filters.wrappedValue.selectAllMedia ? .bold : .regular))
+            allMediaToggle(query: query, targets: filtered, allMedia: allMedia, filters: filters)
 
             Rectangle()
                 .fill(DesignColor.divider)
@@ -148,6 +134,36 @@ struct SearchFilterPopover: View {
         .frame(width: 200, alignment: .leading)
     }
 
+    /// todo.0.4.2.001: Umschalter über der Liste. Ohne Suchtext gilt er für alle Medien, mit Suchtext nur für die
+    /// Treffer (Layout „Medium — alle ausgewählt“, „Medium — Suche „SSD““); fett in Textfarbe.
+    private func allMediaToggle(
+        query: String,
+        targets: [Medium],
+        allMedia: [Medium],
+        filters: Binding<SearchFilters>
+    ) -> some View {
+        let allChecked = filters.wrappedValue.areAllMediaChecked(targets)
+        let title = Self.allMediaToggleTitle(query: query, allChecked: allChecked)
+        return Toggle(isOn: Binding(
+            get: { allChecked },
+            set: { _ in filters.wrappedValue.toggleAllMedia(targets, allMedia: allMedia) }
+        )) {
+            Text(title)
+                .lineLimit(1)
+                .truncationMode(.middle)
+                .foregroundStyle(DesignColor.text)
+        }
+        .toggleStyle(DesignCheckbox())
+        .font(.system(size: 11, weight: .bold))
+    }
+
+    static func allMediaToggleTitle(query: String, allChecked: Bool) -> String {
+        if query.isEmpty {
+            return allChecked ? LayoutCopy.searchFilterDeselectAll : LayoutCopy.searchFilterAllMedia
+        }
+        return allChecked ? LayoutCopy.searchFilterDeselectMatching(query) : LayoutCopy.searchFilterSelectMatching(query)
+    }
+
     private func mediumToggleList(
         filtered: [Medium],
         allMedia: [Medium],
@@ -155,29 +171,9 @@ struct SearchFilterPopover: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             ForEach(filtered) { medium in
-                Toggle(medium.name, isOn: Binding(
-                    get: {
-                        if filters.wrappedValue.selectAllMedia { return true }
-                        return filters.wrappedValue.mediumIDs.contains(medium.id)
-                    },
-                    set: { isOn in
-                        var ids = filters.wrappedValue.mediumIDs
-                        if filters.wrappedValue.selectAllMedia {
-                            filters.wrappedValue.selectAllMedia = false
-                            ids = Set(allMedia.map(\.id))
-                        }
-                        if isOn {
-                            ids.insert(medium.id)
-                        } else {
-                            ids.remove(medium.id)
-                        }
-                        if ids.count >= allMedia.count {
-                            filters.wrappedValue.selectAllMedia = true
-                            filters.wrappedValue.mediumIDs.removeAll()
-                        } else {
-                            filters.wrappedValue.mediumIDs = ids
-                        }
-                    }
+                Toggle(medium.shownName, isOn: Binding(
+                    get: { filters.wrappedValue.mediumIDs.contains(medium.id) },
+                    set: { isOn in filters.wrappedValue.setMedium(medium.id, checked: isOn, allMedia: allMedia) }
                 ))
                 .toggleStyle(DesignCheckbox())
                 .font(.system(size: 11))

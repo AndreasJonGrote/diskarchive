@@ -15,6 +15,8 @@ struct ColumnBrowserRow: View {
     static var iconLeading: CGFloat { horizontalPadding + (iconBox - iconSize) / 2 }
 
     let title: String
+    /// Tooltip statt des Titels (todo.0.4.2.002: Originalname bei eigenem Namen).
+    var helpText: String?
     let isSelected: Bool
     /// Template-Asset (Phosphor) aus dem Asset-Katalog.
     let iconAsset: String
@@ -26,6 +28,8 @@ struct ColumnBrowserRow: View {
     var fadeTitleOnOverflow: Bool = false
     var contextTarget: ObjectContextTarget?
     var resolveTargets: ((ObjectContextTarget) -> [ObjectContextTarget])?
+    /// todo.0.4.2.003: Fläche der Auswahl (mit Filter blau, leiser Ordner in Textfarbe).
+    var selectionFill: Color = DesignColor.sidebarActiveBackground
     var onSelect: () -> Void
 
     var body: some View {
@@ -70,7 +74,7 @@ struct ColumnBrowserRow: View {
             .background {
                 if isSelected {
                     RoundedRectangle(cornerRadius: DesignRadius.sm)
-                        .fill(DesignColor.sidebarActiveBackground)
+                        .fill(selectionFill)
                 }
             }
             .foregroundStyle(isSelected ? DesignColor.onSelection : DesignColor.text)
@@ -78,7 +82,7 @@ struct ColumnBrowserRow: View {
         }
         .buttonStyle(.plainFullHit)
         .pointerCursor()
-        .help(title)
+        .help(helpText ?? title)
         .objectContextMenu(contextTarget, resolveTargets: resolveTargets)
     }
 

@@ -19,6 +19,7 @@ Gilt zusammen mit [konzept/datenbank.md](konzept/datenbank.md) (Konzept „Daten
 | **0.3.9** | Stabilität, Teil 2 | Paket 6 (Oberfläche `034`–`040`), Paket 7 (`041`–`042`), Paket 8 (`050`–`062`), Stabilitätsprüfung |
 | **0.4.0** | **Release-Kandidat der Open Beta** | nur, was die App fehlerfrei macht; Abschluss mit der Abnahmerunde des Nutzers (`todo.0.4.040`) |
 | **0.4.1** | **Release der Open Beta** | Auslieferung: Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, Mindest-macOS 15; ab hier laden andere die App |
+| **0.4.2** | **Erstes Update der Beta** | Eigener Name für Medien, leise Ordner beim Filtern mit Wartescreen, „Alle Medien / Alle abwählen“ |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
 | **0.7** | Export von CSV-Listen | |

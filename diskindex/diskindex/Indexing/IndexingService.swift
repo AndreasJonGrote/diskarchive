@@ -628,7 +628,7 @@ final class IndexingService {
             let duration = started.map { Date().timeIntervalSince($0) } ?? 0
             let objects = medium.fileCount + medium.folderCount
             SystemNotice.postIndexedComplete(
-                name: medium.name,
+                name: medium.shownName,
                 objectCount: objects,
                 durationSeconds: duration,
                 settings: appState.appSettings
@@ -645,7 +645,7 @@ final class IndexingService {
         if outcome.status == .error, !gapRemains, !outcome.interrupted,
            let medium = appState.medium(with: mediumUUID), medium.decision == .index, medium.allowIndexing,
            medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
-            appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.name, reason: outcome.failureReason ?? .unknown)
+            appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.shownName, reason: outcome.failureReason ?? .unknown)
         }
         #if DEBUG
         // Tests (bug.0.4.166): Zustand ändern, nachdem der Lauf geendet hat und bevor über die Überwachung entschieden wird.

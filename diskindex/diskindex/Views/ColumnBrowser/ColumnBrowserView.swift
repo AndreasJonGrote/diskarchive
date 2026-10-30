@@ -77,11 +77,25 @@ struct ColumnBrowserView: View {
         return appState.columnBrowserMedia.first
     }
 
+    /// todo.0.4.2.003: Schlüssel der Treffermenge (geöffnetes Medium, Objekt-Filter); `nil` ohne Filter.
+    private var columnFilterKey: ColumnFilterKey? {
+        ColumnFilterKey(mediumID: resolvedSelectedMedium?.id, filters: appState.searchState.filters)
+    }
+
+    /// Ordner mit Treffer für den aktuellen Filter; `nil`: alle Ordner normal (noch nicht gerechnet, kein Filter).
+    private var columnFilterHits: Set<Int64>? {
+        appState.columnFilterFolderHits(for: columnFilterKey)
+    }
+
+    /// Rechnung läuft länger als 1 s: Wartescreen statt Inhalt des tiefsten geöffneten Ordners.
+    private var columnFilterWaiting: Bool {
+        columnFilterKey != nil && appState.columnFilterWaitVisible
+    }
+
     private func makeFolderColumns(for mediumID: UUID) -> [ColumnBrowserFolderColumn] {
         let stack = appState.columnBrowserState.pathStack
         let baseDepth = stack.count + 1
         let filters = appState.searchState.filters
-        let keepFolders = appState.appSettings.showFoldersRegardlessOfFilter
         var columns: [ColumnBrowserFolderColumn] = (0..<baseDepth).map { columnIndex in
             let path = Array(stack.prefix(columnIndex))
             // bug.0.4.090: Medium in der Kennung. Vorher hieß die Wurzel jedes Mediums „root“: ihre Ansicht blieb beim
@@ -89,13 +103,7 @@ struct ColumnBrowserView: View {
             // blieb hängen (Wurzel füllte die Restbreite, keine Trennlinie, keine Details), bis die Ansicht neu entstand.
             let id = ([mediumID.uuidString] + path).joined(separator: "\u{0}")
             let items = appState.indexRepository.children(mediumID: mediumID, path: path)
-            let openFolder = columnIndex < stack.count ? stack[columnIndex] : nil
-            let filtered = ColumnBrowserFiltering.visibleItems(
-                items,
-                openFolderName: openFolder,
-                filters: filters,
-                keepFolders: keepFolders
-            )
+            let filtered = ColumnBrowserFiltering.visibleItems(items, filters: filters)
             return ColumnBrowserFolderColumn(
                 id: id,
                 columnIndex: columnIndex,
@@ -104,7 +112,21 @@ struct ColumnBrowserView: View {
                 filteredItems: filtered
             )
         }
-        if let uncapturedID = appState.columnBrowserState.selectedUncapturedFolderID {
+        // todo.0.4.2.003: Leiser Ordner geöffnet – sein Inhalt ist durch den Status ersetzt, rechts davon keine Spalten.
+        if let hits = columnFilterHits, !columnFilterWaiting,
+           let quiet = columns.firstIndex(where: { column in
+               !column.path.isEmpty && ColumnBrowserFiltering.status(
+                   columnPath: column.path,
+                   pathStack: stack,
+                   parentItems: appState.indexRepository.children(mediumID: mediumID, path: Array(column.path.dropLast())),
+                   hits: hits,
+                   waiting: false
+               ) == .noMatches
+           }) {
+            return Array(columns.prefix(quiet + 1))
+        }
+        // todo.0.4.2.003: Spalten rechts vom Wartescreen entfallen, solange gerechnet wird.
+        if let uncapturedID = appState.columnBrowserState.selectedUncapturedFolderID, !columnFilterWaiting {
             let virtualIndex = baseDepth
             columns.append(
                 ColumnBrowserFolderColumn(
@@ -121,9 +143,9 @@ struct ColumnBrowserView: View {
     }
 
     private var filteredMedia: [Medium] {
-        let query = sidebarMediumFilter.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let query = sidebarMediumFilter.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return appState.columnBrowserMedia }
-        return appState.columnBrowserMedia.filter { $0.name.lowercased().contains(query) }
+        return appState.columnBrowserMedia.filter { $0.matchesName(query) }
     }
 
     var body: some View {
@@ -160,6 +182,10 @@ struct ColumnBrowserView: View {
             for column in columns where column.special == nil {
                 appState.indexRepository.requestLoad(mediumID: medium.id, path: column.path)
             }
+        }
+        // todo.0.4.2.003: Treffermenge je Medium und Filter; ein neuer Schlüssel bricht die laufende Rechnung ab.
+        .task(id: columnFilterKey) {
+            await appState.updateColumnFilterHits(for: columnFilterKey)
         }
     }
 
@@ -272,7 +298,9 @@ struct ColumnBrowserView: View {
                 VStack(spacing: 3) {
                     ForEach(filteredMedia) { medium in
                         ColumnBrowserRow(
-                            title: medium.name,
+                            title: medium.shownName,
+                            // todo.0.4.2.002: Originalname als Tooltip, wenn ein eigener Name gesetzt ist.
+                            helpText: medium.customName != nil ? medium.name : nil,
                             isSelected: medium.id == selectedMedium?.id,
                             iconAsset: medium.type.iconAssetName,
                             iconColor: medium.iconColor,
@@ -348,6 +376,7 @@ struct ColumnBrowserView: View {
                 }
                 return shouldShowDetailColumn(medium: medium, in: geometry, folderColumns: folderColumns)
                     && !(selectedColumn.map { columnShowsStatusRestFill(medium: medium, column: $0) } ?? false)
+                    && !columnFilterWaiting
             }()
             let folderWidth = totalFolderColumnsWidth(folderColumns)
             let detailWidth = showDetail
@@ -361,9 +390,15 @@ struct ColumnBrowserView: View {
                 ScrollView(.horizontal) {
                     HStack(alignment: .top, spacing: 0) {
                         if let medium {
+                            let countColumnID = footerCountColumn(in: folderColumns, medium: medium)?.id
                             ForEach(folderColumns) { column in
-                                folderColumn(medium: medium, column: column, isLast: column.id == folderColumns.last?.id)
-                                    .id(column.id)
+                                folderColumn(
+                                    medium: medium,
+                                    column: column,
+                                    isLast: column.id == folderColumns.last?.id,
+                                    isCountColumn: column.id == countColumnID
+                                )
+                                .id(column.id)
                             }
 
                             if showDetail {
@@ -601,12 +636,50 @@ struct ColumnBrowserView: View {
         if appState.indexRepository.folderLoadError(mediumID: medium.id, path: column.path) != nil {
             return true
         }
-        return false
+        return columnFilterStatus(column, medium: medium) != nil
     }
 
-    private func folderColumn(medium: Medium, column: ColumnBrowserFolderColumn, isLast: Bool) -> some View {
+    /// todo.0.4.2.003: Status statt Inhalt – Wartescreen in der Spalte des tiefsten geöffneten Ordners, „Keine passenden
+    /// Objekte“ in der Spalte eines geöffneten leisen Ordners.
+    private func columnFilterStatus(_ column: ColumnBrowserFolderColumn, medium: Medium) -> ColumnFilterStatusPanel.Kind? {
+        guard column.special == nil else { return nil }
+        let parentItems = column.path.isEmpty
+            ? []
+            : appState.indexRepository.children(mediumID: medium.id, path: Array(column.path.dropLast()))
+        return ColumnBrowserFiltering.status(
+            columnPath: column.path,
+            pathStack: appState.columnBrowserState.pathStack,
+            parentItems: parentItems,
+            hits: columnFilterHits,
+            waiting: columnFilterWaiting
+        )
+    }
+
+    /// Zähler „x von y“ (Spaltenkopf und Fußzeile): x = passende Dateien plus Ordner mit Treffer, y = alle Einträge.
+    private func columnFilterCounts(_ column: ColumnBrowserFolderColumn, medium: Medium) -> (matching: Int, total: Int) {
+        ColumnBrowserFiltering.counts(
+            items: column.items,
+            visible: column.filteredItems,
+            hits: columnFilterHits,
+            status: columnFilterStatus(column, medium: medium)
+        )
+    }
+
+    /// Spaltenkopf mit Zähler in der Spalte, die auch die Fußzeile zählt – wann er erscheint, wie dort („x von y“).
+    private func columnHeaderTitle(medium: Medium, column: ColumnBrowserFolderColumn, isCountColumn: Bool) -> String {
+        let base = columnHeaderBase(medium: medium, column: column)
+        guard isCountColumn, appState.searchState.filters.hasActiveObjectFilters, !columnFilterWaiting else { return base }
+        let counts = columnFilterCounts(column, medium: medium)
+        guard counts.matching != counts.total else { return base }
+        return LayoutCopy.columnHeaderCount(base, counts.matching, counts.total).uppercased()
+    }
+
+    private func folderColumn(medium: Medium, column: ColumnBrowserFolderColumn, isLast: Bool, isCountColumn: Bool) -> some View {
         let items = column.filteredItems
-        let header = columnHeaderBase(medium: medium, column: column)
+        let header = columnHeaderTitle(medium: medium, column: column, isCountColumn: isCountColumn)
+        let filterStatus = columnFilterStatus(column, medium: medium)
+        let hits = columnFilterHits
+        let filterActive = appState.searchState.filters.hasActiveObjectFilters
         let columnWidth = folderColumnWidth(for: column.columnIndex)
         // bug.0.4.088: Die Regel-Warteschlange zeigt keinen Ladezustand; die Spalte bleibt stehen (ausgeblendet wird
         // an Ort und Stelle über `IndexRepository.scope`).
@@ -631,6 +704,12 @@ struct ColumnBrowserView: View {
                     FolderContentsLoadErrorHint(message: loadError)
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
+                } else if let filterStatus {
+                    ColumnFilterStatusPanel(kind: filterStatus) {
+                        appState.resetColumnObjectFilters()
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.top, 4)
                 } else {
                     // Ein Exemplar für Laden und Liste (bug.0.4.061): sonst verwirft das Ladeende den
                     // Zustand samt Mindestanzeige (400 ms) des Hinweises.
@@ -652,6 +731,8 @@ struct ColumnBrowserView: View {
                         scrollTarget: scrollTarget(for: column)
                     ) { item in
                         let openState = rowOpenState(item: item, columnIndex: column.columnIndex, medium: medium)
+                        // todo.0.4.2.003: Ordner ohne Treffer leise (40 %), gewählt in Textfarbe; mit Filter blauer Pfad.
+                        let quiet = ColumnBrowserFiltering.isQuiet(item, hits: hits)
                         ColumnBrowserRow(
                             title: item.name,
                             isSelected: selectedIDs.contains(item.id),
@@ -662,9 +743,11 @@ struct ColumnBrowserView: View {
                             resolveTargets: { clicked in
                                 contextTargets(for: clicked, column: column, medium: medium)
                             },
+                            selectionFill: quiet ? DesignColor.text
+                                : filterActive ? DesignColor.filterSearch : DesignColor.sidebarActiveBackground,
                             onSelect: { select(item: item, column: column) }
                         )
-                        .opacity(rowOpacity(item: item, columnIndex: column.columnIndex, openState: openState))
+                        .opacity(rowOpacity(item: item, columnIndex: column.columnIndex, openState: openState) * (quiet ? 0.4 : 1))
                     }
                 }
             }
@@ -957,7 +1040,7 @@ struct ColumnBrowserView: View {
 
     private func columnBrowserPathLabel(medium: Medium?) -> String {
         guard let medium else { return "" }
-        var parts = [medium.name]
+        var parts = [medium.shownName]
         parts += appState.columnBrowserState.pathStack
         if let file = selectedDetailFile(for: medium) {
             parts.append(file.name)
@@ -972,7 +1055,7 @@ struct ColumnBrowserView: View {
            let folder = selectedUncapturedFolderItem(for: medium, id: folderID) {
             return folder.name.uppercased()
         }
-        return (column.path.last ?? medium.name).uppercased()
+        return (column.path.last ?? medium.shownName).uppercased()
     }
 
     @ViewBuilder
@@ -1014,17 +1097,19 @@ struct ColumnBrowserView: View {
         if footerUsesDash(columns: columns, medium: medium) {
             return "–"
         }
+        // todo.0.4.2.003: Wartescreen.
+        if columnFilterWaiting { return LayoutCopy.columnFilterFooterFiltering }
         let countColumn = footerCountColumn(in: columns, medium: medium) ?? columns.last!
-        let allItems = countColumn.items
         let items = countColumn.filteredItems
+        let counts = columnFilterCounts(countColumn, medium: medium)
         let selectionCount = appState.columnBrowserState.selection.focusColumnIndex == countColumn.columnIndex
             ? appState.columnBrowserState.selection.ids.count
             : 0
         return ColumnFooterLabel.text(
             selectedCount: selectionCount,
             visibleCount: items.count,
-            filteredCount: items.count,
-            totalCount: allItems.count
+            filteredCount: counts.matching,
+            totalCount: counts.total
         )
     }
 
@@ -1049,20 +1134,50 @@ struct ColumnBrowserView: View {
     }
 }
 
+/// todo.0.4.2.003 (Konzept `suche-navigation.md` 5): Dateien nur passende, Ordner immer (unabhängig vom eigenen Datum);
+/// Ordner ohne Treffer darunter sind leise.
 enum ColumnBrowserFiltering {
-    static func visibleItems(
-        _ items: [IndexedItem],
-        openFolderName: String?,
-        filters: SearchFilters,
-        keepFolders: Bool
-    ) -> [IndexedItem] {
+    static func visibleItems(_ items: [IndexedItem], filters: SearchFilters) -> [IndexedItem] {
         guard filters.hasActiveObjectFilters else { return items }
-        return items.filter { item in
-            if let openFolderName, item.isFolder, item.name == openFolderName { return true }
-            return SearchItemFilter.matches(item, filters: filters, foldersIgnoreTypeFilter: keepFolders)
-        }
+        return items.filter { $0.isFolder || SearchItemFilter.matches($0, filters: filters) }
     }
 
+    /// Leise: Ordner ohne Treffer darunter. Ohne Treffermenge (noch nicht gerechnet, kein Filter) ist kein Ordner leise.
+    static func isQuiet(_ item: IndexedItem, hits: Set<Int64>?) -> Bool {
+        guard let hits, item.isFolder, let rowID = item.rowID else { return false }
+        return !hits.contains(rowID)
+    }
+
+    /// Zähler „x von y“: x = passende Dateien plus Ordner mit Treffer.
+    static func matchingCount(_ visible: [IndexedItem], hits: Set<Int64>?) -> Int {
+        visible.reduce(0) { $0 + (isQuiet($1, hits: hits) ? 0 : 1) }
+    }
+
+    /// Status statt Inhalt einer Ordnerspalte (Pfad `columnPath`): Wartescreen in der Spalte des tiefsten geöffneten
+    /// Ordners, „Keine passenden Objekte“ in der Spalte eines geöffneten leisen Ordners (`parentItems`: Spalte davor).
+    static func status(
+        columnPath: [String],
+        pathStack: [String],
+        parentItems: [IndexedItem],
+        hits: Set<Int64>?,
+        waiting: Bool
+    ) -> ColumnFilterStatusPanel.Kind? {
+        if waiting { return columnPath == pathStack ? .applying : nil }
+        guard let hits, let name = columnPath.last,
+              let folder = parentItems.first(where: { $0.isFolder && $0.name == name }) else { return nil }
+        return isQuiet(folder, hits: hits) ? .noMatches : nil
+    }
+
+    /// Zähler einer Spalte: (passend, alle Einträge); im Status „Keine passenden Objekte“ 0 von allen.
+    static func counts(
+        items: [IndexedItem],
+        visible: [IndexedItem],
+        hits: Set<Int64>?,
+        status: ColumnFilterStatusPanel.Kind?
+    ) -> (matching: Int, total: Int) {
+        if status == .noMatches { return (0, items.count) }
+        return (matchingCount(visible, hits: hits), items.count)
+    }
 }
 
 #Preview {

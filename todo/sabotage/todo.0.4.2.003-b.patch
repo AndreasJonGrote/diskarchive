@@ -1,0 +1,14 @@
+# Test: ColumnFilterHitsTests/folderAgeDoesNotCount()
+--- a/diskindex/diskindex/Views/ColumnBrowser/ColumnBrowserView.swift	2026-10-30 20:13:17
++++ b/diskindex/diskindex/Views/ColumnBrowser/ColumnBrowserView.swift	2026-10-30 20:13:17
+@@ -1126,7 +1126,9 @@
+ enum ColumnBrowserFiltering {
+     static func visibleItems(_ items: [IndexedItem], filters: SearchFilters) -> [IndexedItem] {
+         guard filters.hasActiveObjectFilters else { return items }
+-        return items.filter { $0.isFolder || SearchItemFilter.matches($0, filters: filters) }
++        return items.filter { item in
++            item.isFolder ? (filters.age.map { age in item.modifiedAt.map { age.matches($0) } ?? true } ?? true) : SearchItemFilter.matches(item, filters: filters)
++        }
+     }
+ 
+     /// Leise: Ordner ohne Treffer darunter. Ohne Treffermenge (noch nicht gerechnet, kein Filter) ist kein Ordner leise.

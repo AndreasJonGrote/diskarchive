@@ -13,36 +13,34 @@ import Testing
     @Test func audioFilterKeepsFoldersAndHidesOtherFiles() {
         var filters = SearchFilters()
         filters.fileTypes = [.audio]
-        let root = ColumnBrowserFiltering.visibleItems(rootItems, openFolderName: nil, filters: filters, keepFolders: true)
-        let sub = ColumnBrowserFiltering.visibleItems(subItems, openFolderName: nil, filters: filters, keepFolders: true)
+        let root = ColumnBrowserFiltering.visibleItems(rootItems, filters: filters)
+        let sub = ColumnBrowserFiltering.visibleItems(subItems, filters: filters)
         #expect(root.map(\.name) == ["HipHop", "track.mp3"])
         #expect(sub.map(\.name) == ["inner.mp3"])
     }
 
-    @Test func hiddenFoldersKeepTheOpenFolder() {
+    /// todo.0.4.2.003: „Ordner weiterhin anzeigen“ entfällt – Ordner bleiben bei jedem Filter sichtbar.
+    @Test func foldersStayVisibleWithAnyFilter() {
         var filters = SearchFilters()
         filters.fileTypes = [.audio]
-        let root = ColumnBrowserFiltering.visibleItems(
-            rootItems,
-            openFolderName: "HipHop",
-            filters: filters,
-            keepFolders: false
-        )
-        #expect(root.map(\.name) == ["HipHop", "track.mp3"])
+        filters.age = .last24Hours
+        filters.combineWithAnd = true
+        let root = ColumnBrowserFiltering.visibleItems(rootItems, filters: filters)
+        #expect(root.map(\.name).contains("HipHop"))
     }
 
     @Test func filterCountsStayInFooterNotColumnHeaders() {
         var filters = SearchFilters()
         filters.fileTypes = [.audio]
-        let root = ColumnBrowserFiltering.visibleItems(rootItems, openFolderName: nil, filters: filters, keepFolders: true)
-        let sub = ColumnBrowserFiltering.visibleItems(subItems, openFolderName: nil, filters: filters, keepFolders: true)
+        let root = ColumnBrowserFiltering.visibleItems(rootItems, filters: filters)
+        let sub = ColumnBrowserFiltering.visibleItems(subItems, filters: filters)
         #expect(ObjectCountFormatting.label(filtered: sub.count, total: subItems.count) == "1 von 2 Objekten")
         #expect(root.count == 2)
     }
 
     @Test func clearingTheFilterShowsEverything() {
         let filters = SearchFilters()
-        let root = ColumnBrowserFiltering.visibleItems(rootItems, openFolderName: nil, filters: filters, keepFolders: true)
+        let root = ColumnBrowserFiltering.visibleItems(rootItems, filters: filters)
         #expect(root.map(\.name) == rootItems.map(\.name))
     }
 }
