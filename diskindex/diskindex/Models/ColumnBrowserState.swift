@@ -56,6 +56,17 @@ struct ColumnBrowserState: Equatable {
         folderColumnWidths[columnIndex] = width
     }
 
+    /// bug.0.4.234: Der offene Ordner der Ebene `level` wurde umbenannt (gleiche Zeile): Pfad folgt dem neuen Namen.
+    /// Gleiche Zeile: Name oder Zeilenkennung bleibt → die Breiten dahinter bleiben. Ist für die Ebene eine andere Zeile
+    /// bekannt, gilt sie als anderer Ordner (bug.0.4.218).
+    mutating func renameOpenFolder(at level: Int, to name: String, rowID: Int64?) {
+        let known = level < openFolderRowIDs.count ? openFolderRowIDs[level] : nil
+        let sameRow = known == nil || rowID == nil || known == rowID
+        let widths = folderColumnWidths
+        pathStack[level] = name
+        if sameRow { folderColumnWidths = widths }
+    }
+
     mutating func setSidebarWidth(_ width: CGFloat) {
         sidebarWidth = min(Self.sidebarWidthRange.upperBound, max(Self.sidebarWidthRange.lowerBound, width))
     }

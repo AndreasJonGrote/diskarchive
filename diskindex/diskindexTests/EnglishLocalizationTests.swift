@@ -113,7 +113,9 @@ struct EnglishLocalizationTests {
         ("MenuBar/MenuBarController.swift", "Absturz testen", "nur Debug-Menü (#if DEBUG)"),
         ("Indexing/IgnoreMatcher.swift", "System Volume Information", "Systemordner-Name"),
         ("Recognition/VolumeLookup.swift", "Time Machine Backups", "Systemname des Volumes"),
-        ("Indexing/IndexingVolumeTuning.swift", "Media Solid State", "IOKit-Schlüssel"),
+        ("Recognition/DiskArbitrationLookup.swift", "Device Characteristics", "IOKit-Schlüssel"),
+        ("Recognition/DiskArbitrationLookup.swift", "Medium Type", "IOKit-Schlüssel"),
+        ("Recognition/DiskArbitrationLookup.swift", "Solid State", "IOKit-Schlüssel"),
     ]
 
     private func swiftFiles(under root: URL) -> [URL] {

@@ -184,13 +184,16 @@ extension AppState {
 
     /// bug.0.4.215: neues Medium, genau ein Offline-Medium gleichen Namens → zuerst und allein die Rückfrage (vor dem
     /// Erkennungs-Dialog). Mehrere Treffer oder schon eine offene Rückfrage: keine. Nie automatisch vergessen.
+    /// Nicht mitgezählt: mit „Behalten“ beantwortete Paare (bug.0.4.232) und gerade eingehängte Medien (`mountedIDs`,
+    /// bug.0.4.233).
     @discardableResult
-    func offerReplaceMediumPrompt(newID: UUID) -> Bool {
+    func offerReplaceMediumPrompt(newID: UUID, mountedIDs: Set<UUID> = []) -> Bool {
         // Schon gefragt (z. B. umgesteckt, während die Rückfrage offen ist): kein zweiter Dialog daneben.
         if replaceMediumPrompt?.newID == newID { return true }
         guard replaceMediumPrompt == nil, let newMedium = medium(with: newID) else { return false }
         let offlineNamesakes = media.filter {
             $0.id != newID && !$0.isForgotten && $0.connectionStatus == .offline && $0.name == newMedium.name
+                && !mountedIDs.contains($0.id) && !isReplaceKept(newID: newID, oldID: $0.id)
         }
         guard offlineNamesakes.count == 1, let old = offlineNamesakes.first else { return false }
         DiskIndexLog.shared.ui("replace prompt new=\(newID) old=\(old.id)")
@@ -207,6 +210,7 @@ extension AppState {
         guard let prompt = replaceMediumPrompt else { return }
         replaceMediumPrompt = nil
         DiskIndexLog.shared.ui("replace prompt forgetOld=\(forgetOld)")
+        if !forgetOld { rememberReplaceKept(newID: prompt.newID, oldID: prompt.oldID) }
         if let onReplaceMediumResolved {
             onReplaceMediumResolved(prompt, forgetOld)
             return
@@ -214,6 +218,30 @@ extension AppState {
         if forgetOld {
             forgetMedium(id: prompt.oldID)
         }
+    }
+
+    /// bug.0.4.232: „Behalten“ gilt dauerhaft für das Paar (neues, altes Medium), im App-Zustand (überlebt den Neustart).
+    private static let keptReplacePairsKey = "keptReplaceMediumPairs"
+
+    func isReplaceKept(newID: UUID, oldID: UUID) -> Bool {
+        keptReplacePairs().contains(Self.replacePairKey(newID: newID, oldID: oldID))
+    }
+
+    private func rememberReplaceKept(newID: UUID, oldID: UUID) {
+        var pairs = keptReplacePairs()
+        pairs.insert(Self.replacePairKey(newID: newID, oldID: oldID))
+        guard let data = try? JSONEncoder().encode(pairs.sorted()) else { return }
+        settingsDefaults.set(data, forKey: Self.keptReplacePairsKey)
+    }
+
+    private func keptReplacePairs() -> Set<String> {
+        guard let data = settingsDefaults.data(forKey: Self.keptReplacePairsKey),
+              let pairs = try? JSONDecoder().decode([String].self, from: data) else { return [] }
+        return Set(pairs)
+    }
+
+    private static func replacePairKey(newID: UUID, oldID: UUID) -> String {
+        "\(newID.uuidString) \(oldID.uuidString)"
     }
 
     func forgetMedium(id: UUID) {

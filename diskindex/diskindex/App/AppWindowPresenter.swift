@@ -11,7 +11,8 @@ import SwiftUI
 @MainActor
 enum AppWindowPresenter {
     private static let mainWindowAutosaveName = "DiskIndexMainWindow"
-    private static let defaultMainWindowSize = NSSize(width: 1100, height: 750)
+    /// Erste Größe ohne gespeicherte Lage, Rahmen samt Titelleiste (todo.0.4.050, Konzept `einstellungen-start.md`).
+    nonisolated private static let defaultMainWindowSize = NSSize(width: 1258, height: 770)
     nonisolated private static let newMediumStackOffset: CGFloat = 24
     /// Goldener Schnitt von oben (todo.0.4.012): Panel-Mitte bei 38,2 % der sichtbaren Höhe.
     nonisolated private static let newMediumGoldenRatioFromTop: CGFloat = 0.382
@@ -496,11 +497,15 @@ enum AppWindowPresenter {
     private static func centerMainWindowOnVisibleScreen(_ window: NSWindow) {
         let screen = window.screen ?? NSScreen.main ?? NSScreen.screens.first
         let visible = screen?.visibleFrame ?? .zero
-        var frame = window.frame
-        frame.size = defaultMainWindowSize
-        frame.origin.x = visible.midX - frame.width / 2
-        frame.origin.y = visible.midY - frame.height / 2
-        window.setFrame(frame, display: false)
+        window.setFrame(initialMainWindowFrame(visible: visible), display: false)
+    }
+
+    /// todo.0.4.050: Standardgröße mittig auf der sichtbaren Fläche; ist sie kleiner, Breite und Höhe je für sich
+    /// auf sie begrenzt (die Mindestgröße setzt der Inhalt).
+    nonisolated static func initialMainWindowFrame(visible: NSRect) -> NSRect {
+        let width = min(defaultMainWindowSize.width, visible.width)
+        let height = min(defaultMainWindowSize.height, visible.height)
+        return NSRect(x: visible.midX - width / 2, y: visible.midY - height / 2, width: width, height: height)
     }
 
     private static func register(_ window: NSWindow, onClose: @escaping () -> Void) {

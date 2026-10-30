@@ -1,10 +1,17 @@
-# Paket 46 — Zielversion 0.4.0 (freigegeben 29.10.2026, Korrektur 29.10.)
+# Paket 46 — Zielversion 0.4.0 (freigegeben 29.10.2026, abgenommen 29.10.2026)
 
 Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Befunde in drei Stufen, Regel 12; Invarianten in `konzept/architektur.md`). Herkunft: Nutzer 29.10. („SSD ist SSD und nicht HDD“). Konzept: `konzept/medien.md`, Abschnitt **2c. Medientyp** (Nutzer 29.10.).
 
+## Abnahme Host 29.10. (Gesamtlauf 20:06–20:38, Korrektur 23:24)
+
+- Diff gelesen: IOKit „Medium Type“ über die Elternebenen in `DiskArbitrationLookup`, reine Regel `VolumeInfo.mediumType(isRemovable:deviceMedium:)`, `MediumCodecV3.updateRecognitionFields` schreibt den Typ (bekannte Medien behielten ihn sonst). Übrige Aufrufer schreiben den gespeicherten Typ unverändert zurück. Nichts Wesentliches; Stufe 2 (Zweig `denied`) → Paket 47 (`bug.0.4.231`).
+- Gesamtlauf bei Last 3,7: Debug und Release 0 Warnungen, Sabotage 3/3 rot (230-a 2/2, -b 1/1, -c 1/1), keine `.ips`, 0 neue Dateien in `~/Library/Preferences`, App des Nutzers 20:38:40, Signatur gültig. Seriell und parallel 3× je **ein** roter Test (`noNewHardCodedGermanTextsInTheSources`, IOKit-Schlüssel als „deutscher Text“) → Korrektur nur im Test (drei Ausnahmen); `pruefung.sh schnell` 23:24–23:25: 0 Warnungen, grün. Alle übrigen Tests waren im Gesamtlauf grün (seriell 1236/1237, parallel je 1230/1231).
+- Nachtest des Nutzers ~20:50 (App 20:38): S0–S4 bestanden („Daten I“, „Daten“ SSD; H4-Karte USB). Abnahmerunde 22:07–22:23: „Transfer“ (USB-SSD) SSD, Sticks und Karten USB.
+- Patches: `archiv/sabotage/paket-46/`.
+
 **Für jede Aufgabe gilt:**
 - Der Test ist vor dem Fix rot (im Status belegen) und danach grün.
-- **Sabotage als Patch** unter `todo/sabotage/` (Regel 9).
+- **Sabotage als Patch** unter `todo/sabotage/` (jetzt `archiv/sabotage/paket-46/`) (Regel 9).
 - Selbstprüfung mit den fünf Fragen und den drei Stufen (Regel 12). Beheben musst du nur Stufe 1.
 - Zeilenangaben sind Richtwerte (Regel 3). Keine Gesamtläufe (Regel 13/14), nur die betroffenen Suites.
 
@@ -55,4 +62,5 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
 - Diff gelesen: nichts Wesentliches. Die übrigen Aufrufer von `updateMediumRecognition` (Z. ~168, 217, 382, 448) gehen vom gespeicherten Medium aus und schreiben dessen Typ unverändert zurück. Stufe 2 (Zweig `denied`) → Backlog.
 - Gesamtlauf: Debug und Release 0 Warnungen, Sabotage 3/3 rot, App des Nutzers 20:38:40. **Seriell und parallel 3× je 1 rot:** `EnglishLocalizationTests/noNewHardCodedGermanTextsInTheSources` meldet `DiskArbitrationLookup.swift` Z. 46, 49, 50 (`"Device Characteristics"`, `"Medium Type"`, `"Solid State"`): Das Muster hält großgeschriebene Wörter mit Leerzeichen für deutschen Oberflächentext.
 - **Korrektur (nur Test, kein App-Code):** In `EnglishLocalizationTests.exceptions` (Z. ~107) drei Ausnahmen für `Recognition/DiskArbitrationLookup.swift` mit den Stücken `Device Characteristics`, `Medium Type`, `Solid State`, Grund „IOKit-Schlüssel“ (wie die bestehende Zeile für `IndexingVolumeTuning.swift`). Danach `pruefung.sh schnell EnglishLocalizationTests MediumTypeTests` grün (auch `everyExceptionStillMatchesALine`). Kein Gesamtlauf.
-- **Status Korrektur:**
+- **Status Korrektur:** Bereit zur Prüfung. Drei Ausnahmen in `EnglishLocalizationTests.exceptions` (`Recognition/DiskArbitrationLookup.swift`: `Device Characteristics`, `Medium Type`, `Solid State`, Grund „IOKit-Schlüssel“, direkt unter der Zeile für `IndexingVolumeTuning.swift`); kein App-Code.
+  `pruefung.sh schnell EnglishLocalizationTests MediumTypeTests` 23:20–23:21: Build 0 Warnungen, 8/8 grün in 2 Suites (inkl. `noNewHardCodedGermanTextsInTheSources` und `everyExceptionStillMatchesALine`).

@@ -1,0 +1,13 @@
+# Test: WindowTestGroup/ReplaceFirstTests/startWithBothNamesakesMountedAsksNothing()
+--- a/diskindex/diskindex/Recognition/MediumCoordinator.swift
++++ b/diskindex/diskindex/Recognition/MediumCoordinator.swift
+@@ -694,7 +694,8 @@
+     /// bug.0.4.233: Vor „Ersetzt dieses Medium?“ prüfen, ob ein gleichnamiges Offline-Medium gerade unter einem noch nicht
+     /// verarbeiteten Pfad eingehängt ist (App-Start, Aufwachen: das neue kann vor dem bekannten an der Reihe sein).
+     private func requestDialogCheckingNamesakes(_ id: UUID, besides path: String) async {
+-        requestDialog(id, mountedIDs: await mountedNamesakes(of: id, besides: path))
++        _ = path
++        requestDialog(id)
+     }
+ 
+     private func mountedNamesakes(of id: UUID, besides path: String) async -> Set<UUID> {

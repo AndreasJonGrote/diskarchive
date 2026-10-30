@@ -1,0 +1,11 @@
+# Test: WindowTestGroup/ReplaceFirstTests/keepIsRememberedForThisPair()
+--- a/diskindex/diskindex/App/AppState+Media.swift
++++ b/diskindex/diskindex/App/AppState+Media.swift
+@@ -210,7 +210,6 @@
+         guard let prompt = replaceMediumPrompt else { return }
+         replaceMediumPrompt = nil
+         DiskIndexLog.shared.ui("replace prompt forgetOld=\(forgetOld)")
+-        if !forgetOld { rememberReplaceKept(newID: prompt.newID, oldID: prompt.oldID) }
+         if let onReplaceMediumResolved {
+             onReplaceMediumResolved(prompt, forgetOld)
+             return

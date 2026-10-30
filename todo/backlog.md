@@ -25,6 +25,7 @@ Befunde, die der Nutzer nur bei seltener Ereignisfolge merkt (Stufe 2, ohne Nach
 | 29.10. | 45 | 2 | `IndexStoreV3.goneNamesMovedOutDuringRun` (nur im Speicher) | Bricht ein Lauf mitten im Lesen eines verschobenen Ordners ab (Abziehen), kennt der Folgelauf die schon einzeln geholten Namen nicht: Ordner gilt als neu, Favorit darauf weg (vor Paket 45 immer so) |
 | 29.10. | 46 | 3 | `IndexingVolumeTuning.isRotational` | Liest „Media Solid State“ aus DiskArbitration, den es dort nicht gibt; USB-SSDs wie „Daten I“ werden deshalb mit 1 statt 4 parallelen Lesevorgängen gelesen. Kein Fehler (Abgleich 1 min 14 s); auf die neue Angabe aus `bug.0.4.230` umstellen frühestens 0.4.1, mit Messung → **Paket 47, `todo.0.4.051` (Nutzer 29.10.)** |
 | 29.10. | 46 | 2 | `MediumCoordinator`, Zweig `denied` (bekanntes Medium ohne Zugriff) | Zeigt bis zur Freigabe noch den alten Typ (z. B. HDD statt SSD). Nur bei Medien ohne Zugriffsrecht, erstes Anstecken nach dem Update → **Paket 47, `bug.0.4.231`** |
+| 30.10. | 48 | 3 | `AppState.keptReplaceMediumPairs` | nichts; je „Behalten“ eine Zeile im App-Zustand, nie aufgeräumt (auch nach dem Vergessen eines der beiden Medien) |
 | 29.10. | Audit (Host) | 3 | `Assets.xcassets`: `NavCaretRight`, `NavHouseLineDuotone`, `IconCircleDashed` ungenutzt (laut `Resources/Icons/ICON_STRATEGY.md` Vorrat für später) | nichts; einige KB im Bundle. Sonst: alle Testhaken unter `#if DEBUG`, kein `print`, keine liegengebliebenen Dateien, Prüfordner 3 × zusammen 7 MB |
 
 ---

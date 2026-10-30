@@ -224,7 +224,7 @@ extension AppState {
             return items.first { $0.isFolder && state.selection.contains($0.id) }
         }()
         if let renamed {
-            state.pathStack[level] = renamed.name
+            state.renameOpenFolder(at: level, to: renamed.name, rowID: renamed.rowID)
         } else {
             state.pathStack = Array(state.pathStack.prefix(level))
             state.selectedUncapturedFolderID = nil

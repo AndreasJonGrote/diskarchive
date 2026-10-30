@@ -21,6 +21,10 @@ final class MediumCoordinator {
     var onMediumRenamed: ((UUID, VolumeInfo) async -> Void)?
     /// Laufender Index für `connectKnown` (bug.0.4.028).
     var isIndexingActive: ((UUID) -> Bool)?
+    /// bug.0.4.233: eingehängte Pfade ohne Volume-Zugriff (`getmntinfo`); Tests: eigene Liste, sonst leer.
+    var mountedVolumePaths: @MainActor () -> [String] = {
+        RuntimeEnvironment.isRunningTests ? [] : LocalVolumeMounts.candidateMountPaths()
+    }
     private var requestedIndex: Set<UUID> = []
     private var mounted: [String: VolumeInfo] = [:]
     private var mediumByPath: [String: UUID] = [:]
@@ -212,6 +216,8 @@ final class MediumCoordinator {
                 DiskIndexLog.shared.record(.medium, .error, "kein Zugriff", privateDetail: volume.mountPath)
                 var denied = stored
                 denied.lastSeenAt = Date()
+                // bug.0.4.231: Typ des angeschlossenen Volumes auch ohne Zugriff (Konzept `medien.md` 2c).
+                denied.type = volume.mediumType
                 // bug.0.4.200 (d): Fehler ist jetzt der Zugriff, nicht mehr die Lücke (Aktivieren prüft wieder).
                 denied.hasIndexGaps = false
                 try await store.updateMediumRecognition(uuid: denied.uuid, denied)
@@ -286,7 +292,7 @@ final class MediumCoordinator {
         // todo.0.4.026: ohne „Für dieses Medium merken“ erscheint der Erkennungs-Dialog beim Anschließen wieder
         // (Vorbelegung = letzte Entscheidung). Bis zur Antwort gilt die letzte Entscheidung weiter.
         if askAgain, Self.asksAgainOnConnect(fresh) {
-            requestDialog(fresh.uuid)
+            await requestDialogCheckingNamesakes(fresh.uuid, besides: volume.mountPath)
             DiskIndexLog.shared.record(.medium, .info, "dialog erneut id=\(fresh.uuid) entscheidung=\(fresh.decision.rawValue)")
         }
         if fresh.decision.refusesIndexing {
@@ -294,7 +300,7 @@ final class MediumCoordinator {
             return
         }
         if fresh.decision == .undecided {
-            requestDialog(fresh.uuid)
+            await requestDialogCheckingNamesakes(fresh.uuid, besides: volume.mountPath)
             DiskIndexLog.shared.record(.medium, .info, "dialog id=\(fresh.uuid)")
             return
         }
@@ -386,7 +392,7 @@ final class MediumCoordinator {
             }
             if let reprobedID, !isStillMounted(reprobedID, at: volume.mountPath) { return }
             publish(existing, connection: .connected)
-            if openDialog { requestDialog(existing.uuid) }
+            if openDialog { await requestDialogCheckingNamesakes(existing.uuid, besides: volume.mountPath) }
             return
         }
         guard reprobedID == nil else { return }
@@ -408,7 +414,7 @@ final class MediumCoordinator {
             try await store.upsertMedium(stored)
             mediumByPath[volume.mountPath] = stored.uuid
             publish(stored, connection: .connected)
-            if openDialog { requestDialog(stored.uuid) }
+            if openDialog { await requestDialogCheckingNamesakes(stored.uuid, besides: volume.mountPath) }
         } catch {
             guard DiskIndexLog.isOperationalFailure(error) else { return }
             DiskIndexLog.shared.record(.medium, .error, "speichern \(DiskIndexLog.errorSummary(error))")
@@ -675,14 +681,39 @@ final class MediumCoordinator {
 
     /// bug.0.4.215: ein unentschiedenes Medium mit genau einem Offline-Medium gleichen Namens bekommt zuerst und allein
     /// „Ersetzt dieses Medium?“ (öffnet sich selbst bei gesetzter `promptPanelPlacement`); der Erkennungs-Dialog wartet.
-    private func requestDialog(_ id: UUID, askReplace: Bool = true) {
+    private func requestDialog(_ id: UUID, askReplace: Bool = true, mountedIDs: Set<UUID> = []) {
         if askReplace, appState.medium(with: id)?.decision == .undecided,
-           appState.offerReplaceMediumPrompt(newID: id) {
+           appState.offerReplaceMediumPrompt(newID: id, mountedIDs: mountedIDs) {
             return
         }
         appState.enqueueNewMediumDecision(id)
         // bug.0.4.117: Lage statt Test-Ausschluss (`promptPanelPlacement`; Tests: `nil` oder `.offscreen`).
         AppWindowPresenter.syncNewMediumPanels(appState: appState)
+    }
+
+    /// bug.0.4.233: Vor „Ersetzt dieses Medium?“ prüfen, ob ein gleichnamiges Offline-Medium gerade unter einem noch nicht
+    /// verarbeiteten Pfad eingehängt ist (App-Start, Aufwachen: das neue kann vor dem bekannten an der Reihe sein).
+    private func requestDialogCheckingNamesakes(_ id: UUID, besides path: String) async {
+        requestDialog(id, mountedIDs: await mountedNamesakes(of: id, besides: path))
+    }
+
+    private func mountedNamesakes(of id: UUID, besides path: String) async -> Set<UUID> {
+        guard let medium = appState.medium(with: id), medium.decision == .undecided else { return [] }
+        let namesakes = appState.media.filter {
+            $0.id != id && !$0.isForgotten && $0.connectionStatus == .offline && $0.name == medium.name
+        }
+        guard !namesakes.isEmpty else { return [] }
+        let paths = mountedVolumePaths().filter { $0 != path && mounted[$0] == nil }
+        guard !paths.isEmpty else { return [] }
+        var hits: Set<UUID> = []
+        for namesake in namesakes {
+            guard let stored = try? await store.medium(uuid: namesake.id) else { continue }
+            for candidate in paths where await access.mediumIsMounted(stored, mountPath: candidate) {
+                hits.insert(namesake.id)
+                break
+            }
+        }
+        return hits
     }
 
     private func publish(_ stored: StoredMedium, connection: ConnectionStatus) {

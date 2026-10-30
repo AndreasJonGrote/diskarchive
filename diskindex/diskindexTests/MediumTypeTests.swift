@@ -29,6 +29,22 @@ struct MediumTypeTests {
         #expect(disk.deviceMedium == .solidState, "IOKit-Abfrage für / ergab \(String(describing: disk.deviceMedium))")
     }
 
+    /// todo.0.4.051 Test 1: Lesevorgänge gleichzeitig nach Plattentyp (Konzept `medien.md` 2c, Angabe aus IOKit).
+    @Test func parallelReadsFollowTheDeviceMedium() {
+        let rows: [(removable: Bool, medium: DeviceMedium?, proto: String?, reads: Int, label: String)] = [
+            (false, .solidState, "USB", 4, "fest + Solid State + USB"),
+            (false, .rotational, "PCI-Express", 1, "fest + Rotational + PCI-Express"),
+            (true, .solidState, "USB", 1, "wechselbar + Solid State + USB"),
+            (false, nil, "USB", 1, "fest + keine Angabe + USB"),
+            (false, nil, "PCI-Express", 4, "fest + keine Angabe + PCI-Express"),
+            (false, nil, "Apple Fabric", 4, "intern + keine Angabe"),
+        ]
+        for row in rows {
+            let reads = IndexingVolumeTuning.parallelDirectoryReads(isRemovable: row.removable, deviceMedium: row.medium, deviceProtocol: row.proto)
+            #expect(reads == row.reads, "\(row.label): \(reads) statt \(row.reads)")
+        }
+    }
+
     /// Unabhängige Gegenquelle für die Voraussetzung von Test 2 (nicht die geprüfte IOKit-Suche).
     static func diskutilReportsSolidState(path: String) -> Bool {
         let process = Process()

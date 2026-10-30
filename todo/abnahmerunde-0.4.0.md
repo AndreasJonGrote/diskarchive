@@ -86,7 +86,7 @@ Reihenfolge: B zuerst, weil nach dem Vergessen jedes Medium neu mit dem Dialog k
 - [x] **D3** Das Hauptfenster offen und hinter TextEdit, Medium einstecken: Nur der Dialog kommt nach vorn, das Hauptfenster bleibt hinten.
 - [x] **D4** Zwei oder drei Medien kurz nacheinander: Der älteste liegt hinten links oben, jeder neue nach rechts unten versetzt darüber. Der neueste liegt vorn und hat den Fokus.
 - [x] **D5** Einen Dialog mit X oder Esc schließen, das Medium auswerfen und wieder einstecken: Der Dialog erscheint wieder.
-- [x] **D6** Ein Dialog liegt hinter einer anderen App: Die Zeile „Entscheidung offen“ in der Menüleiste holt ihn vor.
+- [x] **D6** Ein Dialog liegt hinter einer anderen App: Die Zeile „Entscheidung offen“ in der Menüleiste holt ihn vor. **Entfällt (Nutzer 30.10., `bug.0.4.236`):** unentschiedene Medien stehen nicht mehr in der Einstiegskachel.
 
 ## 6. Nachtest nach Paket 40 (28.10., App 13:25)
 

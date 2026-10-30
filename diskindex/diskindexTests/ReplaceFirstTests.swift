@@ -39,25 +39,46 @@ struct ReplaceFirstTests {
     }
 
     /// Offline-Medien „USB“ mit der Entscheidung „Indizieren“ (je eigene Volume-UUID: kein Treffer für das neue Volume).
-    private static func rig(offline: [Bool]) async throws -> (Rig, [UUID]) {
+    private static func rig(
+        offline: [Bool],
+        defaults: AppStateStore? = nil,
+        access: any MediumAccess = GrantedAccess(),
+        volumeUUIDs: [String]? = nil
+    ) async throws -> (Rig, [UUID]) {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("diskindex-replace-first-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let store = IndexStoreV3(database: try TestDatabase(fileURL: directory.appendingPathComponent("archive.sqlite")))
         var oldIDs: [UUID] = []
-        for remember in offline {
+        for (index, remember) in offline.enumerated() {
             let medium = StoredMedium(
-                volumeUUID: UUID().uuidString, fsType: "apfs", volumeTotalBytes: 1_000, name: "USB", type: .usb,
-                decision: .index, rememberDecision: remember, indexStatus: .indexed
+                volumeUUID: volumeUUIDs?[index] ?? UUID().uuidString, fsType: "apfs", volumeTotalBytes: 1_000, name: "USB",
+                type: .usb, decision: .index, rememberDecision: remember, indexStatus: .indexed
             )
             try await store.upsertMedium(medium)
             oldIDs.append(medium.uuid)
         }
-        let app = AppState(store: store)
+        let rig = await start(store: store, directory: directory, defaults: defaults, access: access)
+        return (rig, oldIDs)
+    }
+
+    /// App-Start auf vorhandener Datenbank und vorhandenem App-Zustand (Neustart, bug.0.4.232).
+    private static func start(store: IndexStoreV3, directory: URL, defaults: AppStateStore?, access: any MediumAccess) async -> Rig {
+        let app = AppState(store: store, defaults: defaults)
         app.promptPanelPlacement = .offscreen
         await app.loadStoredMedia()
-        let wired = WiredRig(store: store, access: GrantedAccess(), app: app)
-        return (Rig(app: app, store: store, wired: wired, directory: directory), oldIDs)
+        let wired = WiredRig(store: store, access: access, app: app)
+        return Rig(app: app, store: store, wired: wired, directory: directory)
+    }
+
+    /// Panels und Zustand der alten Instanz schließen, Datenbank und App-Zustand bleiben.
+    private static func restart(_ rig: Rig, defaults: AppStateStore) async -> Rig {
+        for medium in rig.app.media {
+            AppWindowPresenter.closeNewMediumPanel(mediumID: medium.id, appState: rig.app, userDismissed: false)
+        }
+        AppWindowPresenter.closePromptPanels(for: rig.app)
+        rig.app.prepareForTermination()
+        return await start(store: rig.store, directory: rig.directory, defaults: defaults, access: GrantedAccess())
     }
 
     /// Das neue Medium „USB“ erscheint; seine ID (das einzige nicht offline).
@@ -146,6 +167,53 @@ struct ReplaceFirstTests {
         #expect(rig.newMediumPanels == 1)
     }
 
+    /// bug.0.4.232: „Behalten“ gilt für dieses Paar dauerhaft – Erkennungsdialog offen gelassen, abgezogen, wieder
+    /// angesteckt und nach einem Neustart: keine Rückfrage mehr, nur der Erkennungsdialog.
+    @Test func keepIsRememberedForThisPair() async throws {
+        let defaults = AppStateStore()
+        let (first, _) = try await Self.rig(offline: [true], defaults: defaults)
+        let volume = testVolume(path: "/Volumes/USB", name: "USB")
+        await first.wired.coordinator.handle(.appeared(volume))
+        let newID = try #require(first.app.replaceMediumPrompt?.newID, "keine Rückfrage beim ersten Anstecken")
+        first.app.resolveReplaceMediumPrompt(forgetOld: false)
+        await first.wired.coordinator.waitForChoice()
+        #expect(first.app.newMediumDialogMediumID == newID)
+
+        await first.wired.coordinator.handle(.disappeared(path: volume.mountPath))
+        await first.wired.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { first.app.medium(with: newID)?.connectionStatus == .connected }, "nicht wieder angeschlossen")
+        #expect(first.app.replaceMediumPrompt == nil, "Rückfrage nach „Behalten“ wieder da")
+        #expect(first.app.newMediumDialogMediumID == newID, "kein Erkennungsdialog nach dem Wiederanstecken")
+
+        let second = await Self.restart(first, defaults: defaults)
+        defer { second.close() }
+        await second.wired.coordinator.handle(.appeared(volume))
+        try #require(await waitUntil { second.app.medium(with: newID)?.connectionStatus == .connected }, "nach Neustart nicht angeschlossen")
+        #expect(second.app.replaceMediumPrompt == nil, "Rückfrage nach Neustart wieder da")
+        #expect(second.app.newMediumDialogMediumID == newID, "kein Erkennungsdialog nach Neustart")
+    }
+
+    /// bug.0.4.233: Start mit dem bekannten und einem neuen „USB“, das neue zuerst verarbeitet → keine Rückfrage zum
+    /// eingehängten bekannten, Erkennungsdialog für das neue; das bekannte ist danach angeschlossen.
+    @Test func startWithBothNamesakesMountedAsksNothing() async throws {
+        let knownUUID = UUID().uuidString
+        let access = MountedByUUIDAccess(["/Volumes/USB 1": knownUUID])
+        let (rig, oldIDs) = try await Self.rig(offline: [true], access: access, volumeUUIDs: [knownUUID])
+        defer { rig.close() }
+        rig.wired.coordinator.mountedVolumePaths = { ["/Volumes/USB", "/Volumes/USB 1"] }
+        let newVolume = testVolume(path: "/Volumes/USB", name: "USB")
+        access.add(path: newVolume.mountPath, uuid: try #require(newVolume.volumeUUID))
+        await rig.wired.coordinator.handle(.appeared(newVolume))
+        let newID = try #require(rig.app.media.first { $0.connectionStatus == .connected }?.id, "neues Medium fehlt")
+        #expect(rig.app.replaceMediumPrompt == nil, "Rückfrage zu einem eingehängten Medium")
+        #expect(!rig.replacePanelOpen)
+        #expect(rig.app.newMediumDialogMediumID == newID, "kein Erkennungsdialog für das neue")
+
+        await rig.wired.coordinator.handle(.appeared(testVolume(path: "/Volumes/USB 1", name: "USB", uuid: knownUUID)))
+        #expect(rig.app.medium(with: oldIDs[0])?.connectionStatus == .connected, "bekanntes Medium nicht angeschlossen")
+        #expect(rig.app.replaceMediumPrompt == nil)
+    }
+
     /// 5: Gegenprobe – zwei Offline-Medien „USB“ → keine Rückfrage.
     @Test func twoNamesakesAskNothing() async throws {
         let (rig, _) = try await Self.rig(offline: [true, true])
@@ -157,4 +225,26 @@ struct ReplaceFirstTests {
         #expect(rig.newMediumPanels == 1)
     }
 }
+}
+
+/// bug.0.4.233: Ein Medium gilt unter einem Pfad als eingehängt, wenn dort seine Volume-UUID liegt.
+private final class MountedByUUIDAccess: MediumAccess, @unchecked Sendable {
+    private let lock = NSLock()
+    private var uuidByPath: [String: String]
+
+    init(_ uuidByPath: [String: String]) {
+        self.uuidByPath = uuidByPath
+    }
+
+    func add(path: String, uuid: String) {
+        lock.withLock { uuidByPath[path] = uuid }
+    }
+
+    func mediumIsMounted(_ medium: StoredMedium, mountPath: String) async -> Bool {
+        let uuid = lock.withLock { uuidByPath[mountPath] }
+        return uuid != nil && uuid?.uppercased() == medium.volumeUUID?.uppercased()
+    }
+
+    func probe(_ volume: VolumeInfo) async -> MediumAccessResult { .granted }
+    func listDirectory(at url: URL) async throws -> [ListedDirectoryEntry] { [] }
 }

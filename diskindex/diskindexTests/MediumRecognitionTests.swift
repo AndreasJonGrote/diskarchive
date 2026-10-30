@@ -366,6 +366,37 @@ struct MediumCoordinatorTests {
         #expect(recovered.decision == .undecided)
     }
 
+    /// bug.0.4.231: Auch ohne Zugriff (Status Fehler) gilt der Typ des angeschlossenen Volumes, gespeichert und angezeigt.
+    @Test func deniedKnownMediumTakesTheConnectedType() async throws {
+        let rig = try await RecognitionRig.make()
+        rig.access.result = .denied(reason: "NSCocoaErrorDomain 257")
+        let created = Date(timeIntervalSince1970: 1_718_102_804)
+        let existing = StoredMedium(
+            volumeUUID: "AAAAAAAA-BBBB-CCCC-DDDD-000000000231",
+            volumeCreatedAt: created,
+            fsType: "exfat",
+            volumeTotalBytes: 1_000,
+            name: "Daten I",
+            type: .hdd,
+            decision: .index,
+            rememberDecision: true,
+            indexStatus: .error
+        )
+        try await rig.store.upsertMedium(existing)
+        var volume = rig.volume(name: "Daten I", path: "/Volumes/Daten I", uuid: existing.volumeUUID, created: created)
+        volume.isRemovable = false
+        volume.isInternal = false
+        volume.deviceProtocol = "USB"
+        volume.deviceMedium = .solidState
+        await rig.coordinator.handle(.appeared(volume))
+        let stored = try #require(try await rig.store.medium(uuid: existing.uuid))
+        #expect(stored.type == .ssd, "gespeicherter Typ \(stored.type) statt SSD")
+        #expect(stored.indexStatus == .error)
+        let live = try #require(rig.appState.medium(with: existing.uuid))
+        #expect(live.type == .ssd, "angezeigter Typ \(live.type) statt SSD")
+        #expect(live.indexStatus == .error)
+    }
+
     @Test func disappearingGoesOfflineAndKeepsRows() async throws {
         let rig = try await RecognitionRig.make()
         let volume = rig.volume()
