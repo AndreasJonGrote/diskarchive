@@ -1,6 +1,15 @@
-# Paket 49 — Zielversion 0.4.0 (freigegeben 29.10.2026, nach Abnahme von Paket 48)
+# Paket 49 — Zielversion 0.4.0 (freigegeben 29.10.2026, abgenommen 30.10.2026)
 
 Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Befunde in drei Stufen, Regel 12; Invarianten in `konzept/architektur.md`). Herkunft: Nutzer 29.10. („Alles“) aus dem Backlog (Supervisor 27.10., Stufe 2); `bug.0.4.236` aus der Messung des Nutzers 30.10. (Screenshot Einstiegskachel). Konzept: `konzept/indizieren.md` (nicht lesbarer Ordner: wiederholen, sonst „nicht lesbar“, Index unvollständig), Invariante 1 (alter Inhalt bleibt).
+
+## Abnahme Host 30.10. (Gesamtlauf 09:14–09:46)
+
+- Diff gelesen: `AppState.popoverConnectedMedia` (angeschlossen, `decision == .index`) als eine Quelle für `MenuBarPopoverView` und `MenuBarPopoverLayout.corePanelHeight`, `connectedMedia` unverändert; Leertext `popoverConnectedEmptyText` (neuer Text de/en). `DirectoryIndexer.readFolderWithRetry` wirft „keine Rechte“ (`isPermissionDenied`: POSIX `EACCES`/`EPERM`, `CocoaError.fileReadNoPermission`, auch zugrunde liegend) ohne Wartezeit, gilt im Zähl- und Indizierschritt; `unreadableThisRun` überspringt Nachfahren (Präfix mit „/“, nur dieser Lauf), ihre Zeilen und Favoriten bleiben. Nichts Wesentliches.
+- Die vom Worker bei Last 7,5 gemeldeten Zeittests (`StoreSwitchTests/pruningAfterLowerDepth…`, `largeSameSizeFolder…`) sind im Gesamtlauf grün; kein Befund.
+- Gesamtlauf: Debug und Release 0 Warnungen, seriell 1248/1248, parallel 3× grün (je 1242, 6 übersprungen), Sabotage 5/5 rot (235-a, -b, -c, 236-a, -b je 1/1), keine `.ips`, 0 neue Dateien in `~/Library/Preferences`, App des Nutzers 09:46:11, Signatur gültig, Version 0.4.0.
+- Konzept: `konzept/indizieren.md` (keine Wiederholung bei „keine Rechte“, Nachfahren im selben Lauf nicht gelesen), `konzept/medien.md` (Liste „Angeschlossen“, schon 30.10.).
+- **Nachtest des Nutzers 30.10. (App 09:46): N0–N4 bestanden** (Kachel nur mit „Ja“-Medien, Höhe passt, beide Leertexte, Einstellungen und Dialog unverändert; gesperrter Ordner nur per Test).
+- Patches: `archiv/sabotage/paket-49/`.
 
 **Für jede Aufgabe gilt:**
 - Der Test ist vor dem Fix rot (im Status belegen) und danach grün.
@@ -28,7 +37,11 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
     3. Bestehende Tests zu `bug.0.4.199`, `151`, `177`, `182` bleiben grün.
   - **Patches (rot erwartet):** `bug.0.4.235-a.patch`: „keine Rechte“ wieder wiederholen → Test 1 rot. `bug.0.4.235-b.patch`: Nachfahren wieder lesen → Test 1 rot. `bug.0.4.235-c.patch`: Nachfahren als verschwunden markieren → Test 1 rot (Zeilen/Favorit weg).
   - **So lassen:** Wächterzeit 30 s ohne Lebenszeichen, `VanishedMediumGuard` (`bug.0.4.177`), Lebenszyklus der Läufe, Teil-Prüfsummen und Abgleich (Pakete 43–45). Kein neues Schema (vorher fragen).
-  - **Status:**
+  - **Status:** Bereit zur Prüfung. Rot 08:12 (`A` 8× gelesen, je Unterordner 4×), grün 08:17.
+    Fix: `DirectoryIndexer.readFolderWithRetry` wiederholt „keine Rechte“ nicht (`isPermissionDenied`: POSIX `EACCES`/`EPERM`, `CocoaError.fileReadNoPermission`, auch als zugrunde liegender Fehler; gilt im Zähl- und Indizierschritt); in diesem Lauf nicht lesbare Ordner (`unreadableThisRun`) → Nachfahren werden übersprungen, ihre Zeilen bleiben unangetastet.
+    Test: `LockedFolderRunTests` (echte Dateien, `chmod 000`, zählende Hülle um `DirectMediumAccess`): `A` 1× indiziert, `s1…s5` nie, Zeilen und Favorit bleiben, Fehler mit Grund; `chmod 755` → indiziert, 100 %, nichts doppelt.
+    Suites: 40 betroffene, 262 Tests, 260 grün (08:23–08:27); rot nur zwei Zeitgrenzen außerhalb des Diffs bei hoher Rechnerlast (GeForce NOW, App des Nutzers, Last 7,5): `largeSameSizeFolderIndexesFastAndKeepsRows` einzeln grün (08:47), `StoreSwitchTests/pruningAfterLowerDepth…` (`pruneToMatch`, 14 s statt < 10 s) auch einzeln rot – Datenbank-Schicht, nicht im Diff. Sabotage 08:48–08:55: a, b, c rot.
+    Selbstprüfung: nichts Wesentliches.
 
 - **bug.0.4.236 — Abgelehnte Medien stehen als „Wird indiziert“ in der Einstiegskachel (Nutzer 30.10.):**
   - **Nutzer sieht:** Nach „Nicht indizieren“ stehen „Volume“, „EOS_DIGITAL“, „INTENSO“, „ZOOM_H4E“ unter „Angeschlossen“ mit **„Wird indiziert“**, obwohl nichts indiziert wird (Screenshot 30.10. ~01:00; Datenbank: `decision = 2`, `indexStatus = 0`).
@@ -42,4 +55,8 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
   - **Gegenprobe:** Liste mit vier angeschlossenen Medien (Ja indiziert, Ja beim Indizieren, Nein, unentschieden) → nur die zwei mit Ja, Höhe passt zu zwei Zeilen; nur „Nein“ angeschlossen → neuer Leertext; nichts angeschlossen → alter Leertext. Bestehende Tests zur Einstiegskachel (Höhe, Suche, D6-Tests nur dort anpassen, wo sie die Zeile „Entscheidung offen“ verlangen, im Status nennen). `EnglishLocalizationTests` grün (neuer Text in de und en).
   - **Patches (rot erwartet):** `bug.0.4.236-a.patch`: wieder `connectedMedia` in der Ansicht → rot. `bug.0.4.236-b.patch`: Höhe aus `connectedMedia` → rot.
   - **So lassen:** Suchzustand der Einstiegskachel, Pausentimer, Ghost-Knopf „Neu indizieren“, Dashboard und Seitenleiste.
-  - **Status:**
+  - **Status:** Bereit zur Prüfung. Rot 08:12 (vier Medien in Liste und Höhe, alter Leertext), grün 08:17/08:42.
+    Fix: `AppState.popoverConnectedMedia` (angeschlossen, `decision == .index`) als eine Quelle für `MenuBarPopoverView` und `MenuBarPopoverLayout.corePanelHeight`; `connectedMedia` unverändert. `popoverConnectedEmptyText`: neuer Text `copy.hint.popover_none_indexed_connected` (de/en) bei angeschlossenen, aber keinen mit Ja.
+    Test: `PopoverIndexedOnlyTests` (Liste, Höhe zwei Zeilen, gezeichnete Kachel Ja+Nein+offen = Ja allein, beide Leertexte); keine bestehenden D6-Tests angepasst (keiner verlangte die Zeile). Der Zweig „Entscheidung offen“ in `menuBarSecondaryLine`/`rowPrimaryTap` wird nicht mehr erreicht, bleibt im Code.
+    Sabotage 08:55–08:59: a, b rot (a erst nach Bildvergleich; die Messung über `fittingSize` sah nichts, weil die Ansicht ihre Höhe aus dem Layout nimmt). Gesamt 5/5 rot, 0 Mängel. EnglishLocalizationTests grün.
+    Selbstprüfung: nichts Wesentliches.

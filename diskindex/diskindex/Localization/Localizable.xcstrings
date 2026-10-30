@@ -1779,6 +1779,23 @@
         }
       }
     },
+    "copy.hint.popover_none_indexed_connected" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein indiziertes Speichermedium angeschlossen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No indexed storage medium connected"
+          }
+        }
+      }
+    },
     "copy.hint.popover_none_connected" : {
       "extractionState" : "stale",
       "localizations" : {

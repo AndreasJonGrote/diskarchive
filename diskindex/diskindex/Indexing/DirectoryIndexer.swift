@@ -94,6 +94,8 @@ nonisolated struct DirectoryIndexer: Sendable {
         let matcher = configuration.matcher
         let seenAt = Date()
         var foldersProcessed = 0
+        /// bug.0.4.235: in diesem Lauf nicht lesbare Ordner (gespeicherter Pfad); ihre Nachfahren werden nicht gelesen.
+        var unreadableThisRun: [String] = []
         var needsCounting = false
         let preludeEnd = min(2, configuration.maxDepth ?? 2)
         // bug.0.4.054 (REPORT 95): eine angehaltene Zählung hat keine Gesamtzahl gespeichert → beim Fortsetzen neu zählen.
@@ -294,6 +296,8 @@ nonisolated struct DirectoryIndexer: Sendable {
             while offset < parents.count {
                 let end = min(offset + limits.parallelDirectoryReads, parents.count)
                 for parent in parents[offset..<end] {
+                    // bug.0.4.235: Nachfahren eines in diesem Lauf nicht lesbaren Ordners nicht lesen; ihre Zeilen bleiben.
+                    if Self.isInside(parent.path, anyOf: unreadableThisRun) { continue }
                     foldersProcessed += 1
                     if foldersProcessed % 50 == 0,
                        await store.indexingIsActive(mediumUUID: mediumUUID, token: token) == false {
@@ -383,6 +387,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         DiskIndexLog.shared.record(.index, .error, "ordner lesestall")
                         if let folderID = parent.id {
                             try? await store.markFolderUnreadable(mediumUUID: mediumUUID, folderID: folderID)
+                            if let path = parent.path { unreadableThisRun.append(path) }
                         }
                         if IndexRunGuard.shouldPending(consecutiveTimeouts: consecutiveTimeouts, limit: limits.consecutiveTimeoutLimit) {
                             try? await store.flushMediumMeta(mediumUUID: mediumUUID, force: true)
@@ -418,6 +423,7 @@ nonisolated struct DirectoryIndexer: Sendable {
                         readErrors += 1
                         if let folderID = parent.id {
                             try? await store.markFolderUnreadable(mediumUUID: mediumUUID, folderID: folderID)
+                            if let path = parent.path { unreadableThisRun.append(path) }
                         }
                         DiskIndexLog.shared.record(.index, .error, "ordner übersprungen \(DiskIndexLog.errorSummary(error))", privateDetail: url.path)
                     }
@@ -625,12 +631,31 @@ nonisolated struct DirectoryIndexer: Sendable {
                     throw error
                 }
                 lastError = error
+                // bug.0.4.235: „keine Rechte“ ändert sich in 14 s nicht – sofort nicht lesbar.
+                if Self.isPermissionDenied(error) { throw error }
                 if attempt < limits.readRetryDelays.count {
                     try await Task.sleep(for: limits.readRetryDelays[attempt])
                 }
             }
         }
         throw lastError
+    }
+
+    /// bug.0.4.235: `EACCES`, `EPERM` oder `CocoaError.fileReadNoPermission` (auch als zugrunde liegender Fehler).
+    nonisolated static func isPermissionDenied(_ error: Error) -> Bool {
+        var current: NSError? = error as NSError
+        while let error = current {
+            if error.domain == NSPOSIXErrorDomain, error.code == Int(EACCES) || error.code == Int(EPERM) { return true }
+            if error.domain == NSCocoaErrorDomain, error.code == CocoaError.fileReadNoPermission.rawValue { return true }
+            current = error.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
+        return false
+    }
+
+    /// bug.0.4.235: Liegt `path` unter einem in diesem Lauf nicht lesbaren Ordner?
+    nonisolated static func isInside(_ path: String?, anyOf unreadable: [String]) -> Bool {
+        guard let path, !unreadable.isEmpty else { return false }
+        return unreadable.contains { path.hasPrefix($0.hasSuffix("/") ? $0 : $0 + "/") }
     }
 
     /// bug.0.4.182: Nichts wird gelöscht (`completesRun` bleibt aus); der Lauf endet als Fehler mit eigenem Grund.

@@ -1,0 +1,11 @@
+# Test: LockedFolderRunTests/lockedFolderIsReadOnceAndItsSubfoldersNotAtAll()
+--- a/diskindex/diskindex/Indexing/DirectoryIndexer.swift
++++ b/diskindex/diskindex/Indexing/DirectoryIndexer.swift
+@@ -297,7 +297,6 @@
+                 let end = min(offset + limits.parallelDirectoryReads, parents.count)
+                 for parent in parents[offset..<end] {
+                     // bug.0.4.235: Nachfahren eines in diesem Lauf nicht lesbaren Ordners nicht lesen; ihre Zeilen bleiben.
+-                    if Self.isInside(parent.path, anyOf: unreadableThisRun) { continue }
+                     foldersProcessed += 1
+                     if foldersProcessed % 50 == 0,
+                        await store.indexingIsActive(mediumUUID: mediumUUID, token: token) == false {

@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/PopoverIndexedOnlyTests/listAndHeightShowOnlyIndexedMedia()
+--- a/diskindex/diskindex/MenuBar/MenuBarPopoverLayout.swift
++++ b/diskindex/diskindex/MenuBar/MenuBarPopoverLayout.swift
+@@ -127,7 +127,7 @@
+                 groups: appState.popoverResults.groups,
+                 totalCount: appState.popoverResults.totalCount
+             )
+-            : idleFullHeight(media: appState.popoverConnectedMedia)
++            : idleFullHeight(media: appState.connectedMedia)
+         if searching {
+             return min(raw, panelMaxHeight)
+         }

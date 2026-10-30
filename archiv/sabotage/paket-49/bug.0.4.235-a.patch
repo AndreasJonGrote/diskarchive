@@ -1,0 +1,11 @@
+# Test: LockedFolderRunTests/lockedFolderIsReadOnceAndItsSubfoldersNotAtAll()
+--- a/diskindex/diskindex/Indexing/DirectoryIndexer.swift
++++ b/diskindex/diskindex/Indexing/DirectoryIndexer.swift
+@@ -632,7 +632,6 @@
+                 }
+                 lastError = error
+                 // bug.0.4.235: „keine Rechte“ ändert sich in 14 s nicht – sofort nicht lesbar.
+-                if Self.isPermissionDenied(error) { throw error }
+                 if attempt < limits.readRetryDelays.count {
+                     try await Task.sleep(for: limits.readRetryDelays[attempt])
+                 }

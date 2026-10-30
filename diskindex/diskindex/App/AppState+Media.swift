@@ -372,6 +372,17 @@ extension AppState {
         media.filter { $0.connectionStatus == .connected && !$0.isForgotten }
     }
 
+    /// bug.0.4.236 (Konzept `medien.md`, Liste „Angeschlossen“): Einstiegskachel, Ansicht und Höhe – nur angeschlossene
+    /// Medien mit „Indizieren: Ja“; unentschiedene und abgelehnte fehlen.
+    var popoverConnectedMedia: [Medium] {
+        connectedMedia.filter { $0.decision == .index }
+    }
+
+    /// Leertext der Einstiegskachel: angeschlossen, aber keins mit „Ja“ → eigener Text (bug.0.4.236).
+    var popoverConnectedEmptyText: String {
+        connectedMedia.isEmpty ? LayoutCopy.popoverNoneConnected : LayoutCopy.popoverNoneIndexedConnected
+    }
+
     var registryMedia: [Medium] {
         media.filter { !$0.isForgotten }
     }

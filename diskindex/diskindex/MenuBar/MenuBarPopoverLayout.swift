@@ -127,7 +127,7 @@ enum MenuBarPopoverLayout {
                 groups: appState.popoverResults.groups,
                 totalCount: appState.popoverResults.totalCount
             )
-            : idleFullHeight(media: appState.connectedMedia)
+            : idleFullHeight(media: appState.popoverConnectedMedia)
         if searching {
             return min(raw, panelMaxHeight)
         }

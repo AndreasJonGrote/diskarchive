@@ -105,7 +105,7 @@ struct MenuBarPopoverView: View {
                 .frame(height: MenuBarPopoverLayout.sectionLabelHeight, alignment: .leading)
                 .padding(.top, MenuBarPopoverLayout.contentTopPadding)
 
-            let media = appState.connectedMedia
+            let media = appState.popoverConnectedMedia
             if let scrollHeight = MenuBarPopoverLayout.idleScrollAreaHeight(media: media) {
                 ScrollView {
                     connectedRows(media: media)
@@ -121,7 +121,7 @@ struct MenuBarPopoverView: View {
     private func connectedRows(media: [Medium]) -> some View {
         VStack(spacing: 0) {
             if media.isEmpty {
-                Text(EmptyStateCopy.popoverNoneConnected)
+                Text(appState.popoverConnectedEmptyText)
                     .font(.system(size: 12))
                     .foregroundStyle(DesignColor.text.opacity(0.55))
                     .padding(.horizontal, MenuBarPopoverLayout.idleContentHorizontalInset)

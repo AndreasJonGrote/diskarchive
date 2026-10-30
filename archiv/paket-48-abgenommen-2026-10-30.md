@@ -6,6 +6,7 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
 
 - Diff gelesen: `AppWindowPresenter.initialMainWindowFrame(visible:)` (1258 × 770, mittig, je Achse begrenzt; mein Beispiel „1258 × 775“ war falsch, der Worker hat richtig 1258 × 770 getestet); `ColumnBrowserState.renameOpenFolder` (gleiche Zeile → Breiten bleiben); „Behalten“ je Paar im App-Zustand (`keptReplaceMediumPairs`, kein Schema); vor der Rückfrage gleichnamige Offline-Medien gegen noch nicht verarbeitete Einhängepfade prüfen (`getmntinfo` mit `MNT_NOWAIT`, `mediumIsMounted` abseits des Main Actors). Nichts Wesentliches. Stufe 3 (Worker): gemerkte Paare werden nie aufgeräumt → Backlog.
 - Gesamtlauf bei Last 2,3: Debug und Release 0 Warnungen, seriell 1245/1245, parallel 3× grün (je 1239, 6 übersprungen), Sabotage 4/4 rot (050-a 2/2, 232-a, 233-a, 234-a je 1/1), keine `.ips`, 0 neue Dateien in `~/Library/Preferences`, App des Nutzers 02:17:16, Signatur gültig.
+- **Nachtest des Nutzers 30.10. (App 02:17): F0–F5 bestanden** (Fenster 1258 × 770 mittig nach Löschen der gespeicherten Lage, Spaltenbreite nach Umbenennen, „Behalten“ mit zweiter H4-Karte gemerkt; Start mit zwei gleichnamigen Medien nur per Test, ein SD-Leser).
 - Patches: `archiv/sabotage/paket-48/`.
 
 **Für jede Aufgabe gilt:**
