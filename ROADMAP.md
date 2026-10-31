@@ -18,14 +18,15 @@ Gilt zusammen mit [konzept/datenbank.md](konzept/datenbank.md) (Konzept „Daten
 | **0.3.8** | Stabilität, Teil 1 | Paket 4 (Medien-I/O, Nacharbeit, Testisolation) und Paket 5 (Entscheidung, Status, Regeln, Identität): `bug.0.3.8.001`–`002`, `bug.0.4.045`, `021`–`033` |
 | **0.3.9** | Stabilität, Teil 2 | Paket 6 (Oberfläche `034`–`040`), Paket 7 (`041`–`042`), Paket 8 (`050`–`062`), Stabilitätsprüfung |
 | **0.4.0** | **Release-Kandidat der Open Beta** | nur, was die App fehlerfrei macht; Abschluss mit der Abnahmerunde des Nutzers (`todo.0.4.040`) |
-| **0.4.1** | **Release der Open Beta** | Auslieferung: Download-Seite, DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, Mindest-macOS 15; ab hier laden andere die App |
-| **0.4.2** | **Erstes Update der Beta** | Eigener Name für Medien, leise Ordner beim Filtern mit Wartescreen, „Alle Medien / Alle abwählen“ |
+| **0.4.1** | **Release der Open Beta** | Auslieferung: DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, Mindest-macOS 15; ab hier laden andere die App |
+| **0.4.2** | **Erstes Update der Beta** | Eigener Name für Medien, leise Ordner beim Filtern mit Wartescreen, „Alle Medien / Alle abwählen“, Update-Knopf → Startseite, „Benennen“; abgeschlossen 31.10. |
+| **0.4.3** | **Zweites Update der Beta** | Bild-Filter mit `.cr3` u. a., Wartezustand der Popover-Suche, „Auswerfen“ und „Wird geprüft“ auf der Kachel, Fokusrahmen im Erkennungsdialog, „Über Disk Archive“ neu |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
 | **0.7** | Export von CSV-Listen | |
 | **0.8** | Duplikate erkennen | |
-| **0.9** | Lizenz | Schlüssel, Testversion |
-| **1.0** | erste fertige Version | |
+| **0.9** | Verschlagwortung auf dem Gerät | bis 1.0 ohne Stufen, für alle (Nutzer 31.10.) |
+| **1.0** | erste fertige Version | Lizenz Basic/Pro/Max (einmal kaufen, kein Abo), Verkauf, Developer ID und Notarisierung, Rechtstexte |
 
 **Wichtig (Nutzer 10.10.):** Die Funktionen **0.5 bis 0.9 müssen noch einzeln besprochen werden**. Die Angaben dazu sind Entwürfe und Ausgangspunkte.
 
@@ -118,7 +119,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 - ~~Download-Seite~~ **entfällt (Nutzer 31.10.):** keine Seite `/download`; der Update-Knopf öffnet die Startseite (`todo.0.4.2.004`), das DMG gibt der Nutzer direkt weiter.
 - ✓ **Versions-Check mit Update-Modal und Beta-Sperre** (gebaut und abgenommen 13.10., `todo.0.4.001`, Härtung `bug.0.4.001`; Regeln in der README, Abschnitt „Datenbank“, Netz: Vergleich `n.n`, Beta bei API ≥ 1.0 → 7 Tage, frisch installiert sofort, keine Entsperrung, 1 Monat ohne API → gesperrt, gesperrt = 100 % nur ansehen). Bisheriger Plan dazu: (sonst erreicht man die Tester später nicht): `version.json` auf der Domain mit Kanal beta/stable, Hintergrundabfrage, Dialog "Neue Version verfügbar" einmal je Version, Link nur auf die eigene Domain, Schalter in den Einstellungen. Datenschutztext. README 8 und 9 ("Kein Netzwerkcode außer dem Bericht") anpassen.
 - ✓ **Beta-Verfallsdatum** (60 bis 90 Tage nach dem Build) mit freundlicher Meldung.
-- ✓ **Zentrale Stelle "Darf der Nutzer das?"** (`FeatureAccess`), in der Beta immer "ja". Vorbereitung für 0.9.
+- ✓ **Zentrale Stelle "Darf der Nutzer das?"** (`FeatureAccess`), in der Beta immer "ja". Vorbereitung für die Lizenz (1.0).
 - ○ **Mindest-macOS 15 (Nutzer 27.10., vorher 14):** Umstellung `todo.0.4.1.003`; Aufwärtstest auf dem zweiten Mac des Nutzers (macOS 27) mit dem DMG. Der Test auf macOS 14 entfällt.
 - ○ **Fehlerbericht** mit echten Protokollzeilen getestet (Datenschutz); Pflicht davor: `bug.0.4.011` und `bug.0.4.012`.
 - ○ **Update-Prozess durch Ersetzen der App:** Bundle-ID und Datenordner gleich lassen, Einzelinstanz-Übergabe bei neuerer Version, Launch Agent beim Start neu registrieren.
@@ -132,7 +133,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 ## 0.4.1 — Release der Open Beta (Nutzer 18.10.)
 
-Auslieferung an die Tester: Download-Seite mit Anleitung (`todo.0.4.021`), Mindest-macOS 15 (`todo.0.4.1.003`) mit Aufwärtstest auf macOS 27, Update durch Ersetzen (`024`), Prüfung wie ein Tester mit Quarantäne-Merkmal (`todo.0.4.1.002`) und das DMG:
+Auslieferung an die Tester: Anleitung zum Öffnen (`todo.0.4.021`; eine Download-Seite gibt es nicht, Nutzer 31.10.), Mindest-macOS 15 (`todo.0.4.1.003`) mit Aufwärtstest auf macOS 27, Update durch Ersetzen (`024`), Prüfung wie ein Tester mit Quarantäne-Merkmal (`todo.0.4.1.002`) und das DMG:
 
 
 DMG mit der App, einem Verweis auf `/Applications` und einem Hintergrundbild (Pfeil „in Programme ziehen“, Hinweis zum Öffnen der nicht notarisierten Beta). Erzeugt mit **einem Befehl** („Erstelle nun das Ausgabe-DMG“ → `Werkzeuge/dmg-erstellen.sh`: Release bauen, Version lesen, DMG mit dmgbuild, Ablage im Git-Hauptverzeichnis). Positionen aus der Layout-Seite `layout/ab 0.4.2/DMG Hintergrund.dc.html`. Aufgabe: `todo.0.4.1.001` (TODO.md). Ab 0.4.1 laden andere die App.
@@ -176,30 +177,11 @@ Sichere Erkennung über mehrere Medien hinweg per vollständiger Prüfsumme (BLA
 
 ---
 
-## 0.9 — Lizenz
+## 0.9 — Verschlagwortung auf dem Gerät (Nutzer 18.10.; Nutzer 31.10.: bis 1.0 ohne Stufen, für alle)
 
-**Lizenzmodell (Nutzer 18.10., README):**
+**Bis 1.0 (Nutzer 31.10.):** Die Verschlagwortung kommt mit 0.9 für alle, ohne Stufen. Ab 1.0 gehört sie zu Pro und Max (siehe 1.0, Lizenz).
 
-| Stufe | Medien | Verschlagwortung auf dem Gerät |
-|---|---|---|
-| **Basic** | max. 1 | – |
-| **Pro** | max. 50 | ✓ |
-| **Max** | max. 250 | ✓ |
- Technisch trägt die Datenbank 250 Medien (Messung in 0.3 mit 300 als Reserve). In der Beta (0.1 bis 0.8) gibt es keine Grenze.
-
-- Signierter Schlüssel (Ed25519), lokal prüfbar, kein Server nötig zum Prüfen. Online-Rückfrage nur optional mit Schonfrist; die App sperrt nie ohne Netz.
-- Der Index bleibt ohne Lizenz immer nutzbar und durchsuchbar. Die Grenze betrifft, wie viele Medien **aktualisiert** werden.
-- Schlüsselaufbau: 16 Byte Nutzdaten (Version, Schlüssel-ID, Edition/Stufe, Hauptversion, Ausstellungs- und Ablaufdatum, Lizenz-ID) plus 64 Byte Signatur, Base32 in Gruppen, zusätzlich Lizenzdatei zum Herunterladen.
-- `FeatureAccess` (ab 0.4 vorbereitet) liefert „Medienlimit“ statt „Funktion gesperrt“ und zusätzlich „Verschlagwortung erlaubt“ (Pro, Max).
-- Testzeitraum. Beta-Tester bekommen eine Anerkennung (Schlüssel oder Rabatt) **[Vorschlag]**.
-
-**Offene Fragen (vor 0.9 zu klären):** Preise der Stufen; ist Basic kostenlos? Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert beim Erreichen der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar, wird aber nicht indiziert)? Was passiert bei Herabstufung mit mehr Medien als erlaubt? Prüfung online über diskarchive.app oder offline per Schlüssel?
-
----
-
-### 0.9 zusätzlich: Verschlagwortung auf dem Gerät (ab Pro, also Pro und Max; Nutzer 18.10.)
-
-- **Entscheidung:** **Keine** Cloud-Dienste, **kein** API-Schlüssel. Verschlagwortet wird ausschließlich mit Apples Bordmitteln auf dem Mac; nichts verlässt das Gerät. Funktion der Stufen Pro und Max, eingeführt zusammen mit dem Lizenzmodell; Basic hat sie nicht.
+- **Entscheidung:** **Keine** Cloud-Dienste, **kein** API-Schlüssel. Verschlagwortet wird ausschließlich mit Apples Bordmitteln auf dem Mac; nichts verlässt das Gerät. Ab 1.0 Funktion der Stufen Pro und Max; Basic hat sie dann nicht. Bis dahin für alle.
 - **Ablauf:** als Nebenaufgabe im Hintergrund, **nur wenn das System gerade nichts zu tun hat** (macOS-Leerlaufplanung, z. B. `NSBackgroundActivityScheduler`), nach dem Indizieren, mit Rücksicht auf Pause, Akku und Ruhezustand; nur für angeschlossene Medien, sonst beim nächsten Anschließen. Der Nutzer legt fest, welche Dateien (Ordner, Dateitypen).
 - **Bausteine [Vorschlag, zu prüfen]:** Bilder über das Vision-Framework (Bildinhalte als Schlagwörter, ab macOS 15 vorhanden wie die App); Text über NaturalLanguage (Schlüsselwörter); auf Macs mit Apple Intelligence zusätzlich das Sprachmodell auf dem Gerät (Foundation Models) für bessere Schlagwörter. Das braucht ein neueres macOS und Apple Silicon und ist darum nur ein Zusatz, die Grundfunktion muss ohne laufen (die App unterstützt macOS 15, Nutzer 27.10.).
 - **Systemvoraussetzungen (Recherche Host 18.10., vor 0.9 gegen Apples Dokumentation prüfen):**
@@ -208,14 +190,45 @@ Sichere Erkennung über mehrere Medien hinweg per vollständiger Prüfsumme (BLA
   | Bildinhalte (Vision, `VNClassifyImageRequest`) | macOS 10.15 (verbesserte Revision ab 14, neue Swift-API `ClassifyImageRequest` ab 15) | ja |
   | Text-Schlüsselwörter (NaturalLanguage) | ältere macOS-Versionen, sicher ab 14 | ja |
   | Sprachmodell auf dem Gerät (Foundation Models) | **macOS 26 (Tahoe)**, eine Quelle nennt für den neuesten Stand macOS 27; **Apple-Chip (M1 oder neuer)**; Apple Intelligence eingeschaltet, Modell geladen, unterstützte Sprache/Region | **nein** |
-- **Pflicht für die Lizenzbeschreibung (Nutzer 18.10.):** Die Beschreibung der Stufen Pro und Max (App, Download-Seite, Kaufseite) nennt ausdrücklich, ab welcher macOS-Version und auf welcher Hardware die Verschlagwortung funktioniert, getrennt nach Grundfunktion (Bilder/Text, ab macOS 15) und besserer Verschlagwortung mit dem Sprachmodell (ab macOS 26 mit Apple-Chip und Apple Intelligence). Die App zeigt im Reiter an, welche Stufe auf diesem Mac verfügbar ist, und kauft niemand etwas, das auf seinem Mac nicht läuft.
+- **Pflicht für die Lizenzbeschreibung (Nutzer 18.10.):** Die Beschreibung der Stufen Pro und Max (App, Website, Kaufseite) nennt ausdrücklich, ab welcher macOS-Version und auf welcher Hardware die Verschlagwortung funktioniert, getrennt nach Grundfunktion (Bilder/Text, ab macOS 15) und besserer Verschlagwortung mit dem Sprachmodell (ab macOS 26 mit Apple-Chip und Apple Intelligence). Die App zeigt im Reiter an, welche Stufe auf diesem Mac verfügbar ist, und kauft niemand etwas, das auf seinem Mac nicht läuft.
 - **Testrechner:** Für das Sprachmodell braucht es einen Mac mit Apple-Chip auf macOS 26 oder neuer. Vorschlag: einen der beiden Entwicklungs-Macs (falls Apple-Chip) auf das aktuelle macOS heben, den zweiten auf macOS 15 lassen, um den Rückfall ohne Sprachmodell zu testen. Mindestversion der App ist macOS 15 (Nutzer 27.10.); der Test auf macOS 14 (`todo.0.4.022`) entfällt. Der zweite Mac des Nutzers läuft schon mit macOS 27 (Aufwärtstest mit dem DMG, `todo.0.4.1.002`).
 - **Daten:** Schlagwörter in einer neuen Tabelle (nur Erweiterung, Regel 7), durchsuchbar wie Namen; Synergie mit 0.5 (Metadaten/Text) und 0.6 (Vorschaubilder).
 - **Offen:** Welche Dateitypen zuerst (Fotos, PDF, HTML)? Schlagwörter nur zum Suchen oder auch sichtbar und bearbeitbar? Sprache der Schlagwörter (Deutsch, Englisch, nach Systemsprache)? Haben die beiden Entwicklungs-Macs einen Apple-Chip (Voraussetzung für den Testrechner)?
 
 ## 1.0 — Erste fertige Version
 
-- **Signatur und Notarisierung (Nutzer 18.10.):** erst zu 1.0 (Developer-ID-Zertifikat, `notarytool`, Stapeln; vorher `todo.0.4.020`). Bis dahin gehen alle Betas ohne Notarisierung an den kleinen Kreis der Tester, mit Anleitung auf der Download-Seite (in „Programme“ ziehen, „Dennoch öffnen“).
+### Lizenz (Nutzer 31.10.: erst ab 1.0, vorher 0.9)
+
+**Lizenzmodell (Nutzer 18.10., README):**
+
+| Stufe | Medien | Verschlagwortung auf dem Gerät |
+|---|---|---|
+| **Basic** | max. 1 | – |
+| **Pro** | max. 50 | ✓ |
+| **Max** | max. 250 | ✓ |
+ Technisch trägt die Datenbank 250 Medien (Messung in 0.3 mit 300 als Reserve). Bis 1.0 (Betas und 0.9) gibt es keine Grenze und keine Stufen.
+
+- Signierter Schlüssel (Ed25519), lokal prüfbar, kein Server nötig zum Prüfen. Online-Rückfrage nur optional mit Schonfrist; die App sperrt nie ohne Netz.
+- Der Index bleibt ohne Lizenz immer nutzbar und durchsuchbar. Die Grenze betrifft, wie viele Medien **aktualisiert** werden.
+- Schlüsselaufbau: 16 Byte Nutzdaten (Version, Schlüssel-ID, Edition/Stufe, Hauptversion, Ausstellungs- und Ablaufdatum, Lizenz-ID) plus 64 Byte Signatur, Base32 in Gruppen, zusätzlich Lizenzdatei zum Herunterladen.
+- `FeatureAccess` (ab 0.4 vorbereitet) liefert „Medienlimit“ statt „Funktion gesperrt“ und zusätzlich „Verschlagwortung erlaubt“ (Pro, Max).
+- Testzeitraum. Beta-Tester bekommen eine Anerkennung (Schlüssel oder Rabatt) **[Vorschlag]**.
+- **Einmal kaufen, kein Abo (Nutzer 31.10., fest):** Eine Lizenz ab 1.0 kostet einmal, wird nie neu berechnet und bekommt alle Updates über alle künftigen Versionen. **Widerspruch zum Schlüsselaufbau (Host 31.10.):** Felder „Hauptversion“ und „Ablaufdatum“ passen nicht dazu; vor 1.0 anpassen.
+
+**Offene Fragen Lizenz (vor 1.0 zu klären; Nutzer 31.10.: nach 1.0 verschoben):** Wie viele Macs je Lizenz? Was zählt als Medium (alle erkannten, nur „Indizieren: Ja“, auch offline)? Gibt „Vergessen“ einen Platz frei? Was passiert an der Grenze (Erkennungs-Dialog sagt es, Medium bleibt sichtbar, wird aber nicht indiziert)? Preise der Stufen (bisher offen).
+
+### Verkauf (Nutzer 31.10.)
+
+Zu Beginn verkauft der Nutzer selbst über **PayPal**. Ein anderer Weg ist möglich, **noch nicht entschieden [offen]**.
+
+### Rechtstexte (Nutzer 31.10.)
+
+- **Ab sofort (kostenlose Beta):** kurze **Beta-Bedingungen** (Testversion, keine Gewähr, Haftung begrenzt). Fußzeile der Website: „Impressum · Datenschutz · Beta-Bedingungen“.
+- **Zu 1.0:** Lizenzbedingungen (EULA), Widerrufsbelehrung für digitale Inhalte, Rechnungen und Umsatzsteuer beim eigenen Verkauf, Datenschutzerklärung um PayPal und Lizenzprüfung ergänzen. Texte von einem Rechtstexte-Dienst.
+
+### Signatur
+
+- **Signatur und Notarisierung (Nutzer 18.10.):** erst zu 1.0 (Developer-ID-Zertifikat, `notarytool`, Stapeln; vorher `todo.0.4.020`). Bis dahin gehen alle Betas ohne Notarisierung an den kleinen Kreis der Tester, mit Anleitung (in „Programme“ ziehen, „Dennoch öffnen“).
 
 Alle Funktionen von 0.5 bis 0.9 sind drin, der Nutzer hat 1.0 selbst mehrere Wochen benutzt.
 
@@ -234,6 +247,6 @@ Hier landen Funktionen für Versionen nach 1.0. **Nichts davon ist geplant oder 
 ## Offene Entscheidungen
 
 - Wie lange darf 0.2 dauern? [Vorschlag] Ein festes Stopp-Datum setzen, ab dem nur noch Fehler behoben werden.
-- Lizenzgrenze nach Medienzahl (1 / 50 / 250): offene Fragen siehe 0.9.
+- Lizenzgrenze nach Medienzahl (1 / 50 / 250): offene Fragen siehe 1.0, Lizenz.
 - Architektur der Datenbank (0.3).
-- Reihenfolge: Die Lizenz kommt als 0.9 nach den Funktionen. `FeatureAccess` ist ab 0.4 vorbereitet.
+- Reihenfolge (Nutzer 31.10.): Die Lizenz kommt mit 1.0, nach allen Funktionen; 0.9 ist die Verschlagwortung für alle. `FeatureAccess` ist ab 0.4 vorbereitet.

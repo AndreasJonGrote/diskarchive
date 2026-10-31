@@ -3,6 +3,7 @@
 Teil des Konzepts, ausgelagert aus [README.md](../README.md) am 23.10.2026 (gilt unverändert; bei Widerspruch zum Layout gilt das Konzept, außer reine Optik).
 
 ## 8. Fehlerberichte und Datenschutz
+- **Netz und Datenschutz (Nutzer 31.10.):** **Keine Weitergabe an Dritte.** Die App verbindet sich nur aus drei Gründen mit dem Internet: **nach Updates suchen**, **ab 1.0 die Lizenz prüfen** und **einen Fehlerbericht senden, dem der Nutzer vorher zugestimmt hat**. **Website:** nennt nur Updates und Lizenz, den Fehlerbericht nicht. **Datenschutzerklärung:** nennt alle drei Verbindungen, den Fehlerbericht mit Zustimmung (zu 1.0 ergänzt um PayPal und Lizenzprüfung, ROADMAP 1.0).
 - **Nur Absturzberichte, nur über die Schnittstelle** der Disk-Index-API, **nur nach Zustimmung** im Dialog (13). **Optional „Künftig automatisch senden“** (Voreinstellung Aus, auch in Einstellungen → Erweitert änderbar). Das automatische Senden bleibt **bewusst still**: einmal gefragt, jederzeit änderbar.
 - Der Bericht enthält **keine Datei- oder Ordnernamen und keine Suchbegriffe**, nur Version, System, Fehlerort, letzte Aktionen und technische Eigenschaften von Namen (Länge, Sonderzeichen, Unicode-Form). Kein Mail-, Kopier- oder Ticketweg.
 - Der Dialog erscheint **nur nach einem echten Absturz** und je Absturz **einmal**, nicht nach einem harten Stopp (Xcode „Stop“, Programm beenden erzwingen).

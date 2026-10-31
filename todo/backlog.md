@@ -4,13 +4,19 @@ Ausgelagert aus TODO.md am 23.10.2026, nach Zielversion. Index: [TODO.md](../TOD
 
 ---
 
-### 0.4.2 (Nutzer 30.10.: jetzt nur Pakete 52 und 53, der Rest wartet)
+### 0.4.3 (Nutzer 31.10.: 0.4.2 abgeschlossen; diese Punkte kommen in 0.4.3, noch nicht freigegeben)
 
-- **bug.0.4.2.001 — Bild-Filter findet RAW `.cr3` nicht (Nutzer 30.10., Stufe 1, noch nicht freigegeben):** `SearchFileTypeFilter.databaseExtensions` (`SearchState.swift` Z. ~103) kennt nur `nef`, `cr2`, `arw`, `dng`. Vorschlag Host: Bild + `cr3`, `crw`, `nrw`, `raf`, `orf`, `rw2`, `pef`, `srw`, `sr2`, `srf`, `rwl`, `3fr`, `fff`, `iiq`, `x3f`, `mrw`, `kdc`, `dcr`, `erf`, `gpr`, `raw`, `heif`, `avif`, `jxl`, `bmp`, `psd`; Video + `mts`, `m2ts`, `mxf`, `webm`, `mpg`, `mpeg`, `3gp`; Audio + `aif`, `aiff`, `ogg`, `opus`, `alac`. Die Liste steht doppelt (Filter und `FileTypeIcon.swift` Z. ~51) → eine Quelle. Kein Neuindizieren nötig (Endungen liegen in `extensions`).
+- **bug.0.4.3.001 — Erkennungsdialog: „Für dieses Medium merken“ mit Fokusrahmen (Nutzer 31.10., Stufe 1):** **Nutzer sieht:** Öffnet ein Klick auf die Kachel den Bestätigungsdialog, hat der Haken „Für dieses Medium merken“ (`copy.new_medium.remember`) sofort den Fokus mit sichtbarem Rand. **Wann:** jedes Mal, wenn der Dialog über die Kachel aufgeht. Soll: kein Fokusrahmen beim Erscheinen (Fokus wie in den anderen Dialogen, `bug.0.4.209`/`221`: einmal beim Erscheinen auf dem Hauptknopf bzw. ohne sichtbaren Rand). Ursache noch nicht geprüft.
+- **todo.0.4.3.001 — „Über Disk Archive“ überarbeiten (Nutzer 31.10.):** Der Dialog „Über Disk Archive“ (`AboutPanel.swift`, heute das Standardfenster von AppKit mit Link auf die Website) soll neu gestaltet werden. Braucht ein Layout des Nutzers; Umfang mit ihm klären.
+
+- **bug.0.4.2.001 — Bild-Filter findet RAW `.cr3` nicht (Nutzer 30.10., Stufe 1, Zielversion 0.4.3, Kennung bleibt):** `SearchFileTypeFilter.databaseExtensions` (`SearchState.swift` Z. ~103) kennt nur `nef`, `cr2`, `arw`, `dng`. Vorschlag Host: Bild + `cr3`, `crw`, `nrw`, `raf`, `orf`, `rw2`, `pef`, `srw`, `sr2`, `srf`, `rwl`, `3fr`, `fff`, `iiq`, `x3f`, `mrw`, `kdc`, `dcr`, `erf`, `gpr`, `raw`, `heif`, `avif`, `jxl`, `bmp`, `psd`; Video + `mts`, `m2ts`, `mxf`, `webm`, `mpg`, `mpeg`, `3gp`; Audio + `aif`, `aiff`, `ogg`, `opus`, `alac`. Die Liste steht doppelt (Filter und `FileTypeIcon.swift` Z. ~51) → eine Quelle. Kein Neuindizieren nötig (Endungen liegen in `extensions`).
+- **Popover-Suche ohne Wartezustand (Host 31.10., Stufe 1, Zielversion 0.4.3; Layout fehlt):** Aus dem leeren Feld zeigt `MenuBarPopoverSearchContent` bis zum Ergebnis schon „Keine Treffer für „…““ (`totalCount == 0`); auf großen Datenbanken sichtbar. Vorschlag Host: Zeile mit kleinem blauem Spinner und „Suche läuft …“ (verzögert wie im Fenster), „Keine Treffer“ erst nach fertiger Suche. Layout fehlt.
+- **„Auswerfen“ und „Wird geprüft“ (Zielversion 0.4.3, Layout `ab 0.4.2` dafür noch freizugeben):** Knopf „Auswerfen“ beim Hover über Kacheln, Chip „Wird geprüft“ beim Wiedererkennen.
+
+### Später (ohne Zielversion)
+
 - **Systeminformationen (Nutzer 30.10., später):** eigene Seite unter Einstellungen mit Angaben zum Speicher u. a., Link zum Datenordner, Diagramme. Wird besprochen, wenn es so weit ist.
 - **Namen-Layout (Nutzer 30.10., später):** Der eigene Name bekommt ein ausführlicheres Layout; Paket 52 baut nur das Feld im Details-Modal und die Anzeige.
-- **Popover-Suche ohne Wartezustand (Host 31.10., Stufe 1, noch nicht freigegeben, Nutzer: „klären wir später“):** Aus dem leeren Feld zeigt `MenuBarPopoverSearchContent` bis zum Ergebnis schon „Keine Treffer für „…““ (`totalCount == 0`); auf großen Datenbanken sichtbar. Vorschlag Host: Zeile mit kleinem blauem Spinner und „Suche läuft …“ (verzögert wie im Fenster), „Keine Treffer“ erst nach fertiger Suche. Layout fehlt.
-- **Im Layout `ab 0.4.2`, nicht freigegeben:** Knopf „Auswerfen“ beim Hover über Kacheln, Chip „Wird geprüft“ beim Wiedererkennen.
 
 ### Sammeleintrag Stufe 2 und 3 (Nutzer 26.10., AGENTS.md „Befunde: drei Stufen“)
 
