@@ -13,8 +13,10 @@ build/
 
 DerivedData-test/
 DerivedData-release/
-# Ausgabe-DMG
+# Ausgabe: App und DMG der letzten Version (Nutzer 31.10.)
+builds/
 *.dmg
+*.p12
 
 # Berichte vom Nutzer mit Datenbank-Kopien und privaten Dateinamen (Host 30.10.)
 report-*/

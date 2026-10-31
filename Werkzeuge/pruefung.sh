@@ -1,11 +1,11 @@
 #!/bin/bash
-# Werkzeuge/pruefung.sh — Prüfläufe des Hosts (archiv/abnahme-ablauf.md, Abschnitt 3).
-# Pflege nur durch den Host (AGENTS.md). Der Worker ändert diese Datei nicht.
+# Werkzeuge/pruefung.sh — Prüfläufe des Hosts (claude/abnahme-ablauf.md, Abschnitt 3).
+# Pflege nur durch den Host (claude/AGENTS.md). Der Worker ändert diese Datei nicht.
 #
 # Aufruf (aus beliebigem Ordner):
 #   Werkzeuge/pruefung.sh voll                      Paketende: Build, seriell, 3x parallel, Release, .ips, App des Nutzers (Regel 14)
 #   Werkzeuge/pruefung.sh schnell [Suite ...]       Build + Warnungen + gezielte Suites (nur Lesen, keine Nutzer-App)
-#   Werkzeuge/pruefung.sh sabotage                  nur die Sabotage-Patches aus todo/sabotage/ (Regel 9), je Patch rot erwartet
+#   Werkzeuge/pruefung.sh sabotage                  nur die Sabotage-Patches aus claude/todo/sabotage/ (Regel 9), je Patch rot erwartet
 #   (voll prüft die Patches am Ende mit, wenn welche da sind)
 # Umgebung (alles optional):
 #   S=<Ordner>   Scratch-Ordner (Standard: neuer Ordner pruefung.XXXXXX unter ${TMPDIR:-/tmp}); muss unter $TMPDIR
@@ -22,7 +22,9 @@ MODUS="${1:-voll}"; shift || true
 SUITES=("$@")
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-PROJ="$ROOT/diskindex"
+# todo.0.4.3.004: Projekt heißt künftig DiskArchive; bis zum Umbau gilt noch diskindex.
+if [ -d "$ROOT/DiskArchive/DiskArchive.xcodeproj" ]; then N=DiskArchive; else N=diskindex; fi
+PROJ="$ROOT/$N"
 [ -d "$PROJ" ] || { echo "Projektordner fehlt: $PROJ"; exit 2; }
 cd "$PROJ" || exit 2
 
@@ -62,8 +64,8 @@ fi
 echo $$ > "$S/.laeuft"
 DD="$S/dd"; DDREL="$S/dd-rel"; SUM="$S/zusammenfassung.txt"
 DEST='platform=macOS,arch=arm64'
-BASIS=(-project diskindex.xcodeproj -scheme diskindex -destination "$DEST")
-TESTOPT=(-only-testing:diskindexTests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120)
+BASIS=(-project $N.xcodeproj -scheme $N -destination "$DEST")
+TESTOPT=(-only-testing:${N}Tests -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120)
 : > "$SUM"
 
 zeit() { date '+%H:%M:%S'; }
@@ -89,11 +91,11 @@ gruen_weg() {
 # Sabotage (Regel 9): jeder Patch in einer Kopie des Projekts, die in "# Test:" genannten Tests müssen rot werden.
 sabotage() {
   shopt -s nullglob
-  local P=("$ROOT"/todo/sabotage/*.patch)
+  local P=("$ROOT"/claude/todo/sabotage/*.patch)
   shopt -u nullglob
-  if [ "${#P[@]}" -eq 0 ]; then log "Sabotage: keine Patches in todo/sabotage/"; return; fi
+  if [ "${#P[@]}" -eq 0 ]; then log "Sabotage: keine Patches in claude/todo/sabotage/"; return; fi
   local K="$S/sab-kopie" DDS="$S/dd-sab" ok=0 bad=0
-  rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/diskindex" "$K/"
+  rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/$N" "$K/"
   for p in "${P[@]}"; do
     local name; name=$(basename "$p" .patch)
     # Mehrere Tests: je Zeile einer oder in einer Zeile mit Komma getrennt (Paket 36).
@@ -101,17 +103,17 @@ sabotage() {
     if [ -z "$tests" ]; then log "Sabotage $name: FEHLT # Test:-Zeile"; bad=$((bad+1)); continue; fi
     if ! (cd "$K" && patch -p1 --forward --silent < "$p") > "$S/sab-$name-patch.log" 2>&1; then
       log "Sabotage $name: Patch passt nicht auf den Endstand"; bad=$((bad+1))
-      rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/diskindex" "$K/"; continue
+      rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/$N" "$K/"; continue
     fi
     local ARGS=() t
-    while IFS= read -r t; do [ -n "$t" ] && ARGS+=("-only-testing:diskindexTests/$t"); done <<< "$tests"
+    while IFS= read -r t; do [ -n "$t" ] && ARGS+=("-only-testing:${N}Tests/$t"); done <<< "$tests"
     local START; START=$(zeit)
-    (cd "$K/diskindex" && xcodebuild build-for-testing "${BASIS[@]}" -derivedDataPath "$DDS") > "$S/sab-$name-build.log" 2>&1
+    (cd "$K/$N" && xcodebuild build-for-testing "${BASIS[@]}" -derivedDataPath "$DDS") > "$S/sab-$name-build.log" 2>&1
     if [ $? -ne 0 ]; then
       log "Sabotage $name: Build mit Patch scheitert (Patch ungültig)  $START–$(zeit)"; bad=$((bad+1))
     else
       rm -rf "$S/sab-$name.xcresult"
-      (cd "$K/diskindex" && xcodebuild test-without-building "${BASIS[@]}" -derivedDataPath "$DDS" "${ARGS[@]}" \
+      (cd "$K/$N" && xcodebuild test-without-building "${BASIS[@]}" -derivedDataPath "$DDS" "${ARGS[@]}" \
         -parallel-testing-enabled NO -test-timeouts-enabled YES -maximum-test-execution-time-allowance 120 \
         -resultBundlePath "$S/sab-$name.xcresult") > "$S/sab-$name-test.log" 2>&1
       local rot; rot=$(xcrun xcresulttool get test-results summary --path "$S/sab-$name.xcresult" --compact 2>/dev/null \
@@ -127,7 +129,7 @@ sabotage() {
         log "Sabotage $name: GRÜN ✗ – Test beweist den Fix nicht ($tests)  $START–$(zeit)"; bad=$((bad+1))
       fi
     fi
-    (cd "$K" && patch -p1 -R --silent < "$p") > /dev/null 2>&1 || { rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/diskindex" "$K/"; }
+    (cd "$K" && patch -p1 -R --silent < "$p") > /dev/null 2>&1 || { rm -rf "$K"; mkdir -p "$K"; rsync -a "$ROOT/$N" "$K/"; }
   done
   log "Sabotage gesamt: rot ✓ $ok, Mängel $bad (Ziel 0)"
   [ "${KEEP:-0}" = "1" ] || rm -rf "$K" "$DDS"
@@ -152,9 +154,9 @@ log "Build Debug+Testziel: Exit $?  Warnungen $(warnungen "$S/build.log") (Ziel 
 if [ "$MODUS" = "schnell" ]; then
   ARGS=()
   if [ "${#SUITES[@]}" -gt 0 ]; then
-    for s in "${SUITES[@]}"; do ARGS+=("-only-testing:diskindexTests/$s"); done
+    for s in "${SUITES[@]}"; do ARGS+=("-only-testing:${N}Tests/$s"); done
   else
-    ARGS=(-only-testing:diskindexTests)
+    ARGS=(-only-testing:${N}Tests)
   fi
   START=$(zeit)
   xcodebuild test-without-building "${BASIS[@]}" -derivedDataPath "$DD" "${ARGS[@]}" \
@@ -212,7 +214,7 @@ for f in d.get("testFailures",[]): print("   ROT:",f.get("testName"),"-",f.get("
   START=$(zeit)
   xcodebuild build "${BASIS[@]}" -configuration Debug > "$S/nutzerapp.log" 2>&1
   log "Nutzer-App gebaut: Exit $?  $START–$(zeit)"
-  B=$(ls -dt ~/Library/Developer/Xcode/DerivedData/diskindex-*/Build/Products/Debug/"Disk Archive.app" 2>/dev/null | head -1)
+  B=$(ls -dt ~/Library/Developer/Xcode/DerivedData/$N-*/Build/Products/Debug/"Disk Archive.app" 2>/dev/null | head -1)
   if [ -n "$B" ]; then
     BIN="$B/Contents/MacOS/Disk Archive"
     log "App des Nutzers: Binary $(stat -f '%Sm' -t '%H:%M:%S' "$BIN"); neuere .swift: $(find . -name '*.swift' -newer "$BIN" | wc -l | tr -d ' ') (Ziel 0)"
