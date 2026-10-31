@@ -27,3 +27,8 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md). Herkunft: Nut
 - Diff gelesen: `MARKETING_VERSION` 0.4.2 an 4 Stellen, `BundleVersionTests` und `AboutAndSettingsMenuTests` auf 0.4.2. Nichts Wesentliches.
 - Gesamtlauf: Debug und Release 0 Warnungen, seriell 1277/1277, parallel 3× grün (je 1270, 7 übersprungen), keine `.ips`, 0 neue Dateien in `~/Library/Preferences`, App des Nutzers 15:11:31, Version 0.4.2.
 - DMG selbst geprüft (schreibgeschützt, ohne Finder): `hdiutil verify` gültig, SHA-256 `0b4a82227fdb60b91833f8e4dee1316bb6fe0b281b554d3f3fb2b299ef7050a5`; App 0.4.2, Build 202610311426, Mindest-macOS 15, universal; `codesign --verify --deep` ok, Team KATFD9R38G, Hardened Runtime; Inhalt App, „Programme“ → `/Applications`, Hintergrund.
+
+## Nachtrag Host 31.10. 16:53: Hintergrund mit „Beta 0.4.1“
+
+- Nutzer: Im DMG-Hintergrund stand noch „Beta 0.4.1“ (fest im Bild, ebenso in der Layout-Seite). Host hat die Fußzeile in `Werkzeuge/dmg/hintergrund.png` und `@2x` ersetzt (Archivo 11 px, gerendert mit Chrome; Probe mit „0.4.1“ pixelgleich zum alten Bild, geändert nur die Fußzeile).
+- DMG neu mit `Werkzeuge/dmg-erstellen.sh` (Skript unverändert): App 0.4.2, Build 202610311653, Signatur gültig, `hdiutil verify` gültig, Hintergrund zeigt „Beta 0.4.2“. SHA-256 `197e40b2db17ba3567304c28507f3bd2f620b5a22765332e25c07a120c7fd5b7` (ersetzt `0b4a8222…`).
