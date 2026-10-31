@@ -1,6 +1,6 @@
 # Disk Archive — Konsistenz-Audit
 
-Stand 2026-10-08. Grundlage: `App: Layout.dc.html` (Source of Truth). Die Maße des Soll-Zustands stehen im Komponentenkatalog `App: Komponenten.dc.html`.
+Stand 2026-10-08. Grundlage: `App: Layout.dc.html` (Source of Truth, seit 2026-10-31 aufgeteilt in `App-Layout …`). Die Maße des Soll-Zustands stehen im Komponentenkatalog `App: Komponenten.dc.html`.
 
 ## Gefunden und bereinigt
 

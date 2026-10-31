@@ -14,6 +14,8 @@ struct MediumDashboardCard: View {
     var body: some View {
         let isOffline = medium.connectionStatus == .offline
         let isError = medium.indexStatus == .error
+        let naming = MediumNaming(mediumID: medium.id, place: .dashboardCard)
+        let isNaming = appState.mediumNaming == naming
 
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top) {
@@ -24,7 +26,15 @@ struct MediumDashboardCard: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
 
-            if medium.customName != nil {
+            if isNaming {
+                // todo.0.4.2.005: „Benennen“ – Titel als Eingabefeld, einzeilig.
+                MediumNameEditor(
+                    medium: medium,
+                    naming: naming,
+                    font: .system(size: 15, weight: .bold),
+                    alwaysShowsOriginal: medium.customName != nil
+                )
+            } else if medium.customName != nil {
                 // todo.0.4.2.002 (Layout ab 0.4.2 „Lauras Platte“): eigener Name, darunter der Originalname; beide
                 // einzeilig, rechts auslaufend statt „…“.
                 VStack(alignment: .leading, spacing: 2) {
@@ -66,9 +76,11 @@ struct MediumDashboardCard: View {
         .contentShape(RoundedRectangle(cornerRadius: DesignRadius.md))
         .pointerCursor()
         .onTapGesture {
+            // Während „Benennen“ öffnet ein Klick die Kachel nicht.
+            guard !isNaming else { return }
             MediumNavigation.openColumnBrowser(for: medium.id, appState: appState)
         }
-        .objectContextMenu(.fromMedium(medium), highlightCornerRadius: DesignRadius.md)
+        .objectContextMenu(.fromMedium(medium), highlightCornerRadius: DesignRadius.md, namingPlace: .dashboardCard)
     }
 
     @ViewBuilder

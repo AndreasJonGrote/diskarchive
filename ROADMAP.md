@@ -115,7 +115,7 @@ Tabelle `api_queue`; Aufträge: Fehlerberichte (ersetzt den heutigen `outbox`-Or
 
 **Voraussetzungen für die Weitergabe [Vorschlag]** (ohne diese kann kein Tester die App starten oder erreicht später keine neue Version):
 - ○ **Signatur und Notarisierung:** Developer ID Application, `notarytool`, Stapeln. Heute signiert Release mit "Apple Development".
-- ○ **Download-Seite** auf `https://diskarchive.app/` mit stabilem Link (`/download`).
+- ~~Download-Seite~~ **entfällt (Nutzer 31.10.):** keine Seite `/download`; der Update-Knopf öffnet die Startseite (`todo.0.4.2.004`), das DMG gibt der Nutzer direkt weiter.
 - ✓ **Versions-Check mit Update-Modal und Beta-Sperre** (gebaut und abgenommen 13.10., `todo.0.4.001`, Härtung `bug.0.4.001`; Regeln in der README, Abschnitt „Datenbank“, Netz: Vergleich `n.n`, Beta bei API ≥ 1.0 → 7 Tage, frisch installiert sofort, keine Entsperrung, 1 Monat ohne API → gesperrt, gesperrt = 100 % nur ansehen). Bisheriger Plan dazu: (sonst erreicht man die Tester später nicht): `version.json` auf der Domain mit Kanal beta/stable, Hintergrundabfrage, Dialog "Neue Version verfügbar" einmal je Version, Link nur auf die eigene Domain, Schalter in den Einstellungen. Datenschutztext. README 8 und 9 ("Kein Netzwerkcode außer dem Bericht") anpassen.
 - ✓ **Beta-Verfallsdatum** (60 bis 90 Tage nach dem Build) mit freundlicher Meldung.
 - ✓ **Zentrale Stelle "Darf der Nutzer das?"** (`FeatureAccess`), in der Beta immer "ja". Vorbereitung für 0.9.

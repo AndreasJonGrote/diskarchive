@@ -57,6 +57,13 @@ struct MediumCustomNameField: View {
             .onChange(of: medium.customName) { _, stored in
                 if !focused { text = stored ?? "" }
             }
+            // todo.0.4.2.005: „Benennen“ von Suche, Einstellungen oder Menüleiste – Fokus hier, Inhalt ganz markiert.
+            .task {
+                let naming = MediumNaming(mediumID: medium.id, place: .detailsModal)
+                guard appState.mediumNaming == naming else { return }
+                focused = true
+                appState.endNaming(naming)
+            }
             .disabled(!appState.featureAccess.canWriteIndex)
     }
 

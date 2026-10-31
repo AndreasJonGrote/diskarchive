@@ -9,8 +9,6 @@ import AppKit
 
 @MainActor
 enum AboutPanel {
-    nonisolated static let website = "https://diskarchive.app"
-
     struct Content: Equatable {
         var version: String
         var build: String
@@ -21,12 +19,12 @@ enum AboutPanel {
         Content(
             version: bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?",
             build: bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?",
-            link: website
+            link: AppLinks.website
         )
     }
 
     /// Zusatzangaben des Fensters: klickbarer Link auf die Webseite.
-    static func credits(link: String = website) -> NSAttributedString {
+    static func credits(link: String = AppLinks.website) -> NSAttributedString {
         let style = NSMutableParagraphStyle()
         style.alignment = .center
         var attributes: [NSAttributedString.Key: Any] = [

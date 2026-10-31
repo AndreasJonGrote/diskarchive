@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="ds-disk-archive.css">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>
+    .measure-root[data-all] *:not([data-measure-overlay]):not([data-measure-overlay] *) { outline:1px solid rgb(0 140 255 / .18); outline-offset:-1px; }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+    .spin-ic { display: inline-block; animation: spin 1.8s linear infinite; }
+    .ph-duotone.duo80 { --ph-duotone-opacity: .95; }
+    .ph-duotone.duo80:after { opacity: .95 !important; }
+    .ph-duotone.duo100 { --ph-duotone-opacity: 1; }
+    .ph-duotone.duo100:after { opacity: 1 !important; }
+    .ic { display: inline-block; vertical-align: middle; flex: none; }
+    .finder-hover-row .finder-hover { opacity: 0; transition: opacity .12s ease; }
+    .finder-hover-row:hover .finder-hover { opacity: 1; }
+    .eject-swap { display:inline-flex; }
+    #s04 .card { transition:box-shadow .18s ease, border-color .18s ease; }
+    #s04 .card:hover { box-shadow:0 2px 6px rgb(0 0 0 / .08), 0 6px 16px rgb(0 0 0 / .07); }
+    #s04 .card:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:oklch(0.62 0 0) !important; }
+    #s04 .card:hover:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:#1f1f1f !important; }
+    #s04 [data-screen-label="Dark Mode"] .card:hover:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:var(--color-text) !important; }
+    #s04 .eject-side:not(:hover) { color:#1f1f1f !important; border-color:#1f1f1f !important; }
+    #s04 [data-screen-label="Dark Mode"] .eject-side:not(:hover) { color:var(--color-text) !important; border-color:var(--color-text) !important; }
+    .eject-side { width:0 !important; min-width:0 !important; margin-left:-6px; opacity:0; overflow:hidden; border-width:0 !important; transition:width .18s ease, margin-left .18s ease, opacity .14s ease, background-color .12s ease, color .12s ease; }
+    .card:hover .eject-side { width:calc(1lh + 8px) !important; margin-left:0; opacity:1; border-width:1px !important; }
+    @media (prefers-reduced-motion: reduce) { .eject-side { transition:none; } }
+    .eject-swap > .eject-btn { display:none; }
+    .card:hover .eject-swap > .tag:not(.eject-btn) { display:none !important; }
+    .card:hover .eject-swap > .eject-btn { display:inline-flex; }
+    .eject-cell > .eject-ov { display:none; }
+    .eject-ico > .eject-ico-btn { display:none; }
+    .finder-hover-row:hover .eject-ico > svg { visibility:hidden; }
+    .finder-hover-row:hover .eject-ico > .eject-ico-btn { display:inline-flex; }
+    .finder-hover-row:hover .eject-ico > :not(.eject-ico-btn), .finder-hover-row:hover .eject-hide { visibility:hidden; }
+    .eject-btn, .eject-ov, .eject-ico-btn { border:none !important; background:transparent !important; padding:0 !important; font-size:0 !important; gap:0 !important; min-width:0 !important; width:22px !important; height:22px !important; box-sizing:border-box !important; align-items:center !important; justify-content:center !important; border-radius:var(--radius-sm) !important; color:var(--color-text) !important; cursor:pointer; transition:background .12s ease; }
+    .eject-btn > i, .eject-ov > i, .eject-ico-btn > i { font-size:12px !important; line-height:1; }
+    .eject-btn:hover, .eject-ov:hover, .eject-ico-btn:hover { background:color-mix(in srgb, var(--color-text) 12%, transparent) !important; }
+    .eject-btn:active, .eject-ov:active, .eject-ico-btn:active { background:color-mix(in srgb, var(--color-text) 22%, transparent) !important; }
+    .eject-swap { align-items:center; }
+    .eject-ov { inset:auto !important; left:-4px !important; top:50% !important; transform:translateY(-50%); }
+    .eject-ico-btn { inset:auto !important; left:-3.5px !important; top:-3.5px !important; }
+    .finder-hover-row[style*="color:#fff"] .eject-ico-btn { color:#fff !important; }
+    .finder-hover-row[style*="color:#fff"] .eject-ico-btn:hover { background:rgba(255,255,255,.2) !important; }
+    tr:hover .eject-cell > .tag:not(.eject-ov) { visibility:hidden; }
+    tr:hover .eject-cell > .eject-ov { display:inline-flex; }
+    button, .btn, .finder-hover-row, .finder-hover, a[href], summary, [role="button"] { cursor: pointer; }
+    .reg-table tbody tr:last-of-type td { border-bottom: none; }
+  </style>
+</helmet>
+<div style="background:var(--color-bg);">
+  <div style="max-width:1400px; margin:0 auto; padding:var(--space-4) var(--space-8); display:flex; flex-direction:column; gap:var(--space-8);">
+
+    <!-- ============ 00. KONZEPT ============ -->
+    <section id="s00" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg); background:var(--color-surface);">
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">00 — KONZEPT &amp; ABLAUF</div>
+      <h3 style="margin-bottom:var(--space-3);">Wie Disk Archive funktioniert</h3>
+      <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 65%, transparent); max-width:820px; margin:0 0 var(--space-4);">
+        Disk Archive kümmert sich ausschließlich um <strong>externe Speichermedien</strong> — externe Festplatten, USB-Sticks, SD-Karten. Die App läuft dauerhaft über das Menüleisten-Icon. Jedes je angeschlossene Speichermedium wird mit seinem Index gespeichert — auch offline bleibt sein Inhalt durchsuchbar. Eine einzige Suche findet Speichermedien und Objekte (Dateien &amp; Ordner) zugleich (10). Ein Klick auf einen Treffer öffnet die Spaltenansicht an genau dieser Stelle (07). Wichtige Objekte lassen sich als Favoriten markieren (11).
+      </p>
+      <div style="display:flex; flex-wrap:wrap; align-items:stretch; gap:var(--space-2) 0; border-top:1px solid var(--color-divider); padding-top:var(--space-4);">
+        <div style="display:flex; flex-direction:column; gap:6px; min-width:150px; padding:0 var(--space-3);">
+          <svg viewBox="0 0 256 256" width="24" height="24" fill="var(--color-text)"><path d="M252.44,121.34l-48-32A8,8,0,0,0,192,96v24H72V72h33a32,32,0,1,0,0-16H72A16,16,0,0,0,56,72v48H8a8,8,0,0,0,0,16H56v48a16,16,0,0,0,16,16h32v8a16,16,0,0,0,16,16h32a16,16,0,0,0,16-16V176a16,16,0,0,0-16-16H120a16,16,0,0,0-16,16v8H72V136H192v24a8,8,0,0,0,12.44,6.66l48-32a8,8,0,0,0,0-13.32ZM136,48a16,16,0,1,1-16,16A16,16,0,0,1,136,48ZM120,176h32v32H120Zm88-30.95V111l25.58,17Z"></path></svg>
+          <div style="font-size:12px; font-weight:600;">1. Anschließen</div>
+          <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">App erkennt den Medientyp</div>
+        </div>
+        <div style="width:1px; background:var(--color-divider); margin:8px 0;"></div>
+        <div style="display:flex; flex-direction:column; gap:6px; min-width:150px; max-width:200px; padding:0 var(--space-3);">
+          <svg viewBox="0 0 256 256" width="24" height="24" fill="var(--color-text)"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-80V80a8,8,0,0,1,16,0v56a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,172Z"></path></svg>
+          <div style="font-size:12px; font-weight:600;">2. Abfrage</div>
+          <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Indizieren? — Jedes Medium wird sofort registriert; die Antwort lässt sich später ändern</div>
+        </div>
+        <div style="width:1px; background:var(--color-divider); margin:8px 0;"></div>
+        <div style="display:flex; flex-direction:column; gap:6px; min-width:150px; padding:0 var(--space-3);">
+          <span style="width:22px; height:22px; border-radius:50%; border:4px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span>
+          <div style="font-size:12px; font-weight:600;">3. Indizieren + Überwachen</div>
+          <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Läuft, solange verbunden</div>
+        </div>
+        <div style="width:1px; background:var(--color-divider); margin:8px 0;"></div>
+        <div style="display:flex; flex-direction:column; gap:6px; min-width:150px; padding:0 var(--space-3);">
+          <svg viewBox="0 0 256 256" width="24" height="24" fill="var(--color-text)"><path d="M40,88H73a32,32,0,0,0,62,0h81a8,8,0,0,0,0-16H135a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16Zm64-24A16,16,0,1,1,88,80,16,16,0,0,1,104,64ZM216,168H199a32,32,0,0,0-62,0H40a8,8,0,0,0,0,16h97a32,32,0,0,0,62,0h17a8,8,0,0,0,0-16Zm-48,24a16,16,0,1,1,16-16A16,16,0,0,1,168,192Z"></path></svg>
+          <div style="font-size:12px; font-weight:600;">4. Jederzeit pausierbar</div>
+          <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Global für alle Medien</div>
+        </div>
+        <div style="width:1px; background:var(--color-divider); margin:8px 0;"></div>
+        <div style="display:flex; flex-direction:column; gap:6px; min-width:150px; padding:0 var(--space-3);">
+          <svg viewBox="0 0 256 256" width="24" height="24" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          <div style="font-size:12px; font-weight:600;">5. Suchen</div>
+          <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Medien &amp; Objekte, mit Filtern eingrenzbar</div>
+        </div>
+        <div style="width:1px; background:var(--color-divider); margin:8px 0;"></div>
+        <div style="display:flex; flex-direction:column; gap:6px; min-width:150px; padding:0 var(--space-3);">
+          <svg viewBox="0 0 256 256" width="24" height="24" fill="var(--color-text)"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72ZM40,56H92.69l16,16H40ZM216,200H40V88H216Z"></path></svg>
+          <div style="font-size:12px; font-weight:600;">6. Ergebnis → Spaltenansicht</div>
+          <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Am richtigen Ort geöffnet</div>
+        </div>
+      </div>
+    </section>
+
+    <nav style="position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:10px var(--space-4); background:color-mix(in srgb, var(--color-bg) 92%, transparent); backdrop-filter:blur(10px); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+<a href="#s00" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">00</span>Konzept</a>
+<a href="#s01" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">01</span>Menüleiste</a>
+<a href="#s02" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">02</span>Erkennung</a>
+<a href="#s03" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">03</span>Dropdown</a>
+<a href="#s04" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">04</span>Übersicht</a>
+<a href="#s05" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">05</span>Einstellungen</a>
+<a href="#s06" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">06</span>Detail</a>
+<a href="#s07" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">07</span>Spalten</a>
+<a href="#s08" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">08</span>Filter-Konzept</a>
+<a href="#s09" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">09</span>Filter-Auswahl</a>
+<a href="#s10" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">10</span>Suche</a>
+<a href="#s11" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">11</span>Favoriten</a>
+<a href="#s12" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">12</span>Kontextmenü</a>
+<a href="#s13" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">13</span>Update</a>
+<a href="#s14" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">14</span>Indizierungsfehler</a>
+<a href="#s15" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">15</span>Absturzbericht</a>
+<a href="#s16" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">16</span>Styleguide</a>
+</nav>
+
+    <!-- ============ 01. MENU BAR ICON ============ -->
+    <section id="s01" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg);">
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">01 — MENÜLEISTEN-ICON <span class="tag tag-outline" style="margin-left:6px;">SYSTEM-UI</span></div>
+      <h3 style="margin-bottom:var(--space-2);">Status auf einen Blick</h3>
+      <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-6);">
+        Haupt-Icon schlank (regular). Nur die Status-Badges sind fett, alle gleich groß: Wird indiziert = grüner Spinner-Ring, Neu erkannt = pulsierender grüner Punkt, Pausiert = X, Fehler = Ausrufezeichen. Online und fertig indiziert = kein Badge.
+      </p>
+
+      <div style="display:flex; align-items:center; gap:var(--space-4); margin-bottom:var(--space-4);">
+        <div style="display:flex; gap:var(--space-4);">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+        <div style="width: 72px; height: 72px; border-radius: var(--radius-lg); background: linear-gradient(160deg, #F4F4F4, #D9D8D8); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md)">
+          <svg viewBox="0 0 256 256" width="48" height="48" fill="#1f1f1f" style="width: 61px; height: 61px"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+        </div>
+        <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Hell</div>
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+        <div style="width: 72px; height: 72px; border-radius: var(--radius-lg); background: linear-gradient(160deg, #575757, #1f1f1f); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-md)">
+          <svg viewBox="0 0 256 256" width="48" height="48" fill="#f2f2f2" style="width: 61px; height: 61px"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+        </div>
+        <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Dunkel</div>
+        </div>
+        </div><div>
+          <div style="font-size:13px; font-weight:600;">App-Icon</div>
+          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Gleiches Motiv wie im Menüleisten-Icon.</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:var(--space-4);">
+        <div style="background:#e9e9e9; height:30px; display:flex; align-items:center; justify-content:flex-end; gap:var(--space-4); padding:0 var(--space-4); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); border-radius:var(--radius-md);">
+          <svg class="ic" viewBox="0 0 256 256" width="17" height="17" fill="#00000088"><path d="M140,204a12,12,0,1,1-12-12A12,12,0,0,1,140,204ZM237.08,87A172,172,0,0,0,18.92,87,8,8,0,0,0,29.08,99.37a156,156,0,0,1,197.84,0A8,8,0,0,0,237.08,87ZM205,122.77a124,124,0,0,0-153.94,0A8,8,0,0,0,61,135.31a108,108,0,0,1,134.06,0,8,8,0,0,0,11.24-1.3A8,8,0,0,0,205,122.77Zm-32.26,35.76a76.05,76.05,0,0,0-89.42,0,8,8,0,0,0,9.42,12.94,60,60,0,0,1,70.58,0,8,8,0,1,0,9.42-12.94Z"></path></svg>
+          <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#00000088"><path d="M200,56H32A24,24,0,0,0,8,80v96a24,24,0,0,0,24,24H200a24,24,0,0,0,24-24V80A24,24,0,0,0,200,56Zm8,120a8,8,0,0,1-8,8H32a8,8,0,0,1-8-8V80a8,8,0,0,1,8-8H200a8,8,0,0,1,8,8ZM144,96v64a8,8,0,0,1-16,0V96a8,8,0,0,1,16,0Zm-40,0v64a8,8,0,0,1-16,0V96a8,8,0,0,1,16,0ZM64,96v64a8,8,0,0,1-16,0V96a8,8,0,0,1,16,0Zm192,0v64a8,8,0,0,1-16,0V96a8,8,0,0,1,16,0Z"></path></svg>
+          <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+        </div>
+        <div style="background:var(--color-text); height:30px; display:flex; align-items:center; justify-content:flex-end; gap:var(--space-6); padding:0 var(--space-4); box-shadow:var(--shadow-sm); border-radius:var(--radius-md);">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; color:#8a8a8e; letter-spacing:.04em;">INDIZIERT</span>
+            <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; color:#8a8a8e; letter-spacing:.04em;">INDIZIERT WIRD</span>
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:12px; height:12px; border-radius:50%; background:#ffffff; display:grid; place-items:center;">
+                <span style="width:8px; height:8px; border-radius:50%; border:2px solid oklch(0.62 0.16 150); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span>
+              </span>
+            </span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; color:#8a8a8e; letter-spacing:.04em;">NEU ERKANNT</span>
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:12px; height:12px; border-radius:50%; background:#ffffff; display:grid; place-items:center;">
+                <span style="width:8px; height:8px; border-radius:50%; background:oklch(0.62 0.16 150); animation:pulse 1.6s ease-in-out infinite;"></span>
+              </span>
+            </span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; color:#8a8a8e; letter-spacing:.04em;">PAUSIERT</span>
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:13px; height:13px; border-radius:50%; background:#ffffff; display:grid; place-items:center;">
+                <span style="position:relative; width:8px; height:8px;">
+                  <span style="position:absolute; top:50%; left:50%; width:8px; height:1.2px; background:var(--color-text); border-radius:1px; transform:translate(-50%,-50%) rotate(45deg);"></span>
+                  <span style="position:absolute; top:50%; left:50%; width:8px; height:1.2px; background:var(--color-text); border-radius:1px; transform:translate(-50%,-50%) rotate(-45deg);"></span>
+                </span>
+              </span>
+            </span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:10px; color:#8a8a8e; letter-spacing:.04em;">FEHLER</span>
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:12px; height:12px; border-radius:50%; background:#ffffff; display:grid; place-items:center; font:800 10px/1 var(--font-heading); color:var(--color-text);">!</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">STATUS-BADGES — WAS GENAU PASSIERT</h5>
+      <div style="display:flex; flex-direction:column; border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:var(--space-4); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider);">
+          <span style="display:inline-flex; align-items:center; justify-content:center; padding:6px; flex:none; background:var(--color-text); border-radius:var(--radius-md);">
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:12px; height:12px; border-radius:50%; background:#ffffff; display:grid; place-items:center;">
+                <span style="width:8px; height:8px; border-radius:50%; border:2px solid oklch(0.62 0.16 150); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span>
+              </span>
+            </span>
+          </span>
+          <div style="min-width:150px; font-size:12px; font-weight:600;">Wird indiziert</div>
+          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Grüner Spinner-Ring am Icon, solange die Erstindizierung oder eine Neu-Indizierung für mindestens ein angeschlossenes Medium läuft.</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:var(--space-4); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider);">
+          <span style="display:inline-flex; align-items:center; justify-content:center; padding:6px; flex:none; background:var(--color-text); border-radius:var(--radius-md);">
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:12px; height:12px; border-radius:50%; background:#ffffff; display:grid; place-items:center;">
+                <span style="width:8px; height:8px; border-radius:50%; background:oklch(0.62 0.16 150); animation:pulse 1.6s ease-in-out infinite;"></span>
+              </span>
+            </span>
+          </span>
+          <div style="min-width:150px; font-size:12px; font-weight:600;">Neu erkannt</div>
+          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Pulsierender grüner Punkt, während der Erkennungs-Dialog (02) auf eine Antwort wartet — verschwindet, sobald „Indizieren“ oder „Nicht indizieren“ gewählt wurde.</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:var(--space-4); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider);">
+          <span style="display:inline-flex; align-items:center; justify-content:center; padding:6px; flex:none; background:var(--color-text); border-radius:var(--radius-md);">
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:13px; height:13px; border-radius:50%; background:#ffffff; display:grid; place-items:center;">
+                <span style="position:relative; width:8px; height:8px;">
+                  <span style="position:absolute; top:50%; left:50%; width:8px; height:1.2px; background:var(--color-text); border-radius:1px; transform:translate(-50%,-50%) rotate(45deg);"></span>
+                  <span style="position:absolute; top:50%; left:50%; width:8px; height:1.2px; background:var(--color-text); border-radius:1px; transform:translate(-50%,-50%) rotate(-45deg);"></span>
+                </span>
+              </span>
+            </span>
+          </span>
+          <div style="min-width:150px; font-size:12px; font-weight:600;">Pausiert</div>
+          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">X-Marker, wenn das automatische Indizieren pausiert ist (03). Die Pause gilt immer global für alle Medien — Indizierung läuft nicht weiter, bis wieder fortgesetzt wird oder die gewählte Dauer abläuft. Bei Fehler hat das Ausrufezeichen Vorrang vor dem X.</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:var(--space-4); padding:var(--space-3) var(--space-4);">
+          <span style="display:inline-flex; align-items:center; justify-content:center; padding:6px; flex:none; background:var(--color-text); border-radius:var(--radius-md);">
+            <span style="position:relative; display:inline-flex; width:18px; height:18px;">
+              <svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; width:12px; height:12px; border-radius:50%; background:#ffffff; display:grid; place-items:center; font:800 10px/1 var(--font-heading); color:var(--color-text);">!</span>
+            </span>
+          </span>
+          <div style="min-width:150px; font-size:12px; font-weight:600;">Fehler</div>
+          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Ausrufezeichen, wenn die Indizierung eines Mediums fehlgeschlagen ist. Klick öffnet die Fehlermeldung mit Grund und der Möglichkeit, es erneut zu versuchen. Das Ausrufezeichen erscheint nur für angeschlossene Medien mit Fehler und hat Vorrang vor der Pause.</div>
+        </div>
+      </div>
+      <p style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:var(--space-2);">Kein Badge = Medium ist online und vollständig indiziert; dieser Zustand bleibt bewusst ohne visuellen Marker (siehe 03).</p>
+    </section>
+
+    <!-- ============ 02. ERKENNUNGS-DIALOG ============ -->
+    <section id="s02" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg);">
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">02 — ERKENNUNGS-DIALOG <span class="tag tag-outline" style="margin-left:6px;">MODAL</span></div>
+      <h3 style="margin-bottom:var(--space-2);">Erkennungs-Dialog</h3>
+      <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-4);">
+        Erscheint sofort beim Anschließen eines neuen, unbekannten Speichermediums. Mit „Für dieses Medium merken“ erscheint der Dialog für dieses Medium nicht mehr; die Entscheidung lässt sich unter Einstellungen → Speichermedien (05) ändern. Das Medium wird beim Anschließen sofort registriert und erscheint sofort in den Einstellungen (Speichermedien). „Indizieren“ startet die Indizierung, „Nicht indizieren“ setzt „Soll indiziert werden“ auf Nein. Ein vergessenes Medium gilt als nie gesehen, der Dialog erscheint beim nächsten Anschließen wieder. Läuft gerade eine Pause, erscheint der Dialog trotzdem.
+      </p>
+      <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
+        <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
+            <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div class="dialog-title" style="font-size:16px;">Neues Speichermedium erkannt</div>
+            <div class="dialog-body" style="font-size:13px;">„Externe Platte 5“ (2 TB) wurde angeschlossen. Soll sie indiziert werden?</div>
+            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked=""><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
+            <div class="dialog-actions">
+              <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Nicht indizieren</button>
+              <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Indizieren</button>
+            </div>
+          </div>
+      </div>
+
+      <div style="margin-top:var(--space-6);">
+        <div class="card-kicker" style="margin-bottom:var(--space-3);">MEHRERE MEDIEN GLEICHZEITIG</div>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Wird ein weiteres Medium angeschlossen, während bereits ein Dialog offen ist, erscheint für jedes ein eigener Dialog. Neue Dialoge liegen versetzt über den vorherigen und überkacheln sie; der zuletzt angeschlossene liegt oben. Erst nach einer Entscheidung wird der darunterliegende Dialog wieder vollständig sichtbar.</p>
+        <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
+          <div style="position:relative; width:396px; height:330px;">
+            <sc-for list="{{ stackDialogs }}" as="d" hint-placeholder-count="3">
+              <div class="dialog" style="position:absolute; left:{{ d.off }}px; top:{{ d.off }}px; width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
+                <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+                <div class="dialog-title" style="font-size:16px;">Neues Speichermedium erkannt</div>
+                <div class="dialog-body" style="font-size:13px;">{{ d.text }}</div>
+                <label class="radio" style="margin-top:4px;"><input type="checkbox" checked=""><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
+                <div class="dialog-actions">
+                  <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Nicht indizieren</button>
+                  <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Indizieren</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+        <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Erkennungs-Dialog. Farben laut Farbrollen · Dark Mode (16).</p>
+        <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
+        <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
+            <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div class="dialog-title" style="font-size:16px;">Neues Speichermedium erkannt</div>
+            <div class="dialog-body" style="font-size:13px;">„Externe Platte 5“ (2 TB) wurde angeschlossen. Soll sie indiziert werden?</div>
+            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked=""><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
+            <div class="dialog-actions">
+              <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Nicht indizieren</button>
+              <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Indizieren</button>
+            </div>
+          </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- ============ 03. DROPDOWN ============ -->
+    <section id="s03" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg);">
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">03 — DROPDOWN <span class="tag tag-outline" style="margin-left:6px;">ANSICHT (POPOVER)</span></div>
+      <h3 style="margin-bottom:var(--space-2);">Schnellübersicht bei Klick</h3>
+      <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-6);">
+        Bei einem komplett neuen Medium mit sehr vielen Dateien steht die Erstindizierung zunächst bis zu 2 Minuten auf 0 %, weil erst die Platte geprüft wird. Statt Ladebalken zeigt die Zeile dann pulsierenden Punkt + „Speichermedium wird geprüft“ ohne Prozentangabe; danach folgt der normale Balken. Derselbe Zustand gilt für ein wieder angeschlossenes, bereits bekanntes Medium: Zwischen dem Erkennen und dem Start einer Indizierung steht „Speichermedium wird geprüft“ statt eines kurzen Sprungs auf 99 %. Folgt keine Indizierung, wechselt die Zeile in den Ruhezustand. Zeigt nur angeschlossene (Online-)Medien. Medien-Icons schlank (regular) — fett nur in der Menüleiste. Ein Status-Chip erscheint nur, solange ein Medium indiziert wird (Spinner). Kein Chip bedeutet: online und vollständig indiziert.
+       Gelber pulsierender Punkt mit „Entscheidung ausstehend“: Das Medium ist online, darf aber noch nicht indiziert werden, weil die Entscheidung im Erkennungs-Dialog fehlt. Ein Klick auf die Zeile öffnet den Erkennungs-Dialog (02) für genau dieses Medium, nicht die Spaltenansicht. Roter pulsierender Punkt mit „Speichermedium fehlerhaft“: Das Medium ist angeschlossen, lässt sich aber nicht lesen (14).</p>
+      <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:calc(-1 * var(--space-4)) 0 var(--space-6);">Automatisches Indizieren: Klick auf „Pausiert“ schaltet nicht sofort um, sondern öffnet ein Popover mit der Dauer (30 Minuten, 1 Stunde, Bis morgen, Für immer). Erst die Auswahl pausiert. Ist bereits pausiert, zeigt das Popover oben „Pausiert für X“ mit Endzeit; die aktive Dauer ist ausgegraut, die anderen ändern die Pause. Klick auf „An“ setzt sofort wieder fort und löscht die Pause. Während der Pause steht beim indizierenden Medium ein Pause-Icon statt des Spinners. Die Pause betrifft nur das Indizieren. Erkennen und Anzeige laufen weiter. „Bis morgen“ endet am nächsten Tag um 9:00 Uhr. Die Pause bleibt nach einem Neustart erhalten. Sind Mitteilungen aktiv, erscheint beim Pausieren die Mitteilung „Indizierung pausiert“ (mit Dauer bzw. Endzeit) und beim Ende der Pause oder beim Klick auf „An“ die Mitteilung „Medien werden wieder indiziert“. Ein Medium, das während der Pause neu angeschlossen wird, löst den Dialog aus und wird nach der Pause automatisch indiziert, sofern es noch online ist.</p>
+
+      <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; align-items:flex-start;">
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">RUHEZUSTAND</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-3) var(--space-2); background:var(--color-surface);">
+          <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
+              <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--color-accent);"></div></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; color:var(--color-accent);">
+              <span style="width:11px; height:11px; border-radius:50%; border:2px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box; flex:none;"></span>
+              <span style="font-size:11px;">{{ capacityLabel }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600;">Unterwegs</div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:4px;"><i class="ph ph-clock" style="font-size:12px; flex:none; -webkit-text-stroke:0.5px currentColor;"></i>heute, 09:14</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 6px; background:color-mix(in srgb, var(--color-text) 6%, transparent); border-radius:var(--radius-sm); margin:0 -6px;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0; font-size:13px; font-weight:600;">Zoom H6-01</div>
+            <button class="btn btn-ghost" style="font-size:12px; gap:4px; padding:4px 8px;">Neu indizieren</button>
+          </div>
+
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">WÄHREND DER SUCHE — TOP 3 JE KATEGORIE</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <div style="position:relative; flex:1;">
+            <input class="input" value="rechnung" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+          </div>
+        </div>
+        <div style="padding:var(--space-4); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-3);">
+          <div>
+            <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:6px;">DATEIEN</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; color:color-mix(in srgb, var(--color-text) 70%, transparent);"><svg viewBox="0 0 256 256" width="15" height="15" fill="color-mix(in srgb, var(--color-text) 60%, transparent)"><path d="M224,152a8,8,0,0,1-8,8H192v16h16a8,8,0,0,1,0,16H192v16a8,8,0,0,1-16,0V152a8,8,0,0,1,8-8h32A8,8,0,0,1,224,152ZM92,172a28,28,0,0,1-28,28H56v8a8,8,0,0,1-16,0V152a8,8,0,0,1,8-8H64A28,28,0,0,1,92,172Zm-16,0a12,12,0,0,0-12-12H56v24h8A12,12,0,0,0,76,172Zm88,8a36,36,0,0,1-36,36H112a8,8,0,0,1-8-8V152a8,8,0,0,1,8-8h16A36,36,0,0,1,164,180Zm-16,0a20,20,0,0,0-20-20h-8v40h8A20,20,0,0,0,148,180ZM40,112V40A16,16,0,0,1,56,24h96a8,8,0,0,1,5.66,2.34l56,56A8,8,0,0,1,216,88v24a8,8,0,0,1-16,0V96H152a8,8,0,0,1-8-8V40H56v72a8,8,0,0,1-16,0ZM160,80h28.69L160,51.31Z"></path></svg><span style="max-width:150px; overflow:hidden; white-space:nowrap; text-overflow:clip; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">rechnung_2021_q1.pdf</span><span style="color:color-mix(in srgb, var(--color-text) 45%, transparent); flex:none;"> – Unterwegs</span></div>
+            <div style="display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; color:color-mix(in srgb, var(--color-text) 70%, transparent);"><svg viewBox="0 0 256 256" width="15" height="15" fill="color-mix(in srgb, var(--color-text) 60%, transparent)"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z"></path></svg><span style="max-width:130px; overflow:hidden; white-space:nowrap; text-overflow:clip; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">rechnung_2021_mahnung_final.pdf</span><span style="color:color-mix(in srgb, var(--color-text) 45%, transparent); flex:none;"> – Masterarbeit Backup</span></div>
+          </div>
+          <div>
+            <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:6px;">ORDNER</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; color:color-mix(in srgb, var(--color-text) 70%, transparent);"><svg viewBox="0 0 256 256" width="15" height="15" fill="color-mix(in srgb, var(--color-text) 60%, transparent)"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72ZM40,56H92.69l16,16H40ZM216,200H40V88H216Z"></path></svg>Rechnungen_2021<span style="color:color-mix(in srgb, var(--color-text) 45%, transparent); flex:none;"> – Studio Backup</span></div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Alle 9 Ergebnisse anzeigen</button>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">SUCHE LÄUFT — DAUERT LÄNGER</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <div style="position:relative; flex:1;">
+            <input class="input" value="rechnung" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
+          <i class="ph ph-circle-notch spin-ic" style="font-size:32px; color:oklch(0.62 0.16 255);"></i>
+          <div style="font:600 13px var(--font-heading); color:color-mix(in srgb, var(--color-text) 70%, transparent); text-wrap:pretty;">Deine 12 Speichermedien und 48.230 Dateien werden durchsucht …</div>
+          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">… einen Moment bitte.</div>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">KEIN SUCHERGEBNIS</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <div style="position:relative; flex:1;">
+            <input class="input" value="rechnung_2031" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
+          <svg viewBox="0 0 256 256" width="32" height="32" fill="oklch(0.62 0.16 255)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          <div style="font:600 13px var(--font-heading); color:color-mix(in srgb, var(--color-text) 70%, transparent);">Keine Suchergebnisse</div>
+          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 55%, transparent); text-wrap:pretty;">Suchbegriff ändern.</div>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">HOVER AUF EINEN DATEI-EINTRAG</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <div style="position:relative; flex:1;">
+            <input class="input" value="rechnung" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+          </div>
+        </div>
+        <div style="padding:var(--space-4); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-3);">
+          <div>
+            <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:6px;">DATEIEN</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:5px 6px; margin:0 -6px; font-size:12px; color:var(--color-text); background:color-mix(in srgb, var(--color-text) 8%, transparent); border-radius:var(--radius-sm);"><svg viewBox="0 0 256 256" width="15" height="15" fill="color-mix(in srgb, var(--color-text) 60%, transparent)"><path d="M252.44,121.34l-48-32A8,8,0,0,0,192,96v24H72V72h33a32,32,0,1,0,0-16H72A16,16,0,0,0,56,72v48H8a8,8,0,0,0,0,16H56v48a16,16,0,0,0,16,16h32v8a16,16,0,0,0,16,16h32a16,16,0,0,0,16-16V176a16,16,0,0,0-16-16H120a16,16,0,0,0-16,16v8H72V136H192v24a8,8,0,0,0,12.44,6.66l48-32a8,8,0,0,0,0-13.32ZM136,48a16,16,0,1,1-16,16A16,16,0,0,1,136,48ZM120,176h32v32H120Zm88-30.95V111l25.58,17Z"></path></svg>Rechnungen_2021<span style="color:color-mix(in srgb, var(--color-text) 45%, transparent); flex:none;"> – Studio Backup</span></div>
+            <div style="display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; color:color-mix(in srgb, var(--color-text) 70%, transparent);"><svg viewBox="0 0 256 256" width="15" height="15" fill="color-mix(in srgb, var(--color-text) 60%, transparent)"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31,188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-32-80a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,136Zm0,32a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,168Z"></path></svg><span style="max-width:130px; overflow:hidden; white-space:nowrap; text-overflow:clip; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">rechnung_2021_mahnung_final.pdf</span><span style="color:color-mix(in srgb, var(--color-text) 45%, transparent); flex:none;"> – Masterarbeit Backup</span></div>
+          </div>
+          <div>
+            <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:6px;">ORDNER</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12px; color:color-mix(in srgb, var(--color-text) 70%, transparent);"><svg viewBox="0 0 256 256" width="15" height="15" fill="color-mix(in srgb, var(--color-text) 60%, transparent)"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72ZM40,56H92.69l16,16H40ZM216,200H40V88H216Z"></path></svg>Rechnungen_2021<span style="color:color-mix(in srgb, var(--color-text) 45%, transparent); flex:none;"> – Studio Backup</span></div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Alle 9 Ergebnisse anzeigen</button>
+        </div>
+      </div>
+      <div style="font-size:10px; color:color-mix(in srgb, var(--color-text) 50%, transparent); max-width:340px; margin-top:8px;">Hover: dezente graue Hinterlegung der ganzen Zeile. „Im Finder anzeigen“ per Rechtsklick (Kontextmenü, 12) und bei Online-Medien zusätzlich als Button in der Detail-Spalte.</div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">NEU ODER WIEDER ANGESCHLOSSEN — SPEICHERMEDIUM WIRD GEPRÜFT</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-3) var(--space-2); background:var(--color-surface);">
+          <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600;">Externe Platte 5</div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; flex:none; border-radius:50%; background:#E04830; animation:pulse 1.6s ease-in-out infinite;"></span>Speichermedium fehlerhaft</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600;">Zoom H6-01</div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; flex:none; border-radius:50%; background:oklch(0.62 0.16 150); animation:pulse 1.6s ease-in-out infinite;"></span>Speichermedium wird geprüft</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; flex:none; border-radius:50%; background:#EDA12D; animation:pulse 1.6s ease-in-out infinite;"></span>Entscheidung ausstehend</div>
+            </div>
+          </div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
+
+      <div style="position:relative; margin-bottom:170px;">
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">PAUSIEREN — AUSWAHL BEI „AN“</div>
+      <div style="position:relative;">
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-3) var(--space-2); background:var(--color-surface);">
+          <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
+              <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--color-accent);"></div></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; color:var(--color-accent);">
+              <span style="width:11px; height:11px; border-radius:50%; border:2px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box; flex:none;"></span>
+              <span style="font-size:11px;">{{ capacityLabel }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600;">Unterwegs</div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:4px;"><i class="ph ph-clock" style="font-size:12px; flex:none; -webkit-text-stroke:0.5px currentColor;"></i>heute, 09:14</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 6px; background:color-mix(in srgb, var(--color-text) 6%, transparent); border-radius:var(--radius-sm); margin:0 -6px;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0; font-size:13px; font-weight:600;">Zoom H6-01</div>
+            <button class="btn btn-ghost" style="font-size:12px; gap:4px; padding:4px 8px;">Neu indizieren</button>
+          </div>
+
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+          <div style="position:absolute; right:16px; top:calc(100% - 54px); width:210px; padding:5px; background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:2;">
+            <div style="position:absolute; top:-6px; right:30px; width:11px; height:11px; background:var(--color-bg); border:1px solid var(--color-divider); border-bottom:none; border-right:none; transform:rotate(45deg);"></div>
+            <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); padding:6px 10px 4px;">PAUSIEREN FÜR</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--color-accent); color:#fff;"><span style="width:14px; flex:none;"></span>30 Minuten</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--color-accent); color:#fff;"><span style="width:14px; flex:none;"></span>1 Stunde</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--color-accent); color:#fff;"><span style="width:14px; flex:none;"></span>Bis morgen</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--color-accent); color:#fff;"><span style="width:14px; flex:none;"></span>Für immer</div>
+          </div>
+      </div>
+      </div>
+
+      <div style="position:relative; margin-bottom:170px;">
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">PAUSIEREN — AUSWAHL BEI „PAUSIERT“</div>
+      <div style="position:relative;">
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-3) var(--space-2); background:var(--color-surface);">
+          <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
+              <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--color-accent);"></div></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; color:var(--color-accent);">
+              <i class="ph ph-pause" style="font-size:12px; color:var(--color-text);"></i>
+              <span style="font-size:11px;">{{ capacityLabel }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600;">Unterwegs</div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:4px;"><i class="ph ph-clock" style="font-size:12px; flex:none; -webkit-text-stroke:0.5px currentColor;"></i>heute, 09:14</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 6px; background:color-mix(in srgb, var(--color-text) 6%, transparent); border-radius:var(--radius-sm); margin:0 -6px;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0; font-size:13px; font-weight:600;">Zoom H6-01</div>
+            <button class="btn btn-ghost" style="font-size:12px; gap:4px; padding:4px 8px;">Neu indizieren</button>
+          </div>
+
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-neutral-700);">
+            <button style="border:none; padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-neutral-700); padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-neutral-800); color:#fff; cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+          <div style="position:absolute; right:16px; top:calc(100% - 54px); width:210px; padding:5px; background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:2;">
+            <div style="position:absolute; top:-6px; right:30px; width:11px; height:11px; background:var(--color-bg); border:1px solid var(--color-divider); border-bottom:none; border-right:none; transform:rotate(45deg);"></div>
+            <div style="padding:6px 10px 8px; margin-bottom:4px; border-bottom:1px solid var(--color-divider);"><div style="font-size:12px; font-weight:600;">Pausiert für 1 Stunde</div><div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px;">bis 15:42 Uhr</div></div>
+            <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); padding:4px 10px;">ÄNDERN AUF</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--color-accent); color:#fff;"><span style="width:14px; flex:none;"></span>30 Minuten</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm); opacity:.4; cursor:default;"><i class="ph ph-check" style="font-size:14px;"></i>1 Stunde</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--color-accent); color:#fff;"><span style="width:14px; flex:none;"></span>Bis morgen</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--color-accent); color:#fff;"><span style="width:14px; flex:none;"></span>Für immer</div>
+          </div>
+      </div>
+      </div>
+
+      </div>
+    
+      <div data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+        <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Dropdown im Ruhezustand und Pause-Auswahl. Farben laut Farbrollen · Dark Mode (16).</p>
+        <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; align-items:flex-start;">
+<div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">RUHEZUSTAND</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-3) var(--space-2); background:var(--color-surface);">
+          <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.72 0.14 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
+              <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--di-sel);"></div></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; color:var(--color-accent);">
+              <span style="width:11px; height:11px; border-radius:50%; border:2px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box; flex:none;"></span>
+              <span style="font-size:11px;">{{ capacityLabel }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600;">Unterwegs</div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; flex:none; border-radius:50%; background:#EDA12D; animation:pulse 1.6s ease-in-out infinite;"></span>Entscheidung ausstehend</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 6px; background:color-mix(in srgb, var(--color-text) 6%, transparent); border-radius:var(--radius-sm); margin:0 -6px;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0; font-size:13px; font-weight:600;">Zoom H6-01</div>
+            <button class="btn btn-ghost" style="font-size:12px; gap:4px; padding:4px 8px;">Neu indizieren</button>
+          </div>
+
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--di-sel); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
+        
+<div style="position:relative; margin-bottom:170px;">
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">PAUSIEREN — AUSWAHL BEI „AN“</div>
+      <div style="position:relative;">
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-3) var(--space-2); background:var(--color-surface);">
+          <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.72 0.14 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
+              <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--di-sel);"></div></div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px; color:var(--color-accent);">
+              <span style="width:11px; height:11px; border-radius:50%; border:2px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box; flex:none;"></span>
+              <span style="font-size:11px;">{{ capacityLabel }}</span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:13px; font-weight:600;">Unterwegs</div>
+              <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:4px;"><i class="ph ph-clock" style="font-size:12px; flex:none; -webkit-text-stroke:0.5px currentColor;"></i>heute, 09:14</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 6px; background:color-mix(in srgb, var(--color-text) 6%, transparent); border-radius:var(--radius-sm); margin:0 -6px;">
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--color-text)"><path d="M152,96H104a8,8,0,0,0-8,8v48a8,8,0,0,0,8,8h48a8,8,0,0,0,8-8V104A8,8,0,0,0,152,96Zm-8,48H112V112h32Zm88,0H216V112h16a8,8,0,0,0,0-16H216V56a16,16,0,0,0-16-16H160V24a8,8,0,0,0-16,0V40H112V24a8,8,0,0,0-16,0V40H56A16,16,0,0,0,40,56V96H24a8,8,0,0,0,0,16H40v32H24a8,8,0,0,0,0,16H40v40a16,16,0,0,0,16,16H96v16a8,8,0,0,0,16,0V216h32v16a8,8,0,0,0,16,0V216h40a16,16,0,0,0,16-16V160h16a8,8,0,0,0,0-16Zm-32,56H56V56H200v95.87s0,.09,0,.13,0,.09,0,.13V200Z"></path></svg>
+            <div style="flex:1; min-width:0; font-size:13px; font-weight:600;">Zoom H6-01</div>
+            <button class="btn btn-ghost" style="font-size:12px; gap:4px; padding:4px 8px;">Neu indizieren</button>
+          </div>
+
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--di-sel); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+          <div style="position:absolute; right:16px; top:calc(100% - 54px); width:210px; padding:5px; background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-md); box-shadow:var(--shadow-lg); z-index:2;">
+            <div style="position:absolute; top:-6px; right:30px; width:11px; height:11px; background:var(--color-bg); border:1px solid var(--color-divider); border-bottom:none; border-right:none; transform:rotate(45deg);"></div>
+            <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); padding:6px 10px 4px;">PAUSIEREN FÜR</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--di-sel); color:#fff;"><span style="width:14px; flex:none;"></span>30 Minuten</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--di-sel); color:#fff;"><span style="width:14px; flex:none;"></span>1 Stunde</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--di-sel); color:#fff;"><span style="width:14px; flex:none;"></span>Bis morgen</div>
+            <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--di-sel); color:#fff;"><span style="width:14px; flex:none;"></span>Für immer</div>
+          </div>
+      </div>
+      </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 04. MAIN APP — DASHBOARD ============ -->
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { showAbs: false, scanDepth: 5 };
+  renderVals() {
+    const stackDialogs = [['3','1 TB'],['4','4 TB'],['5','2 TB']].map((m,i)=>({off:i*28,text:`„Externe Platte ${m[0]}“ (${m[1]}) wurde angeschlossen. Soll sie indiziert werden?`}));
+    const toggleCapacity = () => this.setState(s => ({ showAbs: !s.showAbs }));
+    const capacityLabel = this.state.showAbs ? '0,57 TB / 4,1 TB' : '14 %';
+    const depth = this.state.scanDepth;
+    const setDepth = (e) => this.setState({ scanDepth: Number(e.target.value) });
+    const depthLabel = depth >= 5 ? '5+ Ebenen (alle)' : depth + ' Ebenen';
+    const names = ['Festplatte', 'Unterordner 1', 'Unterordner 2', 'Unterordner 3', 'Unterordner 4', 'Unterordner 5'];
+    let crumbs;
+    if (depth >= 5) {
+      crumbs = [{ text: 'Festplatte', state: 'captured' }, { text: 'maximale Indextiefe', state: 'last' }];
+    } else {
+      const captured = names.slice(0, depth);
+      crumbs = captured.map((text, i) => ({ text, state: i === captured.length - 1 ? 'last' : 'captured' }));
+    }
+    const styleFor = { captured: '', last: 'color:var(--color-accent-700); font-style:normal;', next: 'color:color-mix(in srgb, var(--color-text) 35%, transparent);' };
+    crumbs = crumbs.map((c, i) => ({ ...c, isLast: i === crumbs.length - 1, style: styleFor[c.state] || '' }));
+    const evs = [
+      { label: 'Systemmeldungen', icon: 'info', color: 'var(--color-text)', text: 'Die Pause ist abgelaufen. Automatisches Indizieren ist wieder an.' },
+      { label: 'Speichermedium vollständig indiziert', icon: 'check-circle', color: 'oklch(0.62 0.16 150)', text: 'Medium „Masterarbeit Backup“ ist vollständig indiziert – 48 210 Objekte' },
+      { label: 'Speichermedium mit Favoriten angeschlossen', icon: 'bookmarks-simple', color: 'oklch(0.62 0.16 305)', text: 'Medium „Unterwegs“ mit 1 Favoriten ist online' }
+    ];
+    const notif = evs[this.state.notifHover ?? 0];
+    const notifEvents = evs.map((e, i) => ({ ...e, enter: () => this.setState({ notifHover: i }), leave: () => this.setState({ notifHover: null }) }));
+    const notifOn = this.state.notifOn ?? true;
+    const toggleNotif = () => this.setState({ notifOn: !notifOn });
+    const mode = this.state.appearance ?? 'A';
+    const sel = k => mode === k;
+    const ap = { setL: () => this.setState({ appearance: 'L' }), setD: () => this.setState({ appearance: 'D' }), setA: () => this.setState({ appearance: 'A' }) };
+    ['L','D','A'].forEach(k => { ap['bg'+k] = sel(k) ? 'var(--color-accent)' : 'transparent'; ap['fg'+k] = sel(k) ? '#fff' : 'color-mix(in srgb, var(--color-text) 55%, transparent)'; });
+    ap.nightClip = mode === 'L' ? 'inset(0 0 0 100%)' : mode === 'D' ? 'inset(0 0 0 0)' : 'inset(0 0 0 50%)';
+    ap.stars = mode === 'L' ? 0 : 1;
+    ap.sunLeft = mode === 'D' ? '18%' : '22%'; ap.sunTop = mode === 'D' ? '70px' : '14px';
+    ap.moonLeft = mode === 'L' ? '76%' : mode === 'D' ? '46%' : '76%'; ap.moonTop = mode === 'L' ? '70px' : '14px';
+    const mk = (key, def, selBg) => { const m = this.state[key] ?? def; const o = { setL: () => this.setState({ [key]: 'L' }), setD: () => this.setState({ [key]: 'D' }), setA: () => this.setState({ [key]: 'A' }) };
+      ['L','D','A'].forEach(k => { o['bg'+k] = m === k ? selBg : 'transparent'; o['fg'+k] = m === k ? '#fff' : 'color-mix(in srgb, var(--color-text) 55%, transparent)'; });
+      o.nightClip = m === 'L' ? 'inset(0 0 0 100%)' : m === 'D' ? 'inset(0 0 0 0)' : 'inset(0 0 0 50%)'; o.stars = m === 'L' ? 0 : 1;
+      o.sunLeft = m === 'D' ? '18%' : '22%'; o.sunTop = m === 'D' ? '70px' : '14px'; o.moonLeft = m === 'D' ? '46%' : '76%'; o.moonTop = m === 'L' ? '70px' : '14px'; return o; };
+    const apd = mk('appearanceDark', 'D', 'var(--di-sel)');
+    return { stackDialogs, ap, apd, notif, notifEvents, notifOn, notifOff: !notifOn, toggleNotif, notifOpacity: notifOn ? 1 : 0.45, notifCursor: notifOn ? 'pointer' : 'default', toggleCapacity, capacityLabel, showLastSeen: !this.state.showAbs, depth, depthLabel, setDepth, crumbs };
+  }
+}
+</script>
+</body>
+</html>

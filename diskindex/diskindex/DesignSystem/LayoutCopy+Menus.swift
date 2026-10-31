@@ -13,6 +13,7 @@ nonisolated extension LayoutCopy {
     static var tableStatus: String { L10n.string("copy.table.column.status") }
     static var contextShowContent: String { L10n.string("copy.context.show_content") }
     static var contextDetails: String { L10n.string("copy.context.details") }
+    static var contextSetName: String { L10n.string("copy.context.set_name") }
     static var contextShowInFinder: String { L10n.string("copy.context.show_in_finder") }
     static var contextFavorite: String { L10n.string("copy.context.favorite") }
     static var contextSearchName: String { L10n.string("copy.context.search_name") }

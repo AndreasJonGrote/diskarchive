@@ -55,4 +55,4 @@ Disk Archive beenden, die App aus „Programme“ in den Papierkorb legen. Um au
 - ~~Schritt 4–6 nachstellen, Wortlaute macOS 15 und 27~~ – erledigt 30.10. (`todo.0.4.1.002`, Screenshots des Nutzers auf macOS 27).
 - ~~macOS 27: „Beim Anmelden starten“ mit Quarantäne~~ – bestanden 30.10.
 - Ob die Rückfrage „Wechseldatenträger“ auch bei fest verbauten externen SSDs kommt (offen, kein Hindernis).
-- Link der Download-Seite: `https://www.diskarchive.app/download/` lieferte am 30.10. noch 404; Datei `Disk-Archive-0.4.1.dmg`.
+- Download-Seite entfällt (Nutzer 31.10.); das DMG `Disk-Archive-0.4.1.dmg` gibt der Nutzer direkt weiter. In 0.4.1 öffnet der Update-Knopf noch `…/download/` (404), ab 0.4.2 die Startseite.

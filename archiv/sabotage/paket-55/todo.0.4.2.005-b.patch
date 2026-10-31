@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/MediumNamingTests/escapeCancelsAndAClickOnTheCardDoesNotOpenIt()
+--- a/diskindex/diskindex/Views/Detail/MediumNameEditor.swift	2026-10-31 11:54:57
++++ b/diskindex/diskindex/Views/Detail/MediumNameEditor.swift	2026-10-31 11:54:57
+@@ -70,7 +70,7 @@
+                         }
+                         .focused($focused)
+                         .onSubmit(commit)
+-                        .onExitCommand(perform: cancel)
++                        .onExitCommand(perform: commit)
+                         .onChange(of: focused) { wasFocused, isFocused in
+                             if wasFocused, !isFocused { commit() }
+                         }

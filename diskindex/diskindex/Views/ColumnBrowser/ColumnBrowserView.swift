@@ -308,6 +308,7 @@ struct ColumnBrowserView: View {
                             fadeTitleWhenSelected: true,
                             fadeTitleOnOverflow: true,
                             contextTarget: sidebarContextTarget(for: medium),
+                            namingMedium: medium,
                             onSelect: { selectMedium(medium.id) }
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)

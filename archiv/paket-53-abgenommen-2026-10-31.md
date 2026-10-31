@@ -1,5 +1,4 @@
-# Paket 53 — Zielversion 0.4.2 (freigegeben 30.10.2026)
-
+# Paket 53 — Zielversion 0.4.2 (freigegeben 30.10., abgenommen 31.10.2026)
 Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Befunde in drei Stufen, Regel 12; Invarianten in `konzept/architektur.md`). Herkunft: Nutzer 30.10. („Filter: Ordner ohne Treffer leise statt ausblenden“, Wartescreen, Option „Ordner weiterhin anzeigen“ entfällt). Konzept: `konzept/suche-navigation.md` (Abschnitt 5, Filter in der Spaltenansicht), `konzept/einstellungen-start.md` (Voreinstellungen), `konzept/datenbank.md` (Baum ohne gespeicherten Pfad, `parentID`).
 
 **Layout:** `layout/ab 0.4.2/App: Layout.dc.html`, **freigegeben nur** die Abschnitte „Filter auf dem ganzen Medium“, „Ordner ohne Treffer geöffnet“ und „Filter wird angewendet“ (Spaltenansicht, je hell und dunkel). Alles andere aus `ab 0.4.2` bleibt tabu.
@@ -12,6 +11,24 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
 - Neue Texte immer de und en, im Status unter „Neue Texte:“.
 
 **Reihenfolge (HALT am Ende):** `todo.0.4.2.003`. **HALT.**
+
+## Abnahme Host 31.10. (Gesamtlauf 00:18–00:55)
+
+- Diff gelesen (Pakete 52 und 53): nichts Wesentliches. Korrektur 30.10. 21:00 (`LayoutCopyTests` nimmt genau den entfallenen Text aus) geprüft.
+- Gesamtlauf: Debug und Release 0 Warnungen, seriell 1271/1271, parallel 3× grün (je 1264, 7 übersprungen), Sabotage 12/12 rot, keine `.ips`, 0 neue Dateien in `~/Library/Preferences`, App des Nutzers 00:55:02, Version 0.4.1.
+- Fragen des Workers: Unterstreichungsabstand Standard (SwiftUI); Kopf-Zähler und blaue Auswahl aus dem Layout, so gelassen.
+- Patches: `archiv/sabotage/paket-52/`, `archiv/sabotage/paket-53/`.
+
+
+## Korrektur Host 30.10. 21:00 (Gesamtlauf 20:41, abgebrochen nach seriell)
+
+Code gelesen (Pakete 52, 53): nichts Wesentliches. Build 0 Warnungen. **Seriell 1270/1271, ein Test rot:** `LayoutCopyTests/windowLinesFromTheLayoutAreInLayoutCopy` („fehlt in LayoutCopy: Ordner weiterhin anzeigen“). Ursache: Der Test liest alle Fenstertexte aus `layout/bis 0.4.1/Disk Index App.dc.html`; der Text ist mit `todo.0.4.2.003` bewusst entfallen (Nutzer 30.10.). Nutzer sieht nichts; der Gesamtlauf ist aber rot.
+- **Korrektur (Teil von `todo.0.4.2.003`):** im Test eine Ausnahme für genau diesen Text, mit Kommentar `todo.0.4.2.003: Option entfällt (Nutzer 30.10.)`. Keine allgemeine Ausnahmeliste, kein anderer Text, nichts am Layout. Prüfe in `LayoutCopyTests` und den übrigen Layout-Texttests (`grep -rn "weiterhin" diskindex/diskindexTests`), ob noch ein Test den Text erwartet.
+- **Test:** `LayoutCopyTests` rot vor, grün nach der Änderung; dazu `LayoutCheckboxTests`, `ColumnFilterTests`, `EnglishLocalizationTests` grün. Kein Patch nötig.
+- **Antworten auf deine Fragen:** Unterstreichungsabstand: Standard von SwiftUI reicht. Zähler im Spaltenkopf und blaue Auswahl mit Filter: so lassen (aus dem Layout richtig abgeleitet).
+- **Status:** eine Zeile unter diese Korrektur, dann „Bereit zur Prüfung“.
+
+Status: `LayoutCopyTests` filtert genau „Ordner weiterhin anzeigen“ heraus (Kommentar wie verlangt); `grep weiterhin` findet sonst nur Kommentare. Rot 00:02 (1 issue), grün 00:03–00:04: LayoutCopyTests, ColumnFilterTests, EnglishLocalizationTests, WindowTestGroup/LayoutCheckboxTests; 0 Warnungen. Bereit zur Prüfung.
 
 ## Aufgaben
 

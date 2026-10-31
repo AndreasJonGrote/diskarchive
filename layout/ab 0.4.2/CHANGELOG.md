@@ -1,6 +1,6 @@
 # Disk Archive – Änderungsprotokoll
 
-Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angegeben.
+Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angegeben. Seit 2026-10-31 aufgeteilt in `App-Layout 00-03 …` bis `App-Layout 16 …`, Gesamtansicht in `App-Layout Gesamt.dc.html`.
 
 ## 2026-10-29
 

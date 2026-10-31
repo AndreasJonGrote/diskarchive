@@ -72,7 +72,7 @@ struct UpdateAvailableDialog: View {
                 .pointerCursor()
 
                 Button {
-                    appState.openUpdateDownload()
+                    appState.openUpdateWebsite()
                 } label: {
                     Text(LayoutCopy.updateAvailableDownload).frame(maxWidth: .infinity)
                 }

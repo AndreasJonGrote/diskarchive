@@ -269,6 +269,22 @@ extension AppState {
         }
     }
 
+    /// todo.0.4.2.005: „Benennen“ – in der Kachel oder der Seitenleiste an Ort und Stelle (`place`), sonst im
+    /// Details-Modal mit Fokus im Feld „Eigener Name“. Eine laufende Bearbeitung übernimmt ihr Feld beim Verschwinden.
+    func beginNaming(mediumID: UUID, inline place: MediumNamingPlace?) {
+        guard featureAccess.canWriteIndex, medium(with: mediumID) != nil else { return }
+        DiskIndexLog.shared.ui("naming id=\(mediumID) inline=\(place != nil)")
+        mediumNaming = MediumNaming(mediumID: mediumID, place: place ?? .detailsModal)
+        if place == nil {
+            MediumNavigation.openDetails(for: mediumID, appState: self)
+        }
+    }
+
+    /// Bearbeitung beendet (übernommen oder abgebrochen); eine inzwischen begonnene andere bleibt.
+    func endNaming(_ naming: MediumNaming) {
+        if mediumNaming == naming { mediumNaming = nil }
+    }
+
     func forgetMedium(id: UUID) {
         guard featureAccess.canWriteIndex else { return }
         DiskIndexLog.shared.ui("forget id=\(id)")
@@ -520,4 +536,16 @@ final class IndexProgressDisplay {
         if clock < 1 { return clock }
         return now < expiresAt ? 1 : nil
     }
+}
+
+/// todo.0.4.2.005: Ort einer „Benennen“-Bearbeitung.
+enum MediumNamingPlace: Equatable {
+    case dashboardCard
+    case columnSidebar
+    case detailsModal
+}
+
+struct MediumNaming: Equatable {
+    var mediumID: UUID
+    var place: MediumNamingPlace
 }

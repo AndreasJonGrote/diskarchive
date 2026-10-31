@@ -1,5 +1,4 @@
-# Paket 52 — Zielversion 0.4.2 (freigegeben 30.10.2026)
-
+# Paket 52 — Zielversion 0.4.2 (freigegeben 30.10., abgenommen 31.10.2026)
 Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Befunde in drei Stufen, Regel 12; Invarianten in `konzept/architektur.md`). Herkunft: Nutzer 30.10. (drei Funktionen für 0.4.2, Layout freigegeben für genau diese Abschnitte). Konzept: `konzept/suche-navigation.md` (Filter, Medium-Auswahl), `konzept/medien.md` (eigener Name), `konzept/datenbank.md` (`storage_meta`).
 
 **Layout:** `layout/ab 0.4.2/App: Layout.dc.html`. **Freigegeben sind nur** die Abschnitte „Medium — alle ausgewählt“, „Medium — Suche „SSD““ (Filter-Popover, hell und dunkel), die Zeile „Eigener Name“ im Details-Modal und im Dashboard die Kachel „Lauras Platte / Studio Backup“ (zweite Zeile mit dem Originalnamen, Auslaufen rechts). **Nicht** umsetzen, auch wenn es im selben Abschnitt zu sehen ist: Knopf „Auswerfen“ beim Hover, Chip „Wird geprüft“ und alles Übrige aus `ab 0.4.2`.
@@ -12,6 +11,14 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md) (15 Regeln; Be
 - Neue Texte immer de und en, im Status unter „Neue Texte:“.
 
 **Reihenfolge:** `todo.0.4.2.001`, `todo.0.4.2.002`. Danach **Paket 53** (siehe PROMPT.md).
+
+## Abnahme Host 31.10. (Gesamtlauf 00:18–00:55)
+
+- Diff gelesen (Pakete 52 und 53): nichts Wesentliches. Korrektur 30.10. 21:00 (`LayoutCopyTests` nimmt genau den entfallenen Text aus) geprüft.
+- Gesamtlauf: Debug und Release 0 Warnungen, seriell 1271/1271, parallel 3× grün (je 1264, 7 übersprungen), Sabotage 12/12 rot, keine `.ips`, 0 neue Dateien in `~/Library/Preferences`, App des Nutzers 00:55:02, Version 0.4.1.
+- Fragen des Workers: Unterstreichungsabstand Standard (SwiftUI); Kopf-Zähler und blaue Auswahl aus dem Layout, so gelassen.
+- Patches: `archiv/sabotage/paket-52/`, `archiv/sabotage/paket-53/`.
+
 
 ## Aufgaben
 

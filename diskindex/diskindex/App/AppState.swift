@@ -281,6 +281,8 @@ final class AppState {
     /// Hochzählen = Objekt-Suchfeld verliert den Fokus (Scaffold reagiert, Aufgabe 28).
     var searchFieldFocusResetCount = 0
     var detailMediumID: UUID?
+    /// todo.0.4.2.005: laufendes „Benennen“ (eine Bearbeitung zur Zeit).
+    var mediumNaming: MediumNaming?
     /// FIFO: verbundene Medien, die noch Ja/Nein im Erkennungs-Dialog brauchen (0.3.2).
     var pendingNewMediumDecisionIDs: [UUID] = []
     /// Panels, die der Nutzer ohne Ja/Nein geschlossen hat (Badge/Queue bleiben).

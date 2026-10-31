@@ -68,8 +68,8 @@ struct UpdateDialogTests {
         #expect(app.updateNotice != nil, "Sperre ohne Dialog bei ausgeschalteter Einstellung")
     }
 
-    /// „Zur neuen Version“ öffnet die Download-Seite (Testhaken) und speichert den Haken.
-    @Test func getTheNewVersionOpensTheDownloadPage() async throws {
+    /// todo.0.4.2.004: „Zur neuen Version“ öffnet die Startseite (Testhaken) und speichert den Haken.
+    @Test func getTheNewVersionOpensTheWebsite() async throws {
         let app = AppState()
         var opened: [URL] = []
         app.openExternalURL = { opened.append($0) }
@@ -80,7 +80,7 @@ struct UpdateDialogTests {
         let buttons = Self.controls(in: session.window, height: 24...40).sorted { $0.minX < $1.minX }
         try #require(buttons.count == 2, "Knöpfe: \(buttons)")
         session.click(at: CGPoint(x: buttons[1].midX, y: buttons[1].midY))
-        #expect(opened.map(\.absoluteString) == ["https://www.diskarchive.app/download/"], "geöffnet: \(opened)")
+        #expect(opened.map(\.absoluteString) == ["https://diskarchive.app"], "geöffnet: \(opened)")
         #expect(app.updateNotice == nil)
         #expect(app.appSettings.notifyAboutUpdates, "Haken blieb an, Einstellung muss an bleiben")
     }

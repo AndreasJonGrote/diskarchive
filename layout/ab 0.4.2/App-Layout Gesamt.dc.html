@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="ds-disk-archive.css">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>
+    .measure-root[data-all] *:not([data-measure-overlay]):not([data-measure-overlay] *) { outline:1px solid rgb(0 140 255 / .18); outline-offset:-1px; }
+
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+    .spin-ic { display: inline-block; animation: spin 1.8s linear infinite; }
+    .ph-duotone.duo80 { --ph-duotone-opacity: .95; }
+    .ph-duotone.duo80:after { opacity: .95 !important; }
+    .ph-duotone.duo100 { --ph-duotone-opacity: 1; }
+    .ph-duotone.duo100:after { opacity: 1 !important; }
+    .ic { display: inline-block; vertical-align: middle; flex: none; }
+    .finder-hover-row .finder-hover { opacity: 0; transition: opacity .12s ease; }
+    .finder-hover-row:hover .finder-hover { opacity: 1; }
+    .eject-swap { display:inline-flex; }
+    #s04 .card { transition:box-shadow .18s ease, border-color .18s ease; }
+    #s04 .card:hover { box-shadow:0 2px 6px rgb(0 0 0 / .08), 0 6px 16px rgb(0 0 0 / .07); }
+    #s04 .card:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:oklch(0.62 0 0) !important; }
+    #s04 .card:hover:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:#1f1f1f !important; }
+    #s04 [data-screen-label="Dark Mode"] .card:hover:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:var(--color-text) !important; }
+    #s04 .eject-side:not(:hover) { color:#1f1f1f !important; border-color:#1f1f1f !important; }
+    #s04 [data-screen-label="Dark Mode"] .eject-side:not(:hover) { color:var(--color-text) !important; border-color:var(--color-text) !important; }
+    .eject-side { width:0 !important; min-width:0 !important; margin-left:-6px; opacity:0; overflow:hidden; border-width:0 !important; transition:width .18s ease, margin-left .18s ease, opacity .14s ease, background-color .12s ease, color .12s ease; }
+    .card:hover .eject-side { width:calc(1lh + 8px) !important; margin-left:0; opacity:1; border-width:1px !important; }
+    @media (prefers-reduced-motion: reduce) { .eject-side { transition:none; } }
+    .eject-swap > .eject-btn { display:none; }
+    .card:hover .eject-swap > .tag:not(.eject-btn) { display:none !important; }
+    .card:hover .eject-swap > .eject-btn { display:inline-flex; }
+    .eject-cell > .eject-ov { display:none; }
+    .eject-ico > .eject-ico-btn { display:none; }
+    .finder-hover-row:hover .eject-ico > svg { visibility:hidden; }
+    .finder-hover-row:hover .eject-ico > .eject-ico-btn { display:inline-flex; }
+    .finder-hover-row:hover .eject-ico > :not(.eject-ico-btn), .finder-hover-row:hover .eject-hide { visibility:hidden; }
+    .eject-btn, .eject-ov, .eject-ico-btn { border:none !important; background:transparent !important; padding:0 !important; font-size:0 !important; gap:0 !important; min-width:0 !important; width:22px !important; height:22px !important; box-sizing:border-box !important; align-items:center !important; justify-content:center !important; border-radius:var(--radius-sm) !important; color:var(--color-text) !important; cursor:pointer; transition:background .12s ease; }
+    .eject-btn > i, .eject-ov > i, .eject-ico-btn > i { font-size:12px !important; line-height:1; }
+    .eject-btn:hover, .eject-ov:hover, .eject-ico-btn:hover { background:color-mix(in srgb, var(--color-text) 12%, transparent) !important; }
+    .eject-btn:active, .eject-ov:active, .eject-ico-btn:active { background:color-mix(in srgb, var(--color-text) 22%, transparent) !important; }
+    .eject-swap { align-items:center; }
+    .eject-ov { inset:auto !important; left:-4px !important; top:50% !important; transform:translateY(-50%); }
+    .eject-ico-btn { inset:auto !important; left:-3.5px !important; top:-3.5px !important; }
+    .finder-hover-row[style*="color:#fff"] .eject-ico-btn { color:#fff !important; }
+    .finder-hover-row[style*="color:#fff"] .eject-ico-btn:hover { background:rgba(255,255,255,.2) !important; }
+    tr:hover .eject-cell > .tag:not(.eject-ov) { visibility:hidden; }
+    tr:hover .eject-cell > .eject-ov { display:inline-flex; }
+    button, .btn, .finder-hover-row, .finder-hover, a[href], summary, [role="button"] { cursor: pointer; }
+    .reg-table tbody tr:last-of-type td { border-bottom: none; }
+  </style>
+</helmet>
+
+<div style="background:var(--color-bg); min-height:100vh;">
+
+  <div class="nav" style="padding:var(--space-4) var(--space-8);">
+    <div class="nav-brand" style="letter-spacing:-0.02em;">DISK ARCHIVE</div>
+    <div style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin-right:auto;">Index für externe Speichermedien &amp; Dateisuche — Design-Spezifikation</div>
+  </div>
+  <div style="padding-top:var(--space-4);">
+    <dc-import name="App-Layout 00-03 Konzept und Dialoge" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 04-06 Medien und Einstellungen" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 07 Spaltenansicht" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 08-09 Filter" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 10-15 Suche und Dialoge" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 16 Styleguide" hint-size="100%,1600px"></dc-import>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {}
+</script>
+</body>
+</html>

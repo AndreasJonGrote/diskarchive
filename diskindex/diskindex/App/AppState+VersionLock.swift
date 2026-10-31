@@ -40,10 +40,10 @@ extension AppState {
         updateNotice = nil
     }
 
-    /// todo.0.4.047: „Zur neuen Version“ – Dialog schließen (Haken speichern), Download-Seite öffnen.
-    func openUpdateDownload() {
+    /// todo.0.4.047, todo.0.4.2.004: „Zur neuen Version“ – Dialog schließen (Haken speichern), Startseite öffnen.
+    func openUpdateWebsite() {
         dismissUpdateNotice()
-        openExternalURL(AppLinks.download)
+        openExternalURL(AppLinks.websiteURL)
     }
 
     func versionLockBannerText() -> String? {
@@ -67,10 +67,12 @@ struct UpdateNotice: Equatable {
     var notifyAboutUpdates: Bool
 }
 
-/// todo.0.4.047: feste Adressen der App (eine Stelle).
+/// todo.0.4.047, todo.0.4.2.004: feste Adressen der App (eine Stelle). Eine Download-Seite gibt es nicht;
+/// Update-Knopf und „Über Disk Archive“ führen auf die Startseite.
 enum AppLinks {
-    static let download: URL = {
-        guard let url = URL(string: "https://www.diskarchive.app/download/") else { preconditionFailure("Download-Adresse") }
+    nonisolated static let website = "https://diskarchive.app"
+    static let websiteURL: URL = {
+        guard let url = URL(string: website) else { preconditionFailure("Website-Adresse") }
         return url
     }()
 }

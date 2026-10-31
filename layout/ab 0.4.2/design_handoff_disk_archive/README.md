@@ -1,6 +1,6 @@
 # Disk Archive — Konzept & Design-Handoff
 
-Stand: 2026-10-08. Diese README ist mit der Spezifikationsseite `App: Layout.dc.html` abgeglichen. **Die Screens dort sind die Source of Truth.** Die Texte unter den Abschnitten 00–16 sind aus den Beschreibungstexten der Screens übernommen. Bei Abweichungen gilt der Screen.
+Stand: 2026-10-08. Diese README ist mit der Spezifikation `App-Layout Gesamt.dc.html` (bindet die Teildateien `App-Layout 00-03 …` bis `App-Layout 16 …` ein) abgeglichen. **Die Screens dort sind die Source of Truth.** Die Texte unter den Abschnitten 00–16 sind aus den Beschreibungstexten der Screens übernommen. Bei Abweichungen gilt der Screen.
 
 ## Überblick
 
@@ -420,7 +420,8 @@ Kein invertierter Kontrastmodus, sondern eigene Stufen: schwarzer Grund, Fenster
 
 ## Dateien
 
-- `App: Layout.dc.html` — die Spezifikation und Source of Truth, alle Screens 00–16 auf einer Seite.
+- `App-Layout Gesamt.dc.html` — Gesamtansicht aller Screens 00–16, bindet die Teildateien ein.
+- `App-Layout 00-03 Konzept und Dialoge`, `04-06 Medien und Einstellungen`, `07 Spaltenansicht`, `08-09 Filter`, `10-15 Suche und Dialoge`, `16 Styleguide` (`.dc.html`) — die Teildateien, Source of Truth.
 - `App: Komponenten.dc.html` — Komponentenkatalog (Maße, Farben, Zustände, Hell und Dunkel).
 - `ds-disk-archive.css` — Tokens und Komponenten.
 - `AUDIT.md` — Konsistenz-Audit.

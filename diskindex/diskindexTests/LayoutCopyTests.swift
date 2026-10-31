@@ -22,7 +22,8 @@ struct LayoutCopyTests {
         )
         let catalogGerman = try germanCopyStringsFromCatalog(root: root)
         let source = layoutCopySource + "\n" + catalogGerman
-        let wanted = windowLines(from: html)
+        // todo.0.4.2.003: Option entfällt (Nutzer 30.10.)
+        let wanted = windowLines(from: html).filter { $0 != "Ordner weiterhin anzeigen" }
         let missing = wanted.filter { !source.contains($0) }
         #expect(missing.isEmpty, "fehlt in LayoutCopy: \(missing.joined(separator: " | "))")
     }
