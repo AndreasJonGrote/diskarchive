@@ -20,7 +20,7 @@ Gilt zusammen mit [konzept/datenbank.md](konzept/datenbank.md) (Konzept „Daten
 | **0.4.0** | **Release-Kandidat der Open Beta** | nur, was die App fehlerfrei macht; Abschluss mit der Abnahmerunde des Nutzers (`todo.0.4.040`) |
 | **0.4.1** | **Release der Open Beta** | Auslieferung: DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, Mindest-macOS 15; ab hier laden andere die App |
 | **0.4.2** | **Erstes Update der Beta** | Eigener Name für Medien, leise Ordner beim Filtern mit Wartescreen, „Alle Medien / Alle abwählen“, Update-Knopf → Startseite, „Benennen“; abgeschlossen 31.10. |
-| **0.4.3** | **Zweites Update der Beta** | Bild-Filter mit `.cr3` u. a., Wartezustand der Popover-Suche, „Auswerfen“ und „Wird geprüft“ auf der Kachel, Fokusrahmen im Erkennungsdialog, „Über Disk Archive“ neu |
+| **0.4.3** | **Zweites Update der Beta** | Bild-Filter mit `.cr3` u. a., Wartezustand der Popover-Suche, „Auswerfen“ und „Wird geprüft“ auf der Kachel, Fokusrahmen im Erkennungsdialog, „Über Disk Archive“ neu, dringendes Update aus der API (`urgent-update`) |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
 | **0.7** | Export von CSV-Listen | |
