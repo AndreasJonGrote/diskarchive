@@ -1,6 +1,6 @@
 # Disk Archive — Konzept & Design-Handoff
 
-Stand: 2026-10-08. Diese README ist mit der Spezifikation `App-Layout Gesamt.dc.html` (bindet die Teildateien `App-Layout 00-03 …` bis `App-Layout 16 …` ein) abgeglichen. **Die Screens dort sind die Source of Truth.** Die Texte unter den Abschnitten 00–16 sind aus den Beschreibungstexten der Screens übernommen. Bei Abweichungen gilt der Screen.
+Stand: 2026-10-08. Diese README ist mit der Spezifikation `App-Layout Gesamt.dc.html` (bindet die Teildateien `App-Layout 00-03 …` bis `App-Layout 18 …` ein) abgeglichen. **Die Screens dort sind die Source of Truth.** Die Texte unter den Abschnitten 00–16 sind aus den Beschreibungstexten der Screens übernommen. Bei Abweichungen gilt der Screen.
 
 ## Überblick
 
@@ -44,7 +44,7 @@ Basis ist das Modernist-Designsystem (`ds-disk-archive.css`, Archivo). Für Disk
 | Gelb | `#EDA12D` | Inhalt jenseits der Scan-Tiefe (gestrichelt) |
 | Blau | L62 C0,16 H255 | Filter & Suche: Filter-Button, Filter-Chips, aktives Filter- und Such-Icon |
 | Violett | L62 C0,16 H305 | Favoriten: Icons favorisierter Objekte, aktives Favoriten-Icon, aktiver Kontextmenü-Eintrag |
-| Türkis | L62 C0,16 H195 | Einstellungen: aktives Einstellungs-Icon |
+| Türkis | #00A5A8 (Light) · #00D3D5 (Dark und auf ausgewählten Zeilen) | Benannte Medien, aktives Einstellungs-Icon |
 | Grau | L62 C0 | „Nein“, aus, leer, pausiert, indiziert; Offline (gestrichelt ohne Fläche) |
 | Schwarz | `#1f1f1f` | Bedienung: Primär-Buttons, Auswahl, aktive Tabs, Selectgroup, aktive Tabellenspalte, Rechtsklick-Rahmen, Schrift |
 
@@ -133,7 +133,7 @@ Alle Speichermedien mit Index. Jedes Medium trägt genau einen Chip: Online, „
 
 Eigene Ansicht im Hauptfenster, kein Modal — Aufruf über das Zahnrad-Icon in der Toolbar. Tabs links: „Allgemein“ (Sprache, Erscheinungsbild, Autostart, Updates), „Dateien & Ordner“ (Scan-Tiefe, Dateityp-Filter, Ausschlüsse, unsichtbare Dateien, Artefakte), „Speichermedien“ (alle registrierten Medien, auch ohne Entscheidung und ohne Index; neue Medien erscheinen sofort; „Ausstehend“ heißt: noch kein Index, „Nicht erlaubt“ heißt: Nein und noch kein Index) und „Erweitert“ (Mitteilungen, Index jetzt bereinigen, Voreinstellungen, alle Speichermedien vergessen, Fehlerberichte). Unter der Auswahl Hell · Dunkel · Automatisch zeigt eine Animation das gewählte Erscheinungsbild; sie ist genau so breit wie die drei Buttons und sitzt mit 3 px Abstand direkt darunter, mit demselben Rahmen wie die Buttons (Buttons unten ohne Radius, Animation oben ohne Radius). Bei den Mitteilungen zeigt das Beispiel standardmäßig die Systemmeldung; beim Hover über ein Ereignis wechselt es zur passenden Mitteilung. Tabellen sortieren per Klick auf den Spaltennamen; die aktive Spalte ist schwarz (Tabellen-Regel, 16). Klick auf den Namen oder das Detail-Icon öffnet die Medium-Details (06).
 
-Sprache der Benutzeroberfläche. Die Änderung gilt nach einem Neustart von Disk Archive.
+Sprache der Benutzeroberfläche. Die Änderung gilt sofort, ohne Neustart.
 
 Hell oder Dunkel legt das Erscheinungsbild fest. Automatisch folgt der Systemeinstellung von macOS.
 
@@ -167,7 +167,7 @@ Diese Werte gelten nach der Installation und nach „Voreinstellungen anwenden�
 
 Einstellungen, Tab „Allgemein“. Farben laut Farbrollen · Dark Mode (16).
 
-Sprache der Benutzeroberfläche. Die Änderung gilt nach einem Neustart von Disk Archive.
+Sprache der Benutzeroberfläche. Die Änderung gilt sofort, ohne Neustart.
 
 Hell oder Dunkel legt das Erscheinungsbild fest. Automatisch folgt der Systemeinstellung von macOS.
 

@@ -1,6 +1,32 @@
 # Disk Archive – Änderungsprotokoll
 
-Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angegeben. Seit 2026-10-31 aufgeteilt in `App-Layout 00-03 …` bis `App-Layout 16 …`, Gesamtansicht in `App-Layout Gesamt.dc.html`.
+Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angegeben. Seit 2026-10-31 aufgeteilt in `App-Layout 00-03 …` bis `App-Layout 18 …`, Gesamtansicht in `App-Layout Gesamt.dc.html`.
+
+## 2026-11-01
+
+### Konzept
+- Türkis: #00A5A8 auf hellem Grund, #00D3D5 im Dark Mode und auf ausgewählten (invertierten) Zeilen.
+- Favorisierte Medien (Daten I) zeigen ihr Medien-Icon überall in Violett.
+- Auswerfen nur noch in Kacheln (rechts am Chip) und in der Tabelle „Speichermedien“ (links am Chip, beim Zeilen-Hover). Aus allen Seitenleisten und Medienspalten entfernt. Ersetzt die Einträge vom 2026-10-29.
+- Umbenennen nur über Kontextmenü → „Benennen“: öffnet die Medium-Details (06) mit Fokus im Namensfeld.
+- Versionsnummer zeigt immer die aktuellste Version; Zahlen in Mockups sind Platzhalter.
+- Updates nur noch über den Updatedialog (13), kein Hinweis in der Menüleiste.
+- Sprache gilt sofort, ohne Neustart.
+- „Einen Moment bitte“ entfernt (03, 10).
+
+### Neue Screens
+- 02: Dialog „Ersetzt dieses Medium …?“ (Altes vergessen / Behalten).
+- 07.02.06: Ordner nicht lesbar (rotes Warnsymbol); „Inhalt wird geladen“ ist jetzt 07.02.07.
+- 17: Über Disk Archive.
+- 18: Unerwarteter Fehler (generisch, optionaler Aktions-Button).
+
+### Weitere Änderungen
+- 05: Programm-Bereich neu gegliedert, Namensspalte ohne Kürzung.
+- 06: Namensfeld ohne Rahmen, Stift direkt am Namen.
+- 08: Kontrast ausgewählter Zeilen im Dark Mode.
+- 10: Suchtabellen kürzen nur noch Pfad und sehr lange Namen.
+- 15: Icon rot.
+- DMG: „www.diskarchive.app“ statt Beta-Hinweis.
 
 ## 2026-10-29
 

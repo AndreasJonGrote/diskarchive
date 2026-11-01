@@ -4,7 +4,30 @@ Ausgelagert aus TODO.md am 23.10.2026, nach Zielversion. Index: [TODO.md](../TOD
 
 ---
 
-### 0.4.3 (Nutzer 31.10.: 0.4.2 abgeschlossen; diese Punkte kommen in 0.4.3, noch nicht freigegeben)
+### 0.4.4 (Nutzer 01.11.: alles, was offen ist; vorher 0.4.3, das nur die Projekt-Hygiene enthält; nicht freigegeben)
+
+- **Layout-Abgleich mit dem neuen Layout (Nutzer 01.11., wartet auf das Layout):** Host prüft alle Texte und Screens der App gegen das neue Layout und trennt **unstrittig** (wird Aufgabe) von **Nachfrage** (widerspricht App oder früherer Entscheidung). Ausdrücklich auch: welche Texte der App **nicht im Layout** stehen. Angaben des Nutzers zum neuen Layout:
+  - **Generische Fehleranzeige:** ein Layout für Fehlermeldungen mit frei einsetzbarem Text und optionalem Knopf (z. B. „Neustart“).
+  - **Kein Medientyp in Texten:** Texte nennen den Typ (HDD/SSD/USB) nicht mehr; Beispielnamen mit „SSD“ waren kein Typ. **Einzige Ausnahme (Nutzer 01.11.):** der Erkennungsdialog nennt weiter Typ und Größe („(HDD, 2 TB)“), so auch im Layout.
+  - **„Über Disk Archive“** neu im Layout (`todo.0.4.3.001`).
+  - **Kacheln** ausführlicher gestaltet.
+  - **Benennen nur im Details-Fenster (Nutzer 01.11.):** „Benennen“ im Kontextmenü öffnet überall das Details-Modal direkt im Benennungsmodus; das Bearbeiten an Ort und Stelle aus Paket 55 entfällt (`konzept/medien.md` 2d).
+  - **Auswerfen (Nutzer 01.11., entschieden):** gehört dazu, nur per Klick, nie automatisch (Kacheln, Einstellungen › Speichermedien, Seitenleisten); Konzept `datenschutz-plattform.md` angepasst.
+  - Spontan gebaute Stellen (u. a. die 18 Punkte der Checkliste vom 01.11.) sind jetzt im Layout, Texte vielfach geändert.
+  - Wartezustand der Popover-Suche steht schon seit 10.10. im Layout (Abschnitt 03 „Suche läuft — dauert länger“, „Keine Suchergebnisse“).
+  - **Rundgang des Nutzers 01.11. (was im neuen Layout steckt):**
+    - **Erkennungsdialoge:** Layout für alle Erkennungsdialoge und für „Neues Medium, bekannter Name“.
+    - **Popover:** angepasst; u. a. entfällt der Link zum Umschalten zwischen Dateien und Prozent.
+    - **Eigener Name:** eigene Farbe für Medien mit eigenem Namen und Darstellung, wie der eigene Name (mit Originalname) angezeigt wird; kompletter Benennungsmodus im Details-Fenster mit Kleinigkeiten drumherum.
+    - **Suche läuft:** Layout für die laufende Suche.
+    - **Statusanzeigen** angeschlossener Medien, z. B. „Wird geprüft“, „Entscheidung ausstehend“.
+    - **Kacheln:** größere Umarbeit, vor allem Pixelgenauigkeit (Lage der Texte), aufgeräumter, Platz für den Originalnamen.
+    - **Einstellungen:** Speichermedien mit Auswerfen-Knopf und neuer Angabe „Zuletzt gesehen“; Systeminformationen überarbeitet und erweitert; Lizenz.
+    - **Details:** Metadaten mit weniger Zeilenabstand; das zieht sich durch viele Stellen.
+    - **Neue Zustände:** Ordner nicht lesbar, Inhalte werden geladen, keine passenden Objekte für einen Filter, wird indiziert, Filter wird angewendet u. a.
+    - **Farbkonzept beim Navigieren mit Filter:** Ein markierter Ordner ohne passende Objekte ist **wirklich grau** (Abschnitt 08.02).
+    - Dazu einige kleine neue Screens und Textanpassungen.
+    - **Kürzen mit Ausblenden (Fade):** Im Layout setzt der Fade teils viel zu früh ein; das ignorieren. Regel: Text so breit wie möglich, erst am Ende ausblenden.
 
 - **bug.0.4.3.001 — Erkennungsdialog: „Für dieses Medium merken“ mit Fokusrahmen (Nutzer 31.10., Stufe 1):** **Nutzer sieht:** Öffnet ein Klick auf die Kachel den Bestätigungsdialog, hat der Haken „Für dieses Medium merken“ (`copy.new_medium.remember`) sofort den Fokus mit sichtbarem Rand. **Wann:** jedes Mal, wenn der Dialog über die Kachel aufgeht. Soll: kein Fokusrahmen beim Erscheinen (Fokus wie in den anderen Dialogen, `bug.0.4.209`/`221`: einmal beim Erscheinen auf dem Hauptknopf bzw. ohne sichtbaren Rand). Ursache noch nicht geprüft.
 - **todo.0.4.3.002 — Dringendes Update aus der API (Nutzer 31.10.):** `api/version/` kann `"urgent-update": true` liefern (`{"version":"0.4.1", "urgent-update": true}`). Dann prüft die App die ganze Version `x.x.x` statt `n.n` und zeigt das Update-Fenster sofort, wenn die gemeldete Version neuer ist; beim Start und weiter alle 24 h. Ohne Feld oder `false` wie bisher. Feld mit Bindestrich (eigener `CodingKey`), unbekannte Felder weiter ignorieren. Beta-Sperre (API ≥ 1.0) bleibt unverändert. **Entschieden (Nutzer 31.10.):** kommt auch bei „Auf Updates hinweisen: Aus“; erscheint nach „Schließen“ bei jeder Prüfung wieder. Konzept: `konzept/datenbank.md` „Netz (API)“.
@@ -12,9 +35,9 @@ Ausgelagert aus TODO.md am 23.10.2026, nach Zielversion. Index: [TODO.md](../TOD
 - **todo.0.4.3.003 — Version im DMG-Hintergrund automatisch (Host 31.10.):** „Beta 0.4.x“ steht fest im Hintergrundbild und in der Layout-Seite `DMG Hintergrund.dc.html`; bei 0.4.2 blieb „0.4.1“ stehen (Host hat das Bild nachträglich ersetzt). Vorschlag: Fußzeile ohne Version ins Bild, `dmg-erstellen.sh` schreibt „Beta {version} · Feedback willkommen“ beim Bauen hinein (Archivo 11 px, Position und Farbe wie heute). Braucht die Layout-Seite ohne Versionstext (Nutzer).
 - **todo.0.4.3.001 — „Über Disk Archive“ überarbeiten (Nutzer 31.10.):** Der Dialog „Über Disk Archive“ (`AboutPanel.swift`, heute das Standardfenster von AppKit mit Link auf die Website) soll neu gestaltet werden. Braucht ein Layout des Nutzers; Umfang mit ihm klären.
 
-- **bug.0.4.2.001 — Bild-Filter findet RAW `.cr3` nicht (Nutzer 30.10., Stufe 1, Zielversion 0.4.3, Kennung bleibt):** `SearchFileTypeFilter.databaseExtensions` (`SearchState.swift` Z. ~103) kennt nur `nef`, `cr2`, `arw`, `dng`. Vorschlag Host: Bild + `cr3`, `crw`, `nrw`, `raf`, `orf`, `rw2`, `pef`, `srw`, `sr2`, `srf`, `rwl`, `3fr`, `fff`, `iiq`, `x3f`, `mrw`, `kdc`, `dcr`, `erf`, `gpr`, `raw`, `heif`, `avif`, `jxl`, `bmp`, `psd`; Video + `mts`, `m2ts`, `mxf`, `webm`, `mpg`, `mpeg`, `3gp`; Audio + `aif`, `aiff`, `ogg`, `opus`, `alac`. Die Liste steht doppelt (Filter und `FileTypeIcon.swift` Z. ~51) → eine Quelle. Kein Neuindizieren nötig (Endungen liegen in `extensions`).
-- **Popover-Suche ohne Wartezustand (Host 31.10., Stufe 1, Zielversion 0.4.3; Layout fehlt):** Aus dem leeren Feld zeigt `MenuBarPopoverSearchContent` bis zum Ergebnis schon „Keine Treffer für „…““ (`totalCount == 0`); auf großen Datenbanken sichtbar. Vorschlag Host: Zeile mit kleinem blauem Spinner und „Suche läuft …“ (verzögert wie im Fenster), „Keine Treffer“ erst nach fertiger Suche. Layout fehlt.
-- **„Auswerfen“ und „Wird geprüft“ (Zielversion 0.4.3, Layout `ab 0.4.2` dafür noch freizugeben):** Knopf „Auswerfen“ beim Hover über Kacheln, Chip „Wird geprüft“ beim Wiedererkennen.
+- **bug.0.4.2.001 — Bild-Filter findet RAW `.cr3` nicht (Nutzer 30.10., Stufe 1, Zielversion 0.4.4, Kennung bleibt):** `SearchFileTypeFilter.databaseExtensions` (`SearchState.swift` Z. ~103) kennt nur `nef`, `cr2`, `arw`, `dng`. Vorschlag Host: Bild + `cr3`, `crw`, `nrw`, `raf`, `orf`, `rw2`, `pef`, `srw`, `sr2`, `srf`, `rwl`, `3fr`, `fff`, `iiq`, `x3f`, `mrw`, `kdc`, `dcr`, `erf`, `gpr`, `raw`, `heif`, `avif`, `jxl`, `bmp`, `psd`; Video + `mts`, `m2ts`, `mxf`, `webm`, `mpg`, `mpeg`, `3gp`; Audio + `aif`, `aiff`, `ogg`, `opus`, `alac`. Die Liste steht doppelt (Filter und `FileTypeIcon.swift` Z. ~51) → eine Quelle. Kein Neuindizieren nötig (Endungen liegen in `extensions`).
+- **Popover-Suche ohne Wartezustand (Host 31.10., Stufe 1, Zielversion 0.4.4; Layout fehlt):** Aus dem leeren Feld zeigt `MenuBarPopoverSearchContent` bis zum Ergebnis schon „Keine Treffer für „…““ (`totalCount == 0`); auf großen Datenbanken sichtbar. Vorschlag Host: Zeile mit kleinem blauem Spinner und „Suche läuft …“ (verzögert wie im Fenster), „Keine Treffer“ erst nach fertiger Suche. Layout fehlt.
+- **„Auswerfen“ und „Wird geprüft“ (Zielversion 0.4.4, Layout dafür noch freizugeben):** Knopf „Auswerfen“ beim Hover über Kacheln, Chip „Wird geprüft“ beim Wiedererkennen.
 
 ### Später (ohne Zielversion)
 

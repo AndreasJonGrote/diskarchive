@@ -10,6 +10,7 @@
 <helmet>
   <link rel="stylesheet" href="ds-disk-archive.css">
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script src="fade-fit.js"></script>
   <style>
     .measure-root[data-all] *:not([data-measure-overlay]):not([data-measure-overlay] *) { outline:1px solid rgb(0 140 255 / .18); outline-offset:-1px; }
 
@@ -29,8 +30,6 @@
     #s04 .card:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:oklch(0.62 0 0) !important; }
     #s04 .card:hover:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:#1f1f1f !important; }
     #s04 [data-screen-label="Dark Mode"] .card:hover:not([style*="#E04830"]):not([style*="0.70 0.17 35"]) { border-color:var(--color-text) !important; }
-    #s04 .eject-side:not(:hover) { color:#1f1f1f !important; border-color:#1f1f1f !important; }
-    #s04 [data-screen-label="Dark Mode"] .eject-side:not(:hover) { color:var(--color-text) !important; border-color:var(--color-text) !important; }
     .eject-side { width:0 !important; min-width:0 !important; margin-left:-6px; opacity:0; overflow:hidden; border-width:0 !important; transition:width .18s ease, margin-left .18s ease, opacity .14s ease, background-color .12s ease, color .12s ease; }
     .card:hover .eject-side { width:calc(1lh + 8px) !important; margin-left:0; opacity:1; border-width:1px !important; }
     @media (prefers-reduced-motion: reduce) { .eject-side { transition:none; } }
@@ -38,24 +37,18 @@
     .card:hover .eject-swap > .tag:not(.eject-btn) { display:none !important; }
     .card:hover .eject-swap > .eject-btn { display:inline-flex; }
     .eject-cell > .eject-ov { display:none; }
-    .eject-ico > .eject-ico-btn { display:none; }
-    .finder-hover-row:hover .eject-ico > svg { visibility:hidden; }
-    .finder-hover-row:hover .eject-ico > .eject-ico-btn { display:inline-flex; }
-    .finder-hover-row:hover .eject-ico > :not(.eject-ico-btn), .finder-hover-row:hover .eject-hide { visibility:hidden; }
-    .eject-btn, .eject-ov, .eject-ico-btn { border:none !important; background:transparent !important; padding:0 !important; font-size:0 !important; gap:0 !important; min-width:0 !important; width:22px !important; height:22px !important; box-sizing:border-box !important; align-items:center !important; justify-content:center !important; border-radius:var(--radius-sm) !important; color:var(--color-text) !important; cursor:pointer; transition:background .12s ease; }
-    .eject-btn > i, .eject-ov > i, .eject-ico-btn > i { font-size:12px !important; line-height:1; }
-    .eject-btn:hover, .eject-ov:hover, .eject-ico-btn:hover { background:color-mix(in srgb, var(--color-text) 12%, transparent) !important; }
-    .eject-btn:active, .eject-ov:active, .eject-ico-btn:active { background:color-mix(in srgb, var(--color-text) 22%, transparent) !important; }
     .eject-swap { align-items:center; }
     .eject-ov { inset:auto !important; left:-4px !important; top:50% !important; transform:translateY(-50%); }
-    .eject-ico-btn { inset:auto !important; left:-3.5px !important; top:-3.5px !important; }
-    .finder-hover-row[style*="color:#fff"] .eject-ico-btn { color:#fff !important; }
-    .finder-hover-row[style*="color:#fff"] .eject-ico-btn:hover { background:rgba(255,255,255,.2) !important; }
     tr:hover .eject-cell > .tag:not(.eject-ov) { visibility:hidden; }
     tr:hover .eject-cell > .eject-ov { display:inline-flex; }
     button, .btn, .finder-hover-row, .finder-hover, a[href], summary, [role="button"] { cursor: pointer; }
     .reg-table tbody tr:last-of-type td { border-bottom: none; }
-  </style>
+  
+    :root{--teal:#00A5A8;--teal-inv:#00D3D5;--fav:oklch(0.62 0.16 305);--fav-inv:oklch(0.72 0.14 305);--sel-fg:#fff}
+    .dm{--teal:#00D3D5;--teal-inv:#00A5A8;--fav:oklch(0.72 0.14 305);--fav-inv:oklch(0.62 0.16 305)}
+    .sel{--teal:var(--teal-inv);--fav:var(--fav-inv)}
+    .dm .sel{--sel-fg:var(--color-bg);color:var(--color-bg) !important}
+</style>
 </helmet>
 <div style="background:var(--color-bg);">
   <div style="max-width:1400px; margin:0 auto; padding:var(--space-4) var(--space-8); display:flex; flex-direction:column; gap:var(--space-8);">
@@ -104,27 +97,106 @@
           <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">Am richtigen Ort geöffnet</div>
         </div>
       </div>
+    
+      <h4 style="margin:var(--space-8) 0 var(--space-4); font-size:15px;">Konzept im Detail</h4>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap:var(--space-6) var(--space-8); border-top:1px solid var(--color-divider); padding-top:var(--space-4);">
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Speichermedien und Namen (02, 03, 04, 06, 18)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Nur externe Medien. Jedes je angeschlossene Medium wird registriert und behält seinen Index, auch offline.</li>
+            <li>Medien-Icons sind fest nach Typ (SSD, USB, HDD). Der Typ selbst steht nie als Text in der App.</li>
+            <li>Eigener Name nur über Kontextmenü → „Benennen“ (12). Das öffnet die Medium-Details (06) mit dem Fokus im Namensfeld. Ein leeres Feld stellt den Originalnamen wieder her.</li>
+            <li>Benannte Medien haben ein türkises Icon. In Listen (Dropdown 03, Seitenleisten, Tabellen, Suche) stehen beide Namen in einer Zeile, z. B. „Lauras Platte · Studio Backup“: Originalname leise, bei Platzmangel läuft er rechts mit Verlauf aus. In Kacheln (04) und Medium-Details (06) steht der Originalname klein unter dem Namen.</li>
+            <li>Favorisierte Medien zeigen ihr Icon überall in Violett.</li>
+            <li>Nichts bricht um. Zu lange Namen laufen rechts mit Verlauf aus, ein Tooltip zeigt den ganzen Namen. Einzige Ausnahme: der Dateiname im Detailbereich.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Anschließen und Erkennen (02)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Ein unbekanntes Medium öffnet den Erkennungs-Dialog: „Indizieren“ oder „Nicht indizieren“, optional „Für dieses Medium merken“. Die Antwort lässt sich unter Einstellungen → Speichermedien (05) ändern.</li>
+            <li>Mehrere neue Medien gleichzeitig: je ein Dialog, versetzt übereinander, der neueste oben.</li>
+            <li>Gehört der Name zu einem bekannten, aber nicht angeschlossenen Medium, fragt „Ersetzt dieses Medium …?“: „Altes vergessen“ löscht das alte Medium mit Index und Favoriten, danach folgt der Erkennungs-Dialog. „Behalten“ führt beide getrennt weiter.</li>
+            <li>Ein bekanntes Medium wird beim Wiederanschließen erst geprüft („Wird geprüft“), dann abgeglichen.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Status (01, 03, 04, 05, 07, 08)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Menüleisten-Icon (01): Wird indiziert (grüner Spinner-Ring), Neu erkannt (pulsierender grüner Punkt), Pausiert (X), Fehler (!). Kein Badge heißt: alles online und indiziert.</li>
+            <li>Dropdown (03), nur angeschlossene Medien: kein Chip = online und vollständig indiziert; „Speichermedium wird geprüft“ (pulsierender Punkt, ohne Prozent); Fortschritt in Prozent mit Spinner, während einer Pause mit Pause-Icon; „Entscheidung ausstehend“ (gelber Punkt, Klick öffnet 02); „Speichermedium fehlerhaft“ (roter Punkt, siehe 14).</li>
+            <li>Dashboard (04) und Medium-Details (06): genau ein Chip je Medium: Online, Wird geprüft, x % indiziert oder Fehler. Offline steht als Zusatz im selben Chip.</li>
+            <li>Einstellungen → Speichermedien (05) zusätzlich: „Ausstehend“ (noch kein Index) und „Nicht erlaubt“ (Nein und kein Index).</li>
+            <li>Spaltenansicht (07.02), statt einer weiteren Spalte: Ordner wird indiziert (grüner Spinner), kein Filterergebnis (Filter-Icon), jenseits der Scan-Tiefe (gelber Ordner, Link „Scan-Tiefe ändern“), nicht lesbar (rotes Warnsymbol wie im Fehler-Chip, kein Link), Inhalt wird geladen (Spinner mit Ladestand).</li>
+            <li>Filter wird angewendet (08): Bei sehr großen Medien steht an Stelle der ersten Spalte ein blauer Spinner; „Filter zurücksetzen“ bricht ab.</li>
+            <li>Farbe zeigt immer einen Zustand: Grün online und Fortschritt, Rot Fehler, Gelb ausstehend oder nicht erfasst, Grau offline, Blau Filter, Violett Favorit, Türkis eigener Name.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Dashboard-Kacheln (04)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Oben links das Medien-Icon, oben rechts der Status-Chip. Darunter der Name, bei eigenem Namen klein darunter der Originalname. Unten Kapazität und Dateianzahl, darunter „Zuletzt gesehen“ und bei angeschlossenen Medien die Belegung.</li>
+            <li>Offline-Kacheln sind blasser, Fehler-Kacheln haben einen roten Rahmen.</li>
+            <li>Solange kein Medium erfasst ist, zeigt das Dashboard die drei Medien-Icons mit einem Hinweis.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Auswerfen</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>In Kacheln (04): beim Hover rechts neben dem Status-Chip. In der Tabelle „Speichermedien“ (05): beim Zeilen-Hover links vom Chip. Beide Male dasselbe Eject-Icon mit Rahmen, gefüllt beim Hover.</li>
+            <li>Außerdem im Kontextmenü eines Mediums (12).</li>
+            <li>Nie in Seitenleisten und Medienspalten, nie bei Offline-Medien.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Spaltenansicht und Details (07)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Navigation wie im Finder. Seitenleiste (200 px) mit allen Medien und Medium-Suche. Fußzeile: freier Speicher, Pfad, Anzahl der Objekte. Tiefe Strukturen laufen links mit Verlauf aus.</li>
+            <li>Detailspalte (260 px), immer gleich aufgebaut: Icon, Name, optional Vorschau (höchstens 228 px breit), Metadaten (Erstellt, Geändert, Größe, typabhängige Felder, Zuletzt gesehen), darunter Links wie „Im Finder anzeigen“ (nur online). Abstände jeweils 8 px.</li>
+            <li>Vorschauen entstehen beim Indizieren. Play-Button für Video und Audio nur bei angeschlossenem Medium.</li>
+            <li>Mehrfachauswahl zeigt Anzahl und Gesamtgröße.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Filter, Suche, Favoriten (08–12)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Filter gelten immer ab dem Wurzelverzeichnis: in der Spaltenansicht für das ganze Medium, in der Suche für alle Medien. Aktive Filter sind blaue Chips.</li>
+            <li>Eine Suche für Medien und Objekte (10). Passende Medien stehen als Kacheln über der Tabelle; in der Tabelle läuft nur der Pfad aus.</li>
+            <li>Favoriten (11) sammeln favorisierte Medien und Objekte, filterbar nach Alle, Online, Offline.</li>
+            <li>Kontextmenü (12) an Objekten: Finder · Favorit · Suchen · Ignorieren. An Medien: Im Finder anzeigen, Details, Benennen, Als Favorit markieren, Auswerfen. Nicht verfügbare Einträge sind ausgegraut.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Einstellungen (05)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Eigene Ansicht, Tabs: Allgemein, Dateien &amp; Ordner, Speichermedien, Systeminformationen, Lizenz, Erweitert. Die Sprache gilt sofort, ohne Neustart.</li>
+            <li>Systeminformationen: „Niemals in der Cloud“. Der Index liegt nur in der Benutzer-Library des Macs, nichts wird übertragen. Darunter Kennzahlen (Medien, Dateien, Ordner, Vorschauen), Größe des Index nach Art, Durchschnitt pro Objekt, Index je Medium als Fläche und „Programm“ mit Version, letzter Update-Prüfung und Indexordner.</li>
+            <li>Lizenz: Jede Funktion ist immer verfügbar; die Lizenz bestimmt nur, wie viele Medien erfasst werden können (Testversion 1, Vollversion 50, Vollversion Pro 250). Einmal kaufen, kein Abo. Ohne Lizenz: Stufen, „Lizenz holen“ und Eingabe „Aktivieren“. Mit Lizenz: Dank, maskierter Schlüssel, Belegung (z. B. 12 von 50), „Zur Website“ und „Lizenz deaktivieren“.</li>
+            <li>Rote und nicht umkehrbare Aktionen brauchen zwei Klicks (Bestätigungsmodus).</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Dialoge (13–17)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Update (13): der einzige Hinweis auf neue Versionen. „Zur neuen Version“ öffnet die Download-Seite.</li>
+            <li>Indizierungsfehler (14): erscheint bei fehlgeschlagenem Lauf, solange das Hauptfenster offen ist; „Erneut versuchen“ startet neu.</li>
+            <li>Absturzbericht (15): rotes Icon, beim nächsten Start nach einem Absturz. Senden oder verwerfen; enthält nie Datei- oder Ordnernamen.</li>
+            <li>Unerwarteter Fehler (16): generischer Dialog im Aufbau von 15 mit rotem Icon, Fehlerbeschreibung, „Schließen“ und optional einer passenden Aktion rechts.</li>
+            <li>Über Disk Archive (17): App-Icon und Name auf Verlauf mit Ringen, darunter ein schwarzer Balken mit Version, Datum und www.diskarchive.app. Schließen über den roten Punkt.</li>
+            <li>Die Versionsnummer zeigt in der App immer die aktuellste Version; Zahlen in den Mockups sind Platzhalter.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Darstellung (18)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Hell und Dunkel mit eigenen Farbstufen. Türkis: #00A5A8 auf hellem Grund, #00D3D5 im Dark Mode und auf ausgewählten Zeilen.</li>
+            <li>Alle Regeln im Detail stehen im Styleguide unter „Kernkonzept“ und gelten für jeden Screen.</li>
+          </ul>
+        </div>
+      </div>
     </section>
 
-    <nav style="position:sticky; top:0; z-index:50; display:flex; align-items:center; gap:6px; flex-wrap:wrap; padding:10px var(--space-4); background:color-mix(in srgb, var(--color-bg) 92%, transparent); backdrop-filter:blur(10px); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
-<a href="#s00" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">00</span>Konzept</a>
-<a href="#s01" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">01</span>Menüleiste</a>
-<a href="#s02" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">02</span>Erkennung</a>
-<a href="#s03" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">03</span>Dropdown</a>
-<a href="#s04" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">04</span>Übersicht</a>
-<a href="#s05" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">05</span>Einstellungen</a>
-<a href="#s06" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">06</span>Detail</a>
-<a href="#s07" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">07</span>Spalten</a>
-<a href="#s08" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">08</span>Filter-Konzept</a>
-<a href="#s09" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">09</span>Filter-Auswahl</a>
-<a href="#s10" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">10</span>Suche</a>
-<a href="#s11" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">11</span>Favoriten</a>
-<a href="#s12" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">12</span>Kontextmenü</a>
-<a href="#s13" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">13</span>Update</a>
-<a href="#s14" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">14</span>Indizierungsfehler</a>
-<a href="#s15" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">15</span>Absturzbericht</a>
-<a href="#s16" class="tag tag-outline" style="text-decoration:none; color:var(--color-text); display:inline-flex; gap:6px; padding:4px 10px;"><span style="opacity:.55;">16</span>Styleguide</a>
-</nav>
+    
 
     <!-- ============ 01. MENU BAR ICON ============ -->
     <section id="s01" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg);">
@@ -267,6 +339,7 @@
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-4);">
         Erscheint sofort beim Anschließen eines neuen, unbekannten Speichermediums. Mit „Für dieses Medium merken“ erscheint der Dialog für dieses Medium nicht mehr; die Entscheidung lässt sich unter Einstellungen → Speichermedien (05) ändern. Das Medium wird beim Anschließen sofort registriert und erscheint sofort in den Einstellungen (Speichermedien). „Indizieren“ startet die Indizierung, „Nicht indizieren“ setzt „Soll indiziert werden“ auf Nein. Ein vergessenes Medium gilt als nie gesehen, der Dialog erscheint beim nächsten Anschließen wieder. Läuft gerade eine Pause, erscheint der Dialog trotzdem.
       </p>
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">02.01 · NEUES SPEICHERMEDIUM</div>
       <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
         <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
             <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
@@ -281,7 +354,7 @@
       </div>
 
       <div style="margin-top:var(--space-6);">
-        <div class="card-kicker" style="margin-bottom:var(--space-3);">MEHRERE MEDIEN GLEICHZEITIG</div>
+        <div class="card-kicker" style="margin-bottom:var(--space-3);">02.02 · MEHRERE MEDIEN GLEICHZEITIG</div>
         <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Wird ein weiteres Medium angeschlossen, während bereits ein Dialog offen ist, erscheint für jedes ein eigener Dialog. Neue Dialoge liegen versetzt über den vorherigen und überkacheln sie; der zuletzt angeschlossene liegt oben. Erst nach einer Entscheidung wird der darunterliegende Dialog wieder vollständig sichtbar.</p>
         <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
           <div style="position:relative; width:396px; height:330px;">
@@ -301,9 +374,25 @@
         </div>
       </div>
 
-      <div data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+      <div style="margin-top:var(--space-6);">
+        <div class="card-kicker" style="margin-bottom:var(--space-3);">02.03 · BEKANNTER NAME, NEUES MEDIUM</div>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Wird ein Medium angeschlossen, dessen Name bereits zu einem bekannten, aber nicht angeschlossenen Medium gehört, fragt die App, ob es das alte ersetzt. „Altes vergessen“ entfernt das alte Medium mit Index und Favoriten; danach folgt der Erkennungs-Dialog. „Behalten“ führt beide getrennt weiter.</p>
+        <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
+          <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
+            <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M252.44,121.34l-48-32A8,8,0,0,0,192,96v24H72V72h33a32,32,0,1,0,0-16H72A16,16,0,0,0,56,72v48H8a8,8,0,0,0,0,16H56v48a16,16,0,0,0,16,16h32v8a16,16,0,0,0,16,16h32a16,16,0,0,0,16-16V176a16,16,0,0,0-16-16H120a16,16,0,0,0-16,16v8H72V136H192v24a8,8,0,0,0,12.44,6.66l48-32a8,8,0,0,0,0-13.32ZM136,48a16,16,0,1,1-16,16A16,16,0,0,1,136,48ZM120,176h32v32H120Zm88-30.95V111l25.58,17Z"></path></svg>
+            <div class="dialog-title" style="font-size:16px;">Ersetzt dieses Medium „Zoom H6-01“?</div>
+            <div class="dialog-body" style="font-size:13px;">Ein Medium mit diesem Namen ist bekannt, aber nicht angeschlossen. Wurde es neu formatiert, kann das alte mit Index und Favoriten vergessen werden.</div>
+            <div class="dialog-actions">
+              <button class="btn" style="font-weight:600; font-size:14px; padding:10px 18px; color:#E04830; border:1px solid #E04830; flex:1 1 0; min-width:0; white-space:nowrap;">Altes vergessen</button>
+              <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0;">Behalten</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
-        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Erkennungs-Dialog. Farben laut Farbrollen · Dark Mode (16).</p>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Erkennungs-Dialog. Farben laut Farbrollen · Dark Mode (18).</p>
         <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
         <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
             <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
@@ -330,7 +419,7 @@
 
       <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; align-items:flex-start;">
       <div>
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">RUHEZUSTAND</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.01 · RUHEZUSTAND</div>
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
           <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
@@ -345,7 +434,7 @@
           <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
 
           <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
-            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--teal)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div style="flex:1; min-width:0;">
               <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
               <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--color-accent);"></div></div>
@@ -384,7 +473,7 @@
       </div>
 
       <div>
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">WÄHREND DER SUCHE — TOP 3 JE KATEGORIE</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.02 · WÄHREND DER SUCHE — TOP 3 JE KATEGORIE</div>
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
           <div style="position:relative; flex:1;">
@@ -411,7 +500,7 @@
       </div>
 
       <div>
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">SUCHE LÄUFT — DAUERT LÄNGER</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.03 · SUCHE LÄUFT — DAUERT LÄNGER</div>
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
           <div style="position:relative; flex:1;">
@@ -423,13 +512,12 @@
         <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
           <i class="ph ph-circle-notch spin-ic" style="font-size:32px; color:oklch(0.62 0.16 255);"></i>
           <div style="font:600 13px var(--font-heading); color:color-mix(in srgb, var(--color-text) 70%, transparent); text-wrap:pretty;">Deine 12 Speichermedien und 48.230 Dateien werden durchsucht …</div>
-          <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">… einen Moment bitte.</div>
         </div>
       </div>
       </div>
 
       <div>
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">KEIN SUCHERGEBNIS</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.04 · KEIN SUCHERGEBNIS</div>
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
           <div style="position:relative; flex:1;">
@@ -447,7 +535,7 @@
       </div>
 
       <div>
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">HOVER AUF EINEN DATEI-EINTRAG</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.05 · HOVER AUF EINEN DATEI-EINTRAG</div>
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
           <div style="position:relative; flex:1;">
@@ -475,7 +563,7 @@
       </div>
 
       <div>
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">NEU ODER WIEDER ANGESCHLOSSEN — SPEICHERMEDIUM WIRD GEPRÜFT</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.06 · NEU ODER WIEDER ANGESCHLOSSEN — SPEICHERMEDIUM WIRD GEPRÜFT</div>
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
           <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
@@ -503,7 +591,7 @@
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
-            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--teal)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div style="flex:1; min-width:0;">
               <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
               <div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:2px; display:flex; align-items:center; gap:6px;"><span style="width:8px; height:8px; flex:none; border-radius:50%; background:#EDA12D; animation:pulse 1.6s ease-in-out infinite;"></span>Entscheidung ausstehend</div>
@@ -524,7 +612,7 @@
       </div>
 
       <div style="position:relative; margin-bottom:170px;">
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">PAUSIEREN — AUSWAHL BEI „AN“</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.07 · PAUSIEREN — AUSWAHL BEI „AN“</div>
       <div style="position:relative;">
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
@@ -540,7 +628,7 @@
           <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
 
           <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
-            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--teal)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div style="flex:1; min-width:0;">
               <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
               <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--color-accent);"></div></div>
@@ -588,7 +676,7 @@
       </div>
 
       <div style="position:relative; margin-bottom:170px;">
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">PAUSIEREN — AUSWAHL BEI „PAUSIERT“</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.08 · PAUSIEREN — AUSWAHL BEI „PAUSIERT“</div>
       <div style="position:relative;">
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
@@ -604,7 +692,7 @@
           <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
 
           <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
-            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.62 0.16 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--teal)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div style="flex:1; min-width:0;">
               <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
               <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--color-accent);"></div></div>
@@ -654,12 +742,12 @@
 
       </div>
     
-      <div data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+      <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
-        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Dropdown im Ruhezustand und Pause-Auswahl. Farben laut Farbrollen · Dark Mode (16).</p>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Dropdown im Ruhezustand und Pause-Auswahl. Farben laut Farbrollen · Dark Mode (18).</p>
         <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; align-items:flex-start;">
 <div>
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">RUHEZUSTAND</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.01 · RUHEZUSTAND</div>
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
           <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
@@ -674,7 +762,7 @@
           <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
 
           <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
-            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.72 0.14 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--teal)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div style="flex:1; min-width:0;">
               <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
               <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--di-sel);"></div></div>
@@ -713,7 +801,7 @@
       </div>
         
 <div style="position:relative; margin-bottom:170px;">
-      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">PAUSIEREN — AUSWAHL BEI „AN“</div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.07 · PAUSIEREN — AUSWAHL BEI „AN“</div>
       <div style="position:relative;">
       <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
@@ -729,7 +817,7 @@
           <div style="font-size:10px; letter-spacing:.1em; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:var(--space-3);">ANGESCHLOSSEN</div>
 
           <div style="display:flex; align-items:center; gap:var(--space-3); padding:var(--space-3) 0;">
-            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="oklch(0.72 0.14 195)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <svg class="ic" viewBox="0 0 256 256" width="20" height="20" fill="var(--teal)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div style="flex:1; min-width:0;">
               <div style="font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; -webkit-mask-image:linear-gradient(to right,#000 82%,transparent 100%); mask-image:linear-gradient(to right,#000 82%,transparent 100%);">Lauras Platte<span style="font-weight:400; color:color-mix(in srgb, var(--color-text) 55%, transparent);"> · Studio Backup</span></div>
               <div style="height:4px; background:var(--color-neutral-300); margin-top:6px; position:relative; border-radius:2px; overflow:hidden;"><div style="position:absolute; inset:0; width:92%; background:var(--di-sel);"></div></div>
