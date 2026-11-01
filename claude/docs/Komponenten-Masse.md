@@ -1,5 +1,7 @@
 # Komponenten-Maße (gemessen von Claude am 07.10.2026 am alten Katalog `bis 0.4.1`; seit 31.10. gilt `layout/App: Komponenten.dc.html`)
 
+**Abgleich Host 01.11.:** Der neue Katalog enthält alle Maße und Farben des alten unverändert, dazu weitere (z. B. 1,5/2,5 px Rand, 18/20/25 px Schrift, Größen 6–25 px), wohl für noch nicht freigegebene Komponenten. Die hier gemessenen Werte gelten weiter; neue werden gemessen, sobald ein Paket sie braucht.
+
 **Quelle der Wahrheit für Maße, Farben und Zustände:** die Layout-Seite „Komponentenkatalog“ (`layout/App: Komponenten.dc.html`, jede Komponente hell und dunkel). Abweichungen in Screens gelten als Fehler. Diese Datei ist nur die gemessene Zusammenfassung (px im Layout = pt in der App); bei Widerspruch gilt die Layout-Seite. Cursor liest Zahlen aus dieser Datei und prüft sie im Test, ändert sie nicht.
 
 ## Schrift

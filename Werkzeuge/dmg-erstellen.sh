@@ -1,5 +1,7 @@
 #!/bin/bash
-# Erzeugt Disk-Archive-<Version>.dmg im Hauptverzeichnis des Repositorys.
+# Erzeugt builds/Disk-Archive-<Version>.dmg und legt die signierte Release-App daneben als
+# builds/Disk Archive <Version>.app ab (todo.0.4.3.004). Ältere Fassungen in builds/ löscht es am Ende,
+# es bleibt nur die letzte Version.
 # Alle Werte kommen aus Werkzeuge/dmg/dmg-einstellungen.json (pflegt der Host).
 # Kein Finder, kein AppleScript, kein open, kein Einhängen unter /Volumes.
 set -euo pipefail
@@ -51,7 +53,7 @@ echo "Python in der Umgebung: $("$VENV/bin/python" --version)"
 schritt "2/7 Release-Build"
 mkdir -p "$BUILD"
 LOG="$BUILD/build.log"
-if ! xcodebuild -project "$ROOT/diskindex/diskindex.xcodeproj" -scheme diskindex -configuration Release \
+if ! xcodebuild -project "$ROOT/DiskArchive/DiskArchive.xcodeproj" -scheme DiskArchive -configuration Release \
      -derivedDataPath "$BUILD" build > "$LOG" 2>&1; then
   grep -E "error:|warning:" "$LOG" | sort -u | head -40 || true
   fehler "Release-Build fehlgeschlagen (Protokoll: $LOG)"
@@ -68,7 +70,9 @@ VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/
 echo "Version: $VERSION"
 VOLNAME="$(jget volume_name)"; VOLNAME="${VOLNAME//\{version\}/$VERSION}"
 OUTNAME="$(jget output_name)"; OUTNAME="${OUTNAME//\{version\}/$VERSION}"
-AUSGABE="$ROOT/$OUTNAME"
+ABLAGE="$ROOT/builds"
+AUSGABE="$ABLAGE/$OUTNAME"
+APP_KOPIE="$ABLAGE/Disk Archive $VERSION.app"
 
 # 4. Hintergrund
 schritt "4/7 Hintergrund"
@@ -161,10 +165,23 @@ echo "Prüfung: App, Verweis $LINKNAME -> $LINKZIEL, Hintergrund (.background*),
 hdiutil detach "$MOUNT" -quiet; trap - EXIT
 rmdir "$MOUNT" 2>/dev/null || true
 
-# 7. Meldung
+# 7. Ablage und Meldung
 schritt "7/7 Ergebnis"
+# App neben das DMG; ditto behält die Signatur.
+[ -e "$APP_KOPIE" ] && rm -rf "$APP_KOPIE"   # nur genau diese App
+ditto "$APP" "$APP_KOPIE" || fehler "App ließ sich nicht nach builds/ kopieren."
+codesign --verify --deep --strict "$APP_KOPIE" || fehler "Signatur der App in builds/ ist ungültig."
+# Nur die letzte Version bleibt.
+shopt -s nullglob
+for alt in "$ABLAGE"/Disk-Archive-*.dmg "$ABLAGE"/"Disk Archive "*.app; do
+  [ "$alt" = "$AUSGABE" ] || [ "$alt" = "$APP_KOPIE" ] && continue
+  echo "Lösche ältere Fassung: $alt"
+  rm -rf "$alt"
+done
+shopt -u nullglob
 GROESSE="$(du -h "$AUSGABE" | cut -f1)"
 echo "DMG:         $AUSGABE"
 echo "Größe:       $GROESSE ($(stat -f %z "$AUSGABE") Bytes)"
 echo "Version:     $VERSION"
 echo "Volume-Name: $VOLNAME"
+echo "App:         $APP_KOPIE"

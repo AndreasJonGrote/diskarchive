@@ -43,6 +43,7 @@ Der Worker implementiert das freigegebene Paket (`todo/paket-NN.md`, Index TODO.
 - **Commit-Nachricht nur bei Dateiänderung**; nach einer reinen Prüfung ohne Änderung keine.
 - **Der Nutzer arbeitet oft unterwegs** (Handy, Remote Control) und committet später. Deshalb gibt es **eine kumulierte** Commit-Nachricht für alles seit dem letzten Commit, kurz und handytauglich. Ein fehlender Commit ist für den Worker kein Grund anzuhalten (`todo/regeln.md` Regel 4, `abnahme-ablauf.md` 2.7).
 - **Bis 1.0 keine Datenvorsicht** auf dem Rechner des Nutzers: der Datenordner `~/Library/Application Support/Disk Archive/` (Datenbank, App-Zustand, Protokoll) und `app.diskarchive.plist` dürfen sich ändern. Auf fremden Rechnern wird die Datenbank ab 0.4 nur erweitert, nie gelöscht. Echte Daten für Belege trotzdem nur lesen (`sqlite3 -readonly`).
+- **Beta: kein Aufräumen und keine Übernahme bei Updates (Nutzer 01.11.).** Was eine ältere Fassung hinterlässt (Schlüssel, Dateien, Ordner, Mitteilungen unter altem Namen), bleibt liegen; keine Migration, kein Übergangscode. Gilt bis 1.0.
 - **`Werkzeuge/pruefung.sh` immer ohne `S=`** starten (Voreinstellung `$TMPDIR/pruefung.*`). Das Ergebnis steht in der Schlusszeile bzw. in `zusammenfassung.txt` im genannten Ordner. Builds und Testergebnisse nie im Sitzungs-Scratch und nie im Repository (Regel 13).
 
 ## Host, Geräte und Kennungen (Nutzer 14.10.)
@@ -110,4 +111,4 @@ Einzelheiten: `abnahme-ablauf.md` Abschnitt 2b (Prüfung durch den Host und die 
 - **Aufgabenliste**: [TODO.md](TODO.md) — kurzer Index (Stand, Pakete, Entscheidungen). Aufgaben je Paket in `todo/paket-NN.md`, Regeln in `todo/regeln.md`, Backlog in `todo/backlog.md`. **Kurz halten:** große Dateien kosten bei jedem Start Tokens. Alte Fassungen und Volltexte: `archiv/prompt-*.md`.
 
 ## Status dieses Projekts
-Xcode-Projekt unter `diskindex/` (ab Paket 57 `DiskArchive/`) (SwiftUI/AppKit, GRDB/SQLite). Erkennung, Indizierung, Live-Überwachung, Suche, Favoriten, Einstellungen, Fehlerbericht und Menüleiste laufen auf echten Daten. Es gibt eine Aufgabenliste (`TODO.md`) und einen Worker zur Zeit, Pakete laufen nacheinander. Aktuelle offene Aufgaben: siehe `TODO.md`. Aufbau der Software: [konzept/architektur.md](konzept/architektur.md).
+Xcode-Projekt unter `DiskArchive/` (`DiskArchive.xcodeproj`, seit Paket 57) (SwiftUI/AppKit, GRDB/SQLite). Erkennung, Indizierung, Live-Überwachung, Suche, Favoriten, Einstellungen, Fehlerbericht und Menüleiste laufen auf echten Daten. Es gibt eine Aufgabenliste (`TODO.md`) und einen Worker zur Zeit, Pakete laufen nacheinander. Aktuelle offene Aufgaben: siehe `TODO.md`. Aufbau der Software: [konzept/architektur.md](konzept/architektur.md).

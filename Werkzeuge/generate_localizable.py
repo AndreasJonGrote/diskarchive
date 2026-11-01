@@ -15,12 +15,12 @@ ENTRIES: list[tuple[str, str, str, str | None]] = [
         "“%1$@” (%2$@, %3$@) was connected. Should it be indexed?",
         None,
     ),
-    ("copy.app.name", "Disk Index", "Disk Index", None),
+    ("copy.app.name", "Disk Archive", "Disk Archive", None),
     ("copy.menu.connected_heading", "ANGESCHLOSSEN", "CONNECTED", None),
     ("copy.menu.auto_index", "Automatisches Indizieren", "Automatic indexing", None),
     ("copy.menu.on", "An", "On", None),
     ("copy.menu.paused", "Pausiert", "Paused", None),
-    ("copy.menu.open_app", "Disk Index öffnen", "Open Disk Index", None),
+    ("copy.menu.open_app", "Disk Archive öffnen", "Open Disk Archive", None),
     ("copy.menu.pause_for", "PAUSIEREN FÜR", "PAUSE FOR", None),
     ("copy.menu.change_to", "ÄNDERN AUF", "CHANGE TO", None),
     ("copy.menu.minutes_30", "30 Minuten", "30 minutes", None),
@@ -45,8 +45,8 @@ ENTRIES: list[tuple[str, str, str, str | None]] = [
     ("copy.settings.language.title", "SPRACHE", "LANGUAGE", None),
     (
         "copy.settings.language.text",
-        "Sprache der Benutzeroberfläche. Die Änderung gilt nach einem Neustart von Disk Index.",
-        "Language of the user interface. The change takes effect after restarting Disk Index.",
+        "Sprache der Benutzeroberfläche. Die Änderung gilt sofort.",
+        "Language of the user interface. The change applies immediately.",
         None,
     ),
     ("copy.settings.language.german", "Deutsch", "Deutsch", None),
@@ -54,8 +54,8 @@ ENTRIES: list[tuple[str, str, str, str | None]] = [
     ("copy.settings.autostart.title", "AUTOSTART", "AUTOSTART", None),
     (
         "copy.settings.autostart.text",
-        "Disk Index startet nach dem Anmelden automatisch in der Menüleiste, damit angeschlossene Speichermedien sofort erkannt werden.",
-        "Disk Index starts in the menu bar at login so connected storage is detected immediately.",
+        "Disk Archive startet nach dem Anmelden automatisch in der Menüleiste, damit angeschlossene Speichermedien sofort erkannt werden.",
+        "Disk Archive starts in the menu bar at login so connected storage is detected immediately.",
         None,
     ),
     ("copy.settings.autostart.toggle", "Beim Anmelden starten", "Start at login", None),
@@ -223,8 +223,8 @@ ENTRIES: list[tuple[str, str, str, str | None]] = [
     ("copy.settings.reports.title", "FEHLERBERICHTE", "CRASH REPORTS", None),
     (
         "copy.settings.reports.text",
-        "Wurde Disk Index unerwartet beendet, liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen.",
-        "If Disk Index quit unexpectedly, a report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters.",
+        "Wurde Disk Archive unerwartet beendet, liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen.",
+        "If Disk Archive quit unexpectedly, a report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters.",
         None,
     ),
     ("copy.settings.reports.auto_send", "Künftig automatisch senden", "Send automatically in the future", None),
@@ -239,7 +239,7 @@ ENTRIES: list[tuple[str, str, str, str | None]] = [
     ("copy.medium.forget", "Vergessen", "Forget", None),
     ("copy.medium.reindex", "Neu indizieren", "Re-index", None),
     ("copy.medium.show_content", "Inhalt anzeigen", "Show contents", None),
-    ("copy.crash.title", "Disk Index wurde unerwartet beendet", "Disk Index quit unexpectedly", None),
+    ("copy.crash.title", "Disk Archive wurde unerwartet beendet", "Disk Archive quit unexpectedly", None),
     (
         "copy.crash.body",
         "Es liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen.",
@@ -251,8 +251,8 @@ ENTRIES: list[tuple[str, str, str, str | None]] = [
     ("copy.store.open_failed.title", "Index-Datenbank nicht verfügbar", "Index database unavailable", None),
     (
         "copy.store.open_failed.body",
-        "Die Index-Datenbank konnte nicht geöffnet werden. Disk Index kann Speichermedien derzeit nicht verarbeiten.",
-        "The index database could not be opened. Disk Index cannot process storage media right now.",
+        "Die Index-Datenbank konnte nicht geöffnet werden. Disk Archive kann Speichermedien derzeit nicht verarbeiten.",
+        "The index database could not be opened. Disk Archive cannot process storage media right now.",
         None,
     ),
     (
@@ -271,8 +271,8 @@ ENTRIES: list[tuple[str, str, str, str | None]] = [
     ("copy.notice.defaults_applied", "Voreinstellungen angewendet.", "Defaults applied.", None),
     (
         "copy.permission.line",
-        "Disk Index darf dieses Medium nicht lesen. Das lässt sich in den Systemeinstellungen unter Datenschutz & Sicherheit ändern.",
-        "Disk Index cannot read this medium. You can change this in System Settings › Privacy & Security.",
+        "Disk Archive darf dieses Medium nicht lesen. Das lässt sich in den Systemeinstellungen unter Datenschutz & Sicherheit ändern.",
+        "Disk Archive cannot read this medium. You can change this in System Settings › Privacy & Security.",
         None,
     ),
     ("copy.column.loading_contents", "Inhalte werden geladen", "Loading contents", "Screen 07"),
@@ -352,7 +352,7 @@ def main() -> None:
         "strings": strings,
         "version": "1.0",
     }
-    out = Path(__file__).resolve().parent.parent / "diskindex/diskindex/Localization/Localizable.xcstrings"
+    out = Path(__file__).resolve().parent.parent / "DiskArchive/DiskArchive/Localization/Localizable.xcstrings"
     out.write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"Wrote {len(strings)} keys to {out}")
 

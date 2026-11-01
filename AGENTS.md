@@ -9,4 +9,4 @@ Alle Anweisungen liegen in [`claude/`](claude/). **Lies zuerst [claude/AGENTS.md
 - **Host:** Ablauf in [claude/abnahme-ablauf.md](claude/abnahme-ablauf.md), Stand in [claude/TODO.md](claude/TODO.md).
 - Liegt hier eine `UEBERGABE.md`, liest ein neuer Host sie zuerst.
 
-Hauptverzeichnis: `claude/` (Anweisungen), `layout/` (Design), `Werkzeuge/` (Skripte), `builds/` (letzte App und DMG, nicht in Git), Xcode-Projekt `diskindex/` (ab Paket 57 `DiskArchive/`).
+Hauptverzeichnis: `claude/` (Anweisungen), `layout/` (Design), `Werkzeuge/` (Skripte), `builds/` (letzte App und DMG, nicht in Git), Xcode-Projekt `DiskArchive/` (`DiskArchive.xcodeproj`).
