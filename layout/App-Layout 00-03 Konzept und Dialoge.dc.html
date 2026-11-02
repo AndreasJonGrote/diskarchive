@@ -58,7 +58,7 @@
       <div class="card-kicker" style="margin-bottom:var(--space-3);">00 — KONZEPT &amp; ABLAUF</div>
       <h3 style="margin-bottom:var(--space-3);">Wie Disk Archive funktioniert</h3>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 65%, transparent); max-width:820px; margin:0 0 var(--space-4);">
-        Disk Archive kümmert sich ausschließlich um <strong>externe Speichermedien</strong> — externe Festplatten, USB-Sticks, SD-Karten. Die App läuft dauerhaft über das Menüleisten-Icon. Jedes je angeschlossene Speichermedium wird mit seinem Index gespeichert — auch offline bleibt sein Inhalt durchsuchbar. Eine einzige Suche findet Speichermedien und Objekte (Dateien &amp; Ordner) zugleich (10). Ein Klick auf einen Treffer öffnet die Spaltenansicht an genau dieser Stelle (07). Wichtige Objekte lassen sich als Favoriten markieren (11).
+        Disk Archive kümmert sich ausschließlich um <strong>externe Speichermedien</strong> — externe Festplatten, USB-Sticks, SD-Karten. Die App läuft dauerhaft über das Menüleisten-Icon. Jedes je angeschlossene Speichermedium wird mit seinem Index gespeichert — auch offline bleibt sein Inhalt durchsuchbar. Eine einzige Suche findet Speichermedien und Objekte (Dateien &amp; Ordner) zugleich (10). Ein Klick auf einen Treffer öffnet die Spaltenansicht an genau dieser Stelle (07). Wichtige Objekte lassen sich als Favoriten markieren (11). Alle Texte der App stehen auf Deutsch und Englisch in 20; bei Abweichung gilt 20.
       </p>
       <div style="display:flex; flex-wrap:wrap; align-items:stretch; gap:var(--space-2) 0; border-top:1px solid var(--color-divider); padding-top:var(--space-4);">
         <div style="display:flex; flex-direction:column; gap:6px; min-width:150px; padding:0 var(--space-3);">
@@ -101,7 +101,7 @@
       <h4 style="margin:var(--space-8) 0 var(--space-4); font-size:15px;">Konzept im Detail</h4>
       <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap:var(--space-6) var(--space-8); border-top:1px solid var(--color-divider); padding-top:var(--space-4);">
         <div style="min-width:0;">
-          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Speichermedien und Namen (02, 03, 04, 06, 18)</div>
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Speichermedien und Namen (02, 03, 04, 06, 19)</div>
           <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
             <li>Nur externe Medien. Jedes je angeschlossene Medium wird registriert und behält seinen Index, auch offline.</li>
             <li>Medien-Icons sind fest nach Typ (SSD, USB, HDD). Der Typ selbst steht nie als Text in der App.</li>
@@ -127,8 +127,8 @@
             <li>Dropdown (03), nur angeschlossene Medien: kein Chip = online und vollständig indiziert; „Speichermedium wird geprüft“ (pulsierender Punkt, ohne Prozent); Fortschritt in Prozent mit Spinner, während einer Pause mit Pause-Icon; „Entscheidung ausstehend“ (gelber Punkt, Klick öffnet 02); „Speichermedium fehlerhaft“ (roter Punkt, siehe 14).</li>
             <li>Dashboard (04) und Medium-Details (06): genau ein Chip je Medium: Online, Wird geprüft, x % indiziert oder Fehler. Offline steht als Zusatz im selben Chip.</li>
             <li>Einstellungen → Speichermedien (05) zusätzlich: „Ausstehend“ (noch kein Index) und „Nicht erlaubt“ (Nein und kein Index).</li>
-            <li>Spaltenansicht (07.02), statt einer weiteren Spalte: Ordner wird indiziert (grüner Spinner), kein Filterergebnis (Filter-Icon), jenseits der Scan-Tiefe (gelber Ordner, Link „Scan-Tiefe ändern“), nicht lesbar (rotes Warnsymbol wie im Fehler-Chip, kein Link), Inhalt wird geladen (Spinner mit Ladestand).</li>
-            <li>Filter wird angewendet (08): Bei sehr großen Medien steht an Stelle der ersten Spalte ein blauer Spinner; „Filter zurücksetzen“ bricht ab.</li>
+            <li>Spaltenansicht (07.02), statt einer weiteren Spalte: Ordner wird indiziert (grüner Spinner), kein Filterergebnis (Filter-Icon), jenseits der Scan-Tiefe (gelber Ordner, Link „Scan-Tiefe ändern“), ausgeschlossen (gelbes durchgestrichenes Auge, „Ordner ausgeschlossen“, Link „Einstellungen öffnen“), nicht lesbar (rotes Warnsymbol wie im Fehler-Chip, kein Link), Inhalt wird geladen (Spinner mit Ladestand).</li>
+            <li>Filter wird angewendet (08): Bei sehr großen Medien steht an Stelle der ersten Spalte ein blauer Spinner; „Alle Filter zurücksetzen“ bricht ab.</li>
             <li>Farbe zeigt immer einen Zustand: Grün online und Fortschritt, Rot Fehler, Gelb ausstehend oder nicht erfasst, Grau offline, Blau Filter, Violett Favorit, Türkis eigener Name.</li>
           </ul>
         </div>
@@ -144,8 +144,8 @@
           <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Auswerfen</div>
           <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
             <li>In Kacheln (04): beim Hover rechts neben dem Status-Chip. In der Tabelle „Speichermedien“ (05): beim Zeilen-Hover links vom Chip. Beide Male dasselbe Eject-Icon mit Rahmen, gefüllt beim Hover.</li>
-            <li>Außerdem im Kontextmenü eines Mediums (12).</li>
-            <li>Nie in Seitenleisten und Medienspalten, nie bei Offline-Medien.</li>
+            <li>Außerdem im Kontextmenü eines Online-Mediums (12).</li>
+            <li>Nur bei Online-Medien. Nie in Seitenleisten und Medienspalten.</li>
           </ul>
         </div>
         <div style="min-width:0;">
@@ -164,6 +164,7 @@
             <li>Eine Suche für Medien und Objekte (10). Passende Medien stehen als Kacheln über der Tabelle; in der Tabelle läuft nur der Pfad aus.</li>
             <li>Favoriten (11) sammeln favorisierte Medien und Objekte, filterbar nach Alle, Online, Offline.</li>
             <li>Kontextmenü (12) an Objekten: Finder · Favorit · Suchen · Ignorieren. An Medien: Im Finder anzeigen, Details, Benennen, Als Favorit markieren, Auswerfen. Nicht verfügbare Einträge sind ausgegraut.</li>
+            <li>„Ignorieren“ (Begriffe, Dateien, Ordner) braucht keine Bestätigung: Im Zweifel lässt es sich in den Einstellungen zurücknehmen.</li>
           </ul>
         </div>
         <div style="min-width:0;">
@@ -173,13 +174,18 @@
             <li>Systeminformationen: „Niemals in der Cloud“. Der Index liegt nur in der Benutzer-Library des Macs, nichts wird übertragen. Darunter Kennzahlen (Medien, Dateien, Ordner, Vorschauen), Größe des Index nach Art, Durchschnitt pro Objekt, Index je Medium als Fläche und „Programm“ mit Version, letzter Update-Prüfung und Indexordner.</li>
             <li>Lizenz: Jede Funktion ist immer verfügbar; die Lizenz bestimmt nur, wie viele Medien erfasst werden können (Testversion 1, Vollversion 50, Vollversion Pro 250). Einmal kaufen, kein Abo. Ohne Lizenz: Stufen, „Lizenz holen“ und Eingabe „Aktivieren“. Mit Lizenz: Dank, maskierter Schlüssel, Belegung (z. B. 12 von 50), „Zur Website“ und „Lizenz deaktivieren“.</li>
             <li>Rote und nicht umkehrbare Aktionen brauchen zwei Klicks (Bestätigungsmodus).</li>
+            <li>Metadaten und Vorschaubilder: je ein globaler Schalter in Dateien &amp; Ordner („Metadaten laden“, „Vorschaubilder erzeugen“), ab Werk an. Wie bei allen Optionen in Dateien &amp; Ordner verschwindet beim Ausschalten sofort alles Betroffene aus der Ansicht und wird nach 1 Stunde aus dem Index gelöscht.</li>
+            <li>Metadaten und Vorschaubilder werden in einem eigenen zweiten Durchgang nach dem Index gelesen – im Hintergrund, nur bei angeschlossenen Medien, mit der globalen Pause. Kein eigener Chip, kein Banner, die Kachel bleibt „Online“; der Fortschritt steht nur als Balken in den Medium-Details (06).</li>
+            <li>Videos: Mit Vorschaubild steht die Dauer nur auf dem Vorschaubild. Ohne Vorschaubild (z. B. „Vorschaubilder erzeugen“ aus) steht sie als eigenes Feld „Dauer“ zwischen „Aufgenommen“ und „Auflösung“.</li>
+            <li>Metadaten erscheinen nur in der Detailspalte der Spaltenansicht (07.04), nicht als Tabellenspalten. Die normale Suche findet sie (z. B. Kamera, Aufnahmedatum). Ein eigener Metadaten-Filter folgt später.</li>
+            <li>Datenschutz: „Disk Archive liest nur Metadaten. Es schaut sich keine Dateiinhalte an – kein Text aus Dokumenten, keine Texterkennung, keine Auswertung, was auf Bildern zu sehen ist.“ Derselbe Satz steht in Systeminformationen unter „Niemals in der Cloud“.</li>
           </ul>
         </div>
         <div style="min-width:0;">
           <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Dialoge (13–17)</div>
           <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
-            <li>Update (13): der einzige Hinweis auf neue Versionen. „Zur neuen Version“ öffnet die Download-Seite.</li>
-            <li>Indizierungsfehler (14): erscheint bei fehlgeschlagenem Lauf, solange das Hauptfenster offen ist; „Erneut versuchen“ startet neu.</li>
+            <li>Update (13): der einzige Hinweis auf neue Versionen. „Zur neuen Version“ öffnet die Startseite https://www.diskarchive.app. Dringende Updates erscheinen immer, auch wenn „Auf Updates hinweisen“ aus ist.</li>
+            <li>Indizierungsfehler (14): mitten im Hauptfenster, sobald ein Lauf mit Fehler endet; höchstens dreimal pro Stunde und Medium. „Erneut versuchen“ startet neu.</li>
             <li>Absturzbericht (15): rotes Icon, beim nächsten Start nach einem Absturz. Senden oder verwerfen; enthält nie Datei- oder Ordnernamen.</li>
             <li>Unerwarteter Fehler (16): generischer Dialog im Aufbau von 15 mit rotem Icon, Fehlerbeschreibung, „Schließen“ und optional einer passenden Aktion rechts.</li>
             <li>Über Disk Archive (17): App-Icon und Name auf Verlauf mit Ringen, darunter ein schwarzer Balken mit Version, Datum und www.diskarchive.app. Schließen über den roten Punkt.</li>
@@ -187,7 +193,48 @@
           </ul>
         </div>
         <div style="min-width:0;">
-          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Darstellung (18)</div>
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Nur-Lesen-Modus (04)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Ende der Betaphase in zwei Stufen: Sobald Version 1.0 erscheint, zuerst der Updatedialog (13). Danach ein fester gelber Banner „Die Betaphase von Disk Archive wurde beendet.“ / „Du kannst Disk Archive noch {7} Tage nutzen.“ (Einzahl „noch 1 Tag“) mit „Zur neuen Version“ – ein Hinweis, die App bleibt voll nutzbar. Nach Ablauf der Frist wird er rot: „Die Betaphase ist beendet.“ (Sperre, Nur-Lesen-Modus). Weitere Sperrgründe: „Diese Version ist abgelaufen.“ (auch als Rückfall, falls eine Version gesperrt werden muss) und „Der Lizenzserver war seit einem Monat nicht erreichbar.“</li>
+            <li>Fester Banner in jeder Ansicht zwischen Toolbar und Inhalt: „Disk Archive befindet sich im Nur-Lesen-Modus. Du kannst dein Archiv benutzen, aber nicht aktualisieren oder erweitern.“ Davor ein Satz zum Grund.</li>
+            <li>Gelb = Hinweis, Rot = Sperre – gilt für alle Banner. Rot bei Betaende nach Ablauf der Frist und abgelaufener Version („Zur neuen Version“) sowie bei nicht erreichbarem Lizenzserver („Jetzt prüfen“). Gelb beim Betaende-Hinweis mit Frist („Zur neuen Version“). „Zur neuen Version“ öffnet die Startseite https://www.diskarchive.app. Schrift und Icon immer weiß.</li>
+            <li>Lesen, Suchen, Filtern und Favoriten bleiben; Indizieren und Aktualisieren ruhen.</li>
+            <li>„Jetzt prüfen“: Spinner und „Versionsprüfung …“ statt Icon, Text und Button. Lizenzserver erreichbar → Banner verschwindet; neue Versionen meldet der Updatedialog (13). Lizenzserver weiter nicht erreichbar → zurück zum roten Banner.</li>
+            <li>Begriff: Wir sprechen überall nur vom „Lizenzserver“. Er prüft Versionen und Lizenzen – auch wenn er heute nur Versionen meldet und es noch keine Lizenzen gibt. Andere Bezeichnungen (z. B. Versionsserver) werden nicht verwendet.</li>
+            <li>Prüfung über den Lizenzserver alle 24 Stunden. Ist dann kein Internet da, prüft Disk Archive einmal pro Minute nur, ob macOS eine Internetverbindung meldet; erst dann folgt die Prüfung über den Lizenzserver.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Einzahl und Mehrzahl</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Texte mit Anzahl richten sich nach der Zahl; 0 und ab 2 Mehrzahl, 1 Einzahl. Zahlen mit Tausenderpunkt.</li>
+            <li>„1 Datei“ / „{n} Dateien“ · „1 Objekt“ / „{n} Objekte“ · „1 Speichermedium“ / „{n} Speichermedien“ · „1 Favorit“ / „{n} Favoriten“ · „1 Vorschau“ / „{n} Vorschauen“ · „noch 1 Tag“ / „noch {n} Tage“.</li>
+            <li>„1 Ergebnis anzeigen“ / „Alle {n} Ergebnisse anzeigen“ · „Dein 1 Speichermedium“ / „Deine {n} Speichermedien“ · „1 Datei wird gefiltert …“ / „{n} Dateien werden gefiltert …“.</li>
+            <li>Gleich in beiden Formen: „{n} Ordner“, „{n} Treffer“, „mit {n} Favoriten ist online“. „vor {n} Tagen“ erst ab 2, sonst „gestern“.</li>
+            <li>Feste Texte ohne Zählform, auch bei nur einem Element: Tooltips „Alle Filter zurücksetzen“, „Filter mit „Und“ verknüpfen“ (inaktiv) / „Filter mit „Und“ verknüpft“ (aktiv), „Details anzeigen“; Geltungsbereich in der Filterleiste „In Favoriten“, „In „{Medium}““; Suchfeld-X „Suche leeren“.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Festgelegt</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>Der Medientyp (HDD/SSD/USB) steht nie als Text, auch nicht im Erkennungsdialog (02).</li>
+            <li>Der Offline-Balken in der Spaltenansicht zeigt nur „Offline“.</li>
+            <li>In der App entfallen: Menüpunkt „Protokoll im Finder zeigen“, Rückfrage „{n} Einträge ignorieren?“, Einstellung „Dateityp-Filter in der Spaltenansicht“.</li>
+            <li>Kachel mit Fehler (04): „erneut versuchen“ ist ein Link und startet die Indizierung sofort neu, wie „Erneut versuchen“ in 14. Klick auf den Rest der Kachel öffnet die Spaltenansicht. Bei „Fehler, offline“ kein Link.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Mitteilungen und Fehler (14, 18)</div>
+          <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
+            <li>macOS-Mitteilungen als Banner oben rechts, danach in der Mitteilungszentrale. Titel immer „Disk Archive“, Icon immer das App-Icon. Klick öffnet das Hauptfenster.</li>
+            <li>Drei Stufen, alle nötig: macOS erlaubt Mitteilungen → Hauptschalter „Mitteilungen aktivieren“ → Schalter des Ereignisses (Systemmeldungen, vollständig indiziert, Favoriten angeschlossen). „Mitteilungen ein/aus“ und „Index-Datenbank nicht verfügbar“ brauchen nur macOS.</li>
+            <li>Indizierungsfehler: Dialog mit allgemeinem Text und Zeile des Grundes (a–g, bei unbekanntem Grund keine), dazu eine Mitteilung „{Name}: {Grund}“ je Medium, die sich zurückzieht, sobald der Fehler endet.</li>
+            <li>Ansonsten zeigt der Fehler nur seinen Status: Chip „Fehler“ bzw. „Fehler, offline“, Kachelzeile „Fehler · erneut versuchen“, Ausrufezeichen am Menüleisten-Icon.</li>
+            <li>Die Liste in 18 ist der aktuelle Stand. Neue Funktionen können weitere Mitteilungen bringen; sie folgen denselben Stufen und werden dort ergänzt.</li>
+          </ul>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:13px; font-weight:700; margin-bottom:var(--space-2);">Darstellung (19)</div>
           <ul style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; padding-left:16px; display:flex; flex-direction:column; gap:4px; text-wrap:pretty;">
             <li>Hell und Dunkel mit eigenen Farbstufen. Türkis: #00A5A8 auf hellem Grund, #00D3D5 im Dark Mode und auf ausgewählten Zeilen.</li>
             <li>Alle Regeln im Detail stehen im Styleguide unter „Kernkonzept“ und gelten für jeden Screen.</li>
@@ -330,6 +377,37 @@
         </div>
       </div>
       <p style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:var(--space-2);">Kein Badge = Medium ist online und vollständig indiziert; dieser Zustand bleibt bewusst ohne visuellen Marker (siehe 03).</p>
+
+      <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">01.01 · KONTEXTMENÜ</h5>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3); text-wrap:pretty;">Rechtsklick (oder Ctrl-Klick) auf das Menüleisten-Icon öffnet ein schlichtes Systemmenü; ein normaler Klick öffnet weiterhin die Schnellübersicht (03). „Disk Archive anzeigen“ holt das Hauptfenster nach vorn. „Automatisch bei Systemstart“ entspricht der Einstellung „Autostart“ (05, Tab „Allgemein“) und zeigt per Häkchen, ob sie aktiv ist. „Einstellungen …“ öffnet die Einstellungen (05). „Disk Archive beenden“ beendet die App samt Menüleisten-Icon; Medien werden dann bis zum nächsten Start nicht erkannt.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:var(--space-6);">
+        <div data-screen-label="Kontextmenü Hell" style="flex:1 1 320px; min-width:0; max-width:420px; display:flex; flex-direction:column; align-items:flex-end;">
+          <div style="align-self:stretch; background:#e9e9e9; height:30px; display:flex; align-items:center; justify-content:flex-end; gap:var(--space-4); padding:0 var(--space-4); border:1px solid var(--color-divider); border-radius:var(--radius-md) var(--radius-md) 0 0;">
+            <span style="display:inline-flex; padding:3px 6px; border-radius:4px; background:#00000018;"><svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#1f1f1f"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></span>
+          </div>
+          <div style="margin:4px var(--space-2) 0 0; width:240px; padding:5px; background:#f6f6f6; color:#1f1f1f; border:1px solid #00000022; border-radius:8px; box-shadow:0 10px 30px #00000033; font-size:13px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#1f1f1f; color:#fff;"><span style="width:14px; flex:none;"></span><span>Disk Archive anzeigen</span></div>
+            <div style="height:1px; background:#00000018; margin:5px 8px;"></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#1f1f1f; color:#fff;"><span style="width:14px; flex:none; display:inline-flex;"><i class="ph-bold ph-check" style="font-size:12px;"></i></span><span>Automatisch bei Systemstart</span></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#1f1f1f; color:#fff;"><span style="width:14px; flex:none;"></span><span>Einstellungen …</span></div>
+            <div style="height:1px; background:#00000018; margin:5px 8px;"></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#1f1f1f; color:#fff;"><span style="width:14px; flex:none;"></span><span>Disk Archive beenden</span></div>
+          </div>
+        </div>
+        <div data-screen-label="Kontextmenü Dunkel" style="flex:1 1 320px; min-width:0; max-width:420px; display:flex; flex-direction:column; align-items:flex-end;">
+          <div style="align-self:stretch; background:#1f1f1f; height:30px; display:flex; align-items:center; justify-content:flex-end; gap:var(--space-4); padding:0 var(--space-4); border-radius:var(--radius-md) var(--radius-md) 0 0;">
+            <span style="display:inline-flex; padding:3px 6px; border-radius:4px; background:#ffffff26;"><svg class="ic" viewBox="0 0 256 256" width="18" height="18" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></span>
+          </div>
+          <div style="margin:4px var(--space-2) 0 0; width:240px; padding:5px; background:#2a2a2a; color:#eae9e9; border:1px solid #ffffff22; border-radius:8px; box-shadow:0 10px 30px #00000066; font-size:13px; display:flex; flex-direction:column;">
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#eae9e9; color:#1f1f1f;"><span style="width:14px; flex:none;"></span><span>Disk Archive anzeigen</span></div>
+            <div style="height:1px; background:#ffffff1f; margin:5px 8px;"></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#eae9e9; color:#1f1f1f;"><span style="width:14px; flex:none; display:inline-flex;"><i class="ph-bold ph-check" style="font-size:12px;"></i></span><span>Automatisch bei Systemstart</span></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#eae9e9; color:#1f1f1f;"><span style="width:14px; flex:none;"></span><span>Einstellungen …</span></div>
+            <div style="height:1px; background:#ffffff1f; margin:5px 8px;"></div>
+            <div style="display:flex; align-items:center; gap:6px; padding:3px 8px; border-radius:4px;" style-hover="background:#eae9e9; color:#1f1f1f;"><span style="width:14px; flex:none;"></span><span>Disk Archive beenden</span></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ============ 02. ERKENNUNGS-DIALOG ============ -->
@@ -345,7 +423,7 @@
             <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div class="dialog-title" style="font-size:16px;">Neues Speichermedium erkannt</div>
             <div class="dialog-body" style="font-size:13px;">„Externe Platte 5“ (2 TB) wurde angeschlossen. Soll sie indiziert werden?</div>
-            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked=""><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
+            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
             <div class="dialog-actions">
               <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Nicht indizieren</button>
               <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Indizieren</button>
@@ -363,7 +441,7 @@
                 <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
                 <div class="dialog-title" style="font-size:16px;">Neues Speichermedium erkannt</div>
                 <div class="dialog-body" style="font-size:13px;">{{ d.text }}</div>
-                <label class="radio" style="margin-top:4px;"><input type="checkbox" checked=""><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
+                <label class="radio" style="margin-top:4px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
                 <div class="dialog-actions">
                   <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Nicht indizieren</button>
                   <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Indizieren</button>
@@ -392,13 +470,13 @@
 
       <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
-        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Erkennungs-Dialog. Farben laut Farbrollen · Dark Mode (18).</p>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Erkennungs-Dialog. Farben laut Farbrollen · Dark Mode (19).</p>
         <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
         <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
             <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
             <div class="dialog-title" style="font-size:16px;">Neues Speichermedium erkannt</div>
             <div class="dialog-body" style="font-size:13px;">„Externe Platte 5“ (2 TB) wurde angeschlossen. Soll sie indiziert werden?</div>
-            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked=""><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
+            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span>Für dieses Medium merken</label>
             <div class="dialog-actions">
               <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Nicht indizieren</button>
               <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Indizieren</button>
@@ -414,7 +492,8 @@
       <h3 style="margin-bottom:var(--space-2);">Schnellübersicht bei Klick</h3>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-6);">
         Bei einem komplett neuen Medium mit sehr vielen Dateien steht die Erstindizierung zunächst bis zu 2 Minuten auf 0 %, weil erst die Platte geprüft wird. Statt Ladebalken zeigt die Zeile dann pulsierenden Punkt + „Speichermedium wird geprüft“ ohne Prozentangabe; danach folgt der normale Balken. Derselbe Zustand gilt für ein wieder angeschlossenes, bereits bekanntes Medium: Zwischen dem Erkennen und dem Start einer Indizierung steht „Speichermedium wird geprüft“ statt eines kurzen Sprungs auf 99 %. Folgt keine Indizierung, wechselt die Zeile in den Ruhezustand. Zeigt nur angeschlossene (Online-)Medien. Medien-Icons schlank (regular) — fett nur in der Menüleiste. Ein Status-Chip erscheint nur, solange ein Medium indiziert wird (Spinner). Kein Chip bedeutet: online und vollständig indiziert.
-       Gelber pulsierender Punkt mit „Entscheidung ausstehend“: Das Medium ist online, darf aber noch nicht indiziert werden, weil die Entscheidung im Erkennungs-Dialog fehlt. Ein Klick auf die Zeile öffnet den Erkennungs-Dialog (02) für genau dieses Medium, nicht die Spaltenansicht. Roter pulsierender Punkt mit „Speichermedium fehlerhaft“: Das Medium ist angeschlossen, lässt sich aber nicht lesen (14).</p>
+       Gelber pulsierender Punkt mit „Entscheidung ausstehend“: Das Medium ist online, darf aber noch nicht indiziert werden, weil die Entscheidung im Erkennungs-Dialog fehlt. Ein Klick auf die Zeile öffnet den Erkennungs-Dialog (02) für genau dieses Medium, nicht die Spaltenansicht. Roter pulsierender Punkt mit „Speichermedium fehlerhaft“: Das Medium ist angeschlossen, lässt sich aber nicht lesen (14). Leerzustände: „Kein Speichermedium angeschlossen“, wenn kein Medium angeschlossen ist; „Kein indiziertes Speichermedium angeschlossen“, wenn nur Medien ohne Index angeschlossen sind. 03.11 Start: Erscheint nur, bis der Index nach dem Start geöffnet ist (meist unter einer Sekunde); statt der Medienliste steht nur ein schwarzer Spinner mit „Inhalte werden geladen“.
+      </p>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:calc(-1 * var(--space-4)) 0 var(--space-6);">Automatisches Indizieren: Klick auf „Pausiert“ schaltet nicht sofort um, sondern öffnet ein Popover mit der Dauer (30 Minuten, 1 Stunde, Bis morgen, Für immer). Erst die Auswahl pausiert. Ist bereits pausiert, zeigt das Popover oben „Pausiert für X“ mit Endzeit; die aktive Dauer ist ausgegraut, die anderen ändern die Pause. Klick auf „An“ setzt sofort wieder fort und löscht die Pause. Während der Pause steht beim indizierenden Medium ein Pause-Icon statt des Spinners. Die Pause betrifft nur das Indizieren. Erkennen und Anzeige laufen weiter. „Bis morgen“ endet am nächsten Tag um 9:00 Uhr. Die Pause bleibt nach einem Neustart erhalten. Sind Mitteilungen aktiv, erscheint beim Pausieren die Mitteilung „Indizierung pausiert“ (mit Dauer bzw. Endzeit) und beim Ende der Pause oder beim Klick auf „An“ die Mitteilung „Medien werden wieder indiziert“. Ein Medium, das während der Pause neu angeschlossen wird, löst den Dialog aus und wird nach der Pause automatisch indiziert, sofern es noch online ist.</p>
 
       <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; align-items:flex-start;">
@@ -426,7 +505,7 @@
           <span style="font-size:13px; font-weight:600;">Disk Archive</span>
           <div style="flex:1;"></div>
           <div style="position:relative; flex:0 0 150px; width:150px;">
-            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -479,7 +558,7 @@
           <div style="position:relative; flex:1;">
             <input class="input" value="rechnung" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+            <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
           </div>
         </div>
         <div style="padding:var(--space-4); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-3);">
@@ -506,7 +585,7 @@
           <div style="position:relative; flex:1;">
             <input class="input" value="rechnung" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+            <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
           </div>
         </div>
         <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
@@ -523,7 +602,7 @@
           <div style="position:relative; flex:1;">
             <input class="input" value="rechnung_2031" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+            <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
           </div>
         </div>
         <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
@@ -541,7 +620,7 @@
           <div style="position:relative; flex:1;">
             <input class="input" value="rechnung" style="font-size:12px; min-height:26px; padding-left:26px; padding-right:28px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+            <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
           </div>
         </div>
         <div style="padding:var(--space-4); background:var(--color-surface); display:flex; flex-direction:column; gap:var(--space-3);">
@@ -570,7 +649,7 @@
           <span style="font-size:13px; font-weight:600;">Disk Archive</span>
           <div style="flex:1;"></div>
           <div style="position:relative; flex:0 0 150px; width:150px;">
-            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -620,7 +699,7 @@
           <span style="font-size:13px; font-weight:600;">Disk Archive</span>
           <div style="flex:1;"></div>
           <div style="position:relative; flex:0 0 150px; width:150px;">
-            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -684,7 +763,7 @@
           <span style="font-size:13px; font-weight:600;">Disk Archive</span>
           <div style="flex:1;"></div>
           <div style="position:relative; flex:0 0 150px; width:150px;">
-            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -740,11 +819,95 @@
       </div>
       </div>
 
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.09 · KEIN SPEICHERMEDIUM ANGESCHLOSSEN</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
+          <svg viewBox="0 0 256 256" width="32" height="32" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <div style="font:600 13px var(--font-heading); color:color-mix(in srgb, var(--color-text) 70%, transparent);">Kein Speichermedium angeschlossen</div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.10 · KEIN INDIZIERTES SPEICHERMEDIUM ANGESCHLOSSEN</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
+          <svg viewBox="0 0 256 256" width="32" height="32" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <div style="font:600 13px var(--font-heading); color:color-mix(in srgb, var(--color-text) 70%, transparent);">Kein indiziertes Speichermedium angeschlossen</div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.11 · START – INHALTE WERDEN GELADEN</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;"><span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center;"><span style="width:20px; height:20px; border-radius:50%; border:2.5px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span></span><div style="font-size:12px; font-weight:600;">Inhalte werden geladen</div></div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
       </div>
     
       <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
-        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Dropdown im Ruhezustand und Pause-Auswahl. Farben laut Farbrollen · Dark Mode (18).</p>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Dropdown im Ruhezustand, Pause-Auswahl und Leerzustände. Farben laut Farbrollen · Dark Mode (19).</p>
         <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; align-items:flex-start;">
 <div>
       <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.01 · RUHEZUSTAND</div>
@@ -754,7 +917,7 @@
           <span style="font-size:13px; font-weight:600;">Disk Archive</span>
           <div style="flex:1;"></div>
           <div style="position:relative; flex:0 0 150px; width:150px;">
-            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -809,7 +972,7 @@
           <span style="font-size:13px; font-weight:600;">Disk Archive</span>
           <div style="flex:1;"></div>
           <div style="position:relative; flex:0 0 150px; width:150px;">
-            <input class="input" placeholder="Suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -861,6 +1024,89 @@
             <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--di-sel); color:#fff;"><span style="width:14px; flex:none;"></span>Bis morgen</div>
             <div style="display:flex; align-items:center; gap:8px; padding:6px 10px; font-size:13px; border-radius:var(--radius-sm);" style-hover="background:var(--di-sel); color:#fff;"><span style="width:14px; flex:none;"></span>Für immer</div>
           </div>
+      </div>
+      </div>
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.09 · KEIN SPEICHERMEDIUM ANGESCHLOSSEN</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
+          <svg viewBox="0 0 256 256" width="32" height="32" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <div style="font:600 13px var(--font-heading); color:color-mix(in srgb, var(--color-text) 70%, transparent);">Kein Speichermedium angeschlossen</div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.10 · KEIN INDIZIERTES SPEICHERMEDIUM ANGESCHLOSSEN</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;">
+          <svg viewBox="0 0 256 256" width="32" height="32" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <div style="font:600 13px var(--font-heading); color:color-mix(in srgb, var(--color-text) 70%, transparent);">Kein indiziertes Speichermedium angeschlossen</div>
+        </div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
+      </div>
+      </div>
+
+      <div>
+      <div style="font-size:11px; font-weight:600; margin-bottom:8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">03.11 · START – INHALTE WERDEN GELADEN</div>
+      <div style="width:340px; background:var(--color-surface); border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); border-radius:var(--radius-lg); overflow:hidden;">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <svg viewBox="0 0 256 256" width="16" height="16" fill="var(--color-text)"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg>
+          <span style="font-size:13px; font-weight:600;">Disk Archive</span>
+          <div style="flex:1;"></div>
+          <div style="position:relative; flex:0 0 150px; width:150px;">
+            <input class="input" placeholder="Suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="background:color-mix(in srgb, var(--color-text) 5%, transparent); min-height:180px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:var(--space-6) var(--space-4); text-align:center;"><span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center;"><span style="width:20px; height:20px; border-radius:50%; border:2.5px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span></span><div style="font-size:12px; font-weight:600;">Inhalte werden geladen</div></div>
+        <div style="padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider); display:flex; align-items:center; justify-content:space-between;">
+          <span style="font-size:12px; font-weight:600;">Automatisches Indizieren</span>
+          <div style="display:inline-flex; border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--color-accent-700);">
+            <button style="border:none; padding:4px 12px; font:700 12px var(--font-heading); line-height:1.2; background:var(--color-accent); color:#fff; cursor:pointer;">An</button>
+            <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); line-height:1.2; background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer;">Pausiert</button>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 7%, transparent); border-top:1px solid var(--color-divider);">
+          <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500);">Disk Archive öffnen</button>
+        </div>
       </div>
       </div>
         </div>

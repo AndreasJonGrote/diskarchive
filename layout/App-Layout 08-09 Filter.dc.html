@@ -68,7 +68,7 @@
         <div style="display:flex; gap:var(--space-4); padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider);"><div style="min-width:150px; font-size:12px; font-weight:600;">Farbe</div><div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); text-wrap:pretty;">Blau steht immer für „Filter/Suche aktiv“: Icons, Filter-Button, Chips. Grau = inaktiv. Sobald mindestens ein Filter gesetzt ist, hängt rechts am Filter-Button ein schwarzes ✕, das alle Filter auf einmal zurücksetzt.</div></div>
       </div>
       <div style="font-size:11px; font-weight:600; margin:0 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">08.01 · FILTER AUF DEM GANZEN MEDIUM</div>
-      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter-Icon geklickt, Dateityp „Video“ gewählt. Der Filter gilt für das ganze Medium „EOS_R5“ und damit für jede Spalte: Alle Spalten zeigen nur passende Dateien, Ordner bleiben sichtbar („Ordner weiterhin anzeigen“), damit man sich zu den Treffern durchklicken kann. Spaltenkopf und Fußzeile zeigen, wie viele Objekte übrig sind. Die Medium-Auswahl entfällt hier. Der geöffnete Pfad samt Medium ist blau gefüllt. Ordner ohne Treffer werden leise wie Offline-Medien.</p>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter-Icon geklickt, Dateityp „Video“ gewählt. Der Filter gilt für das ganze Medium „EOS_R5“ und damit für jede Spalte: Alle Spalten zeigen nur passende Dateien, Ordner bleiben sichtbar, damit man sich zu den Treffern durchklicken kann. Spaltenkopf und Fußzeile zeigen, wie viele Objekte übrig sind. Die Medium-Auswahl entfällt hier. Der geöffnete Pfad samt Medium ist blau gefüllt. Ordner ohne Treffer werden leise wie Offline-Medien.</p>
       <div style="border:1px solid var(--color-divider); box-shadow:var(--shadow-md); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:6px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 6%, transparent);">
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Zur Übersicht"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"></path></svg></button>
@@ -79,7 +79,7 @@
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><i class="ph-duotone duo80 ph-funnel" style="font-size:17px; color:oklch(0.62 0.16 255);"></i></button>
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
           <div style="width:420px; position:relative; margin-left:7px;">
-            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Objekte suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -94,7 +94,7 @@
 
           <div style="width:200px; flex:none; overflow:hidden; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent), inset -6px 0 10px -8px color-mix(in srgb, var(--color-text) 25%, transparent);">
             <div style="position:relative; margin-bottom:var(--space-3);">
-              <input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
+              <input class="input" placeholder="Medium suchen …" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
               <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </div>
             <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent); padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
@@ -144,7 +144,7 @@
         </div>
       </div>
       <div style="font-size:11px; font-weight:600; margin:var(--space-6) 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">08.02 · ORDNER OHNE TREFFER GEÖFFNET</div>
-      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Klick auf den leisen Ordner „101EOSR5“: Die Auswahl bleibt leise, der Pfad darüber blau. Statt einer leeren Spalte erscheint der Status mit Filter-Icon. „Filter zurücksetzen“ hebt alle Filter auf und zeigt den Inhalt sofort.</p>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Klick auf den leisen Ordner „101EOSR5“: Die Auswahl bleibt leise, der Pfad darüber blau. Statt einer leeren Spalte erscheint der Status mit Filter-Icon. „Alle Filter zurücksetzen“ hebt alle Filter auf und zeigt den Inhalt sofort.</p>
       <div style="border:1px solid var(--color-divider); box-shadow:var(--shadow-md); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:6px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 6%, transparent);">
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Zur Übersicht"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"></path></svg></button>
@@ -155,7 +155,7 @@
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><i class="ph-duotone duo80 ph-funnel" style="font-size:17px; color:oklch(0.62 0.16 255);"></i></button>
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
           <div style="width:420px; position:relative; margin-left:7px;">
-            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Objekte suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -170,7 +170,7 @@
 
           <div style="width:200px; flex:none; overflow:hidden; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent), inset -6px 0 10px -8px color-mix(in srgb, var(--color-text) 25%, transparent);">
             <div style="position:relative; margin-bottom:var(--space-3);">
-              <input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
+              <input class="input" placeholder="Medium suchen …" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
               <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </div>
             <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent); padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
@@ -205,7 +205,7 @@
                   <span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center; margin-bottom:10px;"><i class="ph-duotone duo80 ph-funnel" style="font-size:20px; color:oklch(0.62 0.16 255);"></i></span>
                   <div style="font-weight:600; margin-bottom:6px;">Keine passenden Objekte</div>
                   <div style="font-size:11px; line-height:1.45; max-width:260px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:10px;">In diesem Ordner und seinen Unterordnern gibt es keine Objekte, die zum Filter passen.</div>
-                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Filter zurücksetzen</a>
+                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Alle Filter zurücksetzen</a>
                 </div>
               </div>
             </div>
@@ -220,7 +220,7 @@
         </div>
       </div>
       <div style="font-size:11px; font-weight:600; margin:var(--space-6) 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">08.03 · FILTER WIRD ANGEWENDET</div>
-      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Bei sehr großen Speichermedien braucht das Filtern einen Moment. Das Medium ist blau ausgewählt, an Stelle der ersten Spalte steht der Status mit blauem Spinner. „Filter zurücksetzen“ bricht ab und zeigt sofort den ungefilterten Inhalt.</p>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Bei sehr großen Speichermedien braucht das Filtern einen Moment. Das Medium ist blau ausgewählt, an Stelle der ersten Spalte steht der Status mit blauem Spinner. „Alle Filter zurücksetzen“ bricht ab und zeigt sofort den ungefilterten Inhalt.</p>
       <div style="border:1px solid var(--color-divider); box-shadow:var(--shadow-md); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:6px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 6%, transparent);">
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Zur Übersicht"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"></path></svg></button>
@@ -231,7 +231,7 @@
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><i class="ph-duotone duo80 ph-funnel" style="font-size:17px; color:oklch(0.62 0.16 255);"></i></button>
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
           <div style="width:420px; position:relative; margin-left:7px;">
-            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Objekte suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -246,7 +246,7 @@
 
           <div style="width:200px; flex:none; overflow:hidden; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent), inset -6px 0 10px -8px color-mix(in srgb, var(--color-text) 25%, transparent);">
             <div style="position:relative; margin-bottom:var(--space-3);">
-              <input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
+              <input class="input" placeholder="Medium suchen …" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
               <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </div>
             <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent); padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
@@ -272,7 +272,7 @@
                   <span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center; margin-bottom:10px;"><span style="width:20px; height:20px; border-radius:50%; border:2.5px solid oklch(0.62 0.16 255); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span></span>
                   <div style="font-weight:600; margin-bottom:6px;">Filter wird angewendet</div>
                   <div style="font-size:11px; line-height:1.45; width:100%; max-width:260px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:10px;">Auf diesem Speichermedium liegen sehr viele Dateien. Das Filtern dauert einen Moment.</div>
-                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Filter zurücksetzen</a>
+                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Alle Filter zurücksetzen</a>
                 </div>
               </div>
             </div>
@@ -297,7 +297,7 @@
     
       <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
-        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter auf dem ganzen Medium, mit „Und“ verknüpft. Farben laut Farbrollen · Dark Mode (18).</p>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter auf dem ganzen Medium, mit „Und“ verknüpft. Farben laut Farbrollen · Dark Mode (19).</p>
         <div style="background:var(--color-bg); border:1px solid var(--color-divider); box-shadow:var(--shadow-md); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:6px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 6%, transparent);">
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Zur Übersicht"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"></path></svg></button>
@@ -308,7 +308,7 @@
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><i class="ph-duotone duo80 ph-funnel" style="font-size:17px; color:oklch(0.72 0.14 255);"></i></button>
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
           <div style="width:420px; position:relative; margin-left:7px;">
-            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Objekte suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -323,7 +323,7 @@
 
           <div style="width:200px; flex:none; overflow:hidden; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent), inset -6px 0 10px -8px color-mix(in srgb, var(--color-text) 25%, transparent);">
             <div style="position:relative; margin-bottom:var(--space-3);">
-              <input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
+              <input class="input" placeholder="Medium suchen …" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
               <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </div>
             <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent); padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
@@ -373,7 +373,7 @@
         </div>
       </div>
       <div style="font-size:11px; font-weight:600; margin:var(--space-6) 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">08.02 · ORDNER OHNE TREFFER GEÖFFNET</div>
-      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Ordner ohne Treffer geöffnet. Farben laut Farbrollen · Dark Mode (18).</p>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Ordner ohne Treffer geöffnet. Farben laut Farbrollen · Dark Mode (19).</p>
         <div style="background:var(--color-bg); border:1px solid var(--color-divider); box-shadow:var(--shadow-md); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:6px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 6%, transparent);">
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Zur Übersicht"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"></path></svg></button>
@@ -384,7 +384,7 @@
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><i class="ph-duotone duo80 ph-funnel" style="font-size:17px; color:oklch(0.72 0.14 255);"></i></button>
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
           <div style="width:420px; position:relative; margin-left:7px;">
-            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Objekte suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -399,7 +399,7 @@
 
           <div style="width:200px; flex:none; overflow:hidden; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent), inset -6px 0 10px -8px color-mix(in srgb, var(--color-text) 25%, transparent);">
             <div style="position:relative; margin-bottom:var(--space-3);">
-              <input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
+              <input class="input" placeholder="Medium suchen …" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
               <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </div>
             <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent); padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
@@ -434,7 +434,7 @@
                   <span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center; margin-bottom:10px;"><i class="ph-duotone duo80 ph-funnel" style="font-size:20px; color:oklch(0.72 0.14 255);"></i></span>
                   <div style="font-weight:600; margin-bottom:6px;">Keine passenden Objekte</div>
                   <div style="font-size:11px; line-height:1.45; max-width:260px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:10px;">In diesem Ordner und seinen Unterordnern gibt es keine Objekte, die zum Filter passen.</div>
-                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Filter zurücksetzen</a>
+                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Alle Filter zurücksetzen</a>
                 </div>
               </div>
             </div>
@@ -449,7 +449,7 @@
         </div>
       </div>
       <div style="font-size:11px; font-weight:600; margin:var(--space-6) 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">08.03 · FILTER WIRD ANGEWENDET</div>
-      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter wird angewendet. Farben laut Farbrollen · Dark Mode (18).</p>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter wird angewendet. Farben laut Farbrollen · Dark Mode (19).</p>
         <div style="background:var(--color-bg); border:1px solid var(--color-divider); box-shadow:var(--shadow-md); border-radius:var(--radius-lg); overflow:hidden;">
         <div style="display:flex; align-items:center; gap:6px; padding:var(--space-3) var(--space-4); border-bottom:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 6%, transparent);">
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Zur Übersicht"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"></path></svg></button>
@@ -460,7 +460,7 @@
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><i class="ph-duotone duo80 ph-funnel" style="font-size:17px; color:oklch(0.72 0.14 255);"></i></button>
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
           <div style="width:420px; position:relative; margin-left:7px;">
-            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Objekte suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -475,7 +475,7 @@
 
           <div style="width:200px; flex:none; overflow:hidden; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent), inset -6px 0 10px -8px color-mix(in srgb, var(--color-text) 25%, transparent);">
             <div style="position:relative; margin-bottom:var(--space-3);">
-              <input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
+              <input class="input" placeholder="Medium suchen …" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
               <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </div>
             <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent); padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
@@ -501,7 +501,7 @@
                   <span style="width:20px; height:20px; flex:none; display:flex; align-items:center; justify-content:center; margin-bottom:10px;"><span style="width:20px; height:20px; border-radius:50%; border:2.5px solid oklch(0.72 0.14 255); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span></span>
                   <div style="font-weight:600; margin-bottom:6px;">Filter wird angewendet</div>
                   <div style="font-size:11px; line-height:1.45; width:100%; max-width:260px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-bottom:10px;">Auf diesem Speichermedium liegen sehr viele Dateien. Das Filtern dauert einen Moment.</div>
-                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Filter zurücksetzen</a>
+                  <a href="#" style="font-size:11px; font-weight:600; color:var(--color-text); text-decoration:underline; text-underline-offset:3px; white-space:nowrap;">Alle Filter zurücksetzen</a>
                 </div>
               </div>
             </div>
@@ -523,7 +523,7 @@
       <div class="card-kicker" style="margin-bottom:var(--space-3);">09 — FILTER-AUSWAHL <span class="tag tag-outline" style="margin-left:6px;">POPOVER</span></div>
       <h3 style="margin-bottom:var(--space-2);">Was sich filtern lässt</h3>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-6);">
-        Klick auf den „Filter“-Button in der Filterleiste öffnet dieses Popover — in der Spaltenansicht (08) wie in der Suche (10). Drei Eingrenzungen: Dateityp (Mehrfachauswahl) mit freier Eingabe eigener Dateiendungen, Medium (durchsuchbare Liste, ab 15 Einträgen scrollbar) und Alter (Bereiche). Filter gelten immer global ab dem Wurzelverzeichnis: in der Suche über alle Medien, in der Spaltenansicht über das gesamte geöffnete Medium. Die Medium-Auswahl gibt es deshalb nur in der Suche; in der Spaltenansicht entfällt sie. Jede Auswahl erscheint sofort als blauer Chip in der Filterleiste. Dateiendung: Eingabe mit Enter bestätigen, die Endung erscheint als blauer Chip direkt unter dem Feld (per ✕ entfernbar). „jpg“ und „.jpg“ sind gleichwertig — fehlt der Punkt, setzt das System ihn für den Abgleich automatisch davor; Groß-/Kleinschreibung wird ignoriert, angezeigt wird immer mit Punkt. Sobald ein Dateityp oder eine Endung gesetzt ist, ist „Ordner“ deaktiviert — Ordner bleiben in der Spaltenansicht über die Einstellung „Ordner weiterhin anzeigen“ (Dateien &amp; Ordner, Standard: an) sichtbar, damit man sich zu den Treffern durchklicken kann; in der Suche wirkt der Filter strikt. Wie mehrere Filter verknüpft werden („Oder“/„Und“), steuert der Link-Button in der Filterleiste (08). Dateitypen-Kategorien siehe Styleguide (18).
+        Klick auf den „Filter“-Button in der Filterleiste öffnet dieses Popover — in der Spaltenansicht (08) wie in der Suche (10). Drei Eingrenzungen: Dateityp (Mehrfachauswahl) mit freier Eingabe eigener Dateiendungen, Medium (durchsuchbare Liste, ab 15 Einträgen scrollbar) und Alter (Bereiche). Filter gelten immer global ab dem Wurzelverzeichnis: in der Suche über alle Medien, in der Spaltenansicht über das gesamte geöffnete Medium. Die Medium-Auswahl gibt es deshalb nur in der Suche; in der Spaltenansicht entfällt sie. Jede Auswahl erscheint sofort als blauer Chip in der Filterleiste. Dateiendung: Eingabe mit Enter bestätigen, die Endung erscheint als blauer Chip direkt unter dem Feld (per ✕ entfernbar). „jpg“ und „.jpg“ sind gleichwertig — fehlt der Punkt, setzt das System ihn für den Abgleich automatisch davor; Groß-/Kleinschreibung wird ignoriert, angezeigt wird immer mit Punkt. Sobald ein Dateityp oder eine Endung gesetzt ist, ist „Ordner“ deaktiviert — Ordner bleiben in der Spaltenansicht sichtbar, damit man sich zu den Treffern durchklicken kann; in der Suche wirkt der Filter strikt. Wie mehrere Filter verknüpft werden („Oder“/„Und“), steuert der Link-Button in der Filterleiste (08). Dateitypen-Kategorien siehe Styleguide (19).
       </p>
       <div style="font-size:11px; font-weight:600; margin:0 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">09.01 · FILTER-AUSWAHL</div>
 
@@ -561,7 +561,7 @@
             <div style="min-width:270px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
+                <input class="input" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600;">Alle Medien</span></label>
@@ -600,7 +600,7 @@
             <div style="min-width:270px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
+                <input class="input" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600;">Alle abwählen</span></label>
@@ -626,9 +626,9 @@
             <div style="min-width:310px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" value="Backup" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
+                <input class="input" value="Backup" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-                <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+                <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600; white-space:nowrap;">Alle Medien mit „Backup“ anwählen</span></label>
               <div style="display:flex; flex-direction:column; font-size:13px; border-top:1px solid var(--color-divider); margin-top:2px; padding-top:2px;">
@@ -644,9 +644,9 @@
             <div style="min-width:310px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" value="Backup" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
+                <input class="input" value="Backup" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-                <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+                <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600; white-space:nowrap;">Alle Medien mit „Backup“ abwählen</span></label>
               <div style="display:flex; flex-direction:column; font-size:13px; border-top:1px solid var(--color-divider); margin-top:2px; padding-top:2px;">
@@ -661,7 +661,7 @@
     
       <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
-        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter-Popover. Farben laut Farbrollen · Dark Mode (18).</p>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Filter-Popover. Farben laut Farbrollen · Dark Mode (19).</p>
         <div style="width:fit-content; max-width:100%;">
 <div style="display:inline-block;">
         <div style="display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border:1px solid oklch(0.72 0.14 255); border-radius:var(--radius-sm); font:600 12px var(--font-heading); background:var(--color-bg); color:oklch(0.72 0.14 255);">
@@ -697,7 +697,7 @@
             <div style="min-width:270px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
+                <input class="input" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600;">Alle Medien</span></label>
@@ -731,13 +731,13 @@
         </div>
         </div>
       <div style="font-size:11px; font-weight:600; margin:var(--space-6) 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">09.02 · MEDIUM — ALLE AUSGEWÄHLT</div>
-      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Alle Medien ausgewählt. Farben laut Farbrollen · Dark Mode (18).</p>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Alle Medien ausgewählt. Farben laut Farbrollen · Dark Mode (19).</p>
       <div style="display:inline-block;">
         <div style="border:1px solid oklch(0.72 0.14 255); border-radius:var(--radius-lg); padding:var(--space-6); display:flex; background:var(--color-bg); box-shadow:var(--shadow-lg);">
             <div style="min-width:270px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
+                <input class="input" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600;">Alle abwählen</span></label>
@@ -756,16 +756,16 @@
         </div>
       </div>
       <div style="font-size:11px; font-weight:600; margin:var(--space-6) 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">MEDIUM — SUCHE „Backup“</div>
-      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Suche „Backup“, anwählen und abwählen. Farben laut Farbrollen · Dark Mode (18).</p>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Suche „Backup“, anwählen und abwählen. Farben laut Farbrollen · Dark Mode (19).</p>
       <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; align-items:flex-start;">
       <div style="display:inline-block;">
         <div style="border:1px solid oklch(0.72 0.14 255); border-radius:var(--radius-lg); padding:var(--space-6); display:flex; background:var(--color-bg); box-shadow:var(--shadow-lg);">
             <div style="min-width:310px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" value="Backup" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
+                <input class="input" value="Backup" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-                <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+                <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600; white-space:nowrap;">Alle Medien mit „Backup“ anwählen</span></label>
               <div style="display:flex; flex-direction:column; font-size:13px; border-top:1px solid var(--color-divider); margin-top:2px; padding-top:2px;">
@@ -781,9 +781,9 @@
             <div style="min-width:310px;">
               <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 50%, transparent); margin-bottom:8px;">MEDIUM</div>
               <div style="position:relative; margin-bottom:6px;">
-                <input class="input" value="Backup" placeholder="Medium suchen…" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
+                <input class="input" value="Backup" placeholder="Medium suchen …" style="font-size:12px; min-height:24px; padding-left:24px; padding-right:26px; width:100%; box-sizing:border-box;">
                 <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-                <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+                <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
               </div>
               <label class="radio" style="padding:3px 0; font-size:13px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span><span style="font-weight:600; white-space:nowrap;">Alle Medien mit „Backup“ abwählen</span></label>
               <div style="display:flex; flex-direction:column; font-size:13px; border-top:1px solid var(--color-divider); margin-top:2px; padding-top:2px;">

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="ds-disk-archive.css">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>
+    .ph-duotone.duo80 { --ph-duotone-opacity: .95; }
+    :root{--teal:#00A5A8;--fav:oklch(0.62 0.16 305);--ok:oklch(0.62 0.16 150)}
+    .dm{--teal:#00D3D5;--fav:oklch(0.72 0.14 305);--ok:oklch(0.72 0.14 150)}
+    a { color: var(--color-text); } a:hover { color: var(--teal); }
+  </style>
+</helmet>
+<div style="background:var(--color-bg);">
+  <div style="max-width:1400px; margin:0 auto; padding:var(--space-4) var(--space-8); display:flex; flex-direction:column; gap:var(--space-8);">
+    <section id="s18" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg);">
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">18 — MITTEILUNGEN <span class="tag tag-outline" style="margin-left:6px;">SYSTEM-UI</span></div>
+      <h3 style="margin-bottom:var(--space-2);">Mitteilungen</h3>
+      <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-6); text-wrap:pretty;">Disk Archive meldet sich über macOS-Mitteilungen. Ob eine Mitteilung erscheint, hängt an bis zu drei Stufen, die alle erfüllt sein müssen. Die erste liegt bei macOS, die anderen beiden in den Einstellungen (05, Tab „Allgemein“ → Mitteilungen). Mitteilungen erscheinen als Banner oben rechts, danach in der Mitteilungszentrale. Titel ist immer „Disk Archive“ (Ausnahme: Nr. 12), jede Mitteilung trägt das App-Icon. Ein Klick öffnet das Hauptfenster.</p>
+
+      <div style="font-size:11px; font-weight:600; margin:0 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">18.01 · WOVON EINE MITTEILUNG ABHÄNGT</div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:var(--space-3); margin-bottom:var(--space-3);">
+        <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-4); display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-text); color:var(--color-bg); display:grid; place-items:center; font-size:11px; font-weight:700; flex:none;">1</span><span style="font-size:13px; font-weight:700;">macOS erlaubt Mitteilungen</span></div>
+          <p style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; text-wrap:pretty;">Systemeinstellungen › Mitteilungen › Disk Archive. Beim ersten Start fragt macOS einmalig. Wurde abgelehnt, lässt es sich nur dort ändern — die App selbst kann es nicht. Gilt für alle Mitteilungen.</p>
+        </div>
+        <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-4); display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-text); color:var(--color-bg); display:grid; place-items:center; font-size:11px; font-weight:700; flex:none;">2</span><span style="font-size:13px; font-weight:700;">Hauptschalter „Mitteilungen aktivieren“</span></div>
+          <p style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; text-wrap:pretty;">Einstellungen › Allgemein › Mitteilungen. Ist er aus, sind alle Ereignis-Schalter deaktiviert.</p>
+        </div>
+        <div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); padding:var(--space-4); display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:50%; background:var(--color-text); color:var(--color-bg); display:grid; place-items:center; font-size:11px; font-weight:700; flex:none;">3</span><span style="font-size:13px; font-weight:700;">Schalter für das Ereignis</span></div>
+          <p style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 65%, transparent); margin:0; text-wrap:pretty;">Einzeln wählbar: Systemmeldungen [S], Speichermedium vollständig indiziert [I], Speichermedium mit Favoriten angeschlossen [F].</p>
+        </div>
+      </div>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-6); text-wrap:pretty;">Ausnahme [–]: „Mitteilungen ein“, „Mitteilungen aus“ und „Index-Datenbank nicht verfügbar“ kommen auch bei ausgeschaltetem Hauptschalter. Sie brauchen nur die Erlaubnis von macOS (Stufe 1).</p>
+
+      <div style="font-size:11px; font-weight:600; margin:0 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">18.02 · BEISPIELE AUS DEN EINSTELLUNGEN</div>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3); text-wrap:pretty;">Je Ereignis-Schalter eine Mitteilung — dieselben, die im Tab „Allgemein“ beim Hover über den Schalter als Vorschau erscheinen. Die Vorschau in den Einstellungen ist keine echte Mitteilung.</p>
+      <div style="background:linear-gradient(160deg, #F4F4F4, #D9D8D8); border-radius:var(--radius-lg); padding:var(--space-6); display:flex; flex-wrap:wrap; gap:var(--space-4); margin-bottom:var(--space-6);">
+        <div style="width:340px; max-width:100%; display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+          <div style="width:32px; height:32px; flex:none; border-radius:7px; background:linear-gradient(160deg, #575757, #1f1f1f); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgb(0 0 0 / .18);"><svg viewBox="0 0 256 256" width="27" height="27" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></div>
+          <div style="flex:1; min-width:0; font-size:12px; line-height:1.4;">
+            <div style="display:flex; align-items:baseline; gap:6px;"><span style="font-weight:700;">Disk Archive</span><span style="margin-left:auto; font-size:11px; color:color-mix(in srgb, var(--color-text) 50%, transparent);">jetzt</span></div>
+            <div style="color:color-mix(in srgb, var(--color-text) 65%, transparent);">Medien werden wieder indiziert.</div>
+          </div>
+        </div>
+        <div style="width:340px; max-width:100%; display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+          <div style="width:32px; height:32px; flex:none; border-radius:7px; background:linear-gradient(160deg, #575757, #1f1f1f); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgb(0 0 0 / .18);"><svg viewBox="0 0 256 256" width="27" height="27" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></div>
+          <div style="flex:1; min-width:0; font-size:12px; line-height:1.4;">
+            <div style="display:flex; align-items:baseline; gap:6px;"><span style="font-weight:700;">Disk Archive</span><span style="margin-left:auto; font-size:11px; color:color-mix(in srgb, var(--color-text) 50%, transparent);">jetzt</span></div>
+            <div style="color:color-mix(in srgb, var(--color-text) 65%, transparent);">Medium „Masterarbeit Backup“ ist vollständig indiziert – 48.210 Objekte.</div>
+          </div>
+        </div>
+        <div style="width:340px; max-width:100%; display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+          <div style="width:32px; height:32px; flex:none; border-radius:7px; background:linear-gradient(160deg, #575757, #1f1f1f); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgb(0 0 0 / .18);"><svg viewBox="0 0 256 256" width="27" height="27" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></div>
+          <div style="flex:1; min-width:0; font-size:12px; line-height:1.4;">
+            <div style="display:flex; align-items:baseline; gap:6px;"><span style="font-weight:700;">Disk Archive</span><span style="margin-left:auto; font-size:11px; color:color-mix(in srgb, var(--color-text) 50%, transparent);">jetzt</span></div>
+            <div style="color:color-mix(in srgb, var(--color-text) 65%, transparent);">Medium „Unterwegs“ mit 1 Favoriten ist online.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px; font-weight:600; margin:0 0 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent);">18.03 · ALLE MITTEILUNGEN</div>
+      <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3); text-wrap:pretty;">Schalter: [S] Systemmeldungen · [I] Speichermedium vollständig indiziert · [F] Speichermedium mit Favoriten angeschlossen · [–] kommt auch bei ausgeschalteten Mitteilungen. Alle mit [S], [I] oder [F] brauchen zusätzlich den Hauptschalter. Platzhalter in geschweiften Klammern. Die Liste gibt den aktuellen Stand wieder; mit neuen Funktionen können weitere Mitteilungen hinzukommen — sie folgen denselben Stufen und werden hier ergänzt.</p>
+      <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); overflow-x:auto;">
+        <table class="table" style="margin:0; width:100%; font-size:12px; min-width:760px;">
+          <thead><tr><th style="width:28px;">Nr.</th><th>Mitteilung</th><th style="width:44px;">Schalter</th><th style="min-width:340px;">Text</th><th>Wann</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td style="font-weight:600;">Mitteilungen ein</td><td>–</td><td>Mitteilungen sind eingeschaltet.</td><td>Hauptschalter eingeschaltet</td></tr>
+            <tr><td>2</td><td style="font-weight:600;">Mitteilungen aus</td><td>–</td><td>Mitteilungen sind ausgeschaltet.</td><td>Hauptschalter ausgeschaltet</td></tr>
+            <tr><td>3</td><td style="font-weight:600;">Pausiert (ohne Ende)</td><td>S</td><td>Indizierung pausiert.</td><td>Pause ohne Endzeit</td></tr>
+            <tr><td>4</td><td style="font-weight:600;">Pausiert bis Uhrzeit</td><td>S</td><td>Indizierung pausiert bis {Uhrzeit} Uhr.</td><td>Pause mit Endzeit</td></tr>
+            <tr><td>5</td><td style="font-weight:600;">Wieder indiziert</td><td>S</td><td>Medien werden wieder indiziert.</td><td>Pause von Hand beendet oder Pausenzeit abgelaufen</td></tr>
+            <tr><td>6</td><td style="font-weight:600;">Vollständig indiziert</td><td>I</td><td>Medium „{Name}“ ist vollständig indiziert – {Anzahl} Objekte.</td><td>Lauf fertig, nur wenn er länger als 59 s gedauert hat</td></tr>
+            <tr><td>7</td><td style="font-weight:600;">Mit Favoriten online</td><td>F</td><td>Medium „{Name}“ mit {Anzahl} Favoriten ist online.</td><td>Medium mit mindestens 1 Favoriten angeschlossen</td></tr>
+            <tr><td>8</td><td style="font-weight:600;">Index bereinigt</td><td>S</td><td>Index bereinigt.</td><td>Nach dem Bereinigen, weil sich Einstellungen geändert haben</td></tr>
+            <tr><td>9</td><td style="font-weight:600;">Voreinstellungen angewendet</td><td>S</td><td>Voreinstellungen angewendet.</td><td>Einstellungen › „Voreinstellungen“</td></tr>
+            <tr><td>10</td><td style="font-weight:600;">Alle vergessen</td><td>S</td><td>Alle Speichermedien wurden vergessen.</td><td>„Alle Speichermedien vergessen“</td></tr>
+            <tr><td style="vertical-align:top;">11</td><td style="font-weight:600; vertical-align:top;">Indizierung fehlgeschlagen</td><td style="vertical-align:top;">S</td><td style="vertical-align:top;">
+              <div style="margin-bottom:6px;">{Name}: {Zeile des Grundes}</div>
+              <div style="display:grid; grid-template-columns:auto minmax(0,1fr); gap:6px 8px; color:color-mix(in srgb, var(--color-text) 75%, transparent); text-wrap:pretty;">
+                <span>a</span><span><span style="display:block; font-weight:600;">Zugriff verweigert</span>Disk Archive darf dieses Medium nicht lesen. Das lässt sich in den Systemeinstellungen unter Datenschutz &amp; Sicherheit ändern.</span>
+                <span>b</span><span><span style="display:block; font-weight:600;">Verbindung weg</span>Die Verbindung zum Medium wurde unterbrochen.</span>
+                <span>c</span><span><span style="display:block; font-weight:600;">Zeitüberschreitung</span>Das Medium reagiert nicht.</span>
+                <span>d</span><span><span style="display:block; font-weight:600;">Nicht bestätigt</span>Das Medium konnte nicht bestätigt werden.</span>
+                <span>e</span><span><span style="display:block; font-weight:600;">Kein Platz auf dem Mac</span>Auf diesem Mac ist nicht genug Speicherplatz frei.</span>
+                <span>f</span><span><span style="display:block; font-weight:600;">Datenbank</span>Der Index auf diesem Mac lässt sich gerade nicht beschreiben.</span>
+                <span>g</span><span><span style="display:block; font-weight:600;">Ordner nicht lesbar</span>Einige Ordner auf diesem Medium konnten nicht gelesen werden.</span>
+                <span>h</span><span><span style="display:block; font-weight:600;">Unbekannt</span>{Name}: Beim Indizieren ist ein Fehler aufgetreten. Das Medium konnte nicht indiziert werden.</span>
+              </div>
+            </td><td style="vertical-align:top;">Zusammen mit dem Fehlerdialog (14), gleiche Drosselung. Je Medium nur eine; die neue ersetzt die alte. Wird zurückgezogen, wenn der Fehler endet, und beim nächsten Start entfernt. Klick öffnet das Hauptfenster mit dem Fehlerdialog.</td></tr>
+            <tr><td style="vertical-align:top;">12</td><td style="font-weight:600; vertical-align:top;">Datenbank nicht verfügbar</td><td style="vertical-align:top;">–</td><td style="vertical-align:top;"><div style="font-weight:600;">Index-Datenbank nicht verfügbar</div><div>Die Index-Datenbank konnte nicht geöffnet werden. Disk Archive kann Speichermedien derzeit nicht verarbeiten.</div></td><td style="vertical-align:top;">Beim Start, wenn die Datenbank nicht zu öffnen ist. Dazu erscheint im Hauptfenster ein eigener Dialog.</td></tr>
+            <tr><td style="color:color-mix(in srgb, var(--color-text) 50%, transparent);">…</td><td style="font-weight:600; color:color-mix(in srgb, var(--color-text) 50%, transparent);">Weitere Mitteilungen</td><td style="color:color-mix(in srgb, var(--color-text) 50%, transparent);">S / –</td><td style="color:color-mix(in srgb, var(--color-text) 50%, transparent); font-style:italic;">Neue Funktionen können eigene Mitteilungen mitbringen.</td><td style="color:color-mix(in srgb, var(--color-text) 50%, transparent);">Ordnen sich einem bestehenden Schalter zu oder kommen immer [–]</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
+        <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">Beispiel-Mitteilungen. Farben laut Farbrollen · Dark Mode (19).</p>
+        <div style="background:linear-gradient(160deg, #575757, #1f1f1f); border-radius:var(--radius-lg); padding:var(--space-6); display:flex; flex-wrap:wrap; gap:var(--space-4);">
+          <div style="width:340px; max-width:100%; display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+            <div style="width:32px; height:32px; flex:none; border-radius:7px; background:linear-gradient(160deg, #575757, #1f1f1f); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgb(0 0 0 / .18);"><svg viewBox="0 0 256 256" width="27" height="27" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></div>
+            <div style="flex:1; min-width:0; font-size:12px; line-height:1.4;">
+              <div style="display:flex; align-items:baseline; gap:6px;"><span style="font-weight:700;">Disk Archive</span><span style="margin-left:auto; font-size:11px; color:color-mix(in srgb, var(--color-text) 50%, transparent);">jetzt</span></div>
+              <div style="color:color-mix(in srgb, var(--color-text) 65%, transparent);">Medien werden wieder indiziert.</div>
+            </div>
+          </div>
+          <div style="width:340px; max-width:100%; display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+            <div style="width:32px; height:32px; flex:none; border-radius:7px; background:linear-gradient(160deg, #575757, #1f1f1f); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgb(0 0 0 / .18);"><svg viewBox="0 0 256 256" width="27" height="27" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></div>
+            <div style="flex:1; min-width:0; font-size:12px; line-height:1.4;">
+              <div style="display:flex; align-items:baseline; gap:6px;"><span style="font-weight:700;">Disk Archive</span><span style="margin-left:auto; font-size:11px; color:color-mix(in srgb, var(--color-text) 50%, transparent);">jetzt</span></div>
+              <div style="color:color-mix(in srgb, var(--color-text) 65%, transparent);">Medium „Masterarbeit Backup“ ist vollständig indiziert – 48.210 Objekte.</div>
+            </div>
+          </div>
+          <div style="width:340px; max-width:100%; display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:var(--color-surface); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md);">
+            <div style="width:32px; height:32px; flex:none; border-radius:7px; background:linear-gradient(160deg, #575757, #1f1f1f); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgb(0 0 0 / .18);"><svg viewBox="0 0 256 256" width="27" height="27" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></div>
+            <div style="flex:1; min-width:0; font-size:12px; line-height:1.4;">
+              <div style="display:flex; align-items:baseline; gap:6px;"><span style="font-weight:700;">Disk Archive</span><span style="margin-left:auto; font-size:11px; color:color-mix(in srgb, var(--color-text) 50%, transparent);">jetzt</span></div>
+              <div style="color:color-mix(in srgb, var(--color-text) 65%, transparent);">Medium „Unterwegs“ mit 1 Favoriten ist online.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

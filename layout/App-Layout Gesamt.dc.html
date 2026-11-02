@@ -60,7 +60,7 @@
 
   <nav data-da-nav="1" style="position:sticky; top:0; z-index:50; background:color-mix(in srgb, var(--color-bg) 92%, transparent); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border-bottom:1px solid var(--color-divider);">
     <div style="max-width:1400px; margin:0 auto; padding:10px var(--space-8); box-sizing:border-box; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-      <sc-for list="{{ navItems }}" as="it" hint-placeholder-count="19">
+      <sc-for list="{{ navItems }}" as="it" hint-placeholder-count="21">
         <a href="{{ it.href }}" onClick="{{ it.go }}" class="tag tag-outline" style="text-decoration:none; display:inline-flex; gap:6px; padding:4px 10px; background:{{ it.bg }}; color:{{ it.fg }}; border-color:{{ it.bd }};"><span style="opacity:.55;">{{ it.num }}</span>{{ it.label }}</a>
       </sc-for>
     </div>
@@ -71,7 +71,9 @@
     <dc-import name="App-Layout 07 Spaltenansicht" hint-size="100%,1600px"></dc-import>
     <dc-import name="App-Layout 08-09 Filter" hint-size="100%,1600px"></dc-import>
     <dc-import name="App-Layout 10-17 Suche und Dialoge" hint-size="100%,1600px"></dc-import>
-    <dc-import name="App-Layout 18 Styleguide" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 18 Mitteilungen" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 19 Styleguide" hint-size="100%,1600px"></dc-import>
+    <dc-import name="App-Layout 20 Texte" hint-size="100%,1600px"></dc-import>
   </div>
 </div>
 
@@ -79,7 +81,7 @@
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   state = { active: 's00' };
-  items = [['00','Konzept'],['01','Menüleiste'],['02','Erkennung'],['03','Dropdown'],['04','Übersicht'],['05','Einstellungen'],['06','Medium-Details'],['07','Spaltenansicht'],['08','Filter'],['09','Filter-Auswahl'],['10','Suche'],['11','Favoriten'],['12','Kontextmenü'],['13','Update'],['14','Indizierungsfehler'],['15','Absturzbericht'],['16','Unerwarteter Fehler'],['17','Über Disk Archive'],['18','Styleguide']];
+  items = [['00','Konzept'],['01','Menüleiste'],['02','Erkennung'],['03','Dropdown'],['04','Übersicht'],['05','Einstellungen'],['06','Medium-Details'],['07','Spaltenansicht'],['08','Filter'],['09','Filter-Auswahl'],['10','Suche'],['11','Favoriten'],['12','Kontextmenü'],['13','Update'],['14','Indizierungsfehler'],['15','Absturzbericht'],['16','Unerwarteter Fehler'],['17','Über Disk Archive'],['18','Mitteilungen'],['19','Styleguide'],['20','Texte']];
   navH() { const n = document.querySelector('[data-da-nav]'); return n ? n.getBoundingClientRect().height : 0; }
   onScroll = () => {
     const off = this.navH() + 24; let cur = 's00';

@@ -155,18 +155,20 @@
 </helmet>
 <div style="background:var(--color-bg);">
   <div style="max-width:1400px; margin:0 auto; padding:var(--space-4) var(--space-8); display:flex; flex-direction:column; gap:var(--space-8);">
-    <section id="s18" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg); background:var(--color-surface); min-width:0;">
-      <div class="card-kicker" style="margin-bottom:var(--space-3);">18 — STYLEGUIDE &amp; ICON-SETS</div>
+    <section id="s19" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg); background:var(--color-surface); min-width:0;">
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">19 — STYLEGUIDE &amp; ICON-SETS</div>
       
       <h3 style="margin-bottom:var(--space-2);">Kernkonzept</h3>
       <ul style="font-size:13px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:820px; margin:0 0 var(--space-8); padding-left:18px;">
+<li style="margin:0 0 6px;">Metadaten und Vorschaubilder sind globale Schalter in Einstellungen → Dateien &amp; Ordner („Metadaten laden“, „Vorschaubilder erzeugen“) und gelten für alle Speichermedien, nicht pro Medium. Beide sind ab Werk an und gehören zu den Werkseinstellungen. Ist ein Schalter aus, ist der zugehörige Balken in den Medium-Details (06) ausgegraut und zeigt „Aus“.</li>
 <li style="margin:0 0 6px;">In Spalten, Seitenleisten und Listen bricht nie etwas um. Zu lange Namen laufen rechts mit Verlauf aus. Der Verlauf erscheint nur, wenn der Text wirklich gekürzt wird; passt er in die verfügbare Breite, steht er voll da. Einzige Ausnahme: der Dateiname im Detailbereich.</li>
 <li style="margin:0 0 6px;">Tabellen (Suche, Favoriten, Speichermedien) haben überall dieselben Werte: Zeilen 14 px mit 11 px Innenabstand oben und unten, Kopfzeile 11 px, Chips 10 px. Datums- und Zeitspalten („Geändert“, „Zuletzt gesehen“) eine Stufe kleiner: 13 px, leise.</li>
 <li style="margin:0 0 6px;">Auswerfen-Button in Textfarbe (hell: schwarz, dunkel: hell), nie grau; beim Hover gefüllt.</li>
 <li style="margin:0 0 6px;">Benannte Medien: türkises Medien-Icon, zuerst der vergebene Name, dann mit Punkt getrennt und leise der Originalname, z. B. „Lauras Platte · Studio Backup“. Ist der Originalname zu lang, läuft er rechts aus. Ist der vergebene Name selbst zu lang, entfällt der Originalname. In Kacheln (04) und Medium-Details (06) steht der Originalname klein unter dem Namen.</li>
 <li style="margin:0 0 6px;">Dateidetails zeigen immer die Labels Erstellt, Geändert, Größe und Zuletzt gesehen. Weitere Metadaten (z. B. bei Video) stehen zwischen Größe und Zuletzt gesehen.</li>
+<li style="margin:0 0 6px;">Videos: Mit Vorschaubild steht die Dauer nur auf dem Vorschaubild. Ohne Vorschaubild (z. B. „Vorschaubilder erzeugen“ aus) steht sie als eigenes Feld „Dauer“ zwischen „Aufgenommen“ und „Auflösung“.</li>
 <li style="margin:0 0 6px;">Links im Detailbereich („Im Finder anzeigen“ und andere) stehen immer direkt unter den Metadaten. „Im Finder anzeigen“ nur bei angeschlossenen Medien; dann steht bei Zuletzt gesehen „jetzt“.</li>
-<li style="margin:0 0 6px;">Auswerfen in Kacheln und in der Tabelle „Speichermedien“: dasselbe schlichte Eject-Icon mit Rahmen direkt am Status-Chip (Kachel rechts, Tabelle links davon), gefüllt erst beim Hover. Nicht in Seitenleisten und Medienspalten, nie bei Offline-Medien.</li>
+<li style="margin:0 0 6px;">Auswerfen in Kacheln und in der Tabelle „Speichermedien“: dasselbe schlichte Eject-Icon mit Rahmen direkt am Status-Chip (Kachel rechts, Tabelle links davon), gefüllt erst beim Hover. Nur bei Online-Medien; nicht in Seitenleisten und Medienspalten.</li>
 <li style="margin:0 0 6px;">Favorisierte Medien (Daten I) zeigen ihr Medien-Icon überall in Violett: Seitenleiste, Kacheln, Tabellen und Details.</li>
 <li style="margin:0 0 6px;">Umbenennen nur über Kontextmenü → „Benennen“. Das öffnet die Medium-Details (06) mit dem Fokus direkt im Namensfeld. Kein Umbenennen per Klick auf den Namen.</li>
 <li style="margin:0 0 6px;">Die Versionsnummer in der App (Einstellungen → Programm, Über-Dialog) zeigt immer die aktuellste Version; Zahlen in den Mockups sind Platzhalter.</li>
@@ -175,6 +177,19 @@
 <li style="margin:0 0 6px;">Vorschauen: Für Fotos, Videos und PDFs erzeugt Disk Archive beim Indizieren ein Vorschaubild, für Audio eine Waveform. Maximale Größe im Detailbereich: 228 px breit (Detailspalte 260 px), unabhängig vom Medium.</li>
 <li style="margin:0 0 6px;">Abspielen: Nur bei angeschlossenem Medium gibt es einen Play-Button. Erst dann liest Disk Archive Video oder Audio direkt vom Medium, auch dann nur in der kleinen Vorschaugröße. Offline zeigt ein Video nur das Standbild, Audio nur die Waveform.</li>
 <li style="margin:0 0 6px;">Metadaten im Detailbereich: Zeilenhöhe 1,45, kein zusätzlicher Zeilenabstand. Der Dateiname sitzt direkt unter dem Icon, ohne Leerraum. Hat die Datei eine Vorschau, bleibt das Layout gleich: Icon, Name, dann die Vorschau als zusätzliche Zeile, dann die Metadaten, jeweils mit demselben Abstand von 8 px. Das Icon (26 px) ist um 3 px nach links versetzt, weil die Icons links rund 3–4 px Leerraum haben; so steht die sichtbare Kante des Icons bündig mit dem Namen.</li>
+      </ul>
+      <h3 style="margin-bottom:var(--space-2);">Tooltips und Einzahl</h3>
+      <ul style="font-size:13px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:820px; margin:0 0 var(--space-8); padding-left:18px;">
+<li style="margin:0 0 6px;">Tooltips: Filter-✕ „Alle Filter zurücksetzen“; Verknüpfungs-Button „Filter mit „Und“ verknüpfen“ (inaktiv) / „Filter mit „Und“ verknüpft“ (aktiv); Detail-Icon in der Speichermedien-Liste „Details anzeigen“; Suchfeld-X (Bedienhilfe) „Suche leeren“.</li>
+<li style="margin:0 0 6px;">Geltungsbereich in der Filterleiste: „In Favoriten“, „In „{Medium}““.</li>
+<li style="margin:0 0 6px;">Einzahl: „1 Ergebnis anzeigen“ (zu „Alle {9} Ergebnisse anzeigen“), „Dein 1 Speichermedium und {48.230} Dateien werden durchsucht …“, „1 Objekt“, „noch 1 Tag“.</li>
+      </ul>
+      <h3 style="margin-bottom:var(--space-2);">Festgelegt</h3>
+      <ul style="font-size:13px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:820px; margin:0 0 var(--space-8); padding-left:18px;">
+<li style="margin:0 0 6px;">Der Medientyp (HDD/SSD/USB) steht nie als Text, auch nicht im Erkennungsdialog (02).</li>
+<li style="margin:0 0 6px;">Der Offline-Balken in der Spaltenansicht zeigt nur „Offline“.</li>
+<li style="margin:0 0 6px;">In der App entfallen: Menüpunkt „Protokoll im Finder zeigen“, Rückfrage „{n} Einträge ignorieren?“, Einstellung „Dateityp-Filter in der Spaltenansicht“.</li>
+<li style="margin:0 0 6px;">Wir sprechen nur vom „Lizenzserver“, auch wenn er heute nur Versionen meldet. Banner: Gelb = Hinweis, Rot = Sperre.</li>
       </ul>
       <h3 style="margin-bottom:var(--space-2);">Beispiel-Medien</h3>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:820px; margin:0 0 var(--space-3);">Feste Besetzung für alle Screens. Jedes Medium kommt pro Screen höchstens einmal vor. Den Typ (HDD, SSD, USB) zeigt die App nirgends an, weder im Namen noch in Infozeilen. Medien mit eigenem Namen (Kontextmenü „Benennen“) haben ein türkises Medien-Icon; dahinter folgt, mit Punkt getrennt und leise, der Originalname. Sidebars und Spaltenbrowser sind so hoch, dass 9 Medien Platz haben. Geht es um Inhalte, wird immer der komplette Spaltenbrowser gezeigt.</p>
@@ -279,7 +294,7 @@
         Ab hier verbindlich für alle Screens. Zwei Suchfeld-Größen: die Objekt-Suche (immer oben rechts) ist überall identisch dimensioniert; die kleine Medium-Suche in Sidebars ist bewusst kleiner &amp; dezenter.
       </p>
       <div data-screen-label="Raster &amp; Maße">
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.01 · RASTER &amp; MASSE</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.01 · RASTER &amp; MASSE</h5>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:820px; margin:0 0 var(--space-4);">Grundraster 4 px, Hauptschritte 8 px (Abstands-Tokens 4 · 8 · 12 · 16 · 24 · 32). Hilfslinien zeigen die Kanten der Hauptbereiche, magenta Rahmen mit Maßen (Breite × Höhe, Innenabstand) die Bausteine, blasse Rahmen alle übrigen Elemente. Das Raster im Hintergrund hat 8 px. Noch nicht im Raster: 2 px (Zeilenabstand Spalte) · 3 px (Zeilenabstand Medienliste) · 6 px (Werkzeugleiste, Statusleiste) · 7 px / 10 px (Zeilen-Innenabstand) · 15 px / 21 px (Icons) · 22 px / 26 px (Suchfelder) · 30 px (Icon-Buttons).</p>
       <div style="display:flex; gap:var(--space-4); align-items:flex-start; margin-bottom:var(--space-8);">
       <div class="measure-root" data-measure-root="" style="position:relative; flex:1; min-width:0; cursor:crosshair;">
@@ -293,7 +308,7 @@
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Filter"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M230.6,49.53A15.81,15.81,0,0,0,216,40H40A16,16,0,0,0,28.19,66.76l.08.09L96,139.17V216a16,16,0,0,0,24.87,13.32l32-21.34A16,16,0,0,0,160,194.66V139.17l67.74-72.32.08-.09A15.8,15.8,0,0,0,230.6,49.53ZM40,56h0Zm106.18,74.58A8,8,0,0,0,144,136v58.66L112,216V136a8,8,0,0,0-2.16-5.47L40,56H216Z"></path></svg></button>
           <button class="btn btn-icon" style="width:30px; height:30px;" title="Suche"><svg viewBox="0 0 256 256" width="17" height="17" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
           <div style="width:420px; position:relative; margin-left:7px;">
-            <input class="input" placeholder="Objekte suchen…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <input class="input" placeholder="Objekte suchen …" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
           </div>
         </div>
@@ -302,7 +317,7 @@
 
           <div data-m="Medienliste" style="width:200px; flex:none; overflow:hidden; padding:var(--space-3) var(--space-2); background:color-mix(in srgb, var(--color-text) 6%, var(--color-bg)); box-shadow:inset -1px 0 0 color-mix(in srgb, var(--color-text) 10%, transparent), inset -6px 0 10px -8px color-mix(in srgb, var(--color-text) 25%, transparent);">
             <div style="position:relative; margin-bottom:var(--space-3);">
-              <input class="input" placeholder="Medium suchen…" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
+              <input class="input" placeholder="Medium suchen …" style="font-size:11px; min-height:22px; padding-left:24px; width:100%; box-sizing:border-box;">
               <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:7px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
             </div>
             <div style="font-size:10px; letter-spacing:.08em; color:color-mix(in srgb, var(--color-text) 45%, transparent); padding:4px 8px 8px;">ALLE SPEICHERMEDIEN</div>
@@ -362,7 +377,7 @@
       </div>
 
 
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.02 · FARBROLLEN</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.02 · FARBROLLEN</h5>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-4);">Farbe bedeutet immer einen Zustand, nie eine Bedienung — bedient wird in Schwarz. Alle Farben teilen Helligkeit und Sättigung, nur der Farbton wechselt. Chip-Rezept: Schrift, Rand und Icon in der Basisfarbe, Fläche in der Basisfarbe mit 5 % Deckkraft. Gestrichelt ohne Fläche = unvollständig (wird indiziert, nicht erfasst, offline). Pro Medium genau ein Chip. Offline kommt als Zusatz in denselben Chip (grau, gestrichelt): „Offline“, „x % indiziert, offline“, „Fehler, offline“. Online ist stärker als „indiziert“.</p>
       <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:var(--space-4); margin-bottom:var(--space-6);">
         <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-3); display:flex; gap:var(--space-3); align-items:flex-start;">
@@ -438,7 +453,7 @@
       </div>
 
 
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.03 · BUTTONS, CHIPS &amp; KOMBIS</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.03 · BUTTONS, CHIPS &amp; KOMBIS</h5>
       <div style="display:flex; flex-direction:column; gap:var(--space-4); margin-bottom:var(--space-2); padding:var(--space-4); border:1px solid var(--color-divider); border-radius:var(--radius-md);">
 
         <div>
@@ -503,55 +518,55 @@
       </div>
       <p style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin:0 0 var(--space-6);">Regel: jeder farbige Button/Chip trägt eine Border in einem dunkleren Ton derselben Farbe — besonders wichtig beim Ja/Nein-Paar. Der kleine Button übernimmt exakt die Höhe/Größe der Selectgroup daneben. Destruktive (rot) und nicht umkehrbare, unkritische Buttons (schwarz) nutzen immer den Bestätigungsmodus (05): erster Klick → komplett gefüllt mit „Bestätigen“, zweiter Klick führt aus.</p>
 
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.04 · SUCHFELDER</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.04 · SUCHFELDER</h5>
       <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; margin-bottom:var(--space-6); align-items:flex-end;">
         <div>
           <div style="font-size:11px; margin-bottom:6px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Objekt-Suche — überall gleich, oben rechts</div>
-          <div style="position:relative; width:280px;"><input class="input" placeholder="Objekte suchen…" style="padding-left:26px; font-size:12px; min-height:26px;"><svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
+          <div style="position:relative; width:280px;"><input class="input" placeholder="Objekte suchen …" style="padding-left:26px; font-size:12px; min-height:26px;"><svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
         </div>
         <div>
           <div style="font-size:11px; margin-bottom:6px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Medium-Suche — kleiner, in Sidebars</div>
-          <div style="position:relative; width:180px;"><input class="input" placeholder="Medium suchen…" style="padding-left:26px; font-size:11px; min-height:24px;"><svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
+          <div style="position:relative; width:180px;"><input class="input" placeholder="Medium suchen …" style="padding-left:26px; font-size:11px; min-height:24px;"><svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
         </div>
       </div>
 
-      <h5 style="margin-bottom:var(--space-2); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.05 · CURSOR-REGEL</h5>
+      <h5 style="margin-bottom:var(--space-2); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.05 · CURSOR-REGEL</h5>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-6);">
         Auf allen klickbaren Elementen — Buttons, Icon-Buttons, klickbare Zeilen, entfernbare Chips — immer die Hand (Link-Cursor), nie der Standard-Pfeil.
       </p>
 
-      <h5 style="margin-bottom:var(--space-2); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.06 · SUCHFELD — RESET-VERHALTEN</h5>
+      <h5 style="margin-bottom:var(--space-2); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.06 · SUCHFELD — RESET-VERHALTEN</h5>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">
         Verbindlich für jedes Suchfeld — Medium-Suche wie Objekt-Suche: Sobald der Nutzer Text eingibt, erscheint rechts im Feld ein kleines X in einem grauen Kreis. Klick darauf leert das Feld und setzt die Suche/den Filterzustand zurück. Im Leerzustand ist das X nicht sichtbar.
       </p>
       <div style="display:flex; gap:var(--space-6); flex-wrap:wrap; margin-bottom:var(--space-6); align-items:flex-end;">
         <div>
           <div style="font-size:11px; margin-bottom:6px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Leer — kein X</div>
-          <div style="position:relative; width:280px;"><input class="input" placeholder="Objekte suchen…" style="padding-left:26px; font-size:12px; min-height:26px;"><svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
+          <div style="position:relative; width:280px;"><input class="input" placeholder="Objekte suchen …" style="padding-left:26px; font-size:12px; min-height:26px;"><svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
         </div>
         <div>
           <div style="font-size:11px; margin-bottom:6px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Mit Text — X sichtbar</div>
           <div style="position:relative; width:280px;">
             <input class="input" value="rechnung_2021" style="padding-left:26px; padding-right:28px; font-size:12px; min-height:26px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+            <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:16px; height:16px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="9" height="9" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
           </div>
         </div>
         <div>
           <div style="font-size:11px; margin-bottom:6px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Medium-Suche — Leer — kein X</div>
-          <div style="position:relative; width:180px;"><input class="input" placeholder="Medium suchen…" style="padding-left:26px; font-size:11px; min-height:24px;"><svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
+          <div style="position:relative; width:180px;"><input class="input" placeholder="Medium suchen …" style="padding-left:26px; font-size:11px; min-height:24px;"><svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></div>
         </div>
         <div>
           <div style="font-size:11px; margin-bottom:6px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">Medium-Suche — Mit Text — X sichtbar</div>
           <div style="position:relative; width:180px;">
             <input class="input" value="ssd" style="padding-left:26px; padding-right:26px; font-size:11px; min-height:24px; width:100%; box-sizing:border-box;">
             <svg viewBox="0 0 256 256" width="11" height="11" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
-            <button class="btn btn-icon" title="Suche zurücksetzen" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
+            <button class="btn btn-icon" title="Suche leeren" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); width:14px; height:14px; min-height:0; padding:0; border-radius:50%; border:none; background:color-mix(in srgb, var(--color-text) 14%, transparent); display:grid; place-items:center;"><svg viewBox="0 0 256 256" width="8" height="8" fill="var(--color-text)"><path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"></path></svg></button>
           </div>
         </div>
       </div>
 
-      <h5 style="margin-bottom:var(--space-2); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.07 · FAVORITEN</h5>
+      <h5 style="margin-bottom:var(--space-2); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.07 · FAVORITEN</h5>
       <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-3);">
         Favoriten haben ein eigenes Icon: „Favoriten“ (zwei Lesezeichen) für die Navigation, „Favorit“ (ein Lesezeichen) am einzelnen Objekt. Inaktiv als Kontur in Textfarbe, aktiv gefüllt in Violett — transparente Füllung wie bei den Chips (Duotone), nie in Blau (Filter). Ist ein Objekt als Favorit markiert, wird zusätzlich sein eigenes Icon (Ordner, Datei, Speichermedium) violett — überall, wo es erscheint.
       </p>
@@ -562,7 +577,7 @@
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:110px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);"><i class="ph-duotone ph-bookmark-simple" style="font-size:28px; color:oklch(0.62 0.16 305);"></i><span style="font-size:10px; text-align:center;">Favorit (Objekt) · markiert</span></div>
       </div>
 
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.08 · TABELLEN-REGEL</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.08 · TABELLEN-REGEL</h5>
       <table class="table" style="max-width:480px;">
         <thead><tr><th style="padding-left:var(--space-4);"><span style="display:inline-flex; align-items:center; gap:4px; color:var(--color-accent-700); font-weight:700; cursor:pointer;">Spalte A (aktiv sortiert)</span></th><th><span style="cursor:pointer;">Spalte B</span></th><th style="padding-right:var(--space-4); text-align:right; cursor:pointer;">Letzte Spalte</th></tr></thead>
         <tbody>
@@ -575,7 +590,7 @@
       <div class="hr" style="height:2px; background:var(--color-divider); margin:var(--space-6) 0;"></div>
       <h4 style="margin-bottom:var(--space-2);">Icon-Sets (Phosphor)</h4>
       <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin:0 0 var(--space-6);">Typen &amp; Dateitypen: schlank (regular). Status: dezent fetter — der einzige bewusste Ausreißer vom Rest der UI.</p>
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.09 · SPEICHERMEDIENTYPEN</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.09 · SPEICHERMEDIENTYPEN</h5>
       <div style="display:flex; gap:var(--space-4); flex-wrap:wrap; margin-bottom:var(--space-6);">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:96px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);">
           <svg class="ic" viewBox="0 0 256 256" width="32" height="32" fill="var(--color-text)"><path d="M252.44,121.34l-48-32A8,8,0,0,0,192,96v24H72V72h33a32,32,0,1,0,0-16H72A16,16,0,0,0,56,72v48H8a8,8,0,0,0,0,16H56v48a16,16,0,0,0,16,16h32v8a16,16,0,0,0,16,16h32a16,16,0,0,0,16-16V176a16,16,0,0,0-16-16H120a16,16,0,0,0-16,16v8H72V136H192v24a8,8,0,0,0,12.44,6.66l48-32a8,8,0,0,0,0-13.32ZM136,48a16,16,0,1,1-16,16A16,16,0,0,1,136,48ZM120,176h32v32H120Zm88-30.95V111l25.58,17Z"></path></svg>
@@ -591,7 +606,7 @@
         </div>
       </div>
 
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.10 · STATUS</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.10 · STATUS</h5>
       <div style="display:flex; gap:var(--space-4); flex-wrap:wrap; margin-bottom:var(--space-6);">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:96px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);">
           <span style="width:28px; height:28px; border-radius:50%; border:4px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span>
@@ -615,7 +630,7 @@
         </div>
       </div>
 
-      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.11 · DATEITYPEN</h5>
+      <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.11 · DATEITYPEN</h5>
       <div style="display:flex; gap:var(--space-4); flex-wrap:wrap;">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:90px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);">
           <svg class="ic" viewBox="0 0 256 256" width="28" height="28" fill="var(--color-text)"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72ZM40,56H92.69l16,16H40ZM216,200H40V88H216Z"></path></svg>
@@ -673,7 +688,7 @@
         </tbody>
       </table>
 
-      <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.12 · DATEITYPEN — ERWEITERUNGEN</h5>
+      <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.12 · DATEITYPEN — ERWEITERUNGEN</h5>
       <div style="display:flex; gap:var(--space-4); flex-wrap:wrap;">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:90px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);"><i class="ph ph-file-archive" style="font-size:28px; color:var(--color-text);"></i><span style="font-size:10px;">ZIP/RAR</span></div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:90px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);"><i class="ph ph-file-zip" style="font-size:28px; color:var(--color-text);"></i><span style="font-size:10px;">ZIP</span></div>
@@ -697,7 +712,7 @@
       </div>
       <p style="font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent); margin-top:var(--space-2);">Aus Phosphor (ph-file-*), im Einsatz neben den bestehenden generischen Dateityp-Icons oben.</p>
 
-      <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.13 · SYSTEM ICONS</h5>
+      <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.13 · SYSTEM ICONS</h5>
       <div style="display:flex; gap:var(--space-4); flex-wrap:wrap;">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:90px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);"><i class="ph ph-house" style="font-size:28px; color:var(--color-text);"></i><span style="font-size:10px;">Home</span></div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:90px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);"><i class="ph ph-bookmarks-simple" style="font-size:28px; color:var(--color-text);"></i><span style="font-size:10px; text-align:center;">Favoriten (Nav)</span></div>
@@ -713,7 +728,7 @@
       </div>
       <div class="dm" data-screen-label="Dark Mode" style="--color-bg:#1f1f1f; --color-surface:#2a2a2a; --color-text:#eae9e9; --color-accent:#eae9e9; --color-accent-2:#eae9e9; --color-divider:color-mix(in srgb, #eae9e9 18%, transparent); --di-sel:#4a4949; --color-neutral-100:#2d2b2b; --color-neutral-200:#444141; --color-neutral-300:#605d5d; --color-neutral-400:#7d7979; --color-neutral-500:#9b9797; --color-neutral-600:#bab6b6; --color-neutral-700:#d7d3d3; --color-neutral-800:#eae7e7; --color-neutral-900:#f8f4f4; --color-accent-100:#2e2e2e; --color-accent-200:#3d3d3d; --color-accent-300:#5a5a5a; --color-accent-400:#8f8f8f; --color-accent-500:#eae9e9; --color-accent-600:#cfcfcf; --color-accent-700:#eae9e9; --color-accent-800:#f2f2f2; --color-accent-900:#fafafa; background:#000; color:var(--color-text); margin:var(--space-8) calc(-1 * var(--space-6)) calc(-1 * var(--space-6)); padding:var(--space-6); border-radius:0 0 var(--radius-lg) var(--radius-lg);">
         <div class="card-kicker" style="margin-bottom:var(--space-3);">DARK MODE</div>
-        <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.02 · FARBROLLEN</h5>
+        <h5 style="margin-bottom:var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.02 · FARBROLLEN</h5>
         <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-4);">Kein invertierter Kontrastmodus, sondern eigene Stufen: schwarzer Grund, Fenster #1f1f1f, Flächen #2a2a2a, Trennlinien mit 18 % statt 40 %. Auswahl wird Mittelgrau statt Weiß, damit helle Flächen nur für Bedienung stehen. Statusfarben werden heller (L72 statt L62, etwas weniger Sättigung), Chip-Flächen 12 % statt 5 %, weil 5 % auf Dunkel verschwindet.</p>
         <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:var(--space-4); margin-bottom:0;">
         <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-3); display:flex; gap:var(--space-3); align-items:flex-start;">
@@ -794,7 +809,7 @@
           </div>
         </div>
       </div>
-        <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.14 · ICONS JE FARBE</h5>
+        <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.14 · ICONS JE FARBE</h5>
         <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:var(--space-3);">
           <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-3); display:flex; gap:var(--space-3); align-items:center;"><i class="ph ph-hard-drive" style="font-size:24px; color:oklch(0.72 0.14 150); flex:none;"></i><div><div style="font-size:12px; font-weight:600;">Grün</div><div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin-top:2px;">Medium online</div></div></div>
           <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-3); display:flex; gap:var(--space-3); align-items:center;"><i class="ph ph-warning-circle" style="font-size:24px; color:oklch(0.70 0.17 35); flex:none;"></i><div><div style="font-size:12px; font-weight:600;">Rot</div><div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin-top:2px;">Fehler, Vergessen</div></div></div>
@@ -805,7 +820,7 @@
           <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-3); display:flex; gap:var(--space-3); align-items:center;"><i class="ph ph-pause-circle" style="font-size:24px; color:oklch(0.62 0 0); flex:none;"></i><div><div style="font-size:12px; font-weight:600;">Grau</div><div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin-top:2px;">Pausiert, aus</div></div></div>
           <div style="border:1px solid var(--color-divider); border-radius:var(--radius-md); padding:var(--space-3); display:flex; gap:var(--space-3); align-items:center;"><i class="ph ph-house" style="font-size:24px; color:#eae9e9; flex:none;"></i><div><div style="font-size:12px; font-weight:600;">Hell</div><div style="font-size:11px; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin-top:2px;">Bedienung</div></div></div>
         </div>
-        <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.10 · STATUS</h5>
+        <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.10 · STATUS</h5>
         <div style="display:flex; gap:var(--space-4); flex-wrap:wrap; margin-bottom:var(--space-6);">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:96px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);">
           <span style="width:28px; height:28px; border-radius:50%; border:4px solid var(--color-text); border-top-color:transparent; animation:spin 0.9s linear infinite; box-sizing:border-box;"></span>
@@ -828,7 +843,7 @@
           <span style="font-size:11px;">Pausiert</span>
         </div>
       </div>
-        <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">18.07 · FAVORITEN</h5>
+        <h5 style="margin:var(--space-6) 0 var(--space-3); color:color-mix(in srgb, var(--color-text) 55%, transparent);">19.07 · FAVORITEN</h5>
         <div style="display:flex; gap:var(--space-4); flex-wrap:wrap; margin-bottom:var(--space-6);">
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:110px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);"><i class="ph ph-bookmarks-simple" style="font-size:28px; color:var(--color-text);"></i><span style="font-size:10px; text-align:center;">Favoriten (Nav) · inaktiv</span></div>
         <div style="display:flex; flex-direction:column; align-items:center; gap:8px; width:110px; padding:var(--space-3); border:1px solid var(--color-divider); box-shadow:var(--shadow-sm); background:var(--color-bg);"><i class="ph-duotone ph-bookmarks-simple" style="font-size:28px; color:oklch(0.72 0.14 305);"></i><span style="font-size:10px; text-align:center;">Favoriten (Nav) · aktiv</span></div>

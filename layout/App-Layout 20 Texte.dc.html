@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="ds-disk-archive.css">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <style>a { color: var(--color-text); } a:hover { color: #00A5A8; } .ph-duotone.duo80 { --ph-duotone-opacity: .95; } .ph-duotone.duo80:after { opacity: .95 !important; }</style>
+</helmet>
+<div style="background:var(--color-bg);">
+  <div style="max-width:1400px; margin:0 auto; padding:var(--space-4) var(--space-8); display:flex; flex-direction:column; gap:var(--space-8);">
+    <section id="s20" data-screen-label="20 Texte" style="scroll-margin-top:64px; border:1px solid var(--color-divider); padding:var(--space-6); border-radius:var(--radius-lg);">
+      <div class="card-kicker" style="margin-bottom:var(--space-3);">20 — TEXTE (DE/EN)</div>
+      <h3 style="margin-bottom:var(--space-2);">Texte (DE/EN)</h3>
+      <p style="font-size:13px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0 0 var(--space-4); text-wrap:pretty;">Alle Texte der App auf Deutsch und Englisch – Fenster, Menüs, Tooltips, Banner, Dialoge, macOS-Mitteilungen und Bedienhilfen. Die Sprache wird unter Einstellungen › Allgemein › Sprache gewählt und gilt sofort. Platzhalter stehen in {}. Beispiel-Inhalte (Namen von Medien, Ordnern und Dateien, Zahlen) sind nicht enthalten. Jeder Text steht nur einmal, in der Sektion, in der er zuerst vorkommt. Bei Abweichung zu den Screens gilt diese Tabelle.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:var(--space-4); font-size:12px; margin-bottom:var(--space-6); color:color-mix(in srgb, var(--color-text) 65%, transparent);">
+        <span>{{ total }} Texte</span>
+        <span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:7px; height:7px; border-radius:50%; background:#00A5A8;"></span>neu = neue englische Fassung · {{ newCount }}</span>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:var(--space-6);">
+        <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="4">
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="font-size:11px; font-weight:600; color:color-mix(in srgb, var(--color-text) 60%, transparent);">{{ sec.num }} · {{ sec.titleUp }} · {{ sec.count }}</div>
+            <table style="width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;">
+              <thead>
+                <tr style="text-align:left; border-bottom:1px solid var(--color-text);">
+                  <th style="width:72px; padding:6px 8px; font-size:11px; font-weight:600;">Sektion</th>
+                  <th style="padding:6px 8px; font-size:11px; font-weight:600;">Deutsch</th>
+                  <th style="padding:6px 8px; font-size:11px; font-weight:600;">English</th>
+                </tr>
+              </thead>
+              <tbody>
+                <sc-for list="{{ sec.rows }}" as="r" hint-placeholder-count="3">
+                  <tr style="border-bottom:1px solid var(--color-divider); vertical-align:top;">
+                    <td style="padding:6px 8px; color:color-mix(in srgb, var(--color-text) 60%, transparent); font-variant-numeric:tabular-nums;">{{ sec.num }}</td>
+                    <td style="padding:6px 8px; text-wrap:pretty; overflow-wrap:anywhere;">{{ r.de }}</td>
+                    <td style="padding:6px 8px; text-wrap:pretty; overflow-wrap:anywhere;">
+                      <div style="display:flex; align-items:baseline; gap:8px;">
+                        <span style="flex:1; min-width:0;">{{ r.en }}</span>
+                        <sc-if value="{{ r.neu }}" hint-placeholder-val="{{ false }}">
+                          <span title="neu" style="display:inline-flex; align-items:center; gap:4px; flex:none; font-size:10px; color:#00A5A8;"><span style="width:6px; height:6px; border-radius:50%; background:#00A5A8;"></span>neu</span>
+                        </sc-if>
+                      </div>
+                    </td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+            <sc-if value="{{ sec.empty }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); padding:6px 8px;">Keine eigenen Texte – alle Texte dieser Sektion stehen schon weiter oben.</div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    <div style="margin-top:var(--space-8); display:flex; flex-direction:column; gap:var(--space-3);">
+        <div style="font-size:11px; font-weight:600; color:color-mix(in srgb, var(--color-text) 60%, transparent);">20.01 · KONTROLLE ENGLISCH · ERKENNUNGS-DIALOG (02.01)</div>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0; text-wrap:pretty;">Gleiche Maße wie 02.01. Alle Texte passen ohne Umbruch in den Buttons.</p>
+        <div style="background:color-mix(in srgb, var(--color-text) 8%, transparent); padding:var(--space-6); display:flex; justify-content:center; border-radius:var(--radius-lg);">
+        <div class="dialog" style="width:340px; border:1px solid var(--color-divider); box-shadow:var(--shadow-lg); background:var(--color-bg);">
+            <svg viewBox="0 0 256 256" width="30" height="30" fill="var(--color-text)"><path d="M224,64H32A16,16,0,0,0,16,80v96a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64Zm0,112H32V80H224v96Zm-24-48a12,12,0,1,1-12-12A12,12,0,0,1,200,128Z"></path></svg>
+            <div class="dialog-title" style="font-size:16px;">New storage medium detected</div>
+            <div class="dialog-body" style="font-size:13px;">“Externe Platte 5” (2 TB) was connected. Should it be indexed?</div>
+            <label class="radio" style="margin-top:4px;"><input type="checkbox" checked="{{ true }}"><span class="dot" style="border-radius:3px;"></span>Remember for this medium</label>
+            <div class="dialog-actions">
+              <button class="btn btn-secondary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-neutral-500); flex:1 1 0; min-width:0; white-space:nowrap;">Don’t index</button>
+              <button class="btn btn-primary" style="font-weight:600; font-size:14px; padding:10px 18px; border:1px solid var(--color-accent-700); flex:1 1 0; min-width:0;">Index</button>
+            </div>
+          </div>
+      </div>
+      </div>
+      <div style="margin-top:var(--space-6); display:flex; flex-direction:column; gap:var(--space-3);">
+        <div style="font-size:11px; font-weight:600; color:color-mix(in srgb, var(--color-text) 60%, transparent);">20.02 · KONTROLLE ENGLISCH · EINSTELLUNGEN › ALLGEMEIN (05.01)</div>
+        <p style="font-size:12px; color:color-mix(in srgb, var(--color-text) 60%, transparent); max-width:640px; margin:0; text-wrap:pretty;">Gleiche Maße wie 05.01, Sprache auf English. Tabs, Schalter und Selectgroup passen ohne Umbruch und ohne Ausblenden.</p>
+        <div style="overflow-x:auto;"><div style="border:1px solid var(--color-divider); border-radius:var(--radius-lg); overflow:hidden; box-shadow:var(--shadow-md); display:flex; flex-direction:column; min-width:920px; margin-bottom:var(--space-6);">
+        <div style="display:flex; align-items:center; gap:8px; padding:var(--space-3) var(--space-4); background:color-mix(in srgb, var(--color-text) 6%, transparent); border-bottom:1px solid var(--color-divider);">
+          <button class="btn btn-icon" style="width:32px; height:32px;" title="Overview"><svg viewBox="0 0 256 256" width="18" height="18" fill="var(--color-text)"><path d="M240,208H224V136l2.34,2.34A8,8,0,0,0,237.66,127L139.31,28.68a16,16,0,0,0-22.62,0L18.34,127a8,8,0,0,0,11.32,11.31L32,136v72H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM48,120l80-80,80,80v88H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48Zm96,88H112V160h32Z"></path></svg></button>
+          <button class="btn btn-icon" style="width:32px; height:32px;" title="Favorites"><i class="ph ph-bookmarks-simple" style="font-size:18px; color:var(--color-text);"></i></button>
+          <div style="width:1px; height:20px; background:var(--color-divider);"></div>
+          <button class="btn btn-icon" style="width:32px; height:32px;" title="Settings"><i class="ph-duotone duo80 ph-gear" style="font-size:18px; color:var(--teal);"></i></button>
+          <div style="flex:1;"></div>
+          <button class="btn btn-icon" style="width:32px; height:32px;" title="Filter"><svg viewBox="0 0 256 256" width="18" height="18" fill="var(--color-text)"><path d="M230.6,49.53A15.81,15.81,0,0,0,216,40H40A16,16,0,0,0,28.19,66.76l.08.09L96,139.17V216a16,16,0,0,0,24.87,13.32l32-21.34A16,16,0,0,0,160,194.66V139.17l67.74-72.32.08-.09A15.8,15.8,0,0,0,230.6,49.53ZM40,56h0Zm106.18,74.58A8,8,0,0,0,144,136v58.66L112,216V136a8,8,0,0,0-2.16-5.47L40,56H216Z"></path></svg></button>
+          <button class="btn btn-icon" style="width:32px; height:32px;" title="Search"><svg viewBox="0 0 256 256" width="18" height="18" fill="var(--color-text)"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg></button>
+          <div style="width:420px; position:relative; margin-left:7px;">
+            <input class="input" placeholder="Search objects…" style="font-size:12px; min-height:26px; padding-left:26px; width:100%; box-sizing:border-box;">
+            <svg class="ic" viewBox="0 0 256 256" width="12" height="12" fill="color-mix(in srgb, var(--color-text) 50%, transparent)" style="position:absolute; left:8px; top:50%; transform:translateY(-50%);"><path d="M229.66,218.34l-50.07-50.06a88.11,88.11,0,1,0-11.31,11.31l50.06,50.07a8,8,0,0,0,11.32-11.32ZM40,112a72,72,0,1,1,72,72A72.08,72.08,0,0,1,40,112Z"></path></svg>
+          </div>
+        </div>
+        <div style="display:flex; min-height:220px;">
+        <div style="width:200px; flex:none; border-right:1px solid var(--color-divider); background:color-mix(in srgb, var(--color-text) 5%, transparent); padding:var(--space-4) var(--space-3); display:flex; flex-direction:column; gap:2px;">
+          <div style="padding:7px var(--space-3); border-radius:var(--radius-sm); font-size:13px; font-weight:600; background:var(--color-bg); box-shadow:var(--shadow-sm); cursor:pointer;">General</div>
+          <div style="padding:7px var(--space-3); border-radius:var(--radius-sm); font-size:13px; color:color-mix(in srgb, var(--color-text) 65%, transparent); cursor:pointer;">Files &amp; folders</div>
+          <div style="padding:7px var(--space-3); border-radius:var(--radius-sm); font-size:13px; color:color-mix(in srgb, var(--color-text) 65%, transparent); cursor:pointer;">Storage media</div>
+          <div style="padding:7px var(--space-3); border-radius:var(--radius-sm); font-size:13px; color:color-mix(in srgb, var(--color-text) 65%, transparent); cursor:pointer;">System Info</div>
+          <div style="padding:7px var(--space-3); border-radius:var(--radius-sm); font-size:13px; color:color-mix(in srgb, var(--color-text) 65%, transparent); cursor:pointer;">License</div>
+<div style="padding:7px var(--space-3); border-radius:var(--radius-sm); font-size:13px; color:color-mix(in srgb, var(--color-text) 65%, transparent); cursor:pointer;">Advanced</div>
+        </div>
+        <div style="flex:1; min-width:0; background:var(--color-bg); padding:var(--space-6) var(--space-8); display:flex; flex-direction:column; gap:var(--space-6);">
+
+          <div style="display:flex; gap:var(--space-8); align-items:flex-start;">
+            <div style="flex:1 1 50%; min-width:0;">
+              <div style="font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--color-text); margin-bottom:6px;">LANGUAGE</div>
+              <p style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin:0;">Language of the app. Changes apply right away, no restart needed.</p>
+            </div>
+            <div style="flex:1 1 50%; min-width:0;">
+              <div style="display:inline-flex; flex-direction:column; gap:4px; align-items:flex-start;">
+                <button class="btn btn-secondary" style="font-weight:600; font-size:12px; padding:4px 12px; border:1px solid var(--color-neutral-500); display:inline-flex; align-items:center; gap:8px; min-width:160px; justify-content:space-between;">English<i class="ph ph-caret-down" style="font-size:11px;"></i></button>
+                <div style="min-width:160px; box-sizing:border-box; padding:4px; background:var(--color-bg); border:1px solid var(--color-divider); border-radius:var(--radius-lg); box-shadow:var(--shadow-md); display:flex; flex-direction:column; font-size:12px;">
+                  <label class="radio" style="padding:4px 12px; font-size:12px;"><input type="radio" name="sprache-en"><span class="dot"></span>Deutsch</label>
+                  <label class="radio" style="padding:4px 12px; font-size:12px;"><input type="radio" name="sprache-en" checked="{{ true }}"><span class="dot"></span>English</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px; background:var(--color-divider);"></div>
+
+          <div style="display:flex; gap:var(--space-8); align-items:flex-start;">
+            <div style="flex:1 1 50%; min-width:0;">
+              <div style="font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--color-text); margin-bottom:6px;">APPEARANCE</div>
+              <p style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin:0;">Light or Dark sets the appearance. Automatic follows the macOS system setting.</p>
+            </div>
+            <div style="flex:1 1 50%; min-width:0;">
+              <div style="display:inline-flex; flex-direction:column;">
+              <div style="display:flex; border-radius:var(--radius-sm) var(--radius-sm) 0 0; overflow:hidden; border:1px solid var(--color-accent-700);">
+                <button style="border:none; padding:4px 12px; font:600 12px var(--font-heading); background:var(--color-accent); color:#fff; cursor:pointer; transition:background .2s, color .2s;">Light</button>
+                <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer; transition:background .2s, color .2s;">Dark</button>
+                <button style="border:none; border-left:1px solid var(--color-accent-700); padding:4px 12px; font:600 12px var(--font-heading); background:transparent; color:color-mix(in srgb, var(--color-text) 55%, transparent); cursor:pointer; transition:background .2s, color .2s;">Automatic</button>
+              </div>
+              <div style="position: relative; margin-top: 2px; height: 64px; border: 1px solid var(--color-accent-700); border-radius: 0 0 var(--radius-sm) var(--radius-sm); overflow: hidden; background: #F3EFE6">
+                <div style="position:absolute; inset:0; background:#1C2233; clip-path:inset(0 0 0 100%); transition:clip-path .6s cubic-bezier(.6,0,.3,1);"></div>
+                <div style="position:absolute; left:58%; top:14px; width:2px; height:2px; border-radius:50%; background:#fff; opacity:0; transition:opacity .5s .2s;"></div>
+                <div style="position:absolute; left:72%; top:30px; width:2px; height:2px; border-radius:50%; background:#fff; opacity:0; transition:opacity .5s .3s;"></div>
+                <div style="position:absolute; left:88%; top:12px; width:3px; height:3px; border-radius:50%; background:#fff; opacity:0; transition:opacity .5s .25s;"></div>
+                <div style="position:absolute; left:64%; top:44px; width:2px; height:2px; border-radius:50%; background:#fff; opacity:0; transition:opacity .5s .35s;"></div>
+                <div style="position:absolute; width:22px; height:22px; border-radius:50%; left:22%; top:14px; background:#EDA12D; box-shadow:0 0 0 5px rgb(237 161 45 / .18); transition:left .6s cubic-bezier(.6,0,.3,1), top .6s cubic-bezier(.6,0,.3,1);"></div>
+                <div style="position:absolute; width:20px; height:20px; border-radius:50%; left:76%; top:70px; box-shadow:inset -6px -3px 0 0 #EAE9E9; transform:rotate(-20deg); transition:left .6s cubic-bezier(.6,0,.3,1), top .6s cubic-bezier(.6,0,.3,1);"></div>
+                <div style="position:absolute; left:0; right:0; bottom:0; height:12px; background:color-mix(in srgb, #8A8577 35%, transparent);"></div>
+              </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:1px; background:var(--color-divider);"></div>
+
+          <div style="display:flex; gap:var(--space-8); align-items:flex-start;">
+            <div style="flex:1 1 50%; min-width:0;">
+              <div style="font-size:11px; font-weight:700; letter-spacing:.06em; color:var(--color-text); margin-bottom:6px;">NOTIFICATIONS</div>
+              <p style="font-size:12px; line-height:1.5; color:color-mix(in srgb, var(--color-text) 60%, transparent); margin:0;">Choose each event individually. System messages cover errors and ended pauses. “Fully indexed” only appears if the scan took longer than 59 seconds (also when syncing or re-indexing). If “Enable notifications” is off, the events are turned off. On first launch, macOS asks once whether to allow notifications. If you declined, you can only change this in macOS System Settings under “Notifications”.</p>
+            </div>
+            <div style="flex:1 1 50%; min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-2);">
+              <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:600;">
+                <input type="checkbox" checked="{{ true }}" style="width:16px; height:16px; accent-color:var(--color-accent); margin:0; flex:none;">
+                Enable notifications
+              </label>
+              <div style="display:flex; flex-direction:column; gap:var(--space-2); padding-left:25px;">
+                <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:12px;"><input type="checkbox" checked="{{ true }}" style="width:16px; height:16px; accent-color:var(--color-accent); margin:0; flex:none;">System messages</label>
+<label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:12px;"><input type="checkbox" checked="{{ true }}" style="width:16px; height:16px; accent-color:var(--color-accent); margin:0; flex:none;">Storage medium fully indexed</label>
+<label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:12px;"><input type="checkbox" checked="{{ true }}" style="width:16px; height:16px; accent-color:var(--color-accent); margin:0; flex:none;">Storage medium with favorites connected</label>
+              </div>
+              <div style="align-self:stretch; border:1px dashed var(--color-divider); border-radius:var(--radius-sm); padding:8px 10px; background:linear-gradient(160deg, #F4F4F4, #D9D8D8); margin-top:var(--space-2);">
+                <div style="font-size:10px; letter-spacing:.06em; color:color-mix(in srgb, var(--color-text) 45%, transparent); margin-bottom:5px;">EXAMPLE</div>
+                <div style="display:flex; align-items:flex-start; gap:8px; font-size:11px; color:color-mix(in srgb, var(--color-text) 55%, transparent);">
+                  <div style="width:20px; height:20px; flex:none; border-radius:4px; background:linear-gradient(160deg, #575757, #1f1f1f); display:flex; align-items:center; justify-content:center; box-shadow:0 1px 2px rgb(0 0 0 / .18);"><svg viewBox="0 0 256 256" width="17" height="17" fill="#f2f2f2"><path d="M208,136H48a16,16,0,0,0-16,16v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V152A16,16,0,0,0,208,136Zm0,64H48V152H208v48Zm0-160H48A16,16,0,0,0,32,56v48a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V56A16,16,0,0,0,208,40Zm0,64H48V56H208v48ZM192,80a12,12,0,1,1-12-12A12,12,0,0,1,192,80Zm0,96a12,12,0,1,1-12-12A12,12,0,0,1,192,176Z"></path></svg></div>
+                  <div><div style="font-weight:700; color:var(--color-text); margin-bottom:1px;">Disk Archive</div>Media are being indexed again.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          
+
+
+        </div>
+        </div>
+      </div></div>
+      </div>
+    
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { secs: [] };
+  componentDidMount() {
+    fetch('App-Layout 20 Texte.json').then(r => r.json()).then(secs => {
+      if (!secs.find(s => s.num === '19')) secs.push({ num: '19', title: 'Styleguide', rows: [] });
+      this.setState({ secs });
+    });
+  }
+  renderVals() {
+    const s = this.state.secs;
+    const all = s.flatMap(x => x.rows);
+    return {
+      total: all.length, newCount: all.filter(r => r.neu).length,
+      sections: s.map(x => ({ ...x, titleUp: x.title.toUpperCase(), count: x.rows.length === 1 ? '1 Text' : x.rows.length + ' Texte', empty: x.rows.length === 0 }))
+    };
+  }
+}
+</script>
+</body>
+</html>

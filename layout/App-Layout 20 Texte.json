@@ -1,0 +1,1850 @@
+[
+ {
+  "num": "01",
+  "title": "Menüleiste",
+  "rows": [
+   {
+    "de": "Indiziert",
+    "en": "Indexed",
+    "neu": false
+   },
+   {
+    "de": "Pausiert",
+    "en": "Paused",
+    "neu": false
+   },
+   {
+    "de": "Fehler",
+    "en": "Error",
+    "neu": false
+   },
+   {
+    "de": "Wird indiziert",
+    "en": "Indexing",
+    "neu": false
+   },
+   {
+    "de": "Disk Archive anzeigen",
+    "en": "Show Disk Archive",
+    "neu": false
+   },
+   {
+    "de": "Automatisch bei Systemstart",
+    "en": "Open at Login",
+    "neu": false
+   },
+   {
+    "de": "Einstellungen …",
+    "en": "Settings…",
+    "neu": false
+   },
+   {
+    "de": "Disk Archive beenden",
+    "en": "Quit Disk Archive",
+    "neu": false
+   },
+   {
+    "de": "Neu erkannt",
+    "en": "New",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "02",
+  "title": "Erkennungs-Dialog",
+  "rows": [
+   {
+    "de": "Neues Speichermedium erkannt",
+    "en": "New storage medium detected",
+    "neu": false
+   },
+   {
+    "de": "Für dieses Medium merken",
+    "en": "Remember for this medium",
+    "neu": false
+   },
+   {
+    "de": "Nicht indizieren",
+    "en": "Don't index",
+    "neu": false
+   },
+   {
+    "de": "Indizieren",
+    "en": "Index",
+    "neu": false
+   },
+   {
+    "de": "Ersetzt dieses Medium „{1}“?",
+    "en": "Does this medium replace “{1}”?",
+    "neu": false
+   },
+   {
+    "de": "Ein Medium mit diesem Namen ist bekannt, aber nicht angeschlossen. Wurde es neu formatiert, kann das alte mit Index und Favoriten vergessen werden.",
+    "en": "A medium with this name is known but not connected. If it was reformatted, the old one can be forgotten along with its index and favorites.",
+    "neu": false
+   },
+   {
+    "de": "Altes vergessen",
+    "en": "Forget old",
+    "neu": false
+   },
+   {
+    "de": "Behalten",
+    "en": "Keep",
+    "neu": false
+   },
+   {
+    "de": "„{1}“ ({2}) wurde angeschlossen. Soll sie indiziert werden?",
+    "en": "“{1}” ({2}) was connected. Should it be indexed?",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "03",
+  "title": "Schnellübersicht",
+  "rows": [
+   {
+    "de": "Disk Archive",
+    "en": "Disk Archive",
+    "neu": false
+   },
+   {
+    "de": "ANGESCHLOSSEN",
+    "en": "CONNECTED",
+    "neu": false
+   },
+   {
+    "de": "heute, {1}",
+    "en": "today, {1}",
+    "neu": false
+   },
+   {
+    "de": "Neu indizieren",
+    "en": "Re-index",
+    "neu": false
+   },
+   {
+    "de": "Automatisches Indizieren",
+    "en": "Automatic indexing",
+    "neu": false
+   },
+   {
+    "de": "An",
+    "en": "On",
+    "neu": false
+   },
+   {
+    "de": "Disk Archive öffnen",
+    "en": "Open Disk Archive",
+    "neu": false
+   },
+   {
+    "de": "Dateien",
+    "en": "Files",
+    "neu": false
+   },
+   {
+    "de": "Ordner",
+    "en": "Folder",
+    "neu": false
+   },
+   {
+    "de": "Alle {1} Ergebnisse anzeigen",
+    "en": "Show All {1} Results",
+    "neu": false
+   },
+   {
+    "de": "1 Ergebnis anzeigen",
+    "en": "Show 1 Result",
+    "neu": false
+   },
+   {
+    "de": "Entscheidung ausstehend",
+    "en": "Decision pending",
+    "neu": false
+   },
+   {
+    "de": "PAUSIEREN FÜR",
+    "en": "PAUSE FOR",
+    "neu": false
+   },
+   {
+    "de": "30 Minuten",
+    "en": "30 minutes",
+    "neu": false
+   },
+   {
+    "de": "1 Stunde",
+    "en": "1 hour",
+    "neu": false
+   },
+   {
+    "de": "Bis morgen",
+    "en": "Until tomorrow",
+    "neu": false
+   },
+   {
+    "de": "Für immer",
+    "en": "Forever",
+    "neu": false
+   },
+   {
+    "de": "bis {1} Uhr",
+    "en": "until {1}",
+    "neu": false
+   },
+   {
+    "de": "ÄNDERN AUF",
+    "en": "CHANGE TO",
+    "neu": false
+   },
+   {
+    "de": "Kein Speichermedium angeschlossen",
+    "en": "No storage medium connected",
+    "neu": false
+   },
+   {
+    "de": "Kein indiziertes Speichermedium angeschlossen",
+    "en": "No indexed storage medium connected",
+    "neu": false
+   },
+   {
+    "de": "Inhalte werden geladen",
+    "en": "Loading contents",
+    "neu": false
+   },
+   {
+    "de": "Suchen…",
+    "en": "Search…",
+    "neu": false
+   },
+   {
+    "de": "Suche leeren",
+    "en": "Clear Search",
+    "neu": false
+   },
+   {
+    "de": "Dein 1 Speichermedium und {2} Dateien werden durchsucht …",
+    "en": "Searching your 1 storage medium and {2} files …",
+    "neu": true
+   },
+   {
+    "de": "Deine {1} Speichermedien und {2} Dateien werden durchsucht …",
+    "en": "Searching your {1} storage media and {2} files …",
+    "neu": true
+   },
+   {
+    "de": "Keine Suchergebnisse",
+    "en": "No results",
+    "neu": true
+   },
+   {
+    "de": "Suchbegriff ändern.",
+    "en": "Try a different search term.",
+    "neu": true
+   },
+   {
+    "de": "Speichermedium fehlerhaft",
+    "en": "Storage medium has errors",
+    "neu": true
+   },
+   {
+    "de": "Speichermedium wird geprüft",
+    "en": "Checking storage medium",
+    "neu": true
+   },
+   {
+    "de": "Pausiert für {1}",
+    "en": "Paused for {1}",
+    "neu": false
+   }
+  ]
+ },
+ {
+  "num": "04",
+  "title": "Dashboard",
+  "rows": [
+   {
+    "de": "Noch keine Speichermedien erfasst",
+    "en": "No storage media indexed yet",
+    "neu": false
+   },
+   {
+    "de": "Schließe ein externes Speichermedium an, um es zu indizieren.",
+    "en": "Connect an external storage medium to index it.",
+    "neu": false
+   },
+   {
+    "de": "{1} % indiziert",
+    "en": "{1} % indexed",
+    "neu": false
+   },
+   {
+    "de": "jetzt",
+    "en": "now",
+    "neu": false
+   },
+   {
+    "de": "belegt",
+    "en": "used",
+    "neu": false
+   },
+   {
+    "de": "Online",
+    "en": "Online",
+    "neu": false
+   },
+   {
+    "de": "Offline",
+    "en": "Offline",
+    "neu": false
+   },
+   {
+    "de": "vor {1} Tagen",
+    "en": "{1} days ago",
+    "neu": false
+   },
+   {
+    "de": "{1} % indiziert, offline",
+    "en": "{1} % indexed, offline",
+    "neu": false
+   },
+   {
+    "de": "gestern",
+    "en": "yesterday",
+    "neu": false
+   },
+   {
+    "de": "{1} Dateien",
+    "en": "{1} files",
+    "neu": false
+   },
+   {
+    "de": "1 Datei",
+    "en": "1 file",
+    "neu": false
+   },
+   {
+    "de": "Erneut versuchen",
+    "en": "Try again",
+    "neu": false
+   },
+   {
+    "de": "Zur neuen Version",
+    "en": "Get the new version",
+    "neu": false
+   },
+   {
+    "de": "Favoriten",
+    "en": "Favorites",
+    "neu": false
+   },
+   {
+    "de": "Einstellungen",
+    "en": "Settings",
+    "neu": false
+   },
+   {
+    "de": "Filter",
+    "en": "Filter",
+    "neu": false
+   },
+   {
+    "de": "Suche",
+    "en": "Search",
+    "neu": false
+   },
+   {
+    "de": "Objekte suchen…",
+    "en": "Search objects…",
+    "neu": false
+   },
+   {
+    "de": "Wird geprüft",
+    "en": "Checking",
+    "neu": true
+   },
+   {
+    "de": "Fehler vor {1} Std.",
+    "en": "Error {1} h ago",
+    "neu": true
+   },
+   {
+    "de": "vor {1} Monaten",
+    "en": "{1} months ago",
+    "neu": true
+   },
+   {
+    "de": "Die Betaphase von Disk Archive wurde beendet.",
+    "en": "The Disk Archive beta has ended.",
+    "neu": true
+   },
+   {
+    "de": "Du kannst Disk Archive noch {1} Tage nutzen.",
+    "en": "You can use Disk Archive for {1} more days.",
+    "neu": true
+   },
+   {
+    "de": "Du kannst Disk Archive noch 1 Tag nutzen.",
+    "en": "You can use Disk Archive for 1 more day.",
+    "neu": true
+   },
+   {
+    "de": "Disk Archive befindet sich im Nur-Lesen-Modus.",
+    "en": "Disk Archive is in read-only mode.",
+    "neu": true
+   },
+   {
+    "de": "Die Betaphase ist beendet. Du kannst dein Archiv benutzen, aber nicht aktualisieren oder erweitern.",
+    "en": "The beta has ended. You can use your archive, but not update or expand it.",
+    "neu": true
+   },
+   {
+    "de": "Der Lizenzserver war seit einem Monat nicht erreichbar. Du kannst dein Archiv benutzen, aber nicht aktualisieren oder erweitern.",
+    "en": "The license server hasn’t been reachable for a month. You can use your archive, but not update or expand it.",
+    "neu": true
+   },
+   {
+    "de": "Diese Version ist abgelaufen. Du kannst dein Archiv benutzen, aber nicht aktualisieren oder erweitern.",
+    "en": "This version has expired. You can use your archive, but not update or expand it.",
+    "neu": true
+   },
+   {
+    "de": "Jetzt prüfen",
+    "en": "Check Now",
+    "neu": true
+   },
+   {
+    "de": "Versionsprüfung …",
+    "en": "Checking version …",
+    "neu": true
+   },
+   {
+    "de": "Zur Übersicht",
+    "en": "Back to Overview",
+    "neu": true
+   },
+   {
+    "de": "Auswerfen",
+    "en": "Eject",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "05",
+  "title": "Einstellungen",
+  "rows": [
+   {
+    "de": "Hell",
+    "en": "Light",
+    "neu": false
+   },
+   {
+    "de": "Dunkel",
+    "en": "Dark",
+    "neu": false
+   },
+   {
+    "de": "Allgemein",
+    "en": "General",
+    "neu": false
+   },
+   {
+    "de": "Dateien & Ordner",
+    "en": "Files & folders",
+    "neu": false
+   },
+   {
+    "de": "SPEICHERMEDIEN",
+    "en": "STORAGE MEDIA",
+    "neu": false
+   },
+   {
+    "de": "Erweitert",
+    "en": "Advanced",
+    "neu": false
+   },
+   {
+    "de": "SPRACHE",
+    "en": "LANGUAGE",
+    "neu": false
+   },
+   {
+    "de": "Deutsch",
+    "en": "Deutsch",
+    "neu": false
+   },
+   {
+    "de": "English",
+    "en": "English",
+    "neu": false
+   },
+   {
+    "de": "ERSCHEINUNGSBILD",
+    "en": "APPEARANCE",
+    "neu": false
+   },
+   {
+    "de": "Hell oder Dunkel legt das Erscheinungsbild fest. Automatisch folgt der Systemeinstellung von macOS.",
+    "en": "Light or Dark sets the appearance. Automatic follows the macOS system setting.",
+    "neu": false
+   },
+   {
+    "de": "Automatisch",
+    "en": "Automatic",
+    "neu": false
+   },
+   {
+    "de": "MITTEILUNGEN",
+    "en": "NOTIFICATIONS",
+    "neu": false
+   },
+   {
+    "de": "Mitteilungen aktivieren",
+    "en": "Enable notifications",
+    "neu": false
+   },
+   {
+    "de": "BEISPIEL",
+    "en": "EXAMPLE",
+    "neu": false
+   },
+   {
+    "de": "SCAN-TIEFE",
+    "en": "SCAN DEPTH",
+    "neu": false
+   },
+   {
+    "de": "TIEFE",
+    "en": "DEPTH",
+    "neu": false
+   },
+   {
+    "de": "DATEIEN & ORDNER AUSSCHLIESSEN",
+    "en": "EXCLUDE FILES & FOLDERS",
+    "neu": false
+   },
+   {
+    "de": "Hinzufügen",
+    "en": "Add",
+    "neu": false
+   },
+   {
+    "de": "UNSICHTBARE DATEIEN",
+    "en": "HIDDEN FILES",
+    "neu": false
+   },
+   {
+    "de": "Ignorieren",
+    "en": "Ignore",
+    "neu": false
+   },
+   {
+    "de": "ARTEFAKTE",
+    "en": "ARTIFACTS",
+    "neu": false
+   },
+   {
+    "de": "Alle",
+    "en": "All",
+    "neu": false
+   },
+   {
+    "de": "Nicht erlaubt",
+    "en": "Not allowed",
+    "neu": false
+   },
+   {
+    "de": "Name",
+    "en": "Name",
+    "neu": false
+   },
+   {
+    "de": "Status",
+    "en": "Status",
+    "neu": false
+   },
+   {
+    "de": "Zuletzt gesehen",
+    "en": "Last seen",
+    "neu": false
+   },
+   {
+    "de": "Ja",
+    "en": "Yes",
+    "neu": false
+   },
+   {
+    "de": "Nein",
+    "en": "No",
+    "neu": false
+   },
+   {
+    "de": "Ausstehend",
+    "en": "Pending",
+    "neu": false
+   },
+   {
+    "de": "Gesamt",
+    "en": "Total",
+    "neu": false
+   },
+   {
+    "de": "Im Finder anzeigen",
+    "en": "Show in Finder",
+    "neu": false
+   },
+   {
+    "de": "Speichermedium",
+    "en": "Storage medium",
+    "neu": false
+   },
+   {
+    "de": "AUTOSTART",
+    "en": "AUTOSTART",
+    "neu": false
+   },
+   {
+    "de": "Disk Archive startet nach dem Anmelden automatisch in der Menüleiste, damit angeschlossene Speichermedien sofort erkannt werden.",
+    "en": "Disk Archive starts in the menu bar at login so connected storage media are detected immediately.",
+    "neu": true
+   },
+   {
+    "de": "Beim Anmelden starten",
+    "en": "Start at login",
+    "neu": false
+   },
+   {
+    "de": "UPDATES",
+    "en": "UPDATES",
+    "neu": false
+   },
+   {
+    "de": "Auf Updates hinweisen",
+    "en": "Notify me about updates",
+    "neu": false
+   },
+   {
+    "de": "FEHLERBERICHTE",
+    "en": "CRASH REPORTS",
+    "neu": false
+   },
+   {
+    "de": "Wurde Disk Archive unerwartet beendet, liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen.",
+    "en": "If Disk Archive quit unexpectedly, a report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters.",
+    "neu": false
+   },
+   {
+    "de": "Künftig automatisch senden",
+    "en": "Send automatically in the future",
+    "neu": false
+   },
+   {
+    "de": "SCAN-TIEFE UND AUSGESCHLOSSENE DATEIEN & ORDNER",
+    "en": "SCAN DEPTH AND EXCLUDED FILES & FOLDERS",
+    "neu": false
+   },
+   {
+    "de": "Werden Dateien oder Ordner ausgeschlossen, unsichtbare Dateien oder Artefakte ignoriert oder die Scan-Tiefe verringert, verschwinden die betroffenen Einträge sofort aus der Ansicht, auch Favoriten darunter. Aus dem Index gelöscht werden sie nach 1 Stunde. „Index jetzt bereinigen“ löscht sie sofort.",
+    "en": "Excluded files or folders, ignored hidden files or artifacts, or reduced scan depth remove affected entries from view immediately, including favorites below. They are deleted from the index after 1 hour. “Clean up index now” deletes them immediately.",
+    "neu": false
+   },
+   {
+    "de": "Index jetzt bereinigen",
+    "en": "Clean up index now",
+    "neu": false
+   },
+   {
+    "de": "VOREINSTELLUNGEN",
+    "en": "DEFAULTS",
+    "neu": false
+   },
+   {
+    "de": "Setzt alle Programmeinstellungen auf die Voreinstellungen zurück. Speichermedien, Index und Favoriten bleiben erhalten.",
+    "en": "Resets all app settings to defaults. Storage media, index, and favorites are kept.",
+    "neu": false
+   },
+   {
+    "de": "Voreinstellungen anwenden",
+    "en": "Apply defaults",
+    "neu": false
+   },
+   {
+    "de": "Vergisst alle Speichermedien und löscht alle zugehörigen Daten: Index, Favoriten, Berechtigungen und Einstellungen je Medium. Die Programmeinstellungen bleiben erhalten. Beim nächsten Anschließen erscheint der Erkennungs-Dialog wieder.",
+    "en": "Forgets all storage media and deletes related data: index, favorites, permissions, and per-medium settings. App settings are kept. The detection dialog appears again on next connection.",
+    "neu": false
+   },
+   {
+    "de": "Löscht alle Daten. Das kann nicht rückgängig gemacht werden.",
+    "en": "Deletes all data. This cannot be undone.",
+    "neu": false
+   },
+   {
+    "de": "Alle Speichermedien vergessen",
+    "en": "Forget all storage media",
+    "neu": false
+   },
+   {
+    "de": "In den Systemeinstellungen freigeben",
+    "en": "Allow in System Settings",
+    "neu": false
+   },
+   {
+    "de": "Bestätigen",
+    "en": "Confirm",
+    "neu": false
+   },
+   {
+    "de": "Bestätigt",
+    "en": "Confirmed",
+    "neu": false
+   },
+   {
+    "de": "Vergessen",
+    "en": "Forget",
+    "neu": false
+   },
+   {
+    "de": "Name, Endung (*.log) oder Ordner…",
+    "en": "Name, extension (*.log), or folder…",
+    "neu": false
+   },
+   {
+    "de": "Details anzeigen",
+    "en": "Show Details",
+    "neu": false
+   },
+   {
+    "de": "Systeminformationen",
+    "en": "System Info",
+    "neu": true
+   },
+   {
+    "de": "Lizenz",
+    "en": "License",
+    "neu": true
+   },
+   {
+    "de": "Sprache der Benutzeroberfläche. Die Änderung gilt sofort, ohne Neustart.",
+    "en": "Language of the app. Changes apply right away, no restart needed.",
+    "neu": true
+   },
+   {
+    "de": "Wie viele Ordnerebenen unterhalb des Wurzelverzeichnisses eines Speichermediums durchsucht werden. „5+“ durchsucht uneingeschränkt alles.",
+    "en": "How many folder levels below the top of a storage medium are scanned. “5+” scans everything.",
+    "neu": true
+   },
+   {
+    "de": "METADATEN",
+    "en": "METADATA",
+    "neu": true
+   },
+   {
+    "de": "Metadaten laden",
+    "en": "Load metadata",
+    "neu": true
+   },
+   {
+    "de": "VORSCHAUBILDER",
+    "en": "PREVIEWS",
+    "neu": true
+   },
+   {
+    "de": "Vorschaubilder brauchen zusätzlichen Speicherplatz im Index. Es sind klein gerechnete Bilder in reduzierter Qualität.",
+    "en": "Previews take up extra space in the index. They are small, reduced-quality images.",
+    "neu": true
+   },
+   {
+    "de": "Vorschaubilder erzeugen",
+    "en": "Create previews",
+    "neu": true
+   },
+   {
+    "de": "Namen, Endungen oder Ordner, die auf keinem Speichermedium indiziert werden. Lässt sich auch per Rechtsklick auf ein Objekt setzen.",
+    "en": "Names, extensions or folders that are never indexed on any storage medium. You can also set this by right-clicking an item.",
+    "neu": true
+   },
+   {
+    "de": "Schließt versteckte Systemdateien und -ordner vom Index aus.",
+    "en": "Keeps hidden system files and folders out of the index.",
+    "neu": true
+   },
+   {
+    "de": "Ignoriert temporäre Dateien, Backups, Systemreste und Ordner mit generischen Programmbibliotheken.",
+    "en": "Skips temporary files, backups, system leftovers and folders with generic code libraries.",
+    "neu": true
+   },
+   {
+    "de": "Niemals in der Cloud",
+    "en": "Never in the cloud",
+    "neu": true
+   },
+   {
+    "de": "Vorschauen",
+    "en": "Previews",
+    "neu": true
+   },
+   {
+    "de": "INDEX",
+    "en": "INDEX",
+    "neu": true
+   },
+   {
+    "de": "Speicherplatz, den der Index auf deinem Mac belegt. Vorschauen brauchen pro Objekt am meisten Platz.",
+    "en": "Space the index takes up on your Mac. Previews need the most space per item.",
+    "neu": true
+   },
+   {
+    "de": "DURCHSCHNITT PRO OBJEKT",
+    "en": "AVERAGE PER ITEM",
+    "neu": true
+   },
+   {
+    "de": "Durchschnittlicher Speicherbedarf im Index für ein einzelnes Objekt.",
+    "en": "Average index space for a single item.",
+    "neu": true
+   },
+   {
+    "de": "Datei",
+    "en": "File",
+    "neu": true
+   },
+   {
+    "de": "Vorschau",
+    "en": "Preview",
+    "neu": true
+   },
+   {
+    "de": "1 Vorschau",
+    "en": "1 preview",
+    "neu": true
+   },
+   {
+    "de": "INDEX JE SPEICHERMEDIUM",
+    "en": "INDEX PER STORAGE MEDIUM",
+    "neu": true
+   },
+   {
+    "de": "Je dunkler die Fläche, desto mehr Platz belegt der Index des Mediums.",
+    "en": "The darker the area, the more space the medium’s index takes up.",
+    "neu": true
+   },
+   {
+    "de": "wenig",
+    "en": "less",
+    "neu": true
+   },
+   {
+    "de": "viel",
+    "en": "more",
+    "neu": true
+   },
+   {
+    "de": "PROGRAMM",
+    "en": "APP",
+    "neu": true
+   },
+   {
+    "de": "Installierte Version und Speicherort des Index.",
+    "en": "Installed version and index location.",
+    "neu": true
+   },
+   {
+    "de": "Version",
+    "en": "Version",
+    "neu": true
+   },
+   {
+    "de": "Letzte Update-Prüfung",
+    "en": "Last update check",
+    "neu": true
+   },
+   {
+    "de": "Indexordner",
+    "en": "Index folder",
+    "neu": true
+   },
+   {
+    "de": "Alles drin. Nur der Platz ist begrenzt.",
+    "en": "Everything included. Only space is limited.",
+    "neu": true
+   },
+   {
+    "de": "Jede Funktion steht dir immer zur Verfügung. Eine Lizenz bestimmt nur, wie viele Speichermedien du erfassen kannst.",
+    "en": "Every feature is always available. A license only sets how many storage media you can add.",
+    "neu": true
+   },
+   {
+    "de": "Lizenzschlüssel XXXX-XXXX-XXXX-XXXX",
+    "en": "License key XXXX-XXXX-XXXX-XXXX",
+    "neu": true
+   },
+   {
+    "de": "Aktivieren",
+    "en": "Activate",
+    "neu": true
+   },
+   {
+    "de": "Testversion",
+    "en": "Trial",
+    "neu": true
+   },
+   {
+    "de": "Vollversion",
+    "en": "Full Version",
+    "neu": true
+   },
+   {
+    "de": "Vollversion Pro",
+    "en": "Full Version Pro",
+    "neu": true
+   },
+   {
+    "de": "Lizenz holen",
+    "en": "Get License",
+    "neu": true
+   },
+   {
+    "de": "Einmal kaufen, kein Abo",
+    "en": "Buy once, no subscription",
+    "neu": true
+   },
+   {
+    "de": "Danke, dass du Disk Archive trägst.",
+    "en": "Thanks for supporting Disk Archive.",
+    "neu": true
+   },
+   {
+    "de": "Mit deiner Lizenz hat dein Archiv Platz für bis zu {1} Speichermedien. Und Disk Archive bekommt die Zeit, besser zu werden.",
+    "en": "Your license gives your archive room for up to {1} storage media. And gives Disk Archive time to get better.",
+    "neu": true
+   },
+   {
+    "de": "von {1}",
+    "en": "of {1}",
+    "neu": true
+   },
+   {
+    "de": "Zur Website",
+    "en": "Visit Website",
+    "neu": true
+   },
+   {
+    "de": "Lizenz deaktivieren",
+    "en": "Deactivate License",
+    "neu": true
+   },
+   {
+    "de": "Ist eine neue Version von Disk Archive verfügbar, erscheint ein Dialog mit allen Details zum Update.",
+    "en": "When a new version of Disk Archive is available, a dialog shows all update details.",
+    "neu": true
+   },
+   {
+    "de": "Pro Ereignis einzeln wählbar. Systemmeldungen umfassen Hinweise zu Fehlern und zu abgelaufenen Pausen. „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Alle Mitteilungstexte und Bedingungen: 18. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern.",
+    "en": "Choose each event individually. System messages cover errors and ended pauses. “Fully indexed” only appears if the scan took longer than 59 seconds (also when syncing or re-indexing). If “Enable notifications” is off, the events are turned off. On first launch, macOS asks once whether to allow notifications. If you declined, you can only change this in macOS System Settings under “Notifications”.",
+    "neu": true
+   },
+   {
+    "de": "Was durch eine Änderung auf dieser Seite wegfällt – Ordnerebenen, Dateien, Metadaten oder Vorschaubilder –, verschwindet sofort aus der Ansicht und wird nach 1 Stunde aus dem Index gelöscht. Wird eine Änderung zurückgenommen, erscheint sofort wieder, was noch im Index ist; alles andere kommt mit dem nächsten Scan.",
+    "en": "Anything a change on this page removes – folder levels, files, metadata or previews – disappears from view right away and is deleted from the index after 1 hour. If you undo a change, whatever is still in the index reappears right away; everything else returns with the next scan.",
+    "neu": true
+   },
+   {
+    "de": "Liest Angaben wie Aufnahmedatum, Abmessungen, Dauer oder Kamera aus den Dateien und macht sie durchsuchbar. Metadaten brauchen zusätzlichen Speicherplatz im Index.",
+    "en": "Reads details like capture date, dimensions, duration or camera from your files and makes them searchable. Metadata takes up extra space in the index.",
+    "neu": true
+   },
+   {
+    "de": "Der Index liegt nur in deiner Benutzer-Library auf diesem Mac. Ordner, Dateinamen, Metadaten und Vorschaubilder werden nirgendwohin übertragen. Disk Archive liest nur Metadaten. Es schaut sich keine Dateiinhalte an – kein Text aus Dokumenten, keine Texterkennung, keine Auswertung, was auf Bildern zu sehen ist.",
+    "en": "The index lives only in your user Library on this Mac. Folders, file names, metadata and previews are never sent anywhere. Disk Archive only reads metadata. It never looks at file contents – no text from documents, no text recognition, no analysis of what’s in your images.",
+    "neu": true
+   },
+   {
+    "de": "Unterordner {1}",
+    "en": "Subfolder {1}",
+    "neu": false
+   },
+   {
+    "de": "maximale Indextiefe",
+    "en": "maximum index depth",
+    "neu": false
+   },
+   {
+    "de": "Speichermedium vollständig indiziert",
+    "en": "Storage medium fully indexed",
+    "neu": false
+   },
+   {
+    "de": "Speichermedium mit Favoriten angeschlossen",
+    "en": "Storage medium with favorites connected",
+    "neu": false
+   },
+   {
+    "de": "Systemmeldungen",
+    "en": "System messages",
+    "neu": false
+   },
+   {
+    "de": "5+ Ebenen (alle)",
+    "en": "5+ levels (all)",
+    "neu": true
+   },
+   {
+    "de": "{1} Ebenen",
+    "en": "{1} levels",
+    "neu": true
+   },
+   {
+    "de": "Festplatte",
+    "en": "Drive",
+    "neu": true
+   },
+   {
+    "de": "1 Speichermedium",
+    "en": "1 storage medium",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "06",
+  "title": "Medium-Details",
+  "rows": [
+   {
+    "de": "Soll indiziert werden",
+    "en": "Should be indexed",
+    "neu": false
+   },
+   {
+    "de": "gestern, {1}",
+    "en": "yesterday, {1}",
+    "neu": false
+   },
+   {
+    "de": "Inhalt anzeigen",
+    "en": "Show Contents",
+    "neu": false
+   },
+   {
+    "de": "Disk Archive darf dieses Medium nicht lesen. Das lässt sich in den Systemeinstellungen unter Datenschutz & Sicherheit ändern.",
+    "en": "Disk Archive cannot read this medium. You can change this in System Settings › Privacy & Security.",
+    "neu": false
+   },
+   {
+    "de": "Schließen",
+    "en": "Close",
+    "neu": false
+   },
+   {
+    "de": "Abbrechen",
+    "en": "Cancel",
+    "neu": false
+   },
+   {
+    "de": "Frei",
+    "en": "Free",
+    "neu": true
+   },
+   {
+    "de": "Aus",
+    "en": "Off",
+    "neu": true
+   },
+   {
+    "de": "Zuletzt indiziert",
+    "en": "Last indexed",
+    "neu": true
+   },
+   {
+    "de": "Übernehmen",
+    "en": "Apply",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "07",
+  "title": "Spaltenansicht",
+  "rows": [
+   {
+    "de": "ALLE SPEICHERMEDIEN",
+    "en": "ALL STORAGE MEDIA",
+    "neu": false
+   },
+   {
+    "de": "DETAIL",
+    "en": "DETAIL",
+    "neu": false
+   },
+   {
+    "de": "{1} frei von {2}",
+    "en": "{1} free of {2}",
+    "neu": false
+   },
+   {
+    "de": "{1} Objekte",
+    "en": "{1} items",
+    "neu": false
+   },
+   {
+    "de": "1 Objekt",
+    "en": "1 item",
+    "neu": false
+   },
+   {
+    "de": "Dieser Ordner wird gerade indiziert. Sein Inhalt erscheint, sobald die Indizierung abgeschlossen ist.",
+    "en": "This folder is being indexed. Its contents will appear when indexing finishes.",
+    "neu": false
+   },
+   {
+    "de": "Keine passenden Objekte",
+    "en": "No matching items",
+    "neu": false
+   },
+   {
+    "de": "In diesem Ordner und seinen Unterordnern gibt es keine Objekte, die zum Filter passen.",
+    "en": "There are no items in this folder or its subfolders that match the filter.",
+    "neu": false
+   },
+   {
+    "de": "Alle Filter zurücksetzen",
+    "en": "Reset All Filters",
+    "neu": false
+   },
+   {
+    "de": "{1} von {2} Objekten",
+    "en": "{1} of {2} items",
+    "neu": false
+   },
+   {
+    "de": "Archiv",
+    "en": "Archive",
+    "neu": false
+   },
+   {
+    "de": "Der Inhalt dieses Ordners wird wegen der Scan-Tiefe nicht indiziert.",
+    "en": "This folder’s contents are not indexed because of scan depth.",
+    "neu": false
+   },
+   {
+    "de": "Scan-Tiefe ändern",
+    "en": "Change scan depth",
+    "neu": false
+   },
+   {
+    "de": "Dieser Ordner enthält sehr viele Objekte. Die Liste erscheint erst, wenn alle geladen sind.",
+    "en": "This folder contains very many items. The list appears only after everything is loaded.",
+    "neu": false
+   },
+   {
+    "de": "{1} von {2} Objekten geladen",
+    "en": "{1} of {2} objects loaded",
+    "neu": false
+   },
+   {
+    "de": "Als Favorit markieren",
+    "en": "Add to Favorites",
+    "neu": false
+   },
+   {
+    "de": "Nach Namen suchen",
+    "en": "Search by Name",
+    "neu": false
+   },
+   {
+    "de": "Nach Dateiendung suchen",
+    "en": "Search by Extension",
+    "neu": false
+   },
+   {
+    "de": "Dateitypen ignorieren",
+    "en": "Ignore File Type",
+    "neu": false
+   },
+   {
+    "de": "{1} von {2} ausgewählt",
+    "en": "{1} of {2} selected",
+    "neu": false
+   },
+   {
+    "de": "Dateinamen ignorieren",
+    "en": "Ignore File Name",
+    "neu": false
+   },
+   {
+    "de": "Medium suchen…",
+    "en": "Search media…",
+    "neu": false
+   },
+   {
+    "de": "Filter mit „Und“ verknüpft",
+    "en": "Filters combined with “And”",
+    "neu": false
+   },
+   {
+    "de": "Erstellt",
+    "en": "Created",
+    "neu": true
+   },
+   {
+    "de": "Geändert",
+    "en": "Modified",
+    "neu": true
+   },
+   {
+    "de": "Größe",
+    "en": "Size",
+    "neu": true
+   },
+   {
+    "de": "Inhalt nicht erfasst",
+    "en": "Content not indexed",
+    "neu": true
+   },
+   {
+    "de": "Ordner ausgeschlossen",
+    "en": "Folder excluded",
+    "neu": true
+   },
+   {
+    "de": "Dieser Ordner wurde ausgeschlossen. Sein Inhalt wird daher nicht indiziert.",
+    "en": "This folder was excluded, so its content isn’t indexed.",
+    "neu": true
+   },
+   {
+    "de": "Einstellungen öffnen",
+    "en": "Open Settings",
+    "neu": true
+   },
+   {
+    "de": "Ordner nicht lesbar",
+    "en": "Folder not readable",
+    "neu": true
+   },
+   {
+    "de": "Der Inhalt dieses Ordners konnte beim Indizieren nicht gelesen werden.",
+    "en": "This folder’s content couldn’t be read during indexing.",
+    "neu": true
+   },
+   {
+    "de": "Auflösung",
+    "en": "Resolution",
+    "neu": true
+   },
+   {
+    "de": "FPS",
+    "en": "FPS",
+    "neu": true
+   },
+   {
+    "de": "Codec",
+    "en": "Codec",
+    "neu": true
+   },
+   {
+    "de": "Farbraum",
+    "en": "Color space",
+    "neu": true
+   },
+   {
+    "de": "{1} TREFFER",
+    "en": "{1} MATCHES",
+    "neu": true
+   },
+   {
+    "de": "Kein Speichermedium mit diesem Namen bekannt",
+    "en": "No storage medium with this name",
+    "neu": true
+   },
+   {
+    "de": "Dauer",
+    "en": "Duration",
+    "neu": true
+   },
+   {
+    "de": "Ordnernamen ignorieren",
+    "en": "Ignore Folder Name",
+    "neu": true
+   },
+   {
+    "de": "Größe gesamt",
+    "en": "Total size",
+    "neu": true
+   },
+   {
+    "de": "Seiten",
+    "en": "Pages",
+    "neu": true
+   },
+   {
+    "de": "Seitenformat",
+    "en": "Page size",
+    "neu": true
+   },
+   {
+    "de": "Aufgenommen",
+    "en": "Recorded",
+    "neu": true
+   },
+   {
+    "de": "Megapixel",
+    "en": "Megapixels",
+    "neu": true
+   },
+   {
+    "de": "Kamera",
+    "en": "Camera",
+    "neu": true
+   },
+   {
+    "de": "Samplerate",
+    "en": "Sample rate",
+    "neu": true
+   },
+   {
+    "de": "Qualität",
+    "en": "Quality",
+    "neu": true
+   },
+   {
+    "de": "{1} Bit",
+    "en": "{1}-bit",
+    "neu": true
+   },
+   {
+    "de": "Kanäle",
+    "en": "Channels",
+    "neu": true
+   },
+   {
+    "de": "Stereo",
+    "en": "Stereo",
+    "neu": true
+   },
+   {
+    "de": "Mono",
+    "en": "Mono",
+    "neu": true
+   },
+   {
+    "de": "Weitere Angaben folgen",
+    "en": "More details to come",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "08",
+  "title": "Filter & Suche",
+  "rows": [
+   {
+    "de": "Filter wird angewendet",
+    "en": "Applying filter",
+    "neu": false
+   },
+   {
+    "de": "Auf diesem Speichermedium liegen sehr viele Dateien. Das Filtern dauert einen Moment.",
+    "en": "This storage medium contains a lot of files. Filtering takes a moment.",
+    "neu": false
+   },
+   {
+    "de": "Wird gefiltert …",
+    "en": "Filtering …",
+    "neu": false
+   },
+   {
+    "de": "Filter mit „Und“ verknüpfen",
+    "en": "Combine Filters with “And”",
+    "neu": false
+   },
+   {
+    "de": "Oder",
+    "en": "Or",
+    "neu": true
+   },
+   {
+    "de": "Und",
+    "en": "And",
+    "neu": true
+   },
+   {
+    "de": "In Favoriten",
+    "en": "In Favorites",
+    "neu": false
+   },
+   {
+    "de": "In „{1}“",
+    "en": "In “{1}”",
+    "neu": false
+   },
+   {
+    "de": "{1} · {2} von {3}",
+    "en": "{1} · {2} of {3}",
+    "neu": false
+   }
+  ]
+ },
+ {
+  "num": "09",
+  "title": "Filter",
+  "rows": [
+   {
+    "de": "DATEITYP",
+    "en": "FILE TYPE",
+    "neu": false
+   },
+   {
+    "de": "Text",
+    "en": "Text",
+    "neu": false
+   },
+   {
+    "de": "Dokumente",
+    "en": "Documents",
+    "neu": false
+   },
+   {
+    "de": "Bild",
+    "en": "Image",
+    "neu": false
+   },
+   {
+    "de": "Video",
+    "en": "Video",
+    "neu": false
+   },
+   {
+    "de": "Audio",
+    "en": "Audio",
+    "neu": false
+   },
+   {
+    "de": "Programme",
+    "en": "Applications",
+    "neu": false
+   },
+   {
+    "de": "Skripte",
+    "en": "Scripts",
+    "neu": false
+   },
+   {
+    "de": "DATEIENDUNG",
+    "en": "FILE EXTENSION",
+    "neu": false
+   },
+   {
+    "de": "MEDIUM",
+    "en": "MEDIUM",
+    "neu": false
+   },
+   {
+    "de": "Alle Medien",
+    "en": "All media",
+    "neu": false
+   },
+   {
+    "de": "{1} von {2} Medien",
+    "en": "{1} of {2} media",
+    "neu": false
+   },
+   {
+    "de": "ALTER",
+    "en": "AGE",
+    "neu": false
+   },
+   {
+    "de": "Letzte 24 Stunden",
+    "en": "Last 24 Hours",
+    "neu": false
+   },
+   {
+    "de": "Letzte 2 Tage",
+    "en": "Last 2 Days",
+    "neu": false
+   },
+   {
+    "de": "Letzte Woche",
+    "en": "Last Week",
+    "neu": false
+   },
+   {
+    "de": "Letzter Monat",
+    "en": "Last Month",
+    "neu": false
+   },
+   {
+    "de": "3 Monate",
+    "en": "3 Months",
+    "neu": false
+   },
+   {
+    "de": "6 Monate",
+    "en": "6 Months",
+    "neu": false
+   },
+   {
+    "de": "9 Monate",
+    "en": "9 Months",
+    "neu": false
+   },
+   {
+    "de": "Letztes Jahr",
+    "en": "Last Year",
+    "neu": false
+   },
+   {
+    "de": "Älter",
+    "en": "Older",
+    "neu": false
+   },
+   {
+    "de": "Alle abwählen",
+    "en": "Deselect all",
+    "neu": false
+   },
+   {
+    "de": "Alle Medien mit „{1}“ anwählen",
+    "en": "Select all media matching “{1}”",
+    "neu": false
+   },
+   {
+    "de": "Alle Medien mit „{1}“ abwählen",
+    "en": "Deselect all media matching “{1}”",
+    "neu": false
+   },
+   {
+    "de": "Endung eingeben, z. B. jpg",
+    "en": "Enter extension, e.g. jpg",
+    "neu": false
+   }
+  ]
+ },
+ {
+  "num": "10",
+  "title": "Suche",
+  "rows": [
+   {
+    "de": "Suchbegriff eingeben oder Filter verwenden",
+    "en": "Enter a search term or use filters",
+    "neu": false
+   },
+   {
+    "de": "Durchsucht alle erfassten Speichermedien – auch offline.",
+    "en": "Searches all indexed storage media — including offline.",
+    "neu": true
+   },
+   {
+    "de": "Datum",
+    "en": "Date",
+    "neu": false
+   },
+   {
+    "de": "Pfad",
+    "en": "Path",
+    "neu": false
+   },
+   {
+    "de": "Suchbegriff ändern oder Filter entfernen.",
+    "en": "Try a different search term or remove filters.",
+    "neu": true
+   },
+   {
+    "de": "Kamera: {1}",
+    "en": "Camera: {1}",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "11",
+  "title": "Favoriten",
+  "rows": [
+   {
+    "de": "Keine Favoriten",
+    "en": "No favorites",
+    "neu": false
+   },
+   {
+    "de": "Keine Favoriten in dieser Auswahl. Wähle „Alle“ oder markiere Objekte über das Kontextmenü als Favorit.",
+    "en": "No favorites in this selection. Choose “All” or mark items as favorites via the context menu.",
+    "neu": false
+   },
+   {
+    "de": "Einen Moment bitte.",
+    "en": "One moment, please.",
+    "neu": false
+   },
+   {
+    "de": "Deine {1} Speichermedien und {2} Dateien werden gefiltert …",
+    "en": "Filtering your {1} storage media and {2} files …",
+    "neu": true
+   },
+   {
+    "de": "Dein 1 Speichermedium und {2} Dateien werden gefiltert …",
+    "en": "Filtering your 1 storage medium and {2} files …",
+    "neu": true
+   },
+   {
+    "de": "1 Favorit",
+    "en": "1 Favorite",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "12",
+  "title": "Kontextmenü",
+  "rows": [
+   {
+    "de": "Details",
+    "en": "Details",
+    "neu": false
+   },
+   {
+    "de": "Benennen",
+    "en": "Set name",
+    "neu": false
+   }
+  ]
+ },
+ {
+  "num": "13",
+  "title": "Neue Version",
+  "rows": [
+   {
+    "de": "Es ist eine neue Version verfügbar",
+    "en": "A new version is available",
+    "neu": false
+   },
+   {
+    "de": "Lade die neue Version von Disk Archive herunter.",
+    "en": "Download the new version of Disk Archive.",
+    "neu": false
+   }
+  ]
+ },
+ {
+  "num": "14",
+  "title": "Indizierung fehlgeschlagen",
+  "rows": [
+   {
+    "de": "„{1}“ konnte nicht indiziert werden",
+    "en": "“{1}” could not be indexed",
+    "neu": false
+   },
+   {
+    "de": "Beim Indizieren ist ein Fehler aufgetreten. Das Medium konnte nicht indiziert werden.",
+    "en": "An error occurred while indexing. The medium could not be indexed.",
+    "neu": false
+   },
+   {
+    "de": "Die Verbindung zum Medium wurde unterbrochen.",
+    "en": "The connection to the medium was interrupted.",
+    "neu": false
+   },
+   {
+    "de": "Das Medium reagiert nicht.",
+    "en": "The medium is not responding.",
+    "neu": false
+   },
+   {
+    "de": "Das Medium konnte nicht bestätigt werden.",
+    "en": "Couldn’t confirm the medium.",
+    "neu": false
+   },
+   {
+    "de": "Auf diesem Mac ist nicht genug Speicherplatz frei.",
+    "en": "There is not enough free space on this Mac.",
+    "neu": false
+   },
+   {
+    "de": "Einige Ordner auf diesem Medium konnten nicht gelesen werden.",
+    "en": "Some folders on this medium couldn't be read.",
+    "neu": false
+   },
+   {
+    "de": "unbekannt",
+    "en": "unknown",
+    "neu": false
+   },
+   {
+    "de": "Zugriff verweigert",
+    "en": "Access denied",
+    "neu": true
+   },
+   {
+    "de": "Verbindung weg",
+    "en": "Connection lost",
+    "neu": true
+   },
+   {
+    "de": "Zeitüberschreitung",
+    "en": "Timed out",
+    "neu": true
+   },
+   {
+    "de": "Nicht bestätigt",
+    "en": "Not confirmed",
+    "neu": true
+   },
+   {
+    "de": "Kein Platz auf dem Mac",
+    "en": "No space on your Mac",
+    "neu": true
+   },
+   {
+    "de": "Datenbank",
+    "en": "Database",
+    "neu": true
+   },
+   {
+    "de": "Der Index auf diesem Mac lässt sich gerade nicht beschreiben.",
+    "en": "The index on this Mac can’t be written right now.",
+    "neu": true
+   },
+   {
+    "de": "Fehler, offline",
+    "en": "Error, offline",
+    "neu": false
+   },
+   {
+    "de": "Fehler · erneut versuchen",
+    "en": "Error · try again",
+    "neu": false
+   },
+   {
+    "de": "Unbekannt",
+    "en": "Unknown",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "15",
+  "title": "Absturzbericht",
+  "rows": [
+   {
+    "de": "Disk Archive wurde unerwartet beendet",
+    "en": "Disk Archive quit unexpectedly",
+    "neu": false
+   },
+   {
+    "de": "Es liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen.",
+    "en": "A report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters.",
+    "neu": false
+   },
+   {
+    "de": "Bericht nicht senden",
+    "en": "Don't send report",
+    "neu": false
+   },
+   {
+    "de": "Bericht senden",
+    "en": "Send report",
+    "neu": false
+   }
+  ]
+ },
+ {
+  "num": "16",
+  "title": "Unerwarteter Fehler",
+  "rows": [
+   {
+    "de": "Unerwarteter Fehler",
+    "en": "Unexpected Error",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "17",
+  "title": "Über Disk Archive",
+  "rows": [
+   {
+    "de": "Version {1} (Beta)",
+    "en": "Version {1} (Beta)",
+    "neu": true
+   }
+  ]
+ },
+ {
+  "num": "18",
+  "title": "Mitteilungen",
+  "rows": [
+   {
+    "de": "Medien werden wieder indiziert.",
+    "en": "Media are being indexed again.",
+    "neu": false
+   },
+   {
+    "de": "Mitteilungen sind eingeschaltet.",
+    "en": "Notifications are turned on.",
+    "neu": false
+   },
+   {
+    "de": "Mitteilungen sind ausgeschaltet.",
+    "en": "Notifications are turned off.",
+    "neu": false
+   },
+   {
+    "de": "Indizierung pausiert.",
+    "en": "Indexing paused.",
+    "neu": false
+   },
+   {
+    "de": "Indizierung pausiert bis {1} Uhr.",
+    "en": "Indexing paused until {1}.",
+    "neu": false
+   },
+   {
+    "de": "Index bereinigt.",
+    "en": "Index cleaned up.",
+    "neu": false
+   },
+   {
+    "de": "Voreinstellungen angewendet.",
+    "en": "Default settings applied.",
+    "neu": false
+   },
+   {
+    "de": "Alle Speichermedien wurden vergessen.",
+    "en": "All storage media were forgotten.",
+    "neu": false
+   },
+   {
+    "de": "Index-Datenbank nicht verfügbar",
+    "en": "Index database unavailable",
+    "neu": false
+   },
+   {
+    "de": "Die Index-Datenbank konnte nicht geöffnet werden. Disk Archive kann Speichermedien derzeit nicht verarbeiten.",
+    "en": "The index database could not be opened. Disk Archive cannot process storage media right now.",
+    "neu": false
+   },
+   {
+    "de": "{1}: Beim Indizieren ist ein Fehler aufgetreten. Das Medium konnte nicht indiziert werden.",
+    "en": "{1}: An error occurred while indexing. The medium couldn’t be indexed.",
+    "neu": true
+   },
+   {
+    "de": "Medium „{1}“ ist vollständig indiziert – {2} Objekte.",
+    "en": "“{1}” is fully indexed – {2} items.",
+    "neu": true
+   },
+   {
+    "de": "Medium „{1}“ mit {2} Favoriten ist online.",
+    "en": "“{1}” with {2} Favorites is online.",
+    "neu": true
+   },
+   {
+    "de": "Medium „{1}“ mit 1 Favoriten ist online.",
+    "en": "“{1}” with 1 Favorite is online.",
+    "neu": true
+   }
+  ]
+ }
+]

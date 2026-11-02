@@ -131,7 +131,7 @@ Alle Speichermedien mit Index. Jedes Medium trägt genau einen Chip: Online, „
 
 ### Einstellungsfenster
 
-Eigene Ansicht im Hauptfenster, kein Modal — Aufruf über das Zahnrad-Icon in der Toolbar. Tabs links: „Allgemein“ (Sprache, Erscheinungsbild, Autostart, Updates), „Dateien & Ordner“ (Scan-Tiefe, Dateityp-Filter, Ausschlüsse, unsichtbare Dateien, Artefakte), „Speichermedien“ (alle registrierten Medien, auch ohne Entscheidung und ohne Index; neue Medien erscheinen sofort; „Ausstehend“ heißt: noch kein Index, „Nicht erlaubt“ heißt: Nein und noch kein Index) und „Erweitert“ (Mitteilungen, Index jetzt bereinigen, Voreinstellungen, alle Speichermedien vergessen, Fehlerberichte). Unter der Auswahl Hell · Dunkel · Automatisch zeigt eine Animation das gewählte Erscheinungsbild; sie ist genau so breit wie die drei Buttons und sitzt mit 3 px Abstand direkt darunter, mit demselben Rahmen wie die Buttons (Buttons unten ohne Radius, Animation oben ohne Radius). Bei den Mitteilungen zeigt das Beispiel standardmäßig die Systemmeldung; beim Hover über ein Ereignis wechselt es zur passenden Mitteilung. Tabellen sortieren per Klick auf den Spaltennamen; die aktive Spalte ist schwarz (Tabellen-Regel, 16). Klick auf den Namen oder das Detail-Icon öffnet die Medium-Details (06).
+Eigene Ansicht im Hauptfenster, kein Modal — Aufruf über das Zahnrad-Icon in der Toolbar. Tabs links: „Allgemein“ (Sprache, Erscheinungsbild, Autostart, Updates), „Dateien & Ordner“ (Hinweis zur Wirkung von Ausschlüssen, Scan-Tiefe, Metadaten, Vorschaubilder, Ausschlüsse, unsichtbare Dateien, Artefakte), „Speichermedien“ (alle registrierten Medien, auch ohne Entscheidung und ohne Index; neue Medien erscheinen sofort; „Ausstehend“ heißt: noch kein Index, „Nicht erlaubt“ heißt: Nein und noch kein Index) und „Erweitert“ (Mitteilungen, Index jetzt bereinigen, Voreinstellungen, alle Speichermedien vergessen, Fehlerberichte). Unter der Auswahl Hell · Dunkel · Automatisch zeigt eine Animation das gewählte Erscheinungsbild; sie ist genau so breit wie die drei Buttons und sitzt mit 3 px Abstand direkt darunter, mit demselben Rahmen wie die Buttons (Buttons unten ohne Radius, Animation oben ohne Radius). Bei den Mitteilungen zeigt das Beispiel standardmäßig die Systemmeldung; beim Hover über ein Ereignis wechselt es zur passenden Mitteilung. Tabellen sortieren per Klick auf den Spaltennamen; die aktive Spalte ist schwarz (Tabellen-Regel, 16). Klick auf den Namen oder das Detail-Icon öffnet die Medium-Details (06).
 
 Sprache der Benutzeroberfläche. Die Änderung gilt sofort, ohne Neustart.
 
@@ -177,7 +177,7 @@ Disk Archive startet nach dem Anmelden automatisch in der Menüleiste, damit ang
 
 ### Speichermedium-Detail
 
-Modal auf weißem Grund, Schließen oben rechts. Kennzahlen und Einstellungen des Mediums als Tabellenzeilen. „Nein“ bei „Soll indiziert werden“ stoppt nur die Aktualisierung: Ein bestehender Index bleibt erhalten und durchsuchbar, das Medium bleibt in Seitenleiste, Spaltenansicht und Suche. Entfernt wird der Index erst über „Vergessen“. Der Status-Chip oben rechts ist derselbe eine Chip wie im Dashboard (04). „Inhalt anzeigen“ öffnet das Medium in der Spaltenansicht (07) und ist ausgegraut, solange kein Index vorhanden ist. „Vergessen“ entfernt das Medium aus allen Listen und löscht Index und Favoriten; beim nächsten Anschließen gilt es als unbekannt.
+Modal auf weißem Grund, Schließen oben rechts. Oben die Kennzahlen als eigene Flächen: Gesamt, Belegt und Frei dreispaltig, darunter Dateien und Ordner zweispaltig. Dann die graue Index-Box mit den Balken für Index, Metadaten und Vorschaubilder und darunter „Soll indiziert werden“. Metadaten und Vorschaubilder sind optional: Ist die Funktion nicht aktiv, ist der Balken ausgegraut und zeigt „Aus“. Ganz unten die Zeitpunkte „Zuletzt gesehen“ und „Zuletzt indiziert“ als zwei Flächen nebeneinander.
 
 **Dark Mode**
 
@@ -261,7 +261,7 @@ Filter und Suche sind zwei getrennte Werkzeuge in der Toolbar, rechts direkt vor
 
 **Filter auf dem ganzen Medium**
 
-Filter-Icon geklickt, Dateityp „PDF“ und Alter „Letzte 30 Tage“ gewählt, mit „Und“ verknüpft. Der Filter gilt für das ganze Medium „Archiv 2019–2021“ und damit für jede Spalte: Alle Spalten zeigen nur passende Dateien, Ordner bleiben sichtbar („Ordner weiterhin anzeigen“), damit man sich zu den Treffern durchklicken kann. Spaltenkopf und Fußzeile zeigen, wie viele Objekte übrig sind. Die Medium-Auswahl entfällt hier.
+Filter-Icon geklickt, Dateityp „PDF“ und Alter „Letzte 30 Tage“ gewählt, mit „Und“ verknüpft. Der Filter gilt für das ganze Medium „Archiv 2019–2021“ und damit für jede Spalte: Alle Spalten zeigen nur passende Dateien, Ordner bleiben sichtbar, damit man sich zu den Treffern durchklicken kann. Spaltenkopf und Fußzeile zeigen, wie viele Objekte übrig sind. Die Medium-Auswahl entfällt hier.
 
 **Dark Mode**
 
@@ -271,7 +271,7 @@ Filter auf dem ganzen Medium, mit „Und“ verknüpft. Farben laut Farbrollen �
 
 ### Was sich filtern lässt
 
-Klick auf den „Filter“-Button in der Filterleiste öffnet dieses Popover — in der Spaltenansicht (08) wie in der Suche (10). Drei Eingrenzungen: Dateityp (Mehrfachauswahl) mit freier Eingabe eigener Dateiendungen, Medium (durchsuchbare Liste, ab 15 Einträgen scrollbar) und Alter (Bereiche). Filter gelten immer global ab dem Wurzelverzeichnis: in der Suche über alle Medien, in der Spaltenansicht über das gesamte geöffnete Medium. Die Medium-Auswahl gibt es deshalb nur in der Suche; in der Spaltenansicht entfällt sie. Jede Auswahl erscheint sofort als blauer Chip in der Filterleiste. Dateiendung: Eingabe mit Enter bestätigen, die Endung erscheint als blauer Chip direkt unter dem Feld (per ✕ entfernbar). „jpg“ und „.jpg“ sind gleichwertig — fehlt der Punkt, setzt das System ihn für den Abgleich automatisch davor; Groß-/Kleinschreibung wird ignoriert, angezeigt wird immer mit Punkt. Sobald ein Dateityp oder eine Endung gesetzt ist, ist „Ordner“ deaktiviert — Ordner bleiben in der Spaltenansicht über die Einstellung „Ordner weiterhin anzeigen“ (Dateien & Ordner, Standard: an) sichtbar, damit man sich zu den Treffern durchklicken kann; in der Suche wirkt der Filter strikt. Wie mehrere Filter verknüpft werden („Oder“/„Und“), steuert der Link-Button in der Filterleiste (08). Dateitypen-Kategorien siehe Styleguide (16).
+Klick auf den „Filter“-Button in der Filterleiste öffnet dieses Popover — in der Spaltenansicht (08) wie in der Suche (10). Drei Eingrenzungen: Dateityp (Mehrfachauswahl) mit freier Eingabe eigener Dateiendungen, Medium (durchsuchbare Liste, ab 15 Einträgen scrollbar) und Alter (Bereiche). Filter gelten immer global ab dem Wurzelverzeichnis: in der Suche über alle Medien, in der Spaltenansicht über das gesamte geöffnete Medium. Die Medium-Auswahl gibt es deshalb nur in der Suche; in der Spaltenansicht entfällt sie. Jede Auswahl erscheint sofort als blauer Chip in der Filterleiste. Dateiendung: Eingabe mit Enter bestätigen, die Endung erscheint als blauer Chip direkt unter dem Feld (per ✕ entfernbar). „jpg“ und „.jpg“ sind gleichwertig — fehlt der Punkt, setzt das System ihn für den Abgleich automatisch davor; Groß-/Kleinschreibung wird ignoriert, angezeigt wird immer mit Punkt. Sobald ein Dateityp oder eine Endung gesetzt ist, ist „Ordner“ deaktiviert — Ordner bleiben in der Spaltenansicht sichtbar, damit man sich zu den Treffern durchklicken kann; in der Suche wirkt der Filter strikt. Wie mehrere Filter verknüpft werden („Oder“/„Und“), steuert der Link-Button in der Filterleiste (08). Dateitypen-Kategorien siehe Styleguide (16).
 
 **Dark Mode**
 
@@ -331,7 +331,7 @@ Kontextmenü. Farben laut Farbrollen · Dark Mode (16).
 
 ### Neue Version verfügbar
 
-Erscheint, wenn eine neue Version von Disk Archive verfügbar ist — sofern „Auf Updates hinweisen“ in den Einstellungen aktiv ist (05, Tab „Allgemein“ → Updates, standardmäßig an). Inhalt: App-Icon, Titel „Es ist eine neue Version verfügbar“, Text „Lade die neue Version von Disk Archive herunter.“, Checkbox „Auf Updates hinweisen“ (gleiche Einstellung wie in 05). Zwei Buttons: „Schließen“ beendet den Dialog, „Zur neuen Version“ öffnet im Browser die Download-Seite: https://www.diskarchive.app/download/
+Erscheint, wenn eine neue Version von Disk Archive verfügbar ist — sofern „Auf Updates hinweisen“ in den Einstellungen aktiv ist (05, Tab „Allgemein“ → Updates, standardmäßig an). Ausnahme: Dringende Updates (z. B. Sicherheitskorrekturen) zeigt die App immer an, auch wenn „Auf Updates hinweisen“ ausgeschaltet ist. Inhalt: App-Icon, Titel „Es ist eine neue Version verfügbar“, Text „Lade die neue Version von Disk Archive herunter.“, Checkbox „Auf Updates hinweisen“ (gleiche Einstellung wie in 05). Zwei Buttons: „Schließen“ beendet den Dialog, „Zur neuen Version“ öffnet im Browser die Download-Seite: https://www.diskarchive.app/
 
 **Dark Mode**
 
@@ -428,4 +428,4 @@ Kein invertierter Kontrastmodus, sondern eigene Stufen: schwarzer Grund, Fenster
 
 ## Links
 
-- Download-Seite (Ziel von „Zur neuen Version“ im Updatedialog, 13): https://www.diskarchive.app/download/
+- Download-Seite (Ziel von „Zur neuen Version“ im Updatedialog, 13): https://www.diskarchive.app/

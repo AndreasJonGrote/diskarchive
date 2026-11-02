@@ -1,0 +1,291 @@
+﻿Schlüssel;Deutsch (App);English (App)
+copy.a11y.clear_search;Suche leeren;Clear Search
+copy.a11y.close;Schließen;Close
+copy.a11y.favorites;Favoriten;Favorites
+copy.a11y.filter;Filter;Filter
+copy.a11y.overview;Übersicht;Overview
+copy.a11y.search;Suche;Search
+copy.a11y.settings;Einstellungen;Settings
+copy.action.close;Schließen;Close
+copy.action.confirm;Bestätigen;Confirm
+copy.action.confirmed;Bestätigt;Confirmed
+copy.action.retry;Erneut versuchen;Try again
+copy.age.3m;3 Monate;3 Months
+copy.age.6m;6 Monate;6 Months
+copy.age.9m;9 Monate;9 Months
+copy.age.last_24h;Letzte 24 Stunden;Last 24 Hours
+copy.age.last_2d;Letzte 2 Tage;Last 2 Days
+copy.age.last_month;Letzter Monat;Last Month
+copy.age.last_week;Letzte Woche;Last Week
+copy.age.last_year;Letztes Jahr;Last Year
+copy.age.older;Älter;Older
+copy.app.name;Disk Archive;Disk Archive
+copy.appmenu.settings;Einstellungen …;Settings…
+copy.binary.no;Nein;No
+copy.binary.yes;Ja;Yes
+copy.chip.error;Fehler;Error
+copy.chip.error_offline;Fehler, offline;Error, offline
+copy.chip.not_allowed;Nicht erlaubt;Not allowed
+copy.chip.offline;Offline;Offline
+copy.chip.online;Online;Online
+copy.chip.pending;Ausstehend;Pending
+copy.chip.percent_indexed;%1$lld %% indiziert;%1$lld %% indexed
+copy.chip.percent_indexed_offline;%1$lld %% indiziert, offline;%1$lld %% indexed, offline
+copy.column.all_media_heading;ALLE SPEICHERMEDIEN;ALL STORAGE MEDIA
+copy.column.change_scan_depth;Scan-Tiefe ändern;Change scan depth
+copy.column.detail.last_seen;Zuletzt gesehen: %1$@;Last seen: %1$@
+copy.column.detail.modified;Geändert: %1$@;Modified: %1$@
+copy.column.detail.size;Größe: %1$@;Size: %1$@
+copy.column.detail.total_size;Größe gesamt: %1$@;Total size: %1$@
+copy.column.detail_heading;DETAIL;DETAIL
+copy.column.filter.applying_body;Auf diesem Speichermedium liegen sehr viele Dateien. Das Filtern dauert einen Moment.;This storage medium contains a lot of files. Filtering takes a moment.
+copy.column.filter.applying_title;Filter wird angewendet;Applying filter
+copy.column.filter.footer_filtering;Wird gefiltert …;Filtering …
+copy.column.filter.header_count;%1$@ · %2$@ von %3$@;%1$@ · %2$@ of %3$@
+copy.column.filter.no_matches_body;In diesem Ordner und seinen Unterordnern gibt es keine Objekte, die zum Filter passen.;There are no items in this folder or its subfolders that match the filter.
+copy.column.filter.no_matches_title;Keine passenden Objekte;No matching items
+copy.column.filter.reset;Filter zurücksetzen;Reset filter
+copy.column.folder_loading_many;Dieser Ordner enthält sehr viele Objekte. Die Liste erscheint erst, wenn alle geladen sind.;This folder contains very many items. The list appears only after everything is loaded.
+copy.column.folder_loading_progress;%1$@ von %2$@ Objekten geladen;%1$@ of %2$@ objects loaded
+copy.column.folder_not_indexed_title;Inhalt wird nicht indiziert;Contents are not indexed
+copy.column.folder_pending_body;Dieser Ordner wird gerade indiziert. Sein Inhalt erscheint, sobald die Indizierung abgeschlossen ist.;This folder is being indexed. Its contents will appear when indexing finishes.
+copy.column.indexing_in_progress;Wird indiziert;Indexing
+copy.column.loading_contents;Inhalte werden geladen;Loading contents
+copy.column.offline_banner;Offline — Inhalt aus dem Index, zum Öffnen bitte anschließen;"Offline — content from the index; connect to open"
+copy.column.selected_of;%1$lld von %2$lld ausgewählt;%1$lld of %2$lld selected
+copy.column.uncaptured_scan_depth;Der Inhalt dieses Ordners wird wegen der Scan-Tiefe nicht indiziert.;This folder’s contents are not indexed because of scan depth.
+copy.common.cancel;Abbrechen;Cancel
+copy.context.details;Details;Details
+copy.context.favorite;Als Favorit markieren;Add to Favorites
+copy.context.ignore_name;Dateinamen ignorieren;Ignore File Name
+copy.context.ignore_type;Dateitypen ignorieren;Ignore File Type
+copy.context.search_extension;Nach Dateiendung suchen;Search by Extension
+copy.context.search_name;Nach Namen suchen;Search by Name
+copy.context.set_name;Benennen;Set name
+copy.context.show_content;Inhalt anzeigen;Show Contents
+copy.context.show_in_finder;Im Finder anzeigen;Show in Finder
+copy.crash.body;Es liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen.;A report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters.
+copy.crash.discard;Bericht nicht senden;Don't send report
+copy.crash.send;Bericht senden;Send report
+copy.crash.title;Disk Archive wurde unerwartet beendet;Disk Archive quit unexpectedly
+copy.dashboard.error_retry;Fehler · erneut versuchen;Error · try again
+copy.dashboard.last_seen.days_ago;vor %lld Tagen;%lld days ago
+copy.dashboard.last_seen.now;jetzt;now
+copy.dashboard.last_seen.today;heute, %@;today, %@
+copy.dashboard.last_seen.unknown;unbekannt;unknown
+copy.dashboard.last_seen.yesterday;gestern, %@;yesterday, %@
+copy.dashboard.occupied_suffix; belegt; used
+copy.date.today;heute;today
+copy.date.yesterday;gestern;yesterday
+copy.detail.custom_name;Eigener Name;Custom name
+copy.empty.no_favorites.message;Keine Favoriten in dieser Auswahl. Wähle „Alle“ oder markiere Objekte über das Kontextmenü als Favorit.;No favorites in this selection. Choose “All” or mark items as favorites via the context menu.
+copy.empty.no_favorites.title;Keine Favoriten;No favorites
+copy.empty.no_media.message;Schließe ein externes Speichermedium an, um es zu indizieren.;Connect an external storage medium to index it.
+copy.empty.no_media.title;Noch keine Speichermedien erfasst;No storage media indexed yet
+copy.failure.database;Der Index konnte nicht gespeichert werden.;The index could not be saved.
+copy.failure.disconnected;Die Verbindung zum Medium wurde unterbrochen.;The connection to the medium was interrupted.
+copy.failure.disk_space;Auf diesem Mac ist nicht genug Speicherplatz frei.;There is not enough free space on this Mac.
+copy.failure.timeout;Das Medium reagiert nicht.;The medium is not responding.
+copy.failure.unconfirmed;Das Medium konnte nicht bestätigt werden.;Couldn’t confirm the medium.
+copy.failure.unreadable_folders;Einige Ordner auf diesem Medium konnten nicht gelesen werden.;Some folders on this medium couldn't be read.
+copy.favorites.none;Keine favorisierten Objekte;No favorite items
+copy.favorites.none_for_filters;Keine Favoriten für die gesetzten Filter;No favorites for the current filters
+copy.filter.link_with_and;Filter mit „Und“ verknüpfen;Combine Filters with “And”
+copy.filter.linked_with_and;Filter mit „Und“ verknüpft;Filters combined with “And”
+copy.filter.medium_count;%1$lld von %2$lld Medien;%1$lld of %2$lld media
+copy.filter.reset_all;Alle Filter zurücksetzen;Reset All Filters
+copy.filter.scope_favorites;In Favoriten;In Favorites
+copy.filter.scope_medium;In „%1$@“;In “%1$@”
+copy.filter.toolbar;Filter;Filter
+copy.folder.change_exclusions;Ausschlüsse ändern;Change Exclusions
+copy.folder.excluded;Ordner ist ausgeschlossen;Folder is excluded
+copy.folder.unreadable;Inhalt konnte nicht gelesen werden;Contents could not be read
+copy.hint.popover_none_connected;Kein Speichermedium angeschlossen;No storage medium connected
+copy.hint.popover_none_indexed_connected;Kein indiziertes Speichermedium angeschlossen;No indexed storage medium connected
+copy.ignore_confirm.title;%lld Einträge ignorieren?;Ignore %lld items?
+copy.index.failed.body;Beim Indizieren ist ein Fehler aufgetreten. Das Medium konnte nicht indiziert werden.;An error occurred while indexing. The medium could not be indexed.
+copy.index.failed.title;„%1$@“ konnte nicht indiziert werden;“%1$@” could not be indexed
+copy.indexed.line;Zuletzt indiziert: %1$@, %2$@;Last indexed: %1$@, %2$@
+copy.indexed.never;Zuletzt indiziert: —;Last indexed: —
+copy.kind.archive;Archiv;Archive
+copy.kind.audio;Audio;Audio
+copy.kind.documents;Dokumente;Documents
+copy.kind.folder;Ordner;Folder
+copy.kind.image;Bild;Image
+copy.kind.programs;Programme;Applications
+copy.kind.scripts;Skripte;Scripts
+copy.kind.text;Text;Text
+copy.kind.video;Video;Video
+copy.loading.favorites.title;%1$@ und %2$@ werden gefiltert …;Filtering %1$@ and %2$@ …
+copy.loading.files.one;1 Datei;1 file
+copy.loading.files.other;%1$@ Dateien;%1$@ files
+copy.loading.media.one;Dein 1 Speichermedium;your 1 storage medium
+copy.loading.media.other;Deine %1$@ Speichermedien;your %1$@ storage media
+copy.loading.search.title;%1$@ und %2$@ werden durchsucht …;Searching %1$@ and %2$@ …
+copy.loading.subtitle;Einen Moment bitte.;One moment, please.
+copy.medium.decision_pending;Entscheidung ausstehend;Decision pending
+copy.medium.files;Dateien;Files
+copy.medium.files_count;%1$@ Dateien;%1$@ files
+copy.medium.folders;Ordner;Folders
+copy.medium.forget;Vergessen;Forget
+copy.medium.free_of_total;%1$@ frei von %2$@;%1$@ free of %2$@
+copy.medium.indexed;Indiziert;Indexed
+copy.medium.indexed_value;%lld %%;%lld%%
+copy.medium.last_seen;Zuletzt gesehen;Last seen
+copy.medium.no_access;Kein Zugriff, in den Systemeinstellungen freigeben;No access. Allow it in System Settings.
+copy.medium.not_indexed_yet;noch nicht indiziert;not indexed yet
+copy.medium.reindex;Neu indizieren;Re-index
+copy.medium.should_index;Soll indiziert werden;Should be indexed
+copy.medium.show_content;Inhalt anzeigen;Show contents
+copy.medium.total;Gesamt;Total
+copy.medium.used_free;Belegt / Frei;Used / Free
+copy.menu.auto_index;Automatisches Indizieren;Automatic indexing
+copy.menu.change_to;ÄNDERN AUF;CHANGE TO
+copy.menu.connected;ANGESCHLOSSEN;CONNECTED
+copy.menu.forever;Für immer;Forever
+copy.menu.minutes_30;30 Minuten;30 minutes
+copy.menu.on;An;On
+copy.menu.one_hour;1 Stunde;1 hour
+copy.menu.open_app;Disk Archive öffnen;Open Disk Archive
+copy.menu.pause_for;PAUSIEREN FÜR;PAUSE FOR
+copy.menu.pause_until;bis %1$@ Uhr;until %1$@
+copy.menu.paused;Pausiert;Paused
+copy.menu.paused_for;Pausiert für %1$@;Paused for %1$@
+copy.menu.show_all_results;Alle %1$lld Ergebnisse anzeigen;Show All %1$lld Results
+copy.menu.show_one_result;1 Ergebnis anzeigen;Show 1 Result
+copy.menu.until_tomorrow;Bis morgen;Until tomorrow
+copy.menubar.about;Über Disk Archive;About Disk Archive
+copy.menubar.launch_at_login;Automatisch bei Systemstart;Open at Login
+copy.menubar.quit;Disk Archive beenden;Quit Disk Archive
+copy.menubar.reveal_log;Protokoll im Finder zeigen;Show Log in Finder
+copy.menubar.show_app;Disk Archive anzeigen;Show Disk Archive
+copy.new_medium.body;„%1$@“ (%2$@, %3$@) wurde angeschlossen. Soll sie indiziert werden?;“%1$@” (%2$@, %3$@) was connected. Should it be indexed?
+copy.new_medium.dont_index;Nicht indizieren;Don't index
+copy.new_medium.index;Indizieren;Index
+copy.new_medium.remember;Für dieses Medium merken;Remember for this medium
+copy.new_medium.title;Neues Speichermedium erkannt;New storage medium detected
+copy.no;Nein;No
+copy.notice.defaults_applied;Voreinstellungen angewendet.;Default settings applied.
+copy.notice.favorites_online;Medium „%1$@“ mit %2$@ Favoriten ist online;Medium “%1$@” with %2$@ favorites is online
+copy.notice.forget_all;Alle Speichermedien wurden vergessen.;All storage media were forgotten.
+copy.notice.indexed_complete;Medium „%1$@“ ist vollständig indiziert – %2$@ Objekte;Medium “%1$@” is fully indexed – %2$@ items
+copy.notice.prune;Index bereinigt.;Index cleaned up.
+copy.object.filtered;%1$@ von %2$@ Objekten;%1$@ of %2$@ items
+copy.object.many;%1$@ Objekte;%1$@ items
+copy.object.one;1 Objekt;1 item
+copy.permission.line;Disk Archive darf dieses Medium nicht lesen. Das lässt sich in den Systemeinstellungen unter Datenschutz & Sicherheit ändern.;Disk Archive cannot read this medium. You can change this in System Settings › Privacy & Security.
+copy.popover_search.group.files;DATEIEN;FILES
+copy.popover_search.group.folders;ORDNER;FOLDERS
+copy.popover_search.group.media;SPEICHERMEDIEN;STORAGE MEDIA
+copy.registry.filter.all;Alle;All
+copy.registry.filter.indexed;Indiziert;Indexed
+copy.registry.filter.not_allowed;Nicht erlaubt;Not allowed
+copy.registry.filter.offline;Offline;Offline
+copy.registry.show_details;Details anzeigen;Show Details
+copy.replace_medium.body;Ein Medium mit diesem Namen ist bekannt, aber nicht angeschlossen. Wurde es neu formatiert, kann das alte mit Index und Favoriten vergessen werden.;A medium with this name is known but not connected. If it was reformatted, the old one can be forgotten along with its index and favorites.
+copy.replace_medium.forget_old;Altes vergessen;Forget old
+copy.replace_medium.keep;Behalten;Keep
+copy.replace_medium.title;Ersetzt dieses Medium „%1$@“?;Does this medium replace “%1$@”?
+copy.reveal_in_finder;Im Finder anzeigen;Show in Finder
+copy.scope.all;Alle;All
+copy.search.filter.group.age;ALTER;AGE
+copy.search.filter.group.extension;DATEIENDUNG;FILE EXTENSION
+copy.search.filter.group.file_type;DATEITYP;FILE TYPE
+copy.search.filter.group.medium;MEDIUM;MEDIUM
+copy.search.filter_all_media;Alle Medien;All media
+copy.search.filter_deselect_all;Alle abwählen;Deselect all
+copy.search.filter_deselect_matching;Alle Medien mit „%@“ abwählen;Deselect all media matching “%@”
+copy.search.filter_select_matching;Alle Medien mit „%@“ anwählen;Select all media matching “%@”
+copy.search.idle.subtitle;Durchsucht alle erfassten Speichermedien – auch offline.;Searches all indexed storage — including offline.
+copy.search.idle.title;Suchbegriff eingeben oder Filter verwenden;Enter a search term or use filters
+copy.search.no_results_for;Keine Ergebnisse für „%1$@“;No results for “%1$@”
+copy.search.no_results_for_filters;Keine Treffer für die gesetzten Filter;No matches for the current filters
+copy.search.placeholder_compact;Suchen…;Search…
+copy.search.placeholder_extension;Endung eingeben, z. B. jpg;Enter extension, e.g. jpg
+copy.search.placeholder_medium;Medium suchen…;Search media…
+copy.search.placeholder_objects;Objekte suchen…;Search objects…
+copy.search.popover_no_hits;Keine Treffer für „%1$@“;No matches for “%1$@”
+copy.settings.appearance.auto;Automatisch;Automatic
+copy.settings.appearance.dark;Dunkel;Dark
+copy.settings.appearance.light;Hell;Light
+copy.settings.appearance.text;Hell oder Dunkel legt das Erscheinungsbild fest. Automatisch folgt der Systemeinstellung von macOS.;Light or Dark sets the appearance. Automatic follows the macOS system setting.
+copy.settings.appearance.title;ERSCHEINUNGSBILD;APPEARANCE
+copy.settings.artifacts.text;"Ignoriert temporäre Dateien, Backups, Systemreste und Ordner mit generischen Programmbibliotheken. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu.";"Ignores temporary files, backups, system clutter, and generic library folders. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains reappears; the rest is added on the next scan."
+copy.settings.artifacts.title;ARTEFAKTE;ARTIFACTS
+copy.settings.autostart.text;Disk Archive startet nach dem Anmelden automatisch in der Menüleiste, damit angeschlossene Speichermedien sofort erkannt werden.;Disk Archive starts in the menu bar at login so connected storage is detected immediately.
+copy.settings.autostart.title;AUTOSTART;AUTOSTART
+copy.settings.autostart.toggle;Beim Anmelden starten;Start at login
+copy.settings.column_filter.text;Legt fest, wie sich gesetzte Dateityp- und Endungsfilter beim Durchblättern von Ordnern verhalten.;Controls how file type and extension filters apply while browsing folders.
+copy.settings.column_filter.title;DATEITYP-FILTER IN DER SPALTENANSICHT;FILE TYPE FILTER IN COLUMN VIEW
+copy.settings.defaults.button;Voreinstellungen anwenden;Apply defaults
+copy.settings.defaults.text;Setzt alle Programmeinstellungen auf die Voreinstellungen zurück. Speichermedien, Index und Favoriten bleiben erhalten.;Resets all app settings to defaults. Storage media, index, and favorites are kept.
+copy.settings.defaults.title;VOREINSTELLUNGEN;DEFAULTS
+copy.settings.exclude.add;Hinzufügen;Add
+copy.settings.exclude.placeholder;Name, Endung (*.log) oder Ordner…;Name, extension (*.log), or folder…
+copy.settings.exclude.text;"Namen, Endungen oder Ordner, die auf keinem Speichermedium indiziert werden. Lässt sich auch per Rechtsklick auf ein Objekt setzen. Bereits erfasste Treffer verschwinden sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ im Tab „Erweitert“. Wird ein Chip entfernt, erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu.";"Names, extensions, or folders never indexed on any volume. Can also be set via right-click. Matches already indexed disappear from view and are removed from the index after 1 hour, or immediately via “Clean up index now” in Advanced. Removing a chip shows what remains; the rest is added on the next scan."
+copy.settings.exclude.title;DATEIEN & ORDNER AUSSCHLIESSEN;EXCLUDE FILES & FOLDERS
+copy.settings.hidden.ignore;Ignorieren;Ignore
+copy.settings.hidden.text;"Schließt versteckte Systemdateien und -ordner vom Index aus. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu.";"Excludes hidden system files and folders from the index. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains in the index reappears; the rest is added on the next scan."
+copy.settings.hidden.title;UNSICHTBARE DATEIEN;HIDDEN FILES
+copy.settings.language.english;English;English
+copy.settings.language.german;Deutsch;Deutsch
+copy.settings.language.text;Sprache der Benutzeroberfläche. Die Änderung gilt sofort.;Language of the user interface. The change applies immediately.
+copy.settings.language.title;SPRACHE;LANGUAGE
+copy.settings.media.forget_all;Alle Speichermedien vergessen;Forget all storage media
+copy.settings.media.text;Vergisst alle Speichermedien und löscht alle zugehörigen Daten: Index, Favoriten, Berechtigungen und Einstellungen je Medium. Die Programmeinstellungen bleiben erhalten. Beim nächsten Anschließen erscheint der Erkennungs-Dialog wieder.;Forgets all storage media and deletes related data: index, favorites, permissions, and per-medium settings. App settings are kept. The detection dialog appears again on next connection.
+copy.settings.media.title;SPEICHERMEDIEN;STORAGE MEDIA
+copy.settings.media.warning;Löscht alle Daten. Das kann nicht rückgängig gemacht werden.;Deletes all data. This cannot be undone.
+copy.settings.notices.favorites;Speichermedium mit Favoriten angeschlossen;Storage medium with favorites connected
+copy.settings.notices.indexed;Speichermedium vollständig indiziert;Storage medium fully indexed
+copy.settings.notices.pause_forever;Indizierung pausiert.;Indexing paused.
+copy.settings.notices.pause_resumed;Medien werden wieder indiziert.;Media are being indexed again.
+copy.settings.notices.pause_until;Indizierung pausiert bis %1$@ Uhr.;Indexing paused until %1$@.
+copy.settings.notices.preview_favorites;Medium „Archiv 2019–2021“ mit 7 Favoriten ist online;Medium “Archive 2019–2021” with 7 favorites is online
+copy.settings.notices.preview_indexed;Medium „Archiv 2019–2021“ ist vollständig indiziert – 48.210 Objekte;Medium “Archive 2019–2021” is fully indexed – 48,210 items
+copy.settings.notices.preview_system;Medien werden wieder indiziert.;Media are being indexed again.
+copy.settings.notices.system;Systemmeldungen;System messages
+copy.settings.notices.system_and_pauses;Systemmeldungen umfassen Hinweise zu Fehlern und zu Pausen.;System messages include notes on errors and pauses.
+copy.settings.notices.text_lead;Pro Ereignis einzeln wählbar. ;Choose each event individually. 
+copy.settings.notices.text_tail; „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern.;" “Fully indexed” appears only if the scan took longer than 59 seconds (including reconcile or re-index). If “Enable notifications” is off, events are disabled. macOS asks once at first launch; if denied, change it only in macOS System Settings › Notifications."
+copy.settings.notices.title;MITTEILUNGEN;NOTIFICATIONS
+copy.settings.notices.toggle;Mitteilungen aktivieren;Enable notifications
+copy.settings.notices.turned_off;Mitteilungen sind ausgeschaltet.;Notifications are turned off.
+copy.settings.notices.turned_on;Mitteilungen sind eingeschaltet.;Notifications are turned on.
+copy.settings.open_system_settings;In den Systemeinstellungen freigeben;Allow in System Settings
+copy.settings.prune.button;Index jetzt bereinigen;Clean up index now
+copy.settings.prune.text;Werden Dateien oder Ordner ausgeschlossen, unsichtbare Dateien oder Artefakte ignoriert oder die Scan-Tiefe verringert, verschwinden die betroffenen Einträge sofort aus der Ansicht, auch Favoriten darunter. Aus dem Index gelöscht werden sie nach 1 Stunde. „Index jetzt bereinigen“ löscht sie sofort.;Excluded files or folders, ignored hidden files or artifacts, or reduced scan depth remove affected entries from view immediately, including favorites below. They are deleted from the index after 1 hour. “Clean up index now” deletes them immediately.
+copy.settings.prune.title;SCAN-TIEFE UND AUSGESCHLOSSENE DATEIEN & ORDNER;SCAN DEPTH AND EXCLUDED FILES & FOLDERS
+copy.settings.reports.auto_send;Künftig automatisch senden;Send automatically in the future
+copy.settings.reports.text;Wurde Disk Archive unerwartet beendet, liegt ein Bericht vor. Er enthält die Programmversion, Informationen zu deinem System, die letzten Aktionen und den Ort des Fehlers. Er enthält keine Datei- oder Ordnernamen und keine Suchbegriffe, nur technische Eigenschaften wie die Länge oder Sonderzeichen.;If Disk Archive quit unexpectedly, a report is available. It includes the app version, system information, recent actions, and error location. It does not include file or folder names or search terms—only technical properties such as length or special characters.
+copy.settings.reports.title;FEHLERBERICHTE;CRASH REPORTS
+copy.settings.scan_depth.disk_crumb;Festplatte;Disk
+copy.settings.scan_depth.example_heading;BEISPIEL;EXAMPLE
+copy.settings.scan_depth.label;TIEFE;DEPTH
+copy.settings.scan_depth.max_depth_crumb;maximale Indextiefe;maximum index depth
+copy.settings.scan_depth.subfolder;Unterordner %1$lld;Subfolder %1$lld
+copy.settings.scan_depth.text;"Wie viele Ordnerebenen unterhalb des Wurzelverzeichnisses eines Speichermediums durchsucht werden. „5+“ durchsucht uneingeschränkt alles. Wird die Tiefe verringert, verschwinden tiefere Ebenen sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Wird sie erhöht, erscheint, was noch im Index ist; fehlende Ebenen kommen beim nächsten Scan dazu.";"How many folder levels below each volume root are scanned. “5+” scans without limit. Lowering depth hides deeper levels immediately and removes them from the index after 1 hour, or immediately via “Clean up index now” (Advanced). Raising depth shows what remains in the index; missing levels are added on the next scan."
+copy.settings.scan_depth.title;SCAN-TIEFE;SCAN DEPTH
+copy.settings.tab.advanced;Erweitert;Advanced
+copy.settings.tab.files;Dateien & Ordner;Files & folders
+copy.settings.tab.general;Allgemein;General
+copy.settings.tab.media;Speichermedien;Storage media
+copy.settings.unreadable.notice;Einstellungen konnten nicht gelesen werden – Änderungen werden nicht gespeichert.;Settings could not be read – changes will not be saved.
+copy.settings.updates.text;Disk Archive weist dich darauf hin, sobald eine neue Version verfügbar ist.;Disk Archive lets you know as soon as a new version is available.
+copy.settings.updates.title;UPDATES;UPDATES
+copy.settings.updates.toggle;Auf Updates hinweisen;Notify me about updates
+copy.store.open_failed.body;Die Index-Datenbank konnte nicht geöffnet werden. Disk Archive kann Speichermedien derzeit nicht verarbeiten.;The index database could not be opened. Disk Archive cannot process storage media right now.
+copy.store.open_failed.title;Index-Datenbank nicht verfügbar;Index database unavailable
+copy.table.column.status;Status;Status
+copy.table.column.type;Typ;Type
+copy.table.date;Datum;Date
+copy.table.medium;Speichermedium;Storage medium
+copy.table.name;Name;Name
+copy.table.path;Pfad;Path
+copy.update.available.beta_countdown;Die Betaphase ist beendet. Diese App-Version wird in sieben Tagen gesperrt — danach ist der Index nur noch lesbar.;The beta period has ended. This app version will lock in seven days — after that, the index is read-only.
+copy.update.available.download;Zur neuen Version;Get the new version
+copy.update.available.text;Lade die neue Version von Disk Archive herunter.;Download the new version of Disk Archive.
+copy.update.available.title;Es ist eine neue Version verfügbar;A new version is available
+copy.version_lock.banner.api;Die App konnte die Versionsserver länger als einen Monat nicht erreichen — der Index ist gesperrt (nur lesen).;The app could not reach the version server for over a month — the index is locked (read-only).
+copy.version_lock.banner.beta;Betaphase beendet — der Index ist gesperrt (nur lesen).;Beta ended — the index is locked (read-only).
+copy.version_lock.banner.build;Dieser Build ist abgelaufen — der Index ist gesperrt (nur lesen).;This build has expired — the index is locked (read-only).
+copy.yes;Ja;Yes

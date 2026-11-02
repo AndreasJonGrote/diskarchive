@@ -20,8 +20,7 @@ Gilt zusammen mit [konzept/datenbank.md](konzept/datenbank.md) (Konzept „Daten
 | **0.4.0** | **Release-Kandidat der Open Beta** | nur, was die App fehlerfrei macht; Abschluss mit der Abnahmerunde des Nutzers (`todo.0.4.040`) |
 | **0.4.1** | **Release der Open Beta** | Auslieferung: DMG, Tester-Prüfung mit Quarantäne, Update durch Ersetzen, Mindest-macOS 15; ab hier laden andere die App |
 | **0.4.2** | **Erstes Update der Beta** | Eigener Name für Medien, leise Ordner beim Filtern mit Wartescreen, „Alle Medien / Alle abwählen“, Update-Knopf → Startseite, „Benennen“; abgeschlossen 31.10. |
-| **0.4.3** | **Zweites Update der Beta** | nur Projekt-Hygiene: Projekt heißt `DiskArchive` (`todo.0.4.3.004`, abgenommen 01.11.) |
-| **0.4.4** | **Drittes Update der Beta** (Nutzer 01.11.) | alles, was offen ist, nichts aus 0.5: Bild-Filter mit `.cr3` u. a., Fokusrahmen im Erkennungsdialog, dringendes Update aus der API (`urgent-update`), Version im DMG-Hintergrund automatisch, „Über Disk Archive“ neu, Wartezustand der Popover-Suche, „Auswerfen“ und „Wird geprüft“ auf der Kachel |
+| **0.4.3** | **Zweites Update, letzte 0.4** (Nutzer 03.11.: 0.4.4 entfällt) | Projekt-Hygiene (`DiskArchive`, abgenommen 01.11.) und alles aus dem Layout-Abgleich 01.–03.11. samt offener Punkte (`.cr3`, Fokusrahmen, dringendes Update, Betaende-Banner, Lizenzserver, Auswerfen, Benennen, Medium-Details, Fehleranzeige, „Über Disk Archive“, Texte DE/EN); danach nur noch Technik für 0.5/0.6 |
 | **0.5** | Metadaten und EXIF (Code und Design) | erste Funktion auf der neuen Struktur |
 | **0.6** | Vorschaubilder | Thumbnails |
 | **0.7** | Export von CSV-Listen | |
@@ -148,21 +147,21 @@ Erste Funktion auf der neuen Struktur (`item_meta`). Felder laut README, Abschni
 | Typ | Felder |
 |---|---|
 | Video | Auflösung, Dauer, FPS, Codec, Farbraum mit SDR/HDR |
-| Foto/RAW | Auflösung, Megapixel, Farbraum |
+| Foto/RAW | Auflösung, Megapixel, Farbraum, Kamera |
 | Audio | Dauer, Samplerate, Qualität, Kanäle |
-| PDF | Seiten, Seitenformat, Text (durchsuchbar oder Scan), Schutz |
+| PDF | Seiten, Seitenformat (Nutzer 02.11.: kein Text, kein Schutz-Feld, nichts aus dem Inhalt) |
 
 Alles andere, was ausgelesen wird, bleibt komplett im gespeicherten Blob. Fehlende Werte als "–".
 
-**Design:** Das Layout für Detailspalte und Liste kommt vom Nutzer, bevor der Umsetzer baut.
-**Last:** Tiefenanalyse als eigener Schritt nach dem normalen Index, getrennt pausierbar, niedrige Priorität, je Medium abschaltbar. Eine Datei wird nur einmal gelesen.
+**Design:** Metadaten angezeigt nur in der Detailspalte (Nutzer 02.11.), nicht als Tabellenspalten; durchsuchbar über die Suche, Filter für Metadaten später. Nie Dateiinhalte. Layout liegt vor (07.04).
+**Last:** Tiefenanalyse als eigener Schritt nach dem normalen Index, getrennt pausierbar, niedrige Priorität. **Nicht abschaltbar** (Nutzer 02.11.: Metadaten sind fest vorgesehen). Eine Datei wird nur einmal gelesen.
 **Offen:** Aufnahmedatum bei Fotos als Filter? HLG als eigener Wert? Office-Dokumente?
 
 ---
 
 ## 0.6 — Vorschaubilder
 
-**[offen, zu besprechen]** Thumbnails mit **250 px langer Seite** (Nutzer 10.10.; 400 px gelten als problematisch). Überschlag: etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB, 100.000 Fotos ca. 1 GB (nicht gemessen). Zu klären: Schärfe auf Retina-Anzeige in der Detailspalte, Obergrenze, Abschalter. In eigener Datei `thumbs.sqlite`. Beim Auslesen aus derselben Dateilesung wie die Metadaten (0.5). RAW über das eingebettete JPEG. QuickLook nur live, solange das Laufwerk angeschlossen ist.
+**[offen, zu besprechen]** Thumbnails mit **250 px langer Seite** (Nutzer 10.10.; 400 px gelten als problematisch). Überschlag: etwa 8 bis 12 KB je Bild, 5.000 Fotos ca. 40 bis 60 MB, 100.000 Fotos ca. 1 GB (nicht gemessen). Nutzer 02.11.: ein globaler Schalter, keine Obergrenze, kein Schalter je Medium; Schärfe auf Retina offen (rund 456 px mit reduzierter Qualität, vorher messen). In eigener Datei `thumbs.sqlite`. Beim Auslesen aus derselben Dateilesung wie die Metadaten (0.5). RAW über das eingebettete JPEG. QuickLook nur live, solange das Laufwerk angeschlossen ist.
 
 ---
 
