@@ -130,6 +130,33 @@ extension AppState {
         }
     }
 
+    /// bug.0.4.3.002: Link „erneut versuchen“ der Kachel – wie „Erneut versuchen“ im Indizierungsfehler (14): ein
+    /// offener Fehlerdialog dieses Mediums geht zu, die Indizierung startet sofort neu.
+    func retryIndexing(mediumID id: UUID) {
+        DiskArchiveLog.shared.ui("retry id=\(id)")
+        if indexingFailure?.id == id {
+            indexingFailure = nil
+        }
+        onReindexMedium?(id)
+    }
+
+    /// todo.0.4.3.011 (`konzept/datenschutz-plattform.md`): Auswerfen nur auf Klick und nur bei angeschlossenen Medien.
+    /// Ein laufender Lauf wird zuerst abgebrochen wie beim Abziehen; danach ist das Medium offline wie nach dem Abziehen
+    /// (Meldung von macOS). Lehnt macOS ab, bleibt es angeschlossen und Dialog 16 erklärt es.
+    func ejectMedium(id: UUID) async {
+        guard let medium = medium(with: id), medium.connectionStatus == .connected, let path = mountPath?(id),
+              ejectingMedia.insert(id).inserted else { return }
+        defer { ejectingMedia.remove(id) }
+        DiskArchiveLog.shared.ui("eject id=\(id)")
+        await onCancelBeforeEject?(id)
+        do {
+            try await ejectVolume(path)
+        } catch {
+            DiskArchiveLog.shared.record(.medium, .error, "eject failed \(DiskArchiveLog.errorSummary(error))")
+            unexpectedError = UnexpectedErrorNotice(message: LayoutCopy.ejectFailed(name: medium.shownName))
+        }
+    }
+
     func enqueueNewMediumDecision(_ id: UUID) {
         // bug.0.4.221: jedes Anschließen zählt (Konzept `medien.md` 3) – auch für eine schon wartende ID ist der Merker
         // „weggeklickt“ weg, sonst bleibt der Dialog nach dem Wiedereinstecken aus.
@@ -241,20 +268,20 @@ extension AppState {
         }
     }
 
-    /// todo.0.4.2.005: „Benennen“ – in der Kachel oder der Seitenleiste an Ort und Stelle (`place`), sonst im
-    /// Details-Modal mit Fokus im Feld „Eigener Name“. Eine laufende Bearbeitung übernimmt ihr Feld beim Verschwinden.
-    func beginNaming(mediumID: UUID, inline place: MediumNamingPlace?) {
+    /// todo.0.4.3.009 (`konzept/medien.md` 2d, Layout 06.02): „Benennen“ öffnet das Details-Fenster im
+    /// Benennungsmodus – Fokus im Namensfeld, Text ganz markiert. Auch der Stift im Fenster startet ihn.
+    func beginNaming(mediumID: UUID) {
         guard featureAccess.canWriteIndex, medium(with: mediumID) != nil else { return }
-        DiskArchiveLog.shared.ui("naming id=\(mediumID) inline=\(place != nil)")
-        mediumNaming = MediumNaming(mediumID: mediumID, place: place ?? .detailsModal)
-        if place == nil {
+        DiskArchiveLog.shared.ui("naming id=\(mediumID)")
+        if detailMediumID != mediumID {
             MediumNavigation.openDetails(for: mediumID, appState: self)
         }
+        namingMediumID = mediumID
     }
 
-    /// Bearbeitung beendet (übernommen oder abgebrochen); eine inzwischen begonnene andere bleibt.
-    func endNaming(_ naming: MediumNaming) {
-        if mediumNaming == naming { mediumNaming = nil }
+    /// Benennungsmodus beendet (übernommen oder abgebrochen); ein inzwischen begonnener anderer bleibt.
+    func endNaming(mediumID: UUID) {
+        if namingMediumID == mediumID { namingMediumID = nil }
     }
 
     func forgetMedium(id: UUID) {
@@ -510,14 +537,3 @@ final class IndexProgressDisplay {
     }
 }
 
-/// todo.0.4.2.005: Ort einer „Benennen“-Bearbeitung.
-enum MediumNamingPlace: Equatable {
-    case dashboardCard
-    case columnSidebar
-    case detailsModal
-}
-
-struct MediumNaming: Equatable {
-    var mediumID: UUID
-    var place: MediumNamingPlace
-}

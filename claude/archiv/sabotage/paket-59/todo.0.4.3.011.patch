@@ -1,0 +1,11 @@
+# Test: MediumEjectTests/ejectCancelsTheRunFirstThenEjectsOnce()
+--- a/DiskArchive/DiskArchive/App/AppState+Media.swift
++++ b/DiskArchive/DiskArchive/App/AppState+Media.swift
+@@ -146,7 +146,6 @@
+     func ejectMedium(id: UUID) async {
+         guard let medium = medium(with: id), medium.connectionStatus == .connected, let path = mountPath?(id) else { return }
+         DiskArchiveLog.shared.ui("eject id=\(id)")
+-        await onCancelBeforeEject?(id)
+         do {
+             try await ejectVolume(path)
+         } catch {

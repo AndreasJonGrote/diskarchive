@@ -367,11 +367,6 @@
     "neu": true
    },
    {
-    "de": "Fehler vor {1} Std.",
-    "en": "Error {1} h ago",
-    "neu": true
-   },
-   {
     "de": "vor {1} Monaten",
     "en": "{1} months ago",
     "neu": true
@@ -943,7 +938,7 @@
     "neu": true
    },
    {
-    "de": "Pro Ereignis einzeln wählbar. Systemmeldungen umfassen Hinweise zu Fehlern und zu abgelaufenen Pausen. „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Alle Mitteilungstexte und Bedingungen: 18. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern.",
+    "de": "Pro Ereignis einzeln wählbar. Systemmeldungen umfassen Hinweise zu Fehlern und zu abgelaufenen Pausen. „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern.",
     "en": "Choose each event individually. System messages cover errors and ended pauses. “Fully indexed” only appears if the scan took longer than 59 seconds (also when syncing or re-indexing). If “Enable notifications” is off, the events are turned off. On first launch, macOS asks once whether to allow notifications. If you declined, you can only change this in macOS System Settings under “Notifications”.",
     "neu": true
    },
@@ -1006,6 +1001,11 @@
     "de": "1 Speichermedium",
     "en": "1 storage medium",
     "neu": true
+   },
+   {
+    "de": "Einstellungen konnten nicht gelesen werden – Änderungen werden nicht gespeichert.",
+    "en": "Settings couldn’t be read – changes won’t be saved.",
+    "neu": true
    }
   ]
  },
@@ -1041,6 +1041,11 @@
    {
     "de": "Abbrechen",
     "en": "Cancel",
+    "neu": false
+   },
+   {
+    "de": "Belegt",
+    "en": "Used",
     "neu": false
    },
    {
@@ -1756,6 +1761,16 @@
    {
     "de": "Unerwarteter Fehler",
     "en": "Unexpected Error",
+    "neu": true
+   },
+   {
+    "de": "„{1}“ konnte nicht ausgeworfen werden, weil ein anderes Programm es gerade benutzt. Schließe dort geöffnete Dateien und versuche es erneut.",
+    "en": "“{1}” couldn’t be ejected because another app is using it. Close any open files on it and try again.",
+    "neu": true
+   },
+   {
+    "de": "Erneut versuchen",
+    "en": "Try Again",
     "neu": true
    }
   ]

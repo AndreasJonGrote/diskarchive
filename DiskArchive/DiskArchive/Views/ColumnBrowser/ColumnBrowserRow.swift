@@ -15,12 +15,16 @@ struct ColumnBrowserRow: View {
     static var iconLeading: CGFloat { horizontalPadding + (iconBox - iconSize) / 2 }
 
     let title: String
+    /// todo.0.4.3.007: leiser Zusatz in derselben Zeile (Originalname benannter Medien, Seitenleiste 70 %).
+    var titleSuffix: String?
     /// Tooltip statt des Titels (todo.0.4.2.002: Originalname bei eigenem Namen).
     var helpText: String?
     let isSelected: Bool
     /// Template-Asset (Phosphor) aus dem Asset-Katalog.
     let iconAsset: String
     var iconColor: Color = DesignColor.text
+    /// todo.0.4.3.007: Icon-Farbe auf der Auswahl (Türkis/Violett invertiert); `nil` = Weiß statt Textfarbe.
+    var iconColorSelected: Color?
     /// Ersetzt das Typ-Icon (Seitenleiste während Indizierung).
     var showsIndexingSpinner: Bool = false
     /// Seitenleiste: kein Verlauf; Ordnerspalten: Verlauf bei Überlauf (statt „…“).
@@ -30,42 +34,28 @@ struct ColumnBrowserRow: View {
     var resolveTargets: ((ObjectContextTarget) -> [ObjectContextTarget])?
     /// todo.0.4.2.003: Fläche der Auswahl (mit Filter blau, leiser Ordner in Textfarbe).
     var selectionFill: Color = DesignColor.sidebarActiveBackground
-    /// todo.0.4.2.005: Medium der Seitenleiste – „Benennen“ bearbeitet hier; läuft es, ist der Titel ein Eingabefeld.
-    var namingMedium: Medium?
     var onSelect: () -> Void
 
     var body: some View {
-        let naming = namingMedium.map { MediumNaming(mediumID: $0.id, place: .columnSidebar) }
-        if let medium = namingMedium, let naming, appState.mediumNaming == naming {
-            // Kein Knopf: ein Klick ins Feld wechselt die Auswahl nicht.
+        Button {
+            appState.contextMenuHighlightObjectID = nil
+            onSelect()
+        } label: {
             content {
-                MediumNameEditor(
-                    medium: medium,
-                    naming: naming,
+                FadeMaskText(
+                    text: title,
+                    isLightOnDark: isSelected,
+                    applyFadeMask: fadeTitleOnOverflow || (fadeTitleWhenSelected && isSelected),
                     font: titleFont,
-                    originalColor: (isSelected ? DesignColor.onSelection : DesignColor.text).opacity(0.5)
+                    suffix: titleSuffix,
+                    suffixOpacity: 0.7
                 )
             }
-            .objectContextMenu(contextTarget, resolveTargets: resolveTargets, namingPlace: .columnSidebar)
-        } else {
-            Button {
-                appState.contextMenuHighlightObjectID = nil
-                onSelect()
-            } label: {
-                content {
-                    FadeMaskText(
-                        text: title,
-                        isLightOnDark: isSelected,
-                        applyFadeMask: fadeTitleOnOverflow || (fadeTitleWhenSelected && isSelected),
-                        font: titleFont
-                    )
-                }
-            }
-            .buttonStyle(.plainFullHit)
-            .pointerCursor()
-            .help(helpText ?? title)
-            .objectContextMenu(contextTarget, resolveTargets: resolveTargets, namingPlace: naming?.place)
         }
+        .buttonStyle(.plainFullHit)
+        .pointerCursor()
+        .help(helpText ?? title)
+        .objectContextMenu(contextTarget, resolveTargets: resolveTargets)
     }
 
     private var titleFont: Font {
@@ -113,6 +103,6 @@ struct ColumnBrowserRow: View {
     }
 
     private var iconColorOnSelection: Color {
-        iconColor == DesignColor.text ? DesignColor.onSelection : iconColor
+        iconColorSelected ?? (iconColor == DesignColor.text ? DesignColor.onSelection : iconColor)
     }
 }

@@ -67,9 +67,13 @@ struct MenuBarConnectedMediumRow: View {
     @ViewBuilder
     private func rowBody(fraction: Double?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(medium.shownName)
-                .font(.system(size: 13, weight: .semibold))
-                .lineLimit(1)
+            // todo.0.4.3.007: eigener Name, leise der Originalname (Layout 03).
+            FadeMaskText(
+                text: medium.listLabel.name,
+                applyFadeMask: true,
+                font: .system(size: 13, weight: .semibold),
+                suffix: medium.listLabel.original
+            )
 
             ZStack(alignment: .leading) {
                 Text(verbatim: "Ag")

@@ -21,6 +21,10 @@ struct FadeMaskText: View {
     var applyFadeMask: Bool = false
     var font: Font = .system(size: 13, weight: .semibold)
     var foreground: Color = DesignColor.text
+    /// todo.0.4.3.007: leiser Zusatz in derselben Zeile („ · {Originalname}“), läuft zuerst aus; ist der Text selbst zu
+    /// lang, verschwindet er ganz (Layout 19).
+    var suffix: String?
+    var suffixOpacity: Double = 0.55
 
     @State private var intrinsicWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
@@ -38,11 +42,10 @@ struct FadeMaskText: View {
             .hidden()
             .frame(maxWidth: .infinity, alignment: .leading)
             .overlay(alignment: .leading) {
-                Text(text)
+                composed
                     .font(font)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
-                    .foregroundStyle(isLightOnDark ? DesignColor.onSelection : foreground)
             }
             .clipped()
             .mask {
@@ -61,7 +64,7 @@ struct FadeMaskText: View {
                 }
             }
             .background {
-                Text(text)
+                composed
                     .font(font)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -84,6 +87,13 @@ struct FadeMaskText: View {
             .onPreferenceChange(FadeMaskTextWidthKey.self) { width in
                 intrinsicWidth = width
             }
-            .accessibilityLabel(text)
+            .accessibilityLabel(suffix.map { "\(text) · \($0)" } ?? text)
+    }
+
+    private var composed: Text {
+        let color = isLightOnDark ? DesignColor.onSelection : foreground
+        let main = Text(text).foregroundStyle(color)
+        guard let suffix else { return main }
+        return main + Text(verbatim: " · \(suffix)").fontWeight(.regular).foregroundStyle(color.opacity(suffixOpacity))
     }
 }

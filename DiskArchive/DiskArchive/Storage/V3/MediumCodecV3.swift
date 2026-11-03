@@ -29,6 +29,8 @@ nonisolated enum StorageMetaKey: String, CaseIterable, Sendable {
     case pendingDeletion
     /// todo.0.4.2.002: eigener Name (nur Anzeige); fehlt = Originalname aus `storages.name`.
     case customName
+    /// todo.0.4.3.010 (Layout 06.03): Grund des letzten Fehlers (`IndexFailureReason.notificationCode`); fehlt = keiner.
+    case failureReason
 }
 
 nonisolated enum MediumCodecV3 {
@@ -447,6 +449,7 @@ nonisolated enum MediumCodecV3 {
         stored.volumeUUID = VolumeIdentity.canonicalVolumeUUID(stored.volumeUUID)
         stored.hasIndexGaps = meta[IndexStoreV3.indexGapsKey]?.value == "1"
         stored.customName = value(.customName)
+        stored.failureReasonCode = value(.failureReason)
         return stored
     }
 }

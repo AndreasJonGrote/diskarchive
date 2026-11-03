@@ -39,53 +39,20 @@ struct DashboardLastSeenTests {
         #expect(medium.lastSeenDescription(now: today, language: .english) == "3 days ago")
     }
 
-    @Test func dashboardShowsClockAndLastIndexedWithoutPrefix() async throws {
-        guard let first = PreviewData.media.first else {
-            Issue.record("PreviewData.media empty")
-            return
-        }
-        var medium = first
-        medium.connectionStatus = .connected
-        medium.indexStatus = .indexed
-        medium.completedDepth = 2
-        medium.fileCount = 10
-        medium.lastIndexedAt = Date()
-        medium.capacityUsedBytes = 400
-        let app = AppState()
-        app.media = [medium]
-        let width: CGFloat = 960
-        let session = PixelProbe.open(
-            MediumDashboardCard(medium: medium)
-                .environment(app)
-                .environment(\.colorScheme, .light)
-                .frame(width: width, height: 160, alignment: .topLeading)
-                .background(Color.white),
-            size: CGSize(width: width, height: 160),
-            appearance: .aqua
-        )
-        defer { session.close() }
-        let bitmap = session.bitmap()
-        let label = IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexedAt)
-        let ref = referenceLastSeenInk(for: label)
-        let rowY: CGFloat = 118
-        let ink = try #require(PixelProbe.inkBounds(
-            in: bitmap,
-            rect: CGRect(x: width * 0.55, y: rowY - 6, width: width * 0.42, height: 20),
-            background: CGPoint(x: 40, y: 40)
-        ))
-        #expect(abs(ink.width - ref.width) <= max(14, ref.width * 0.2))
-        #expect(abs(ink.height - ref.height) <= 8)
-        let prefixRef = referenceLastSeenInk(for: "zuletzt indiziert: \(label)")
-        #expect(ink.width < prefixRef.width - 20)
+    /// todo.0.4.3.008 (Layout 04): unten links „Zuletzt gesehen“ · Belegung, rechts nichts mehr (früher „Zuletzt
+    /// indiziert“ rechts). Absolute Belegung macht die linke Zeile breiter.
+    @Test func dashboardMetaLineStartsLeftWithClockAndOccupancy() async throws {
+        let percent = try metaInk(absolute: false)
+        let absolute = try metaInk(absolute: true)
+        #expect(percent.right == nil, "rechts steht noch etwas: \(String(describing: percent.right))")
+        #expect(absolute.right == nil)
+        let reference = referenceLastSeenInk(for: "jetzt")
+        #expect(percent.left.width > reference.width + 20, "Belegung fehlt neben „jetzt“")
+        #expect(absolute.left.width > percent.left.width + 20, "absolute Belegung nicht breiter")
     }
 
-
-    @Test func dashboardShowsClockWithAbsoluteOccupancy() async throws {
-        guard let first = PreviewData.media.first else {
-            Issue.record("PreviewData.media empty")
-            return
-        }
-        var medium = first
+    private func metaInk(absolute: Bool) throws -> (left: CGRect, right: CGRect?) {
+        var medium = try #require(PreviewData.media.first)
         medium.connectionStatus = .connected
         medium.indexStatus = .indexed
         medium.completedDepth = 2
@@ -93,36 +60,31 @@ struct DashboardLastSeenTests {
         medium.lastIndexedAt = Date()
         medium.capacityUsedBytes = 3_770_000_000_000
         medium.capacityTotalBytes = 4_100_000_000_000
-        medium.showAbsoluteCapacity = true
+        medium.showAbsoluteCapacity = absolute
         let app = AppState()
         app.media = [medium]
         let width: CGFloat = 960
+        let height: CGFloat = 160
         let session = PixelProbe.open(
             MediumDashboardCard(medium: medium)
                 .environment(app)
                 .environment(\.colorScheme, .light)
-                .frame(width: width, height: 160, alignment: .topLeading)
+                .frame(width: width, height: height, alignment: .topLeading)
                 .background(Color.white),
-            size: CGSize(width: width, height: 160),
+            size: CGSize(width: width, height: height),
             appearance: .aqua
         )
         defer { session.close() }
         let bitmap = session.bitmap()
-        let label = IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexedAt)
-        let rowY: CGFloat = 118
-        let ink = try #require(PixelProbe.inkBounds(
+        // Unterste Zeile der Kachel (11 pt, 12 pt Innenabstand unten).
+        let row = CGRect(x: 8, y: height - 32, width: width * 0.45, height: 18)
+        let left = try #require(PixelProbe.inkBounds(in: bitmap, rect: row, background: CGPoint(x: width - 40, y: 60)))
+        let right = PixelProbe.inkBounds(
             in: bitmap,
-            rect: CGRect(x: width * 0.55, y: rowY - 6, width: width * 0.42, height: 20),
-            background: CGPoint(x: 40, y: 40)
-        ))
-        #expect(ink.width > 20)
-        let leftInk = try #require(PixelProbe.inkBounds(
-            in: bitmap,
-            rect: CGRect(x: 8, y: rowY - 6, width: width * 0.45, height: 20),
-            background: CGPoint(x: width - 40, y: 40)
-        ))
-        #expect(leftInk.width > 40)
-        _ = label
+            rect: CGRect(x: width * 0.55, y: row.minY, width: width * 0.42, height: row.height),
+            background: CGPoint(x: width - 40, y: 60)
+        )
+        return (left, right)
     }
 
     private func referenceLastSeenInk(for text: String) -> CGSize {

@@ -139,7 +139,8 @@ struct MediumCustomNameTests {
         let two = cardHeight(named)
         #expect(two >= one + 12, "Kachel mit eigenem Namen \(two) pt, ohne \(one) pt – zweite Zeile fehlt")
 
-        // Seitenleiste und Spaltenkopf: „Lauras Platte“ (Original „Studio Backup“) sieht aus wie ein Medium, das so heißt.
+        // todo.0.4.3.007: Seitenleiste zeigt den eigenen Namen mit türkisem Icon und leise „· Studio Backup“ – also
+        // anders als ein Medium, das „Lauras Platte“ heißt (früher gleich).
         let size = CGSize(width: 900, height: 360)
         func sidebarImage(_ media: [Medium]) async -> Data? {
             let state = AppState()
@@ -154,7 +155,7 @@ struct MediumCustomNameTests {
         original.name = "Lauras Platte"
         let withCustom = try #require(await sidebarImage([named]))
         let withOriginal = try #require(await sidebarImage([original]))
-        #expect(withCustom == withOriginal, "Seitenleiste zeigt nicht den eigenen Namen")
+        #expect(withCustom != withOriginal, "Seitenleiste ohne Originalname und türkises Icon")
     }
 
     // 5. Suche: Medien-Kacheln über eigenen und Originalnamen.

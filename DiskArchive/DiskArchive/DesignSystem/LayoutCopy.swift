@@ -36,8 +36,11 @@ nonisolated enum LayoutCopy {
 
     private static func loadingTitle(one: String, other: String, media: Int, files: Int) -> String {
         let fileCount = DisplayNumberFormat.groupedInteger(files)
-        return media == 1 ? L10n.format(one, fileCount)
+        let sentence = media == 1 ? L10n.format(one, fileCount)
             : L10n.format(other, DisplayNumberFormat.groupedInteger(media), fileCount)
+        guard files == 1 else { return sentence }
+        // todo.0.4.3.008: Einzahl „1 Datei“ aus den Teilen von Sektion 20 – „{n} Dateien“ im Satz wird „1 Datei“.
+        return sentence.replacingOccurrences(of: L10n.format("copy.medium.files_count", fileCount), with: L10n.string("copy.medium.files_count_one"))
     }
     static var autoIndex: String { L10n.string("copy.menu.auto_index") }
     static var on: String { L10n.string("copy.menu.on") }
@@ -102,7 +105,16 @@ nonisolated enum LayoutCopy {
         L10n.format("copy.column.filter.header_count", title, DisplayNumberFormat.groupedInteger(matching), DisplayNumberFormat.groupedInteger(total))
     }
     /// todo.0.4.2.002: Details-Modal, erste Zeile.
-    static var detailCustomName: String { L10n.string("copy.detail.custom_name") }
+    /// todo.0.4.3.010: Kennzahlen und Zeitpunkte im Details-Fenster (Layout 06.01).
+    static var detailUsed: String { L10n.string("copy.medium.used") }
+    static var detailFree: String { L10n.string("copy.medium.free") }
+    static var detailLastIndexed: String { L10n.string("copy.medium.last_indexed") }
+    /// todo.0.4.3.011: Auswerfen (Layout 04, 05, 12) und Dialog 16.
+    static var eject: String { L10n.string("copy.eject") }
+    static var unexpectedErrorTitle: String { L10n.string("copy.unexpected_error.title") }
+    static func ejectFailed(name: String) -> String { L10n.format("copy.eject.failed", name) }
+    /// todo.0.4.3.009: Benennungsmodus (Layout 06.02).
+    static var namingApply: String { L10n.string("copy.detail.naming.apply") }
     /// todo.0.4.2.001: Kopfzeile, wenn alle Medien angehakt sind; mit Suchtext nennt sie den Begriff.
     static var searchFilterDeselectAll: String { L10n.string("copy.search.filter_deselect_all") }
     static func searchFilterSelectMatching(_ term: String) -> String { L10n.format("copy.search.filter_select_matching", term) }
@@ -199,7 +211,6 @@ nonisolated enum LayoutCopy {
     static var autoSend: String { L10n.string("copy.settings.reports.auto_send") }
 
     static var total: String { L10n.string("copy.medium.total") }
-    static var usedFree: String { L10n.string("copy.medium.used_free") }
     static var files: String { L10n.string("copy.medium.files") }
     static var folders: String { L10n.string("copy.medium.folders") }
     static var lastSeen: String { L10n.string("copy.medium.last_seen") }

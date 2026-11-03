@@ -298,17 +298,18 @@ struct ColumnBrowserView: View {
                 VStack(spacing: 3) {
                     ForEach(filteredMedia) { medium in
                         ColumnBrowserRow(
-                            title: medium.shownName,
-                            // todo.0.4.2.002: Originalname als Tooltip, wenn ein eigener Name gesetzt ist.
-                            helpText: medium.customName != nil ? medium.name : nil,
+                            title: medium.listLabel.name,
+                            // todo.0.4.3.007: beide Namen in einer Zeile, Tooltip mit dem ganzen Namen.
+                            titleSuffix: medium.listLabel.original,
+                            helpText: medium.listLabel.original.map { "\(medium.listLabel.name) · \($0)" },
                             isSelected: medium.id == selectedMedium?.id,
                             iconAsset: medium.type.iconAssetName,
                             iconColor: medium.iconColor,
+                            iconColorSelected: medium.iconColorOnSelection,
                             showsIndexingSpinner: medium.indexStatus == .indexing,
                             fadeTitleWhenSelected: true,
                             fadeTitleOnOverflow: true,
                             contextTarget: sidebarContextTarget(for: medium),
-                            namingMedium: medium,
                             onSelect: { selectMedium(medium.id) }
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)

@@ -6,26 +6,19 @@
 import Foundation
 
 extension Medium {
+    /// todo.0.4.3.008: „{Kapazität} · {n} Dateien“ in jedem Zustand (ohne Typ; bug.0.4.3.002: „Kein Zugriff …“ entfällt).
     var dashboardSpecLine: String {
-        // bug.0.4.200 (a): bei Lücke die normale Zeile wie Online.
-        if indexStatus == .error, !hasIndexGaps {
-            return LayoutCopy.mediumNoAccess
-        }
-        if indexStatus == .pending, fileCount == 0 {
-            return "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumNotIndexedYet)"
-        }
-        return specLine
+        specLine
     }
 
-    /// Dashboard-Karte: „Fehler · erneut versuchen“ statt der Belegung; bug.0.4.200 (a): bei Lücke die Belegung wie Online
-    /// (nur der Chip sagt „Fehler“).
-    var dashboardShowsRetryLine: Bool {
-        indexStatus == .error && !hasIndexGaps
-    }
-
-    /// Dashboard-Karte: Zeile „Zuletzt indiziert“ (aus `MediumDashboardCard`, bug.0.4.200 testbar).
-    var showsLastIndexedLine: Bool {
-        connectionStatus == .connected && showsIndexDetails && hasIndex
+    /// Dashboard-Karte, unterste Zeile (Layout 04): bei Fehler ohne Lücke an einem angeschlossenen Medium
+    /// „Fehler · erneut versuchen“ (Link); sonst „Zuletzt gesehen“ und bei angeschlossenen Medien die Belegung.
+    /// bug.0.4.200 (a): bei Lücke wie Online. „Fehler, offline“ hat keinen Link.
+    var dashboardMetaLine: DashboardMetaLine {
+        if indexStatus == .error, !hasIndexGaps, connectionStatus == .connected {
+            return .retry
+        }
+        return .lastSeen(occupancy: occupancyLabel(showAbsolute: showAbsoluteCapacity))
     }
 
     /// bug.0.4.200 (a): Belegung und „Zuletzt indiziert“ wie bei Online – indiziert, im Lauf oder Fehler wegen Lücke.
@@ -39,9 +32,10 @@ extension Medium {
         case .indexed:
             IndexedDateFormatting.lastIndexedLine(date: lastIndexActivityAt ?? lastIndexedAt)
         case .error:
+            // bug.0.4.3.002: statt „Kein Zugriff …“ der Text aus 03/20.
             hasIndexGaps
                 ? IndexedDateFormatting.lastIndexedLine(date: lastIndexActivityAt ?? lastIndexedAt)
-                : LayoutCopy.mediumNoAccess
+                : LayoutCopy.mediumHasErrors
         case .pending:
             if decision == .undecided {
                 LayoutCopy.mediumDecisionPending
@@ -96,4 +90,10 @@ extension Medium {
             Date.FormatStyle(date: .abbreviated, time: .omitted).locale(locale)
         )
     }
+}
+
+/// todo.0.4.3.008: unterste Zeile der Kachel.
+enum DashboardMetaLine: Equatable {
+    case retry
+    case lastSeen(occupancy: String?)
 }

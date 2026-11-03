@@ -131,6 +131,8 @@ enum LiveWiring {
             await service?.cancel(mediumUUID: id)
             await watcher?.saveCursor(mediumID: id)
         }
+        // todo.0.4.3.011: Auswerfen bricht den Lauf zuerst ab wie das Abziehen.
+        appState.onCancelBeforeEject = coordinator.onWillUnmount
         coordinator.onMediumDisappeared = { [weak watcher] id in
             await watcher?.stop(mediumID: id)
         }

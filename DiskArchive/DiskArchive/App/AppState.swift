@@ -280,8 +280,8 @@ final class AppState {
     /// Hochzählen = Objekt-Suchfeld verliert den Fokus (Scaffold reagiert, Aufgabe 28).
     var searchFieldFocusResetCount = 0
     var detailMediumID: UUID?
-    /// todo.0.4.2.005: laufendes „Benennen“ (eine Bearbeitung zur Zeit).
-    var mediumNaming: MediumNaming?
+    /// todo.0.4.3.009: Medium, dessen Details-Fenster im Benennungsmodus ist.
+    var namingMediumID: UUID?
     /// FIFO: verbundene Medien, die noch Ja/Nein im Erkennungs-Dialog brauchen (0.3.2).
     var pendingNewMediumDecisionIDs: [UUID] = []
     /// Panels, die der Nutzer ohne Ja/Nein geschlossen hat (Badge/Queue bleiben).
@@ -299,6 +299,14 @@ final class AppState {
     @ObservationIgnored var onMediumDecisionChanged: ((UUID, StoredIndexDecision, Bool) -> Void)?
     /// „Neu indizieren“. Gesetzt vom `IndexingService`.
     var onReindexMedium: ((UUID) -> Void)?
+    /// todo.0.4.3.011: vor dem Auswerfen den Lauf abbrechen wie beim Abziehen (`LiveWiring`: wie `onWillUnmount`).
+    @ObservationIgnored var onCancelBeforeEject: ((UUID) async -> Void)?
+    /// todo.0.4.3.011: Medien, deren Auswerfen läuft – ein zweiter Klick wirft nicht noch einmal aus.
+    @ObservationIgnored var ejectingMedia: Set<UUID> = []
+    /// todo.0.4.3.011: Auswerfen am Pfad (Tests ersetzen es; die App nutzt die eine erlaubte Stelle `MediumEject`).
+    @ObservationIgnored var ejectVolume: (String) async throws -> Void = { try await MediumEject.unmountAndEject(path: $0) }
+    /// todo.0.4.3.011 (Layout 16): offener Dialog „Unerwarteter Fehler“.
+    var unexpectedError: UnexpectedErrorNotice?
     /// Regel-Scope geändert: abbrechen und Abgleich neu (bug.0.4.030).
     @ObservationIgnored var onScopeRulesChanged: ((_ indexingIDs: [UUID], _ scopeGrew: Bool) -> Void)?
     /// Klick ist angekommen, der Lauf hat noch nicht begonnen.

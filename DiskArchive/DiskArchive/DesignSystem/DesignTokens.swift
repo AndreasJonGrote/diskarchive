@@ -18,6 +18,11 @@ nonisolated enum DesignColor {
     static let stateIgnored = pair(light: 0xEDA12D, dark: 0xEDA12D)
     static let filterSearch = pair(light: 0x3986E4, dark: 0x65A7FA)
     static let favorite = pair(light: 0x9D69D2, dark: 0xB98CEA)
+    /// todo.0.4.3.007: Favorit auf ausgewählten (invertierten) Zeilen – der Wert des anderen Modus (Layout 19).
+    static let favoriteOnSelection = pair(light: 0xB98CEA, dark: 0x9D69D2)
+    /// todo.0.4.3.007: benannte Medien (eigener Name), Icon türkis (Layout 19).
+    static let named = pair(light: 0x00A5A8, dark: 0x00D3D5)
+    static let namedOnSelection = pair(light: 0x00D3D5, dark: 0x00A5A8)
     static let stateOff = pair(light: 0x868686, dark: 0x929292)
 
     static let bg = pair(light: 0xF3F2F2, dark: 0x1F1F1F)

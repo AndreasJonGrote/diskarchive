@@ -85,6 +85,11 @@ struct ObjectResultsTable<Placeholder: View>: View {
         let media = appState.media
         let mediumNames = Dictionary(media.map { ($0.id, $0.shownName) }, uniquingKeysWith: { first, _ in first })
         let online = Dictionary(media.map { ($0.id, $0.connectionStatus == .connected) }, uniquingKeysWith: { first, _ in first })
+        // todo.0.4.3.007: Medienspalte mit Icon (Farbe nach Rolle) und beiden Namen.
+        let mediumCells = Dictionary(
+            media.map { ($0.id, ObjectResultMediumCell(label: $0.listLabel, type: $0.type)) },
+            uniquingKeysWith: { first, _ in first }
+        )
         let favorites = appState.favoriteLookup
         let rows = sortedResults(mediumNames: mediumNames, online: online)
         let lastID = rows.last?.id
@@ -100,7 +105,7 @@ struct ObjectResultsTable<Placeholder: View>: View {
                     ForEach(rows) { result in
                         ObjectResultRow(
                             result: result,
-                            mediumName: mediumNames[result.mediumID] ?? "—",
+                            mediumCell: mediumCells[result.mediumID],
                             isOnline: online[result.mediumID] ?? false,
                             isFavorite: favorites.isFavorite(rowID: result.item.rowID, fallback: result.item.isFavorite),
                             isLast: result.id == lastID
@@ -217,13 +222,20 @@ private struct ObjectResultsTableHeader: View {
 
 /// Eine Zeile der Objekt-Tabelle. Bekommt Mediumname, Verbindung und Favorit als Werte (bug.0.4.040) und vergleicht
 /// sich über sie: ändert ein Fortschritts-Tick nur Zähler eines Mediums, bleibt der Body der Zeile unberührt.
+/// todo.0.4.3.007: Medienspalte der Objekttabellen (Suche, Favoriten): Icon und beide Namen als Werte, damit die Zeile
+/// `media` nicht beobachtet (bug.0.4.040).
+struct ObjectResultMediumCell: Equatable {
+    var label: MediumListLabel
+    var type: MediumType
+}
+
 private struct ObjectResultRow: View, Equatable {
     @Environment(AppState.self) private var appState
     #if DEBUG
     @Environment(\.objectRowRenderProbe) private var renderProbe
     #endif
     let result: SearchResultItem
-    let mediumName: String
+    let mediumCell: ObjectResultMediumCell?
     let isOnline: Bool
     let isFavorite: Bool
     let isLast: Bool
@@ -231,7 +243,7 @@ private struct ObjectResultRow: View, Equatable {
     @State private var isHovered = false
 
     static func == (lhs: ObjectResultRow, rhs: ObjectResultRow) -> Bool {
-        lhs.result == rhs.result && lhs.mediumName == rhs.mediumName && lhs.isOnline == rhs.isOnline
+        lhs.result == rhs.result && lhs.mediumCell == rhs.mediumCell && lhs.isOnline == rhs.isOnline
             && lhs.isFavorite == rhs.isFavorite && lhs.isLast == rhs.isLast
     }
 
@@ -264,9 +276,22 @@ private struct ObjectResultRow: View, Equatable {
                     .lineLimit(1)
                     .frame(width: ObjectTableColumns.date, alignment: .leading)
 
-                Text(mediumName)
-                    .lineLimit(1)
-                    .frame(width: ObjectTableColumns.medium, alignment: .leading)
+                Group {
+                    if let mediumCell {
+                        HStack(spacing: 6) {
+                            MediumTypeIcon(type: mediumCell.type, size: 14, color: mediumCell.label.iconRole.color)
+                            FadeMaskText(
+                                text: mediumCell.label.name,
+                                applyFadeMask: true,
+                                font: .system(size: 13),
+                                suffix: mediumCell.label.original
+                            )
+                        }
+                    } else {
+                        Text(verbatim: "—")
+                    }
+                }
+                .frame(width: ObjectTableColumns.medium, alignment: .leading)
 
                 Text(result.path)
                     .foregroundStyle(DesignColor.text.opacity(0.55))

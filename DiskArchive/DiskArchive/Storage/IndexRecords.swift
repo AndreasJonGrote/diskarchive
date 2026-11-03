@@ -175,6 +175,8 @@ nonisolated struct StoredMedium: Sendable, Equatable {
     var hasIndexGaps = false
     /// todo.0.4.2.002: eigener Name (nur gelesen; geschrieben von `IndexStoreV3.setCustomName`).
     var customName: String?
+    /// todo.0.4.3.010: Grund des letzten Fehlers (`storage_meta` `failureReason`).
+    var failureReasonCode: String?
 
     init(
         uuid: UUID = UUID(),

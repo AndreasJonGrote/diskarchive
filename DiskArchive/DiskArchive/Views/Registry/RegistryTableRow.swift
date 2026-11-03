@@ -9,6 +9,7 @@ struct RegistryTableRow: View {
     @Environment(AppState.self) private var appState
     let medium: Medium
     let isLast: Bool
+    @State private var isHovered = false
 
     private var rowOpacity: Double {
         !medium.allowIndexing ? 0.65 : 1
@@ -21,19 +22,29 @@ struct RegistryTableRow: View {
             } label: {
                 HStack(spacing: 8) {
                     MediumTypeIcon(medium: medium, size: 15)
-                    Text(medium.shownName)
-                        .fontWeight(.semibold)
-                        // todo.0.4.2.002: Originalname als Tooltip, wenn ein eigener Name gesetzt ist.
-                        .help(medium.customName != nil ? medium.name : "")
+                    // todo.0.4.3.007: beide Namen in einer Zeile, Originalname leise (Layout 05).
+                    FadeMaskText(
+                        text: medium.listLabel.name,
+                        applyFadeMask: true,
+                        font: .system(size: 13, weight: .semibold),
+                        suffix: medium.listLabel.original
+                    )
+                    .help(medium.listLabel.original.map { "\(medium.listLabel.name) · \($0)" } ?? "")
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plainFullHit)
             .pointerCursor()
 
-            StatusChip(medium: medium)
-                .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
-                .padding(.trailing, 6)
+            // todo.0.4.3.011 (Layout 05): beim Zeilen-Hover links vom Chip der Auswerfen-Knopf (nur angeschlossen).
+            HStack(spacing: 6) {
+                if isHovered, medium.connectionStatus == .connected {
+                    EjectButton(mediumID: medium.id)
+                }
+                StatusChip(medium: medium)
+            }
+            .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
+            .padding(.trailing, 6)
 
             allowIndexingGroup
                 .frame(width: RegistryTableLayout.indexingWidth, alignment: .trailing)
@@ -60,6 +71,7 @@ struct RegistryTableRow: View {
         .padding(.vertical, RegistryTableLayout.rowVerticalPadding)
         .opacity(rowOpacity)
         .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
         .objectContextMenu(.fromMedium(medium), highlightCornerRadius: 0)
         .overlay(alignment: .bottom) {
             if !isLast {

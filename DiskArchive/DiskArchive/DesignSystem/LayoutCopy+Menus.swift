@@ -45,8 +45,8 @@ nonisolated extension LayoutCopy {
     static func chipPercentIndexedOffline(_ a0: Int) -> String { L10n.format("copy.chip.percent_indexed_offline", a0) }
     static func chipPercentIndexed(_ a0: Int) -> String { L10n.format("copy.chip.percent_indexed", a0) }
     static var mediumDecisionPending: String { L10n.string("copy.medium.decision_pending") }
-    static var mediumNoAccess: String { L10n.string("copy.medium.no_access") }
-    static var mediumNotIndexedYet: String { L10n.string("copy.medium.not_indexed_yet") }
+    /// bug.0.4.3.002: zweite Zeile im Popover bei Fehler (Layout 03, Sektion 20).
+    static var mediumHasErrors: String { L10n.string("copy.medium.has_errors") }
     /// todo.0.4.3.005: Einzahl „1 Datei“.
     static func mediumFilesCount(_ count: Int) -> String {
         count == 1 ? L10n.string("copy.medium.files_count_one")

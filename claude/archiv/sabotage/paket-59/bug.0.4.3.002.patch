@@ -1,0 +1,11 @@
+# Test: DashboardTileTests/retryLinkStartsIndexingAndClosesTheDialog()
+--- a/DiskArchive/DiskArchive/App/AppState+Media.swift
++++ b/DiskArchive/DiskArchive/App/AppState+Media.swift
+@@ -137,7 +137,6 @@
+         if indexingFailure?.id == id {
+             indexingFailure = nil
+         }
+-        onReindexMedium?(id)
+     }
+ 
+     func enqueueNewMediumDecision(_ id: UUID) {

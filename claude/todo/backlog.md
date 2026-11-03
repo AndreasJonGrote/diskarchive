@@ -24,6 +24,7 @@ Ausgelagert aus TODO.md am 23.10.2026, nach Zielversion. Index: [TODO.md](../TOD
     - **N2:** „Zur neuen Version“ öffnet weiter die **Startseite**; Layout 00/13 (Download-Seite) ist veraltet.
     - **N4:** Offline-Balken der Spaltenansicht nur **„Offline“**, wie Layout 07.01.
     - **N7:** Betaende wie Konzept `datenbank.md` „Netz (API)“: Update-Dialog, dann gelber Banner mit Restfrist (Hinweis), danach roter Banner = Sperre. Layout 04.03 (sofort rot) passt der Nutzer an.
+    - **Nutzer 03.11. (Fragen aus Paket 59):** Schrift **Archivo** für Titel ja (Paket 61, Datei in `Werkzeuge/fonts/archivo/`). Fehlerzeile der Kachel bleibt **„Fehler · erneut versuchen“** ohne Zeit (Layout 04 „Fehler vor {1} Std.“ entfällt). Texte für 20 entscheidet der Host: Fläche „Belegt“/„Used“; Auswerfen abgelehnt in Dialog 16: „„{1}“ konnte nicht ausgeworfen werden, weil ein anderes Programm es gerade benutzt. Schließe dort geöffnete Dateien und versuche es erneut.“ / „“{1}” couldn’t be ejected because another app is using it. Close any open files on it and try again.“ mit Knopf „Erneut versuchen“ / „Try Again“.
     - **N8:** Überall **„Lizenzserver“** statt „Versionsserver“. Banner „Lizenzserver nicht erreichbar“ **rot** (Sperre), nicht gelb.
     - **E1** Popover-Leerzustand ohne angeschlossenes Medium: Layout kommt. **E5** eigener Status für ausgeschlossene Ordner bleibt, Layout kommt. **E6** Tooltips und Einzahl: Layout kommt.
     - **E2–E4 entfallen in der App:** Menüpunkt „Protokoll im Finder zeigen“, Rückfrage „%d Einträge ignorieren?“, Einstellung „Dateityp-Filter in der Spaltenansicht“.
@@ -55,6 +56,8 @@ Ausgelagert aus TODO.md am 23.10.2026, nach Zielversion. Index: [TODO.md](../TOD
 
 - **Systeminformationen (Nutzer 30.10., später):** eigene Seite unter Einstellungen mit Angaben zum Speicher u. a., Link zum Datenordner, Diagramme. Wird besprochen, wenn es so weit ist.
 - **Namen-Layout (Nutzer 30.10., später):** Der eigene Name bekommt ein ausführlicheres Layout; Paket 52 baut nur das Feld im Details-Modal und die Anzeige.
+
+- **Hover-Schatten der Kachel (Paket 59, Stufe 3):** Layout 04 zeigt beim Überfahren einen leichten Schatten; entfiel, weil er die gemessene Kachelgröße änderte. Ließe sich außerhalb des Layouts zeichnen.
 
 ### Sammeleintrag Stufe 2 und 3 (Nutzer 26.10., AGENTS.md „Befunde: drei Stufen“)
 

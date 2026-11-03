@@ -2,7 +2,17 @@
 
 Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angegeben. Seit 2026-10-31 aufgeteilt in `App-Layout 00-03 …` bis `App-Layout 18 …`, Gesamtansicht in `App-Layout Gesamt.dc.html`.
 
+## 2026-11-03 (4)
+
+- 16.02 „Unerwarteter Fehler – Auswerfen abgelehnt“ neu (hell und dunkel, Aufbau wie 16): „Schließen“ und „Erneut versuchen“.
+- 04: Fehler-Kachel zeigt nur „Fehler · erneut versuchen“, ohne Zeitangabe (7 Stellen).
+- 20: „Belegt“ / „Used“ (06), „Einstellungen konnten nicht gelesen werden – Änderungen werden nicht gespeichert.“ (05), Text 16.02 mit {1} und „Erneut versuchen“ / „Try Again“ (16) aufgenommen; „Fehler vor {1} Std.“ und „Alle Mitteilungstexte und Bedingungen: 18.“ entfernt.
+- 351 Texte, davon 134 „neu“.
+
 ## 2026-11-03 (3)
+
+- 03 Dark Mode (03.09–03.11): Schalter „Automatisches Indizieren“ – aktives „An“ war hell auf hell (unlesbar); jetzt wie 03.01/03.07 mit Auswahlfarbe #4a4949 und weißer Schrift.
+- 03 Dark Mode: 03.08 „Pausieren — Auswahl bei „Pausiert““ ergänzt (fehlte); aktives „Pausiert“ und Menü-Hover in Auswahlfarbe.
 
 - 20 (nur `App-Layout 20 Texte.json`): 09 Alter „6 Monate“ und „9 Monate“ ergänzt. Einzahlformen aufgenommen: „1 Datei“ (04), „1 Speichermedium“ und „1 Vorschau“ (05), „1 Favorit“ und „Dein 1 Speichermedium und {2} Dateien werden gefiltert …“ (11), „1 Ergebnis anzeigen“ (03); „Dein 1 Speichermedium … durchsucht …“ mit Platzhalter {2}.
 - 20: 08 Spaltenkopf bei aktivem Filter „{1} · {2} von {3}“ / „{1} · {2} of {3}“.

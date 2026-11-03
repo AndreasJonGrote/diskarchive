@@ -143,23 +143,6 @@
         }
       }
     },
-    "copy.detail.custom_name" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Eigener Name"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Custom name"
-          }
-        }
-      }
-    },
     "copy.loading.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2420,40 +2403,6 @@
         }
       }
     },
-    "copy.medium.no_access" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kein Zugriff, in den Systemeinstellungen freigeben"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No access. Allow it in System Settings."
-          }
-        }
-      }
-    },
-    "copy.medium.not_indexed_yet" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "noch nicht indiziert"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "not indexed yet"
-          }
-        }
-      }
-    },
     "copy.medium.reindex" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2518,23 +2467,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total"
-          }
-        }
-      }
-    },
-    "copy.medium.used_free" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Belegt / Frei"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Used / Free"
           }
         }
       }
@@ -4746,6 +4678,142 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Choose each event individually. System messages cover errors and ended pauses. “Fully indexed” only appears if the scan took longer than 59 seconds (also when syncing or re-indexing). If “Enable notifications” is off, the events are turned off. On first launch, macOS asks once whether to allow notifications. If you declined, you can only change this in macOS System Settings under “Notifications”."
+          }
+        }
+      }
+    },
+    "copy.medium.has_errors" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichermedium fehlerhaft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage medium has errors"
+          }
+        }
+      }
+    },
+    "copy.medium.used" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Belegt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used"
+          }
+        }
+      }
+    },
+    "copy.medium.free" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Frei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Free"
+          }
+        }
+      }
+    },
+    "copy.medium.last_indexed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zuletzt indiziert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last indexed"
+          }
+        }
+      }
+    },
+    "copy.detail.naming.apply" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Übernehmen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        }
+      }
+    },
+    "copy.eject" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswerfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eject"
+          }
+        }
+      }
+    },
+    "copy.unexpected_error.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unerwarteter Fehler"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unexpected Error"
+          }
+        }
+      }
+    },
+    "copy.eject.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@“ konnte nicht ausgeworfen werden. Ein anderes Programm benutzt es gerade."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” couldn’t be ejected because another app is using it."
           }
         }
       }

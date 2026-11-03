@@ -647,6 +647,14 @@ final class IndexingService {
            medium.connectionStatus == .connected, isStillMounted(mediumUUID) {
             appState.presentIndexingFailure(mediumID: mediumUUID, name: medium.shownName, reason: outcome.failureReason ?? .unknown)
         }
+        // todo.0.4.3.010 (Layout 06.03): Grund am Medium merken, solange es „Fehler“ ist; ein gelungener Lauf löscht ihn.
+        // Erst nach dem Hinweis: das Speichern wartet, so folgen Status und Hinweis ohne Unterbrechung aufeinander
+        // (Korrektur K3 Paket 59).
+        if !outcome.interrupted, outcome.status == .error || outcome.status == .indexed {
+            let reason = outcome.status == .error ? (outcome.failureReason ?? .unknown) : nil
+            appState.updateMedium(id: mediumUUID) { $0.failureReason = reason }
+            try? await store.setFailureReason(mediumUUID: mediumUUID, code: reason?.notificationCode)
+        }
         #if DEBUG
         // Tests (bug.0.4.166): Zustand ändern, nachdem der Lauf geendet hat und bevor über die Überwachung entschieden wird.
         await finishDecisionHookForTesting?(mediumUUID)

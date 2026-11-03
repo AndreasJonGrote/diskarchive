@@ -2,10 +2,11 @@
 //  MediumNamingTests.swift
 //  DiskArchiveTests
 //
-//  todo.0.4.2.005 (Konzept `medien.md` 2d): „Benennen“ im Kontextmenü der Medien. Kachel und Seitenleiste bearbeiten
-//  den Namen an Ort und Stelle, alle anderen Stellen öffnen das Details-Modal mit Fokus im Feld „Eigener Name“. Alles im
-//  echten Fenster außerhalb des Bildschirms: Klick auf den Menüeintrag und Tasten per `window.sendEvent`, Beweis über
-//  Pixel (Lage der Spezifikationszeile bzw. Höhe der Zeile) und den Schlüssel `customName` in `storage_meta`.
+//  todo.0.4.3.009 (Konzept `medien.md` 2d, Layout 06.02, 12): „Benennen“ im Kontextmenü der Medien öffnet überall das
+//  Details-Fenster im Benennungsmodus – Fokus im Namensfeld, Text ganz markiert; Enter übernimmt, Esc bricht ab, ein
+//  leeres Feld stellt den Originalnamen wieder her. Kachel und Seitenleiste bearbeiten nicht mehr an Ort und Stelle.
+//  Echte Fenster außerhalb des Bildschirms: Klick auf den Menüeintrag und Tasten per `window.sendEvent`, Beweis über
+//  den Schlüssel `customName` in `storage_meta`.
 //
 
 import AppKit
@@ -59,34 +60,6 @@ struct MediumNamingTests {
 
     // MARK: Fenster, Menü, Tasten
 
-    /// Kachel, die dem Medium im Zustand folgt (wie im Dashboard).
-    private struct CardHost: View {
-        @Environment(AppState.self) private var app
-        let mediumID: UUID
-
-        var body: some View {
-            if let medium = app.medium(with: mediumID) {
-                MediumDashboardCard(medium: medium)
-            }
-        }
-    }
-
-    private static let cardSize = CGSize(width: 240, height: 220)
-
-    private static func openCard(_ app: AppState, _ mediumID: UUID) async -> PixelProbe.Session {
-        let session = PixelProbe.open(
-            CardHost(mediumID: mediumID)
-                .environment(app)
-                .environment(\.colorScheme, .light)
-                .frame(width: cardSize.width)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(width: cardSize.width, height: cardSize.height, alignment: .top),
-            size: cardSize
-        )
-        await PixelProbe.settleOpenWindow(session)
-        return session
-    }
-
     /// Zeilenbänder (pt von oben) mit Tinte (ein Kanal unter `limit`) im Ausschnitt; Lücken bis 4 pt (Teile eines
     /// Icons) gehören zum selben Band.
     private static func inkBands(
@@ -118,34 +91,36 @@ struct MediumNamingTests {
         return bands
     }
 
-    /// Oberkante der Spezifikationszeile. Von unten: Fläche unter der Kachel, Zeile mit Belegung und Zeit,
-    /// Spezifikation (darüber Titel und evtl. Originalname, Icon und Chip).
-    private static func specTop(_ session: PixelProbe.Session) throws -> CGFloat {
-        let bands = inkBands(session.bitmap(), x: 16...224, y: 2...(cardSize.height - 2), limit: 0.75)
-        print("todo.0.4.2.005 Kachel-Bänder \(bands)")
-        let spec = try #require(bands.count >= 5 ? bands[bands.count - 3] : nil, "Bänder \(bands)")
-        return spec.lowerBound
+    /// Details-Fenster des Mediums (wie im Hauptfenster).
+    private static func openDetails(_ app: AppState, _ mediumID: UUID) async -> PixelProbe.Session {
+        let size = CGSize(width: 600, height: 520)
+        let session = PixelProbe.open(
+            MediumDetailModalView(mediumID: mediumID)
+                .environment(app)
+                .environment(\.colorScheme, .light)
+                .frame(width: size.width, height: size.height, alignment: .top),
+            size: size
+        )
+        await PixelProbe.settleOpenWindow(session)
+        return session
     }
 
     /// Kontextmenü für `target` öffnen (eigenes Fenster, wie das Panel) und auf „Benennen“ klicken.
     /// Liefert die dunkelste Farbe im Icon von „Details“ und „Benennen“ (Ausgrauen).
     @discardableResult
-    private static func chooseSetName(
-        _ app: AppState, mediumID: UUID, place: MediumNamingPlace?
-    ) async throws -> (details: CGFloat, setName: CGFloat) {
+    private static func chooseSetName(_ app: AppState, mediumID: UUID) async throws -> (details: CGFloat, setName: CGFloat) {
         let medium = try #require(app.medium(with: mediumID))
         let menu = PixelProbe.open(
-            objectContextMenuForTesting([.fromMedium(medium)], namingPlace: place)
+            objectContextMenuForTesting([.fromMedium(medium)])
                 .environment(app)
                 .environment(\.colorScheme, .light),
-            size: CGSize(width: 304, height: 420)
+            size: CGSize(width: 304, height: 460)
         )
         defer { menu.close() }
         await PixelProbe.settleOpenWindow(menu)
         let bitmap = menu.bitmap()
         // Erste Gruppe: „Inhalt anzeigen“, „Details“, „Benennen“ (auch ausgegraut sichtbar), dann die Trennlinie.
         let bands = inkBands(bitmap, x: 44...60, y: 34...300, limit: 0.85)
-        print("todo.0.4.2.005 Menü-Bänder \(bands)")
         let details = try #require(bands.count > 2 ? bands[1] : nil, "Menü-Bänder \(bands)")
         let entry = try #require(bands.count > 2 ? bands[2] : nil, "Menü-Bänder \(bands)")
         func darkest(_ band: ClosedRange<CGFloat>) -> CGFloat {
@@ -208,195 +183,101 @@ struct MediumNamingTests {
     private static func escape(_ window: NSWindow) { key(window, "\u{1b}", code: 53) }
     private static func backspace(_ window: NSWindow) { key(window, "\u{7f}", code: 51) }
 
-    private static func arrow(_ window: NSWindow, _ function: Int, code: UInt16) {
-        let characters = String(UnicodeScalar(UInt16(function)).map(Character.init) ?? " ")
-        key(window, characters, code: code, modifiers: [.numericPad, .function])
-    }
-
     // MARK: Tests
 
-    // 1. Kachel ohne eigenen Namen: Feld mit Originalname, markiert, keine zweite Zeile; ab dem ersten Zeichen die zweite
-    // Zeile; „Laura“ + Enter speichert.
-    @Test func cardNamesInPlaceAndShowsTheOriginalAfterTheFirstCharacter() async throws {
+    // 1. Menüeintrag (an Kachel, Seitenleiste, Tabelle und Suche dasselbe Menü am Medium): Details-Fenster offen, im
+    // Benennungsmodus; das Hauptfenster kommt nach vorn (außerhalb des Bildschirms).
+    @Test func menuEntryOpensTheDetailsInNamingMode() async throws {
         let rig = try await Self.makeRig()
         defer { rig.close() }
         let app = await Self.app(rig.store)
         defer { app.prepareForTermination() }
-        let card = await Self.openCard(app, rig.mediumID)
-        defer { card.close() }
-        let plain = try Self.specTop(card)
 
-        try await Self.chooseSetName(app, mediumID: rig.mediumID, place: .dashboardCard)
-        #expect(app.detailMediumID == nil, "Details-Modal statt Bearbeitung an Ort und Stelle")
-        try #require(await waitUntil { Self.editing(card.window) != nil }, "kein Feld mit Fokus in der Kachel")
-        let opened = try #require(Self.editing(card.window))
+        try await Self.chooseSetName(app, mediumID: rig.mediumID)
+        #expect(app.detailMediumID == rig.mediumID, "Details-Fenster nicht geöffnet")
+        #expect(app.namingMediumID == rig.mediumID, "nicht im Benennungsmodus")
+        if let main = NSApp.windows.first(where: { $0.title == LayoutCopy.diskArchive && $0.styleMask.contains(.titled) && $0.isVisible }) {
+            #expect(main.frame.minX < -1000, "Hauptfenster nicht außerhalb des Bildschirms")
+            main.close()
+        }
+    }
+
+    // 2. Fokus im Namensfeld, Text ganz markiert; Tippen + Enter speichert, der Originalname bleibt.
+    @Test func enterSavesTheName() async throws {
+        let rig = try await Self.makeRig()
+        defer { rig.close() }
+        let app = await Self.app(rig.store)
+        defer { app.prepareForTermination() }
+        app.beginNaming(mediumID: rig.mediumID)
+        let details = await Self.openDetails(app, rig.mediumID)
+        defer { details.close() }
+        try #require(await waitUntil { Self.editing(details.window) != nil }, "kein Feld mit Fokus")
+        let opened = try #require(Self.editing(details.window))
         #expect(opened.field.stringValue == "Studio Backup", "Startwert \(opened.field.stringValue)")
         #expect(opened.editor.selectedRange() == NSRange(location: 0, length: 13), "nicht ganz markiert: \(opened.editor.selectedRange())")
-        await PixelProbe.settleOpenWindow(card)
-        let editingTop = try Self.specTop(card)
-        #expect(abs(editingTop - plain) <= 0.5, "Kachel springt beim Öffnen des Felds: \(plain) → \(editingTop)")
 
-        Self.type("L", card.window)
-        await PixelProbe.settleOpenWindow(card)
-        let typed = try Self.specTop(card)
-        #expect(typed >= plain + 10, "zweite Zeile fehlt nach dem ersten Zeichen: \(plain) → \(typed)")
-
-        Self.type("aura", card.window)
-        Self.enter(card.window)
-        try #require(await waitUntil { app.mediumNaming == nil && Self.editableFields(card.window).isEmpty }, "Enter beendet nicht")
+        Self.type("Laura", details.window)
+        Self.enter(details.window)
+        try #require(await waitUntil { app.namingMediumID == nil && Self.editableFields(details.window).isEmpty }, "Enter beendet nicht")
         #expect(app.medium(with: rig.mediumID)?.shownName == "Laura")
         #expect(app.medium(with: rig.mediumID)?.name == "Studio Backup")
         #expect(await waitUntil { (try? await Self.storedCustomName(rig.store, rig.mediumID)) == "Laura" }, "nicht gespeichert")
-        await PixelProbe.settleOpenWindow(card)
-        let saved = try Self.specTop(card)
-        #expect(saved >= plain + 10, "Originalname unter „Laura“ fehlt: \(plain) → \(saved)")
     }
 
-    // 2. Escape nach dem Tippen: alter Name, kein Schlüssel. Während der Bearbeitung öffnet ein Klick die Kachel nicht.
-    // Der Klick geht auf die Kachelfläche (Tap-Geste, per Hit-Test): Ein Klick ins Textfeld startet die Maus-Schleife
-    // von AppKit, die auf die echte Ereigniswarteschlange wartet und im Test nie endet; den Monitor für „Klick daneben“
-    // erreicht der Testklick nicht.
-    @Test func escapeCancelsAndAClickOnTheCardDoesNotOpenIt() async throws {
+    // 3. Esc nach dem Tippen: alter Name, kein Schlüssel, Modus beendet, das Fenster bleibt offen.
+    @Test func escapeCancels() async throws {
         let rig = try await Self.makeRig()
         defer { rig.close() }
         let app = await Self.app(rig.store)
         defer { app.prepareForTermination() }
-        let card = await Self.openCard(app, rig.mediumID)
-        defer { card.close() }
-        let plain = try Self.specTop(card)
-        // Positivprobe: ohne Bearbeitung öffnet derselbe Klick die Kachel.
-        card.clickThroughHitTest(at: CGPoint(x: 40, y: plain + 4), settle: 0.15)
-        try #require(app.mainWindowDestination == .columnBrowser, "Klick erreicht die Kachel nicht")
-        app.mainWindowDestination = .dashboard
-
-        try await Self.chooseSetName(app, mediumID: rig.mediumID, place: .dashboardCard)
-        try #require(await waitUntil { Self.editing(card.window) != nil }, "kein Feld mit Fokus in der Kachel")
-        card.clickThroughHitTest(at: CGPoint(x: 40, y: plain + 4), settle: 0.15)
-        #expect(app.mainWindowDestination == .dashboard, "Klick während der Bearbeitung öffnet die Kachel")
-        #expect(app.mediumNaming != nil && Self.editing(card.window) != nil, "Bearbeitung durch den Klick beendet")
-
-        Self.type("x", card.window)
-        Self.escape(card.window)
-        try #require(await waitUntil { app.mediumNaming == nil && Self.editableFields(card.window).isEmpty }, "Escape beendet nicht")
-        #expect(app.medium(with: rig.mediumID)?.customName == nil, "Escape hat gespeichert")
+        app.beginNaming(mediumID: rig.mediumID)
+        let details = await Self.openDetails(app, rig.mediumID)
+        defer { details.close() }
+        try #require(await waitUntil { Self.editing(details.window) != nil }, "kein Feld mit Fokus")
+        Self.type("x", details.window)
+        Self.escape(details.window)
+        try #require(await waitUntil { app.namingMediumID == nil && Self.editableFields(details.window).isEmpty }, "Esc beendet nicht")
+        #expect(app.detailMediumID == rig.mediumID, "Esc schließt das Details-Fenster")
+        #expect(app.medium(with: rig.mediumID)?.customName == nil, "Esc hat gespeichert")
         #expect(try await Self.storedCustomName(rig.store, rig.mediumID) == nil, "Schlüssel geschrieben")
-        await PixelProbe.settleOpenWindow(card)
-        #expect(abs(try Self.specTop(card) - plain) <= 0.5, "Kachel nach Escape nicht wie vorher")
     }
 
-    // 3. Mit eigenem Namen: zweite Zeile steht schon; Feld leeren + Enter → Originalname, Schlüssel weg, einzeilig.
+    // 4. Mit eigenem Namen: Feld leeren + Enter → Originalname, Schlüssel weg.
     @Test func emptyingTheFieldRestoresTheOriginalName() async throws {
         let rig = try await Self.makeRig(customName: "Laura")
         defer { rig.close() }
         let app = await Self.app(rig.store)
         defer { app.prepareForTermination() }
-        let card = await Self.openCard(app, rig.mediumID)
-        defer { card.close() }
-        let named = try Self.specTop(card)
-
-        try await Self.chooseSetName(app, mediumID: rig.mediumID, place: .dashboardCard)
-        try #require(await waitUntil { Self.editing(card.window) != nil }, "kein Feld mit Fokus in der Kachel")
-        let opened = try #require(Self.editing(card.window))
+        app.beginNaming(mediumID: rig.mediumID)
+        let details = await Self.openDetails(app, rig.mediumID)
+        defer { details.close() }
+        try #require(await waitUntil { Self.editing(details.window) != nil }, "kein Feld mit Fokus")
+        let opened = try #require(Self.editing(details.window))
         #expect(opened.field.stringValue == "Laura")
         #expect(opened.editor.selectedRange() == NSRange(location: 0, length: 5), "nicht ganz markiert")
-        await PixelProbe.settleOpenWindow(card)
-        #expect(abs(try Self.specTop(card) - named) <= 0.5, "zweite Zeile beim Öffnen weg oder Sprung")
-
-        Self.backspace(card.window)
-        Self.enter(card.window)
-        try #require(await waitUntil { app.mediumNaming == nil && Self.editableFields(card.window).isEmpty }, "Enter beendet nicht")
+        Self.backspace(details.window)
+        Self.enter(details.window)
+        try #require(await waitUntil { app.namingMediumID == nil }, "Enter beendet nicht")
         #expect(app.medium(with: rig.mediumID)?.customName == nil)
         #expect(app.medium(with: rig.mediumID)?.shownName == "Studio Backup")
         #expect(await waitUntil { (try? await Self.storedCustomName(rig.store, rig.mediumID)) == .some(nil) }, "Schlüssel nicht entfernt")
-        await PixelProbe.settleOpenWindow(card)
-        let single = try Self.specTop(card)
-        #expect(single <= named - 10, "Kachel nicht wieder einzeilig: \(named) → \(single)")
     }
 
-    // 4. Seitenleiste: Feld in der Zeile, nach dem ersten Zeichen höher; Pfeiltasten bewegen den Cursor, nicht die
-    // Auswahl; Enter → einzeilig mit neuem Namen.
-    @Test func sidebarRowNamesInPlaceAndArrowsStayInTheField() async throws {
-        var rig = try await ColumnFilterTreeRig.make([.folder("A", [.file("a.txt")])], name: "Baum")
-        let otherID = try await rig.addMedium([.folder("B", [])], name: "Zweit")
-        defer { rig.close() }
-        let app = AppState(store: rig.store)
-        await app.loadStoredMedia()
-        defer { app.prepareForTermination() }
-        app.mainWindowDestination = .columnBrowser
-        app.columnBrowserState.selectedMediumID = rig.mediumID
-        let size = CGSize(width: 900, height: 420)
-        let session = PixelProbe.open(
-            MainWindowScreenScaffold { ColumnBrowserView() }
-                .environment(app)
-                .environment(\.colorScheme, .light)
-                .frame(width: size.width, height: size.height),
-            size: size
-        )
-        defer { session.close() }
-        try #require(await waitUntil { app.indexRepository.hasLoadedChildren(mediumID: rig.mediumID, path: []) }, "Wurzel nicht geladen")
-        await PixelProbe.settleOpenWindow(session)
-        let selectionBefore = app.columnBrowserState.selection
-
-        // Höhe der gewählten Zeile: dunkle Auswahlfläche links neben dem Icon.
-        func rowHeight() throws -> CGFloat {
-            let bands = Self.inkBands(session.bitmap(), x: 8...9, y: 60...(size.height - 40), limit: 0.5)
-            print("todo.0.4.2.005 Seitenleiste-Bänder \(bands)")
-            let band = try #require(bands.first, "keine gewählte Zeile")
-            return band.upperBound - band.lowerBound + 1
-        }
-        let single = try rowHeight()
-
-        try await Self.chooseSetName(app, mediumID: rig.mediumID, place: .columnSidebar)
-        try #require(await waitUntil { Self.editing(session.window) != nil }, "kein Feld mit Fokus in der Seitenleiste")
-        let opened = try #require(Self.editing(session.window))
-        #expect(opened.field.stringValue == "Baum")
-        #expect(opened.editor.selectedRange() == NSRange(location: 0, length: 4), "nicht ganz markiert")
-        #expect(opened.field.convert(opened.field.bounds, to: nil).minX < app.columnBrowserState.sidebarWidth, "Feld nicht in der Seitenleiste")
-        await PixelProbe.settleOpenWindow(session)
-        #expect(try rowHeight() <= single + 1, "Zeile vor dem ersten Zeichen schon höher")
-
-        Self.type("Laura", session.window)
-        await PixelProbe.settleOpenWindow(session)
-        let tall = try rowHeight()
-        #expect(tall >= single + 10, "Zeile mit Originalname nicht höher: \(single) → \(tall)")
-
-        Self.arrow(session.window, NSLeftArrowFunctionKey, code: 123)
-        Self.arrow(session.window, NSUpArrowFunctionKey, code: 126)
-        Self.arrow(session.window, NSDownArrowFunctionKey, code: 125)
-        Self.arrow(session.window, NSLeftArrowFunctionKey, code: 123)
-        await PixelProbe.settleOpenWindow(session)
-        #expect(app.columnBrowserState.selectedMediumID == rig.mediumID, "Pfeiltaste wechselt das Medium (zu \(String(describing: app.columnBrowserState.selectedMediumID)), anderes: \(otherID))")
-        #expect(app.columnBrowserState.selection == selectionBefore, "Pfeiltaste ändert die Auswahl")
-        let moved = try #require(Self.editing(session.window), "Feld verliert durch Pfeiltasten den Fokus")
-        #expect(moved.field.stringValue == "Laura")
-        #expect(moved.editor.selectedRange().location == 4, "Cursor nicht bewegt: \(moved.editor.selectedRange())")
-
-        Self.enter(session.window)
-        try #require(await waitUntil { app.mediumNaming == nil }, "Enter beendet nicht")
-        #expect(app.medium(with: rig.mediumID)?.shownName == "Laura")
-        #expect(await waitUntil { (try? await Self.storedCustomName(rig.store, rig.mediumID)) == "Laura" }, "nicht gespeichert")
-        await PixelProbe.settleOpenWindow(session)
-        let after = try rowHeight()
-        #expect(abs(after - single) <= 0.5, "Zeile nach Enter nicht wieder einzeilig: \(single) → \(after)")
-    }
-
-    // 5. Andere Stellen (Suche, Einstellungen, Menüleiste – kein Ort): Details-Modal im Hauptfenster, Fokus im Feld
-    // „Eigener Name“, Inhalt ganz markiert.
-    @Test func otherPlacesOpenTheDetailsModalWithTheNameFieldFocused() async throws {
+    // 5. Ohne Benennungsmodus kein Feld; die Kachel und die Seitenleiste haben keine Bearbeitung mehr.
+    @Test func noFieldOutsideTheNamingMode() async throws {
         let rig = try await Self.makeRig(customName: "Laura")
         defer { rig.close() }
         let app = await Self.app(rig.store)
         defer { app.prepareForTermination() }
-
-        try await Self.chooseSetName(app, mediumID: rig.mediumID, place: nil)
-        #expect(app.detailMediumID == rig.mediumID, "Details-Modal nicht geöffnet")
-        let main = try #require(NSApp.windows.first { $0.title == LayoutCopy.diskArchive && $0.styleMask.contains(.titled) && $0.isVisible }, "Hauptfenster nicht geöffnet")
-        defer { main.close() }
-        #expect(main.frame.minX < -1000, "Hauptfenster nicht außerhalb des Bildschirms")
-        try #require(await waitUntil { Self.editing(main) != nil && app.mediumNaming == nil }, "Feld „Eigener Name“ ohne Fokus")
-        let opened = try #require(Self.editing(main))
-        #expect(opened.field.stringValue == "Laura")
-        #expect(opened.editor.selectedRange() == NSRange(location: 0, length: 5), "nicht ganz markiert: \(opened.editor.selectedRange())")
+        let details = await Self.openDetails(app, rig.mediumID)
+        defer { details.close() }
+        #expect(Self.editableFields(details.window).isEmpty, "Feld ohne Benennungsmodus")
+        let sources = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("DiskArchive", isDirectory: true)
+        for file in ["Views/Dashboard/MediumDashboardCard.swift", "Views/ColumnBrowser/ColumnBrowserRow.swift"] {
+            let text = try String(contentsOf: sources.appendingPathComponent(file), encoding: .utf8)
+            #expect(!text.contains("TextField") && !text.contains("NameEditor"), "\(file) bearbeitet noch an Ort und Stelle")
+        }
     }
 
     // 6. Schreibsperre: „Benennen“ ausgegraut, ein Klick tut nichts.
@@ -408,9 +289,9 @@ struct MediumNamingTests {
         app.versionLockState = .locked(.betaExpired)
         #expect(!app.featureAccess.canWriteIndex)
 
-        let shades = try await Self.chooseSetName(app, mediumID: rig.mediumID, place: .dashboardCard)
+        let shades = try await Self.chooseSetName(app, mediumID: rig.mediumID)
         #expect(shades.setName > shades.details + 0.2, "nicht ausgegraut: Details \(shades.details), Benennen \(shades.setName)")
-        #expect(app.mediumNaming == nil && app.detailMediumID == nil, "gesperrter Eintrag hat etwas ausgelöst")
+        #expect(app.namingMediumID == nil && app.detailMediumID == nil, "gesperrter Eintrag hat etwas ausgelöst")
     }
 }
 }

@@ -124,11 +124,8 @@ struct LayoutCopyTests {
     /// Schlüssel, deren Text erst ein späteres Paket von 0.4.3 bringt (Schlüssel → Paket); jedes Paket leert seinen Teil.
     private var pendingPackage: [String: Int] {
         [
-            // 59: Kachel, „Kein Zugriff …“, Details-Fenster und Benennen
-            "copy.indexed.line": 59, "copy.indexed.never": 59, "copy.medium.not_indexed_yet": 59,
-            "copy.medium.no_access": 59, "copy.detail.custom_name": 59, "copy.medium.used_free": 59,
-            "copy.medium.indexed_value": 59,
-            // 60: Popover-Suche, -Leerzustände, Status
+            // 60: Popover-Suche, -Leerzustände, Status („Zuletzt indiziert: …“ steht nur noch im Popover, Paket 59)
+            "copy.indexed.line": 60, "copy.indexed.never": 60,
             "copy.popover_search.group.files": 60, "copy.popover_search.group.folders": 60,
             "copy.search.popover_no_hits": 60,
             // 61: Spaltenansicht-Zustände, Detail-Labels, Einstellungen Dateien & Ordner
@@ -155,6 +152,12 @@ struct LayoutCopyTests {
             "copy.settings.unreadable.notice",
             // Deutsch ohne den Satz „Alle Mitteilungstexte und Bedingungen: 18.“ (Verweis auf die Layout-Sektion)
             "copy.settings.notices.text",
+            // Details-Fenster (06.01): Fläche „Belegt“ – in 20 nur klein „belegt“/„used“ (Kachel)
+            "copy.medium.used",
+            // Details-Fenster (06.01): Wert „86 %“ / „86%“ – Zahlformat, in 20 nur „{1} % indiziert“
+            "copy.medium.indexed_value",
+            // Auswerfen abgelehnt (Dialog 16): Beschreibung fehlt in 20, Vorschlag Host (todo.0.4.3.011)
+            "copy.eject.failed",
         ]
     }
 

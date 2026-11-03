@@ -1,0 +1,12 @@
+# Test: MediumDetailHeaderTests/failureReasonIsStoredAtTheMedium()
+--- a/DiskArchive/DiskArchive/Storage/V3/IndexStoreV3.swift
++++ b/DiskArchive/DiskArchive/Storage/V3/IndexStoreV3.swift
+@@ -453,7 +453,7 @@
+     func setFailureReason(mediumUUID: UUID, code: String?) async throws {
+         try await pool.write { db in
+             guard let id = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
+-            try MediumCodecV3.setMeta(db, id, .failureReason, value: code)
++            _ = id
+         }
+     }
+ 

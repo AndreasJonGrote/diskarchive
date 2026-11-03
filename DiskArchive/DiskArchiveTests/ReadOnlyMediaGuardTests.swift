@@ -23,6 +23,11 @@ struct ReadOnlyMediaGuardTests {
         ("DebugTools/", "Debug-Ausgaben"),
     ]
 
+    /// todo.0.4.3.011 (Nutzer 01.11.): Auswerfen nur an genau einer Stelle und nur mit diesen Mustern; alle anderen
+    /// verbotenen Muster bleiben dort verboten, und jede andere Datei darf auch diese nicht nutzen.
+    private static let ejectFile = "App/MediumEject.swift"
+    private static let ejectPatterns: Set<String> = ["DADiskUnmount", "DADiskEject", "unmountAndEjectDevice"]
+
     private static let forbidden: [String] = [
         "removeItem", "trashItem", "moveItem", "copyItem", "replaceItem",
         "createFile", "createDirectory", "createSymbolicLink", "linkItem",
@@ -56,6 +61,7 @@ struct ReadOnlyMediaGuardTests {
         if isAllowed(relative: relativePath) { return [] }
         var violations: [(String, String)] = []
         for pattern in forbidden where contents.contains(pattern) {
+            if relativePath == ejectFile, ejectPatterns.contains(pattern) { continue }
             violations.append((relativePath, pattern))
         }
         return violations
@@ -89,6 +95,19 @@ struct ReadOnlyMediaGuardTests {
         let text = try String(contentsOf: bad, encoding: .utf8)
         let hits = Self.scan(relativePath: "Foo.swift", contents: text)
         #expect(!hits.isEmpty)
+    }
+
+    /// todo.0.4.3.011: Auswerfen nur in `App/MediumEject.swift`; dieselbe Datei darf sonst nichts schreiben, eine andere
+    /// Datei nicht auswerfen.
+    @Test func ejectIsAllowedOnlyInItsOneFile() {
+        let eject = "try NSWorkspace.shared.unmountAndEjectDevice(at: url)"
+        #expect(Self.scan(relativePath: "App/MediumEject.swift", contents: eject).isEmpty)
+        #expect(!Self.scan(relativePath: "App/AppState+Media.swift", contents: eject).isEmpty)
+        #expect(!Self.scan(relativePath: "App/MediumEject.swift", contents: "try FileManager.default.removeItem(at: u)").isEmpty)
+        var repo = URL(fileURLWithPath: #filePath)
+        for _ in 0..<3 { repo.deleteLastPathComponent() }
+        let source = repo.appendingPathComponent("\(Self.sourceRoot)/\(Self.ejectFile)")
+        #expect((try? String(contentsOf: source, encoding: .utf8))?.contains("unmountAndEjectDevice") == true, "Stelle fehlt")
     }
 
     @Test func sabotageScannerIgnoresSamePatternOnAllowlistPath() {

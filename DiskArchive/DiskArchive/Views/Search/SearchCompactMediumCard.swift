@@ -18,9 +18,13 @@ struct SearchCompactMediumCard: View {
                 Spacer(minLength: 8)
                 StatusChip(medium: medium)
             }
-            Text(medium.shownName)
-                .font(.system(size: 13, weight: .semibold))
-                .lineLimit(2)
+            // todo.0.4.3.007: eine Zeile, Originalname leise dahinter (Layout 10/11).
+            FadeMaskText(
+                text: medium.listLabel.name,
+                applyFadeMask: true,
+                font: .system(size: 13, weight: .semibold),
+                suffix: medium.listLabel.original
+            )
         }
         .padding(12)
         .frame(width: 190, alignment: .leading)

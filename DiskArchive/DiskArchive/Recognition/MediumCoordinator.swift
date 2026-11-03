@@ -794,7 +794,8 @@ extension StoredMedium {
             showAbsoluteCapacity: showAbsoluteCapacity,
             isFavorite: isFavorite,
             hasIndexGaps: hasIndexGaps,
-            customName: customName
+            customName: customName,
+            failureReason: failureReasonCode.flatMap(IndexFailureReason.init(notificationCode:))
         )
     }
 }

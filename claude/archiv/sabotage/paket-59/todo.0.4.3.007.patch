@@ -1,0 +1,11 @@
+# Test: MediumListLabelTests/labelAndIconRoleForEveryState()
+--- a/DiskArchive/DiskArchive/DesignSystem/MediumTypeIcon.swift
++++ b/DiskArchive/DiskArchive/DesignSystem/MediumTypeIcon.swift
+@@ -55,7 +55,6 @@
+     var iconRole: MediumIconRole {
+         if indexStatus == .error { return .error }
+         if isFavorite { return .favorite }
+-        if customName != nil { return .named }
+         return .plain
+     }
+ 

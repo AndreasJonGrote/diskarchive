@@ -1,0 +1,11 @@
+# Test: WindowTestGroup/MediumNamingTests/menuEntryOpensTheDetailsInNamingMode(), WindowTestGroup/MediumNamingTests/enterSavesTheName()
+--- a/DiskArchive/DiskArchive/App/AppState+Media.swift
++++ b/DiskArchive/DiskArchive/App/AppState+Media.swift
+@@ -259,7 +259,6 @@
+         if detailMediumID != mediumID {
+             MediumNavigation.openDetails(for: mediumID, appState: self)
+         }
+-        namingMediumID = mediumID
+     }
+ 
+     /// Benennungsmodus beendet (übernommen oder abgebrochen); ein inzwischen begonnener anderer bleibt.

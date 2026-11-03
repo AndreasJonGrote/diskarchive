@@ -179,3 +179,12 @@ enum MenuBarBadgePreview: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 }
+
+/// todo.0.4.3.011 (Layout 16): allgemeiner Fehlerdialog – Titel immer „Unerwarteter Fehler“, darunter die Beschreibung;
+/// „Schließen“ und optional eine passende Aktion rechts (Paket 62 nutzt ihn weiter).
+struct UnexpectedErrorNotice: Identifiable {
+    let id = UUID()
+    var message: String
+    var actionTitle: String?
+    var action: (@MainActor () -> Void)?
+}

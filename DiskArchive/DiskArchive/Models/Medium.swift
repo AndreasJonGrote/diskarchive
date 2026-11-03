@@ -11,14 +11,7 @@ enum MediumType: String, Codable, CaseIterable, Identifiable {
     case hdd
 
     var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .usb: "USB"
-        case .ssd: "SSD"
-        case .hdd: "HDD"
-        }
-    }
+    // todo.0.4.3.007: kein Anzeigename – der Typ steht nie als Text, nur als Icon (Layout 00/19).
 }
 
 enum ConnectionStatus: String, Codable {
@@ -69,6 +62,8 @@ struct Medium: Identifiable, Equatable, Hashable {
     var hasIndexGaps: Bool = false
     /// todo.0.4.2.002: eigener Name (nur Anzeige); `name` bleibt der Originalname vom System.
     var customName: String? = nil
+    /// todo.0.4.3.010 (Layout 06.03): Grund des letzten Fehlers; das Details-Fenster zeigt ihn bei Status „Fehler“.
+    var failureReason: IndexFailureReason? = nil
 
     /// bug.0.4.200: Index bis auf die Lücke vollständig → verhält sich überall wie Online; nur Chip, „!“, Modal und
     /// Mitteilung sagen „Fehler“.
@@ -129,7 +124,7 @@ struct Medium: Identifiable, Equatable, Hashable {
     nonisolated static let customNameMaxLength = 100
 
     var specLine: String {
-        "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumFilesCount(fileCount))"
+        "\(totalCapacityLabel) · \(LayoutCopy.mediumFilesCount(fileCount))"
     }
 }
 

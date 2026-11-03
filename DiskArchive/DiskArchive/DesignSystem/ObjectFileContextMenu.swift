@@ -26,8 +26,7 @@ struct ContextMenuEntry: Identifiable {
 @MainActor
 private func contextMenuGroups(
     for targets: [ObjectContextTarget],
-    appState: AppState,
-    namingPlace: MediumNamingPlace?
+    appState: AppState
 ) -> [[ContextMenuEntry]] {
     guard let target = targets.first else { return [] }
     if targets.count > 1 {
@@ -54,20 +53,31 @@ private func contextMenuGroups(
                 MediumNavigation.openDetails(for: target.mediumID, appState: appState)
                 MenuBarPopoverDismiss.openMainWindow(appState: appState)
             },
-            // Kann der Aufrufer an Ort und Stelle bearbeiten (`namingPlace`), dort; sonst im Details-Modal.
+            // todo.0.4.3.009: „Benennen“ öffnet überall das Details-Fenster im Benennungsmodus (Layout 06.02, 12).
             ContextMenuEntry(
                 id: "setName",
                 title: LayoutCopy.contextSetName,
                 icon: "IconPencilSimple",
                 isEnabled: appState.featureAccess.canWriteIndex
             ) {
-                appState.beginNaming(mediumID: target.mediumID, inline: namingPlace)
-                if namingPlace == nil {
-                    MenuBarPopoverDismiss.openMainWindow(appState: appState)
-                }
+                appState.beginNaming(mediumID: target.mediumID)
+                MenuBarPopoverDismiss.openMainWindow(appState: appState)
             },
         ])
     }
+
+    // todo.0.4.3.011 (Layout 12): „Auswerfen“ an Medien nach „Als Favorit markieren“, nur angeschlossen ausführbar,
+    // nur auf Klick.
+    let ejectGroup: [[ContextMenuEntry]] = target.kind == .medium ? [[
+        ContextMenuEntry(
+            id: "eject",
+            title: LayoutCopy.eject,
+            icon: "IconEjectSimple",
+            isEnabled: appState.isMediumOnline(target.mediumID)
+        ) {
+            Task { await appState.ejectMedium(id: target.mediumID) }
+        },
+    ]] : []
 
     return groups + [
         [
@@ -86,6 +96,7 @@ private func contextMenuGroups(
                 appState.toggleFavorite(target)
             },
         ],
+    ] + ejectGroup + [
         [
             ContextMenuEntry(id: "searchName", title: LayoutCopy.contextSearchName, icon: "IconMagnifyingGlass") {
                 appState.openSearch(withQuery: target.name)
@@ -187,7 +198,6 @@ func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppSt
 private struct ObjectContextMenuView: View {
     @Environment(AppState.self) private var appState
     let targets: [ObjectContextTarget]
-    var namingPlace: MediumNamingPlace?
     let onClose: () -> Void
 
     @State private var highlightedID: String?
@@ -198,7 +208,7 @@ private struct ObjectContextMenuView: View {
     static let shadowInset: CGFloat = 32
 
     var body: some View {
-        let groups = contextMenuGroups(for: targets, appState: appState, namingPlace: namingPlace)
+        let groups = contextMenuGroups(for: targets, appState: appState)
         let enabledIDs = groups.flatMap { $0 }.filter(\.isEnabled).map(\.id)
 
         VStack(alignment: .leading, spacing: 2) {
@@ -319,10 +329,9 @@ private struct ObjectContextMenuView: View {
 /// Das echte Panel öffnet am Mauszeiger auf dem sichtbaren Bildschirm (Regel 19).
 func objectContextMenuForTesting(
     _ targets: [ObjectContextTarget],
-    namingPlace: MediumNamingPlace? = nil,
     onClose: @escaping () -> Void = {}
 ) -> some View {
-    ObjectContextMenuView(targets: targets, namingPlace: namingPlace, onClose: onClose)
+    ObjectContextMenuView(targets: targets, onClose: onClose)
 }
 #endif
 
@@ -348,14 +357,14 @@ final class ObjectContextMenuPresenter {
         show(for: [target], appState: appState)
     }
 
-    func show(for targets: [ObjectContextTarget], appState: AppState, namingPlace: MediumNamingPlace? = nil) {
+    func show(for targets: [ObjectContextTarget], appState: AppState) {
         guard let target = targets.first else { return }
         close()
         self.appState = appState
         appState.contextMenuHighlightObjectID = target.id
 
         let hosting = NSHostingView(
-            rootView: ObjectContextMenuView(targets: targets, namingPlace: namingPlace) { [weak self] in self?.close() }
+            rootView: ObjectContextMenuView(targets: targets) { [weak self] in self?.close() }
                 .environment(appState)
         )
         let size = hosting.fittingSize
@@ -452,8 +461,6 @@ struct ObjectContextMenuModifier: ViewModifier {
     var resolveTargets: ((ObjectContextTarget) -> [ObjectContextTarget])?
     /// Eckradius des schwarzen Rahmens — folgt der Form des Elements (Karte, Zeile, Chip).
     let highlightCornerRadius: CGFloat
-    /// todo.0.4.2.005: Hier kann „Benennen“ an Ort und Stelle bearbeiten (sonst Details-Modal).
-    var namingPlace: MediumNamingPlace?
 
     func body(content: Content) -> some View {
         content
@@ -466,7 +473,7 @@ struct ObjectContextMenuModifier: ViewModifier {
                     }
                     RightClickCatcher {
                         let targets = resolveTargets?(target) ?? [target]
-                        ObjectContextMenuPresenter.shared.show(for: targets, appState: appState, namingPlace: namingPlace)
+                        ObjectContextMenuPresenter.shared.show(for: targets, appState: appState)
                     }
                 }
             }
@@ -477,14 +484,12 @@ extension View {
     func objectContextMenu(
         _ target: ObjectContextTarget?,
         highlightCornerRadius: CGFloat = DesignRadius.sm,
-        resolveTargets: ((ObjectContextTarget) -> [ObjectContextTarget])? = nil,
-        namingPlace: MediumNamingPlace? = nil
+        resolveTargets: ((ObjectContextTarget) -> [ObjectContextTarget])? = nil
     ) -> some View {
         modifier(ObjectContextMenuModifier(
             target: target,
             resolveTargets: resolveTargets,
-            highlightCornerRadius: highlightCornerRadius,
-            namingPlace: namingPlace
+            highlightCornerRadius: highlightCornerRadius
         ))
     }
 }

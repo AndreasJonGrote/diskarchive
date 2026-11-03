@@ -71,6 +71,17 @@ struct MainWindowHostView: View {
 
                 StoreOpenFailureDialog()
             }
+
+            // todo.0.4.3.011 (Layout 16): „Unerwarteter Fehler“ (z. B. Auswerfen abgelehnt).
+            if let error = appState.unexpectedError {
+                Color.black.opacity(0.08)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        appState.unexpectedError = nil
+                    }
+
+                UnexpectedErrorDialog(notice: error)
+            }
         }
     }
 

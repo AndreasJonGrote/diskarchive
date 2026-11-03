@@ -448,6 +448,15 @@ actor IndexStoreV3 {
         emit(.medium(mediumUUID))
     }
 
+    /// todo.0.4.3.010 (Layout 06.03): Grund des letzten Fehlers am Medium merken (`nil` = löschen), damit das
+    /// Details-Fenster ihn zeigt, solange der Status „Fehler“ ist.
+    func setFailureReason(mediumUUID: UUID, code: String?) async throws {
+        try await pool.write { db in
+            guard let id = try MediumCodecV3.storageRowID(db, uuid: mediumUUID) else { return }
+            try MediumCodecV3.setMeta(db, id, .failureReason, value: code)
+        }
+    }
+
     func updateMediumRecognition(uuid: UUID, _ medium: StoredMedium) async throws {
         try await pool.write { db in
             guard let id = try MediumCodecV3.storageRowID(db, uuid: uuid) else { throw IndexStoreError.unknownMedium }

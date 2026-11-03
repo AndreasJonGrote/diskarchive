@@ -25,7 +25,7 @@ Der Host macht **keine Implementierung** im Xcode-Projekt. Er ist zuständig fü
 - **Review**: Nach jeder gemeldeten Erledigung prüft der Host den tatsächlichen Code/Diff gegen die Vorgabe im Paket-File und das Design-Spec — nicht nur die Selbstauskunft des Workers. Er gibt Freigabe oder fordert Korrektur an.
 - **Priorisierung**: Reihenfolge der Screens/Features festlegen, Abhängigkeiten erkennen (z. B. Datenmodell vor UI, Menu-Bar-Grundgerüst vor Popover-Inhalt).
 
-Der Host editiert **niemals** Quellcode im Xcode-Projekt. Er pflegt `AGENTS.md`, `TODO.md`, `PROMPT.md`, `DONE.md`, `README.md` mit `konzept/`, `ROADMAP.md`, `todo/`, `archiv/`, das Prüfskript `Werkzeuge/pruefung.sh` und `Werkzeuge/dmg/` (Hintergrundbild und `dmg-einstellungen.json` für das DMG; Nutzer 28.10.). Der Worker ändert beides nie; `Werkzeuge/dmg-erstellen.sh` gehört dem Worker.
+Der Host editiert **niemals** Quellcode im Xcode-Projekt. Er pflegt `AGENTS.md`, `TODO.md`, `PROMPT.md`, `DONE.md`, `README.md` mit `konzept/`, `ROADMAP.md`, `todo/`, `archiv/`, das Prüfskript `Werkzeuge/pruefung.sh`, `Werkzeuge/dmg/` und `Werkzeuge/fonts/` (Archivo, Nutzer 03.11.) und `Werkzeuge/phosphor/` (alle Phosphor-Icons 2.1.1 als SVG, Nutzer 03.11.: der Host stellt Icons bereit, damit der Worker nichts laden oder fragen muss) (Hintergrundbild und `dmg-einstellungen.json` für das DMG; Nutzer 28.10.). Der Worker ändert beides nie; `Werkzeuge/dmg-erstellen.sh` gehört dem Worker.
 
 ### Worker — Umsetzung
 Der Worker implementiert das freigegebene Paket (`todo/paket-NN.md`, Index TODO.md) bzw. den Auftrag in `PROMPT.md` im Xcode-Projekt (SwiftUI/AppKit). Das gilt für jeden Agenten in dieser Rolle, auch für Claude. Er ist zuständig für:

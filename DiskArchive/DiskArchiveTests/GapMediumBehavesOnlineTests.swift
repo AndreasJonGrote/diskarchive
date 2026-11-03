@@ -91,7 +91,7 @@ struct GapMediumBehavesOnlineTests {
         return setup
     }
 
-    /// (a) Dashboard und Menüleiste: bei Lücke die normalen Zeilen wie Online; anderer Grund bleibt „kein Zugriff“.
+    /// (a) Dashboard und Menüleiste: bei Lücke die normalen Zeilen wie Online; anderer Grund: Link „erneut versuchen“ (bug.0.4.3.002).
     @Test func gapMediumShowsTheOnlineLines() async throws {
         let setup = try await Self.gapMedium("ZEILEN")
         defer { setup.rig.coordinator.stop() }
@@ -102,17 +102,17 @@ struct GapMediumBehavesOnlineTests {
         #expect(MediumChip.presentation(medium).text == LayoutCopy.chipError, "Chip sagt weiter „Fehler“")
         #expect(medium.dashboardSpecLine == medium.specLine)
         #expect(medium.occupancyLabel(showAbsolute: false) != nil, "Belegung fehlt")
-        #expect(medium.showsLastIndexedLine, "„Zuletzt indiziert“ fehlt")
-        #expect(!medium.dashboardShowsRetryLine, "Karte zeigt „erneut versuchen“ statt der Belegung")
+        #expect(medium.dashboardMetaLine == .lastSeen(occupancy: medium.occupancyLabel(showAbsolute: medium.showAbsoluteCapacity)),
+                "Karte zeigt „erneut versuchen“ statt der Belegung")
         #expect(medium.menuBarSecondaryLine == IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexActivityAt ?? medium.lastIndexedAt))
 
         var denied = medium
         denied.hasIndexGaps = false
-        #expect(denied.dashboardSpecLine == LayoutCopy.mediumNoAccess)
-        #expect(denied.menuBarSecondaryLine == LayoutCopy.mediumNoAccess)
+        // bug.0.4.3.002: „Kein Zugriff …“ entfällt – Kachel normale Zeile und Link, Popover „Speichermedium fehlerhaft“.
+        #expect(denied.dashboardSpecLine == denied.specLine)
+        #expect(denied.menuBarSecondaryLine == LayoutCopy.mediumHasErrors)
         #expect(denied.occupancyLabel(showAbsolute: false) == nil)
-        #expect(!denied.showsLastIndexedLine)
-        #expect(denied.dashboardShowsRetryLine)
+        #expect(denied.dashboardMetaLine == .retry)
     }
 
     /// (b) Nach Aufwachen und Pause-Ende wird das Medium mit Lücke überwacht wie ein `.indexed`-Medium.
