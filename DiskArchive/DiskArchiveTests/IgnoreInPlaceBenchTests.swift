@@ -45,7 +45,7 @@ struct IgnoreInPlaceBenchTests {
         try #require(items.count == count)
         let target = String(format: "datei-%06d.txt", count / 2)
         let start = ContinuousClock.now
-        app.requestIgnore([target], targetCount: 1)
+        app.toggleIgnoredPatterns([target])
         let elapsed = start.duration(to: .now)
         let ms = Double(elapsed.components.attoseconds) / 1e15 + Double(elapsed.components.seconds) * 1000
         print("BENCH bug.0.4.099 ignore count=\(count) mainActorMs=\(String(format: "%.1f", ms))")

@@ -91,7 +91,6 @@ final class AppState {
         SystemNotice.withdrawIndexingFailure(mediumID: $0)
     }
     var replaceMediumPrompt: ReplaceMediumPrompt?
-    var ignoreConfirmationPrompt: IgnoreConfirmationPrompt?
     /// Wo die Rückfrage-Panels erscheinen; `nil` = kein Panel. Die App setzt `.centered` beim Start
     /// (`configureForApp`, aus `applicationDidFinishLaunching`), ein Test setzt `.offscreen` je Instanz
     /// (bug.0.3.9.005 c, bug.0.3.9.014 d: kein Prozess-Schalter).

@@ -64,9 +64,6 @@ nonisolated struct AppSettings: Equatable, Codable {
     var ignoreHiddenFiles: Bool = true
     var artifactsIgnored: Bool = true
     var excludedPatterns: [String] = Self.defaultExcludedPatterns
-    /// Spaltenansicht: Ordner bleiben trotz Dateityp-/Endungs-Filter sichtbar (Aufgabe 33.5). Suche/Favoriten strikt.
-    /// todo.0.4.2.003: entfallen, wird nicht mehr ausgewertet; gespeicherte Werte bleiben liegen und lesen sich weiter.
-    var showFoldersRegardlessOfFilter: Bool = true
     var appearance: AppAppearance = .system
     var notificationsEnabled: Bool = true
     var notifySystem: Bool = true
@@ -82,7 +79,6 @@ nonisolated struct AppSettings: Equatable, Codable {
     mutating func resetGeneral() {
         scanDepth = Self.defaultScanDepth
         favoriteOnlineNotificationsEnabled = true
-        showFoldersRegardlessOfFilter = true
     }
 
     mutating func resetIgnoredObjects() {
@@ -125,7 +121,6 @@ nonisolated struct AppSettings: Equatable, Codable {
         _ = try container.decodeIfPresent([String].self, forKey: .artifactIncludePatterns)
         excludedPatterns = try container.decodeIfPresent([String].self, forKey: .excludedPatterns) ?? Self.defaultExcludedPatterns
         _ = try container.decodeIfPresent([String: Date].self, forKey: .exclusionAddedAt)
-        showFoldersRegardlessOfFilter = try container.decodeIfPresent(Bool.self, forKey: .showFoldersRegardlessOfFilter) ?? true
         appearance = try container.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? .system
         notificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? true
         notifySystem = try container.decodeIfPresent(Bool.self, forKey: .notifySystem) ?? true
@@ -144,7 +139,6 @@ nonisolated struct AppSettings: Equatable, Codable {
         try container.encode(ignoreHiddenFiles, forKey: .ignoreHiddenFiles)
         try container.encode(artifactsIgnored, forKey: .artifactsIgnored)
         try container.encode(excludedPatterns, forKey: .excludedPatterns)
-        try container.encode(showFoldersRegardlessOfFilter, forKey: .showFoldersRegardlessOfFilter)
         try container.encode(appearance, forKey: .appearance)
         try container.encode(notificationsEnabled, forKey: .notificationsEnabled)
         try container.encode(notifySystem, forKey: .notifySystem)
@@ -157,7 +151,8 @@ nonisolated struct AppSettings: Equatable, Codable {
     private enum CodingKeys: String, CodingKey {
         case scanDepth, favoriteOnlineNotificationsEnabled, ignoreHiddenFiles, artifactsIgnored
         case artifactDisabledCategories, artifactIncludePatterns // decode-only (121)
-        case excludedPatterns, exclusionAddedAt, showFoldersRegardlessOfFilter, appearance
+        // todo.0.4.3.006: `showFoldersRegardlessOfFilter` entfällt; ein gespeicherter Wert wird nicht mehr gelesen.
+        case excludedPatterns, exclusionAddedAt, appearance
         case notificationsEnabled, notifySystem, notifyIndexed, notifyFavorites, autoSendCrashReports, displayLanguage
         case notifyAboutUpdates
     }

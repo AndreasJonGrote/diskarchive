@@ -1,0 +1,12 @@
+# Test: RawImageExtensionTests/rawFilesAreFilteredAsImagesAndShowTheImageIcon()
+--- a/DiskArchive/DiskArchive/Models/SearchState.swift
++++ b/DiskArchive/DiskArchive/Models/SearchState.swift
+@@ -84,8 +84,6 @@
+     /// bug.0.4.2.001: eine Quelle für Filter und Icon (`FileKind`), mit RAW-Formaten (Vorschlag Host, Backlog 0.4.3).
+     static let imageExtensions: Set<String> = [
+         "jpg", "jpeg", "png", "gif", "webp", "heic", "tif", "tiff", "svg", "nef", "cr2", "arw", "dng",
+-        "cr3", "crw", "nrw", "raf", "orf", "rw2", "pef", "srw", "sr2", "srf", "rwl", "3fr", "fff", "iiq", "x3f", "mrw",
+-        "kdc", "dcr", "erf", "gpr", "raw", "heif", "avif", "jxl", "bmp", "psd",
+     ]
+ 
+     static let videoExtensions: Set<String> = [

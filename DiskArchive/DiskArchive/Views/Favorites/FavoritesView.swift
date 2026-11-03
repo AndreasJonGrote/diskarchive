@@ -47,14 +47,14 @@ struct FavoritesView: View {
                     CompactMediumCardFlow(media: favoriteMedia)
                 }
 
+                // todo.0.4.3.005: ein Leerzustand für Auswahl und Filter (Layout 11), ersetzt die beiden alten Zeilen.
                 ObjectResultsTable(results: favoriteObjects) {
-                    Text(filters.hasActiveObjectFilters
-                        ? LayoutCopy.noFavoritesForFilters
-                        : LayoutCopy.noFavoritedObjects)
-                        .font(.system(size: 13))
-                        .foregroundStyle(DesignColor.text.opacity(0.55))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 48)
+                    EmptyStateView(
+                        title: EmptyStateCopy.noFavoritesTitle,
+                        message: EmptyStateCopy.noFavoritesMessage,
+                        iconStyle: .favorites
+                    )
+                    .frame(minHeight: 300)
                 }
             }
 

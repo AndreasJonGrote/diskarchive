@@ -13,7 +13,6 @@ nonisolated struct PersistedAppSettings: Equatable, Codable {
     var ignoreHiddenFiles: Bool = true
     var artifactsIgnored: Bool = true
     var excludedPatterns: [String] = AppSettings.defaultExcludedPatterns
-    var showFoldersRegardlessOfFilter: Bool = true
     var appearance: AppAppearance = .system
     var notificationsEnabled: Bool = true
     var notifySystem: Bool = true
@@ -37,9 +36,6 @@ nonisolated extension PersistedAppSettings {
         ignoreHiddenFiles = try container.decodeIfPresent(Bool.self, forKey: .ignoreHiddenFiles) ?? defaults.ignoreHiddenFiles
         artifactsIgnored = try container.decodeIfPresent(Bool.self, forKey: .artifactsIgnored) ?? defaults.artifactsIgnored
         excludedPatterns = try container.decodeIfPresent([String].self, forKey: .excludedPatterns) ?? defaults.excludedPatterns
-        showFoldersRegardlessOfFilter = try container.decodeIfPresent(
-            Bool.self, forKey: .showFoldersRegardlessOfFilter
-        ) ?? defaults.showFoldersRegardlessOfFilter
         appearance = try container.decodeIfPresent(AppAppearance.self, forKey: .appearance) ?? defaults.appearance
         notificationsEnabled = try container.decodeIfPresent(Bool.self, forKey: .notificationsEnabled) ?? defaults.notificationsEnabled
         notifySystem = try container.decodeIfPresent(Bool.self, forKey: .notifySystem) ?? defaults.notifySystem
@@ -64,7 +60,6 @@ extension AppSettings {
         ignoreHiddenFiles = persisted.ignoreHiddenFiles
         artifactsIgnored = persisted.artifactsIgnored
         excludedPatterns = persisted.excludedPatterns
-        showFoldersRegardlessOfFilter = persisted.showFoldersRegardlessOfFilter
         appearance = persisted.appearance
         notificationsEnabled = persisted.notificationsEnabled
         notifySystem = persisted.notifySystem
@@ -81,7 +76,6 @@ extension AppSettings {
             ignoreHiddenFiles: ignoreHiddenFiles,
             artifactsIgnored: artifactsIgnored,
             excludedPatterns: excludedPatterns,
-            showFoldersRegardlessOfFilter: showFoldersRegardlessOfFilter,
             appearance: appearance,
             notificationsEnabled: notificationsEnabled,
             notifySystem: notifySystem,

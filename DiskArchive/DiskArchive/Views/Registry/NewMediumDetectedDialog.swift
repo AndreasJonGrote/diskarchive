@@ -106,7 +106,7 @@ struct NewMediumDetectedDialog: View {
 
     private var bodyText: String {
         let size = ByteCountFormatter.storage.string(fromByteCount: medium.capacityTotalBytes)
-        return LayoutCopy.newMediumBody(name: medium.name, type: medium.type.displayName, size: size)
+        return LayoutCopy.newMediumBody(name: medium.name, size: size)
     }
 
     private func applyChoice(allowIndexing: Bool) {

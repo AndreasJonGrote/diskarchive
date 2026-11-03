@@ -80,9 +80,6 @@ struct SettingsMediaRegistryPanel: View {
             sortHeader(LayoutCopy.tableName, column: .name)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            sortHeader(LayoutCopy.tableType, column: .type)
-                .frame(width: RegistryTableLayout.typeWidth, alignment: .leading)
-
             TableSortHeader.label(LayoutCopy.tableStatus, isActive: false)
                 .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
                 .padding(.trailing, 6)
@@ -116,8 +113,6 @@ struct SettingsMediaRegistryPanel: View {
             switch sort.column {
             case .name:
                 ordered = lhs.shownName.localizedCaseInsensitiveCompare(rhs.shownName) == .orderedAscending
-            case .type:
-                ordered = lhs.type.rawValue < rhs.type.rawValue
             case .indexing:
                 ordered = lhs.allowIndexing && !rhs.allowIndexing
             }

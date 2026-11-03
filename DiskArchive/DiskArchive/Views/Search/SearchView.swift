@@ -90,19 +90,13 @@ struct SearchView: View {
         // todo.0.4.042: die kleine Zeile „Suche läuft…“ entfällt (Wartescreen nur aus dem Leerzustand); beim Verfeinern
         // bleibt die leere Tabelle stehen, bis die neuen Treffer da sind.
         if !appState.searchState.isSearchInProgress, match.media.isEmpty {
-            Group {
-                if submittedQuery.isEmpty {
-                    Text(LayoutCopy.noResultsForFilters)
-                } else {
-                    Text(LayoutCopy.noResults(submittedQuery))
-                }
-            }
-            .font(.system(size: 13))
-            .foregroundStyle(DesignColor.text.opacity(0.55))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 48)
-                .padding(.horizontal, 24)
+            // todo.0.4.3.005: Leerzustand wie Layout 10 (Lupe und Trichter, Titel, Hinweis), für Suchbegriff und Filter.
+            EmptyStateView(
+                title: LayoutCopy.searchNoResultsTitle,
+                message: LayoutCopy.searchNoResultsMessage,
+                iconStyle: .searchAndFilter
+            )
+            .frame(minHeight: 300)
         }
         // Nur Medien-Treffer: Kacheln oben, Tabelle bleibt leer.
     }

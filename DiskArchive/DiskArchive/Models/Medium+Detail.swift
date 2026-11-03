@@ -10,9 +10,9 @@ extension Medium {
         max(0, capacityTotalBytes - capacityUsedBytes)
     }
 
+    /// bug.0.4.3.003: Kopfzeile im Details-Fenster ohne Medientyp, Wortlaut aus dem Katalog („Online“/„Offline“, 20).
     var connectionDescription: String {
-        let connection = connectionStatus == .connected ? "extern angeschlossen" : "offline"
-        return "\(type.displayName) · \(connection)"
+        connectionStatus == .connected ? LayoutCopy.chipOnline : LayoutCopy.chipOffline
     }
 
     var totalCapacityLabel: String {

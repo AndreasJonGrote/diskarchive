@@ -12,14 +12,17 @@ import Testing
 
 @MainActor
 struct AboutAndSettingsMenuTests {
-    @Test func contextMenuStartsWithAboutThenSeparatorThenShowApp() throws {
+    /// todo.0.4.3.006 (Layout 01.01): genau „Disk Archive anzeigen“ · „Automatisch bei Systemstart“ · „Einstellungen …“ ·
+    /// „Disk Archive beenden“; „Über“ und „Protokoll im Finder zeigen“ entfallen.
+    @Test func contextMenuHasTheFourLayoutEntries() throws {
         let menu = MenuBarController.shared.makeContextMenu()
-        let first = try #require(menu.items.first)
-        #expect(first.title == LayoutCopy.menuBarAbout)
-        #expect(first.action != nil)
-        try #require(menu.items.count > 2)
-        #expect(menu.items[1].isSeparatorItem)
-        #expect(menu.items[2].title == LayoutCopy.menuBarShowApp)
+        // Nur im Debug-Build: „Absturz testen“.
+        let items = menu.items.filter { $0.title != "Absturz testen" }
+        #expect(items.map { $0.isSeparatorItem ? "—" : $0.title } == [
+            LayoutCopy.menuBarShowApp, "—", LayoutCopy.menuBarLaunchAtLogin, LayoutCopy.appMenuSettings, "—",
+            LayoutCopy.menuBarQuit,
+        ])
+        #expect(items.filter { !$0.isSeparatorItem }.allSatisfy { $0.action != nil && $0.target != nil })
     }
 
     @Test func aboutContentComesFromTheBundleAndLinksToTheWebsite() throws {

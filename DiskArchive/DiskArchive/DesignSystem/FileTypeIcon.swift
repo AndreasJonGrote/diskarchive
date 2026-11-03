@@ -45,12 +45,23 @@ enum FileKind: String, CaseIterable {
             self = .folder
             return
         }
-        switch (fileName as NSString).pathExtension.lowercased() {
+        let ext = (fileName as NSString).pathExtension.lowercased()
+        // bug.0.4.2.001: Bild, Video und Audio aus derselben Liste wie der Filter.
+        if SearchFileTypeFilter.imageExtensions.contains(ext) {
+            self = .image
+            return
+        }
+        if SearchFileTypeFilter.videoExtensions.contains(ext) {
+            self = .video
+            return
+        }
+        if SearchFileTypeFilter.audioExtensions.contains(ext) {
+            self = .audio
+            return
+        }
+        switch ext {
         case "pdf": self = .pdf
         case "txt", "md", "rtf", "doc", "docx", "pages", "odt": self = .document
-        case "jpg", "jpeg", "png", "gif", "webp", "heic", "tif", "tiff", "svg", "nef", "cr2", "arw", "dng": self = .image
-        case "mov", "mp4", "m4v", "avi", "mkv": self = .video
-        case "mp3", "wav", "aac", "m4a", "flac": self = .audio
         case "zip", "rar", "7z", "tar", "gz", "bz2", "dmg", "pkg": self = .archive
         case "py", "js", "ts", "jsx", "tsx", "html", "htm", "css", "json", "sh", "rb", "php", "swift", "sql", "command": self = .code
         case "xls", "xlsx", "csv", "numbers", "ods": self = .spreadsheet

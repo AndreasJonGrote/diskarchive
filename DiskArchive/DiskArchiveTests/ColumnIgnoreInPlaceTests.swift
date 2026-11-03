@@ -4,7 +4,7 @@
 //
 //  bug.0.4.088 / bug.0.4.090: „Dateinamen ignorieren“ an einem Ordner und das Aufheben im echten Fenster
 //  (außerhalb des Bildschirms, Regel 10/19). Der Test löst nur das Ignorieren aus (wie das Kontextmenü,
-//  `requestIgnore`) und wartet; er lädt nichts von Hand nach (Regel 18).
+//  `toggleIgnoredPatterns`) und wartet; er lädt nichts von Hand nach (Regel 18).
 //  088: Der Eintrag verschwindet an Ort und Stelle; keine Spalte zeigt zu irgendeinem Zeitpunkt den Ladezustand.
 //  090: Nach Ignorieren, Aufheben und Ende der Warteschlange erscheint bei einer Datei die Details-Spalte, keine Spalte
 //  füllt die Restbreite – angeschlossen und offline.
@@ -143,7 +143,7 @@ struct ColumnIgnoreInPlaceTests {
         var selection = ColumnSelection()
         selection.replace(id: UUID(), column: 2)
         app.columnBrowserState.selection = selection
-        app.requestIgnore(["geheim"], targetCount: 1)
+        app.toggleIgnoredPatterns(["geheim"])
         #expect(app.isRuleReconcileQueueActive)
         #expect(app.columnBrowserState.pathStack == ["Ceres"])
         #expect(app.columnBrowserState.selection.ids.isEmpty)
@@ -212,7 +212,7 @@ struct ColumnIgnoreInPlaceTests {
             return nil
         }
         defer { sampler.stop() }
-        app.requestIgnore(["Vesta"], targetCount: 1)
+        app.toggleIgnoredPatterns(["Vesta"])
         await app.waitForRuleReconcileIdle()
         // Ende der Warteschlange: `resumeAfterRuleReconcile` markiert alles veraltet, „Ceres“ lädt erneut (zweiter
         // Load am Tor).
@@ -247,7 +247,7 @@ struct ColumnIgnoreInPlaceTests {
         app.columnBrowserState.selection = ColumnSelection(
             ids: [first.id, geheim.id, second.id], anchorID: geheim.id, focusColumnIndex: 1, lastClickedID: geheim.id
         )
-        app.requestIgnore(["geheim"], targetCount: 1)
+        app.toggleIgnoredPatterns(["geheim"])
         #expect(app.columnBrowserState.pathStack == ["Ceres"])
         #expect(app.columnBrowserState.selection.ids == [first.id, second.id])
         #expect(app.columnBrowserState.selection.focusColumnIndex == 1)
@@ -397,7 +397,7 @@ struct ColumnIgnoreInPlaceTests {
         defer { sampler.stop() }
 
         // Ignorieren (wie das Kontextmenü am Ordner „geheim“): sofort weg, die Warteschlange läuft noch.
-        app.requestIgnore(["geheim"], targetCount: 1)
+        app.toggleIgnoredPatterns(["geheim"])
         let hidden = await waitUntil(timeout: 2) { !names(["Ceres"]).contains("geheim") }
         #expect(hidden, "„geheim“ noch sichtbar: \(names(["Ceres"]))")
         #expect(app.isRuleReconcileQueueActive, "Warteschlange schon fertig – Ausblenden nicht vor ihrem Ende belegt")
@@ -409,7 +409,7 @@ struct ColumnIgnoreInPlaceTests {
         #expect(!names(["Ceres"]).contains("geheim"))
 
         // Aufheben: nach der Warteschlange erscheint der Ordner an seinem Platz wieder, ohne Ladezustand.
-        app.requestIgnore(["geheim"], targetCount: 1)
+        app.toggleIgnoredPatterns(["geheim"])
         await app.waitForRuleReconcileIdle()
         let back = await waitUntil { names(["Ceres"]) == ceresBefore }
         #expect(back, "„geheim“ nicht an seinem Platz zurück: \(names(["Ceres"]))")

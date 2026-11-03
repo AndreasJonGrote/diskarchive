@@ -170,8 +170,7 @@ enum SystemNotice {
     @MainActor
     static func postFavoritesOnline(name: String, favoriteCount: Int, settings: AppSettings) {
         guard favoriteCount > 0 else { return }
-        let count = DisplayNumberFormat.groupedInteger(favoriteCount)
-        let body = LayoutCopy.noticeFavoritesOnline(name, count)
+        let body = LayoutCopy.noticeFavoritesOnline(name: name, count: favoriteCount)
         post(body: body, settings: settings, event: .favorites, kind: "favorites")
     }
 

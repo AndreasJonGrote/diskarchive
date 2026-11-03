@@ -357,30 +357,17 @@ struct RegressionSmokeTests {
         #expect(ColumnFolderOpenState.resolve(columnIndex: 0, medium: medium, settings: settings, folderListedAt: Date()) == .normal)
     }
 
-    /// bug.0.4.035: ab 500 Zielen Rückfrage, darunter sofort; Auswahl prüft über die Menge.
-    @Test func ignoreFromFiveHundredAsksFirst() {
+    /// bug.0.4.035, todo.0.4.3.006: Ignorieren vieler Ziele wirkt sofort (Rückfrage entfällt); Auswahl prüft über die
+    /// Menge.
+    @Test func ignoreManyTargetsAppliesAtOnce() {
         let app = AppState()
-        app.requestIgnore((0..<499).map { "a\($0)" }, targetCount: 499)
-        #expect(app.ignoreConfirmationPrompt == nil)
-        #expect(app.appSettings.excludedPatterns.count == 499)
-        app.requestIgnore(["b"], targetCount: 500)
-        #expect(app.ignoreConfirmationPrompt?.count == 500)
-        app.resolveIgnoreConfirmation(confirm: false)
-        #expect(!app.appSettings.excludedPatterns.contains("b"))
+        app.appSettings.excludedPatterns = []
+        app.toggleIgnoredPatterns((0..<500).map { "a\($0)" })
+        #expect(app.appSettings.excludedPatterns.count == 500)
         var selection = ColumnSelection()
         let ids = (0..<3).map { _ in UUID() }
         selection.selectAll(visible: ids, column: 0)
         #expect(ids.allSatisfy(selection.contains))
-    }
-
-    /// bug.0.3.9.005 c / 007 b: Rückfrage-Panel je Instanz (außerhalb des Bildschirms); Schließen setzt sie zurück.
-    @Test func ignorePromptPanelClosesAndResets() {
-        let app = AppState()
-        app.promptPanelPlacement = .offscreen
-        app.requestIgnore(["b"], targetCount: 500)
-        #expect(AppWindowPresenter.ignoreConfirmationPanel(for: app)?.isVisible == true)
-        AppWindowPresenter.closePromptPanels(for: app)
-        #expect(app.ignoreConfirmationPrompt == nil && AppWindowPresenter.ignoreConfirmationPanel(for: app) == nil)
     }
 
     /// bug.0.4.036: sichtbare Spalten bleiben im Cache, auch wenn viele andere Ordner geladen werden.

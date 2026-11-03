@@ -166,7 +166,7 @@ func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppSt
                 iconColor: plan.ignoreNameChecked ? DesignColor.stateError : nil,
                 checkColor: plan.ignoreNameChecked ? DesignColor.stateError : nil
             ) {
-                appState.requestIgnore(names, targetCount: targets.count)
+                appState.toggleIgnoredPatterns(names)
             },
             ContextMenuEntry(
                 id: "ignoreType",
@@ -176,7 +176,7 @@ func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppSt
                 checkColor: plan.ignoreTypeChecked ? DesignColor.stateError : nil,
                 isEnabled: plan.ignoreTypeEnabled
             ) {
-                appState.requestIgnore(extensions, targetCount: targets.count)
+                appState.toggleIgnoredPatterns(extensions)
             },
         ],
     ]

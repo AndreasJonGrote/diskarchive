@@ -129,8 +129,7 @@ struct Medium: Identifiable, Equatable, Hashable {
     nonisolated static let customNameMaxLength = 100
 
     var specLine: String {
-        let files = DisplayNumberFormat.groupedInteger(fileCount)
-        return "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumFilesCount(files))"
+        "\(type.displayName) · \(totalCapacityLabel) · \(LayoutCopy.mediumFilesCount(fileCount))"
     }
 }
 

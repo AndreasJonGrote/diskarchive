@@ -57,6 +57,23 @@ struct PromptFocusStackTests {
         try #require(AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: id), "Panel fehlt").frame.origin
     }
 
+    /// bug.0.4.3.001: Öffnet der Nutzer den Erkennungsdialog über die Kachel (`openNewMedium`), liegt der Responder auf
+    /// der Inhaltsansicht wie bei den übrigen Dialogen (`show`) – nicht auf dem Fenster, sonst wählt AppKit beim Key-Werden
+    /// das erste fokussierbare Element („Für dieses Medium merken“) mit Fokusrahmen. Gegenprobe: „Ersetzt dieses Medium?“.
+    @Test func newMediumPanelStartsOnTheContentViewLikeTheOtherDialogs() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        rig.app.replaceMediumPrompt = ReplaceMediumPrompt(newID: rig.ids[0], oldID: rig.ids[1], name: "STICK")
+        AppWindowPresenter.openReplaceMediumPrompt(appState: rig.app)
+        let replace = try #require(AppWindowPresenter.replaceMediumPromptPanel(for: rig.app), "Gegenprobe: Ersetzen fehlt")
+        #expect(replace.firstResponder === replace.contentView, "Gegenprobe: Ersetzen ohne Responder auf dem Inhalt")
+
+        rig.app.enqueueNewMediumDecision(rig.ids[2])
+        AppWindowPresenter.openNewMedium(appState: rig.app)
+        let panel = try #require(AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[2]), "Panel fehlt")
+        #expect(panel.firstResponder === panel.contentView, "Responder: \(String(describing: panel.firstResponder))")
+    }
+
     /// 216: Zwei Medien in getrennten Abgleichen → gestapelt, das ältere nach links oben (24 pt); den vorderen
     /// beantworten → der übrige rückt nach vorn. Gegenprobe: beide im selben Abgleich.
     @Test func panelsStackOnEverySync() throws {
@@ -184,7 +201,7 @@ struct PromptFocusStackTests {
         #expect(newest < oldest, "nach der Antwort liegt das älteste vorn (\(after))")
     }
 
-    /// 221: Die vier Dialoge aktivieren die App (kein `.nonactivatingPanel`), sonst gibt eine andere App den Fokus
+    /// 221: Die Dialoge aktivieren die App (kein `.nonactivatingPanel`), sonst gibt eine andere App den Fokus
     /// nach dem Erscheinen nicht mehr zurück.
     @Test func dialogPanelsActivateTheApp() throws {
         let rig = try Self.rig()
@@ -193,14 +210,11 @@ struct PromptFocusStackTests {
         AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
         rig.app.replaceMediumPrompt = ReplaceMediumPrompt(newID: rig.ids[0], oldID: rig.ids[1], name: "STICK")
         AppWindowPresenter.openReplaceMediumPrompt(appState: rig.app)
-        rig.app.ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: 600, patterns: ["*.tmp"])
-        AppWindowPresenter.openIgnoreConfirmation(appState: rig.app)
         AppWindowPresenter.openCrashReport()
         defer { AppWindowPresenter.crashReportPanel?.close() }
         let panels: [(String, NSPanel?)] = [
             ("Erkennung", AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[0])),
             ("Ersetzen", AppWindowPresenter.replaceMediumPromptPanel(for: rig.app)),
-            ("Ignorieren", AppWindowPresenter.ignoreConfirmationPanel(for: rig.app)),
             ("Absturzbericht", AppWindowPresenter.crashReportPanel),
         ]
         for (name, panel) in panels {
@@ -218,14 +232,11 @@ struct PromptFocusStackTests {
         AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
         rig.app.replaceMediumPrompt = ReplaceMediumPrompt(newID: rig.ids[0], oldID: rig.ids[1], name: "STICK")
         AppWindowPresenter.openReplaceMediumPrompt(appState: rig.app)
-        rig.app.ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: 600, patterns: ["*.tmp"])
-        AppWindowPresenter.openIgnoreConfirmation(appState: rig.app)
         AppWindowPresenter.openCrashReport()
         defer { AppWindowPresenter.crashReportPanel?.close() }
         let panels: [(String, NSPanel?)] = [
             ("Erkennung", AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[0])),
             ("Ersetzen", AppWindowPresenter.replaceMediumPromptPanel(for: rig.app)),
-            ("Ignorieren", AppWindowPresenter.ignoreConfirmationPanel(for: rig.app)),
             ("Absturzbericht", AppWindowPresenter.crashReportPanel),
         ]
         for (name, panel) in panels {
@@ -285,7 +296,7 @@ struct PromptFocusStackTests {
         #expect(rig.focus.kinds.count == 2, "neuer Dialog ohne Fokus: \(rig.focus.kinds)")
     }
 
-    /// 209: Keiner der vier Dialoge schwebt über anderen Fenstern.
+    /// 209: Keiner der Dialoge schwebt über anderen Fenstern.
     @Test func noPanelFloats() throws {
         let rig = try Self.rig()
         defer { rig.close() }
@@ -293,14 +304,11 @@ struct PromptFocusStackTests {
         AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
         rig.app.replaceMediumPrompt = ReplaceMediumPrompt(newID: rig.ids[0], oldID: rig.ids[1], name: "STICK")
         AppWindowPresenter.openReplaceMediumPrompt(appState: rig.app)
-        rig.app.ignoreConfirmationPrompt = IgnoreConfirmationPrompt(count: 600, patterns: ["*.tmp"])
-        AppWindowPresenter.openIgnoreConfirmation(appState: rig.app)
         AppWindowPresenter.openCrashReport()
         defer { AppWindowPresenter.crashReportPanel?.close() }
         let panels: [(String, NSPanel?)] = [
             ("Erkennung", AppWindowPresenter.newMediumPanel(for: rig.app, mediumID: rig.ids[0])),
             ("Ersetzen", AppWindowPresenter.replaceMediumPromptPanel(for: rig.app)),
-            ("Ignorieren", AppWindowPresenter.ignoreConfirmationPanel(for: rig.app)),
             ("Absturzbericht", AppWindowPresenter.crashReportPanel),
         ]
         for (name, panel) in panels {

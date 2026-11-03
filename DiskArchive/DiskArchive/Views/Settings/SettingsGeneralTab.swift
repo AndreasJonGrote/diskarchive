@@ -290,14 +290,8 @@ struct SettingsGeneralTab: View {
     }
 
     private var notificationsDescriptionText: some View {
-        Group {
-            Text(LayoutCopy.noticesTextLead)
-                .foregroundStyle(DesignColor.text.opacity(0.6))
-            Text(LayoutCopy.noticesSystemAndPauses)
-                .foregroundStyle(DesignColor.text.opacity(0.6))
-            Text(LayoutCopy.noticesTextTail)
-                .foregroundStyle(DesignColor.text.opacity(0.6))
-        }
+        Text(LayoutCopy.noticesText)
+            .foregroundStyle(DesignColor.text.opacity(0.6))
         .font(.system(size: 12, weight: .regular))
         .fixedSize(horizontal: false, vertical: true)
     }

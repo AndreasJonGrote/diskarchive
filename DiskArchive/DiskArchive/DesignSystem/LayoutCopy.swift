@@ -22,25 +22,22 @@ nonisolated enum LayoutCopy {
     static var emptyNoFavoritesTitle: String { L10n.string("copy.empty.no_favorites.title") }
     static var emptyNoFavoritesMessage: String { L10n.string("copy.empty.no_favorites.message") }
     /// todo.0.4.043: Ladefläche der Favoriten (Fläche von „Keine Favoriten“ mit Spinner, ohne Untertitel).
-    /// todo.0.4.042/046: Umfang der Ladeansicht („Deine 12 Speichermedien und 48.230 Dateien …“), Einzahl eigene Texte.
+    /// todo.0.4.042/046: Umfang der Ladeansicht („Deine 12 Speichermedien und 48.230 Dateien …“); todo.0.4.3.005: ganze
+    /// Sätze aus Sektion 20, Einzahl beim Medium eigener Text.
     static func loadingSearchTitle(media: Int, files: Int) -> String {
-        L10n.format("copy.loading.search.title", loadingMedia(media), loadingFiles(files))
+        loadingTitle(one: "copy.loading.search.one", other: "copy.loading.search.other", media: media, files: files)
     }
 
     static func loadingFavoritesTitle(media: Int, files: Int) -> String {
-        L10n.format("copy.loading.favorites.title", loadingMedia(media), loadingFiles(files))
+        loadingTitle(one: "copy.loading.favorites.one", other: "copy.loading.favorites.other", media: media, files: files)
     }
 
     static var loadingOneMoment: String { L10n.string("copy.loading.subtitle") }
 
-    private static func loadingMedia(_ count: Int) -> String {
-        count == 1 ? L10n.string("copy.loading.media.one")
-            : L10n.format("copy.loading.media.other", DisplayNumberFormat.groupedInteger(count))
-    }
-
-    private static func loadingFiles(_ count: Int) -> String {
-        count == 1 ? L10n.string("copy.loading.files.one")
-            : L10n.format("copy.loading.files.other", DisplayNumberFormat.groupedInteger(count))
+    private static func loadingTitle(one: String, other: String, media: Int, files: Int) -> String {
+        let fileCount = DisplayNumberFormat.groupedInteger(files)
+        return media == 1 ? L10n.format(one, fileCount)
+            : L10n.format(other, DisplayNumberFormat.groupedInteger(media), fileCount)
     }
     static var autoIndex: String { L10n.string("copy.menu.auto_index") }
     static var on: String { L10n.string("copy.menu.on") }
@@ -78,8 +75,6 @@ nonisolated enum LayoutCopy {
     static var diskCrumb: String { L10n.string("copy.settings.scan_depth.disk_crumb") }
     static var maxDepthCrumb: String { L10n.string("copy.settings.scan_depth.max_depth_crumb") }
 
-    static var columnFilterTitle: String { L10n.string("copy.settings.column_filter.title") }
-    static var columnFilterText: String { L10n.string("copy.settings.column_filter.text") }
 
     static var excludeTitle: String { L10n.string("copy.settings.exclude.title") }
     static var excludeText: String { L10n.string("copy.settings.exclude.text") }
@@ -161,9 +156,8 @@ nonisolated enum LayoutCopy {
     static var no: String { L10n.string("copy.no") }
 
     static var noticesTitle: String { L10n.string("copy.settings.notices.title") }
-    static var noticesTextLead: String { L10n.string("copy.settings.notices.text_lead") }
-    static var noticesTextTail: String { L10n.string("copy.settings.notices.text_tail") }
-    static var noticesSystemAndPauses: String { L10n.string("copy.settings.notices.system_and_pauses") }
+    /// todo.0.4.3.005: ein Text (Sektion 20) statt drei Teilen.
+    static var noticesText: String { L10n.string("copy.settings.notices.text") }
     static var noticesToggle: String { L10n.string("copy.settings.notices.toggle") }
     static var noticesTurnedOn: String { L10n.string("copy.settings.notices.turned_on") }
     static var noticesTurnedOff: String { L10n.string("copy.settings.notices.turned_off") }
@@ -178,8 +172,13 @@ nonisolated enum LayoutCopy {
         L10n.format("copy.settings.notices.pause_until", time)
     }
 
-    static var previewIndexed: String { L10n.string("copy.settings.notices.preview_indexed") }
-    static var previewFavorites: String { L10n.string("copy.settings.notices.preview_favorites") }
+    /// todo.0.4.3.005: Vorschau = Text der echten Mitteilung mit den Beispielen aus Layout 05 („Masterarbeit Backup“,
+    /// 48.210 Objekte; „Unterwegs“ mit 1 Favoriten).
+    static var previewIndexed: String {
+        noticeIndexedComplete("Masterarbeit Backup", DisplayNumberFormat.groupedInteger(48_210))
+    }
+
+    static var previewFavorites: String { noticeFavoritesOnline(name: "Unterwegs", count: 1) }
 
     static var pruneTitle: String { L10n.string("copy.settings.prune.title") }
     static var pruneText: String { L10n.string("copy.settings.prune.text") }
@@ -229,13 +228,11 @@ nonisolated enum LayoutCopy {
     static var confirmed: String { L10n.string("copy.action.confirmed") }
     static var permissionLine: String { L10n.string("copy.permission.line") }
 
-    static func newMediumBody(name: String, type: String, size: String) -> String {
-        L10n.format("copy.new_medium.body", name, type, size)
+    /// todo.0.4.3.005: ohne Medientyp (Nutzer 02.11.).
+    static func newMediumBody(name: String, size: String) -> String {
+        L10n.format("copy.new_medium.body", name, size)
     }
 
-    static func ignoreConfirmTitle(count: Int) -> String {
-        L10n.format("copy.ignore_confirm.title", count)
-    }
     static var cancel: String { L10n.string("copy.common.cancel") }
 
     static func replaceMediumTitle(name: String) -> String {

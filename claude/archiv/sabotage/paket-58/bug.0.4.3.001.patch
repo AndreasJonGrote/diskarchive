@@ -1,0 +1,11 @@
+# Test: WindowTestGroup/PromptFocusStackTests/newMediumPanelStartsOnTheContentViewLikeTheOtherDialogs()
+--- a/DiskArchive/DiskArchive/App/AppWindowPresenter.swift
++++ b/DiskArchive/DiskArchive/App/AppWindowPresenter.swift
+@@ -413,7 +413,6 @@
+         hosting.layer?.backgroundColor = NSColor.clear.cgColor
+         // bug.0.4.3.001: Responder auf dem Inhalt wie bei den übrigen Dialogen (`show`); sonst wählt AppKit beim
+         // Key-Werden das erste fokussierbare Element („Für dieses Medium merken“) und zeichnet den Fokusrahmen.
+-        panel.makeFirstResponder(hosting)
+         return panel
+     }
+ 

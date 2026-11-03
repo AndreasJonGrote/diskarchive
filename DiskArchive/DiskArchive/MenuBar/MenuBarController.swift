@@ -226,11 +226,9 @@ final class MenuBarController: NSObject {
     }
 
     func makeContextMenu() -> NSMenu {
+        // todo.0.4.3.006 (Layout 01.01): „Disk Archive anzeigen“ · „Automatisch bei Systemstart“ · „Einstellungen …“ ·
+        // „Disk Archive beenden“; „Über“ und „Protokoll im Finder zeigen“ entfallen.
         let menu = NSMenu()
-        let aboutItem = NSMenuItem(title: LayoutCopy.menuBarAbout, action: #selector(showAbout), keyEquivalent: "")
-        aboutItem.target = self
-        menu.addItem(aboutItem)
-        menu.addItem(.separator())
         let openItem = NSMenuItem(title: LayoutCopy.menuBarShowApp, action: #selector(openMainWindow), keyEquivalent: "")
         openItem.target = self
         menu.addItem(openItem)
@@ -240,10 +238,9 @@ final class MenuBarController: NSObject {
         launchItem.target = self
         launchItem.state = (appState?.launchAtLoginState ?? .off) != .off ? .on : .off
         menu.addItem(launchItem)
-        menu.addItem(.separator())
-        let logItem = NSMenuItem(title: LayoutCopy.menuBarRevealLog, action: #selector(revealLog), keyEquivalent: "")
-        logItem.target = self
-        menu.addItem(logItem)
+        let settingsItem = NSMenuItem(title: LayoutCopy.appMenuSettings, action: #selector(openSettings), keyEquivalent: "")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
         #if DEBUG
         let crashItem = NSMenuItem(title: "Absturz testen", action: #selector(testCrash), keyEquivalent: "")
         crashItem.target = self
@@ -256,8 +253,9 @@ final class MenuBarController: NSObject {
         return menu
     }
 
-    @objc private func showAbout() {
-        AboutPanel.show()
+    @objc private func openSettings() {
+        guard let appState else { return }
+        AppMenuCommands.openSettings(appState: appState)
     }
 
     @objc private func openMainWindow() {
@@ -274,10 +272,6 @@ final class MenuBarController: NSObject {
             await Task.detached { register(enable) }.value
             appState?.refreshLaunchAtLoginState()
         }
-    }
-
-    @objc private func revealLog() {
-        DiskArchiveLog.shared.revealInFinder()
     }
 
     #if DEBUG

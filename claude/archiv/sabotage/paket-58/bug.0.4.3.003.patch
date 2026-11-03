@@ -1,0 +1,13 @@
+# Test: MediumDetailHeaderTests/headerHasNoTypeAndFollowsTheLanguage()
+--- a/DiskArchive/DiskArchive/Models/Medium+Detail.swift
++++ b/DiskArchive/DiskArchive/Models/Medium+Detail.swift
+@@ -12,7 +12,8 @@
+ 
+     /// bug.0.4.3.003: Kopfzeile im Details-Fenster ohne Medientyp, Wortlaut aus dem Katalog („Online“/„Offline“, 20).
+     var connectionDescription: String {
+-        connectionStatus == .connected ? LayoutCopy.chipOnline : LayoutCopy.chipOffline
++        let connection = connectionStatus == .connected ? "extern angeschlossen" : "offline"
++        return "\(type.displayName) · \(connection)"
+     }
+ 
+     var totalCapacityLabel: String {

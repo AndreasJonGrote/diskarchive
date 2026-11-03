@@ -81,6 +81,21 @@ nonisolated enum SearchFileTypeFilter: String, CaseIterable, Identifiable, Senda
         }
     }
 
+    /// bug.0.4.2.001: eine Quelle für Filter und Icon (`FileKind`), mit RAW-Formaten (Vorschlag Host, Backlog 0.4.3).
+    static let imageExtensions: Set<String> = [
+        "jpg", "jpeg", "png", "gif", "webp", "heic", "tif", "tiff", "svg", "nef", "cr2", "arw", "dng",
+        "cr3", "crw", "nrw", "raf", "orf", "rw2", "pef", "srw", "sr2", "srf", "rwl", "3fr", "fff", "iiq", "x3f", "mrw",
+        "kdc", "dcr", "erf", "gpr", "raw", "heif", "avif", "jxl", "bmp", "psd",
+    ]
+
+    static let videoExtensions: Set<String> = [
+        "mov", "mp4", "m4v", "avi", "mkv", "mts", "m2ts", "mxf", "webm", "mpg", "mpeg", "3gp",
+    ]
+
+    static let audioExtensions: Set<String> = [
+        "mp3", "wav", "aac", "m4a", "flac", "aif", "aiff", "ogg", "opus", "alac",
+    ]
+
     private static let officeExtensions: Set<String> = [
         "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pages", "numbers", "key", "odt", "ods", "odp",
     ]
@@ -100,11 +115,11 @@ nonisolated enum SearchFileTypeFilter: String, CaseIterable, Identifiable, Senda
                 .union(Self.text.databaseExtensions)
                 .union(Self.officeExtensions)
         case .image:
-            ["jpg", "jpeg", "png", "gif", "webp", "heic", "tif", "tiff", "svg", "nef", "cr2", "arw", "dng"]
+            Self.imageExtensions
         case .video:
-            ["mov", "mp4", "m4v", "avi", "mkv"]
+            Self.videoExtensions
         case .audio:
-            ["mp3", "wav", "aac", "m4a", "flac"]
+            Self.audioExtensions
         case .archive:
             ["zip", "rar", "7z", "tar", "gz", "bz2"]
         case .programs:

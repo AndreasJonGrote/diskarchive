@@ -584,10 +584,6 @@ nonisolated final class DiskArchiveLog: @unchecked Sendable {
         return CrashReportText.tail(text, limit: limit)
     }
 
-    @MainActor func revealInFinder() {
-        NSWorkspace.shared.activateFileViewerSelecting([fileURL])
-    }
-
     private func write(_ line: String, durable: Bool) {
         if durable, isOnDiskWriteQueue {
             // Absturz auf der Schreib-Queue selbst (Ausnahme im Schreiber): kein `sync` auf die eigene

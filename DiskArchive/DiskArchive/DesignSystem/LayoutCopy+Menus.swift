@@ -9,7 +9,6 @@
 import Foundation
 
 nonisolated extension LayoutCopy {
-    static var tableType: String { L10n.string("copy.table.column.type") }
     static var tableStatus: String { L10n.string("copy.table.column.status") }
     static var contextShowContent: String { L10n.string("copy.context.show_content") }
     static var contextDetails: String { L10n.string("copy.context.details") }
@@ -22,12 +21,15 @@ nonisolated extension LayoutCopy {
     static var contextIgnoreType: String { L10n.string("copy.context.ignore_type") }
     static var menuBarShowApp: String { L10n.string("copy.menubar.show_app") }
     static var menuBarLaunchAtLogin: String { L10n.string("copy.menubar.launch_at_login") }
-    static var menuBarRevealLog: String { L10n.string("copy.menubar.reveal_log") }
     static var menuBarQuit: String { L10n.string("copy.menubar.quit") }
     static var menuBarAbout: String { L10n.string("copy.menubar.about") }
     static var appMenuSettings: String { L10n.string("copy.appmenu.settings") }
     static func noticeIndexedComplete(_ a0: String, _ a1: String) -> String { L10n.format("copy.notice.indexed_complete", a0, a1) }
-    static func noticeFavoritesOnline(_ a0: String, _ a1: String) -> String { L10n.format("copy.notice.favorites_online", a0, a1) }
+    /// todo.0.4.3.005: Einzahl „mit 1 Favoriten“ eigener Text (Sektion 18/20).
+    static func noticeFavoritesOnline(name: String, count: Int) -> String {
+        count == 1 ? L10n.format("copy.notice.favorites_online_one", name)
+            : L10n.format("copy.notice.favorites_online", name, DisplayNumberFormat.groupedInteger(count))
+    }
     static var failureDisconnected: String { L10n.string("copy.failure.disconnected") }
     static var failureTimeout: String { L10n.string("copy.failure.timeout") }
     static var failureUnconfirmed: String { L10n.string("copy.failure.unconfirmed") }
@@ -45,7 +47,11 @@ nonisolated extension LayoutCopy {
     static var mediumDecisionPending: String { L10n.string("copy.medium.decision_pending") }
     static var mediumNoAccess: String { L10n.string("copy.medium.no_access") }
     static var mediumNotIndexedYet: String { L10n.string("copy.medium.not_indexed_yet") }
-    static func mediumFilesCount(_ a0: String) -> String { L10n.format("copy.medium.files_count", a0) }
+    /// todo.0.4.3.005: Einzahl „1 Datei“.
+    static func mediumFilesCount(_ count: Int) -> String {
+        count == 1 ? L10n.string("copy.medium.files_count_one")
+            : L10n.format("copy.medium.files_count", DisplayNumberFormat.groupedInteger(count))
+    }
     static func mediumFreeOfTotal(_ a0: String, _ a1: String) -> String { L10n.format("copy.medium.free_of_total", a0, a1) }
     static var menuShowOneResult: String { L10n.string("copy.menu.show_one_result") }
     static func menuShowAllResults(_ a0: Int) -> String { L10n.format("copy.menu.show_all_results", a0) }
@@ -91,11 +97,10 @@ nonisolated extension LayoutCopy {
 
     static var popoverNoneConnected: String { L10n.string("copy.hint.popover_none_connected") }
     static var popoverNoneIndexedConnected: String { L10n.string("copy.hint.popover_none_indexed_connected") }
-    static var noResultsForFilters: String { L10n.string("copy.search.no_results_for_filters") }
-    static func noResults(_ a0: String) -> String { L10n.format("copy.search.no_results_for", a0) }
+    /// todo.0.4.3.005: Suche leer, ein Leerzustand für Suchbegriff und Filter.
+    static var searchNoResultsTitle: String { L10n.string("copy.search.no_results.title") }
+    static var searchNoResultsMessage: String { L10n.string("copy.search.no_results.message") }
     static func popoverNoHits(_ a0: String) -> String { L10n.format("copy.search.popover_no_hits", a0) }
-    static var noFavoritesForFilters: String { L10n.string("copy.favorites.none_for_filters") }
-    static var noFavoritedObjects: String { L10n.string("copy.favorites.none") }
     static var resetAllFiltersHelp: String { L10n.string("copy.filter.reset_all") }
     static var filterLinkedWithAnd: String { L10n.string("copy.filter.linked_with_and") }
     static var filterLinkWithAnd: String { L10n.string("copy.filter.link_with_and") }

@@ -31,9 +31,6 @@ struct RegistryTableRow: View {
             .buttonStyle(.plainFullHit)
             .pointerCursor()
 
-            Text(medium.type.displayName)
-                .frame(width: RegistryTableLayout.typeWidth, alignment: .leading)
-
             StatusChip(medium: medium)
                 .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
                 .padding(.trailing, 6)

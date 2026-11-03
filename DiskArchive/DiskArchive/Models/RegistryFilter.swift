@@ -38,7 +38,6 @@ enum RegistryFilter: String, CaseIterable, Identifiable {
 
 enum RegistrySortColumn: String, CaseIterable {
     case name
-    case type
     case indexing
 }
 

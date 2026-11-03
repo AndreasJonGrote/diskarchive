@@ -160,108 +160,6 @@
         }
       }
     },
-    "copy.loading.favorites.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ und %2$@ werden gefiltert …"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Filtering %1$@ and %2$@ …"
-          }
-        }
-      }
-    },
-    "copy.loading.files.one" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 Datei"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "1 file"
-          }
-        }
-      }
-    },
-    "copy.loading.files.other" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ Dateien"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ files"
-          }
-        }
-      }
-    },
-    "copy.loading.media.one" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dein 1 Speichermedium"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "your 1 storage medium"
-          }
-        }
-      }
-    },
-    "copy.loading.media.other" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deine %1$@ Speichermedien"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "your %1$@ storage media"
-          }
-        }
-      }
-    },
-    "copy.loading.search.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ und %2$@ werden durchsucht …"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Searching %1$@ and %2$@ …"
-          }
-        }
-      }
-    },
     "copy.loading.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -336,13 +234,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disk Archive weist dich darauf hin, sobald eine neue Version verfügbar ist."
+            "value" : "Ist eine neue Version von Disk Archive verfügbar, erscheint ein Dialog mit allen Details zum Update."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disk Archive lets you know as soon as a new version is available."
+            "value" : "When a new version of Disk Archive is available, a dialog shows all update details."
           }
         }
       }
@@ -1207,13 +1105,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline — Inhalt aus dem Index, zum Öffnen bitte anschließen"
+            "value" : "Offline"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Offline — content from the index; connect to open"
+            "value" : "Offline"
           }
         }
       }
@@ -1700,13 +1598,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Index konnte nicht gespeichert werden."
+            "value" : "Der Index auf diesem Mac lässt sich gerade nicht beschreiben."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "The index could not be saved."
+            "value" : "The index on this Mac can’t be written right now."
           }
         }
       }
@@ -1775,40 +1673,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Couldn’t confirm the medium."
-          }
-        }
-      }
-    },
-    "copy.favorites.none" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine favorisierten Objekte"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No favorite items"
-          }
-        }
-      }
-    },
-    "copy.favorites.none_for_filters" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Favoriten für die gesetzten Filter"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No favorites for the current filters"
           }
         }
       }
@@ -2182,23 +2046,6 @@
         }
       }
     },
-    "copy.ignore_confirm.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Einträge ignorieren?"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ignore %lld items?"
-          }
-        }
-      }
-    },
     "copy.common.cancel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2483,7 +2330,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Folders"
+            "value" : "Folder"
           }
         }
       }
@@ -2653,7 +2500,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Show contents"
+            "value" : "Show Contents"
           }
         }
       }
@@ -2998,23 +2845,6 @@
         }
       }
     },
-    "copy.menubar.reveal_log" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Protokoll im Finder zeigen"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Show Log in Finder"
-          }
-        }
-      }
-    },
     "copy.menubar.show_app" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3038,13 +2868,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„%1$@“ (%2$@, %3$@) wurde angeschlossen. Soll sie indiziert werden?"
+            "value" : "„%1$@“ (%2$@) wurde angeschlossen. Soll sie indiziert werden?"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“%1$@” (%2$@, %3$@) was connected. Should it be indexed?"
+            "value" : "“%1$@” (%2$@) was connected. Should it be indexed?"
           }
         }
       }
@@ -3158,13 +2988,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Medium „%1$@“ mit %2$@ Favoriten ist online"
+            "value" : "Medium „%1$@“ mit %2$@ Favoriten ist online."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Medium “%1$@” with %2$@ favorites is online"
+            "value" : "“%1$@” with %2$@ Favorites is online."
           }
         }
       }
@@ -3192,13 +3022,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Medium „%1$@“ ist vollständig indiziert – %2$@ Objekte"
+            "value" : "Medium „%1$@“ ist vollständig indiziert – %2$@ Objekte."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Medium “%1$@” is fully indexed – %2$@ items"
+            "value" : "“%1$@” is fully indexed – %2$@ items."
           }
         }
       }
@@ -3555,7 +3385,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Searches all indexed storage — including offline."
+            "value" : "Searches all indexed storage media — including offline."
           }
         }
       }
@@ -3573,40 +3403,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Enter a search term or use filters"
-          }
-        }
-      }
-    },
-    "copy.search.no_results_for" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Ergebnisse für „%1$@“"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No results for “%1$@”"
-          }
-        }
-      }
-    },
-    "copy.search.no_results_for_filters" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Treffer für die gesetzten Filter"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No matches for the current filters"
           }
         }
       }
@@ -3827,7 +3623,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disk Archive starts in the menu bar at login so connected storage is detected immediately."
+            "value" : "Disk Archive starts in the menu bar at login so connected storage media are detected immediately."
           }
         }
       }
@@ -3862,40 +3658,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Start at login"
-          }
-        }
-      }
-    },
-    "copy.settings.column_filter.text" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Legt fest, wie sich gesetzte Dateityp- und Endungsfilter beim Durchblättern von Ordnern verhalten."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Controls how file type and extension filters apply while browsing folders."
-          }
-        }
-      }
-    },
-    "copy.settings.column_filter.title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DATEITYP-FILTER IN DER SPALTENANSICHT"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FILE TYPE FILTER IN COLUMN VIEW"
           }
         }
       }
@@ -4110,13 +3872,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sprache der Benutzeroberfläche. Die Änderung gilt sofort."
+            "value" : "Sprache der Benutzeroberfläche. Die Änderung gilt sofort, ohne Neustart."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Language of the user interface. The change applies immediately."
+            "value" : "Language of the app. Changes apply right away, no restart needed."
           }
         }
       }
@@ -4291,40 +4053,6 @@
         }
       }
     },
-    "copy.settings.notices.preview_favorites" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Medium „Archiv 2019–2021“ mit 7 Favoriten ist online"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Medium “Archive 2019–2021” with 7 favorites is online"
-          }
-        }
-      }
-    },
-    "copy.settings.notices.preview_indexed" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Medium „Archiv 2019–2021“ ist vollständig indiziert – 48.210 Objekte"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Medium “Archive 2019–2021” is fully indexed – 48,210 items"
-          }
-        }
-      }
-    },
     "copy.settings.notices.preview_system" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4355,57 +4083,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "System messages"
-          }
-        }
-      }
-    },
-    "copy.settings.notices.system_and_pauses" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Systemmeldungen umfassen Hinweise zu Fehlern und zu Pausen."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "System messages include notes on errors and pauses."
-          }
-        }
-      }
-    },
-    "copy.settings.notices.text_lead" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pro Ereignis einzeln wählbar. "
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Choose each event individually. "
-          }
-        }
-      }
-    },
-    "copy.settings.notices.text_tail" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : " „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : " “Fully indexed” appears only if the scan took longer than 59 seconds (including reconcile or re-index). If “Enable notifications” is off, events are disabled. macOS asks once at first launch; if denied, change it only in macOS System Settings › Notifications."
           }
         }
       }
@@ -4609,7 +4286,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Disk"
+            "value" : "Drive"
           }
         }
       }
@@ -4835,23 +4512,6 @@
         }
       }
     },
-    "copy.table.column.type" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Typ"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Type"
-          }
-        }
-      }
-    },
     "copy.table.date" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4933,6 +4593,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Yes"
+          }
+        }
+      }
+    },
+    "copy.loading.favorites.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein 1 Speichermedium und %1$@ Dateien werden gefiltert …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtering your 1 storage medium and %1$@ files …"
+          }
+        }
+      }
+    },
+    "copy.loading.favorites.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine %1$@ Speichermedien und %2$@ Dateien werden gefiltert …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtering your %1$@ storage media and %2$@ files …"
+          }
+        }
+      }
+    },
+    "copy.loading.search.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein 1 Speichermedium und %1$@ Dateien werden durchsucht …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching your 1 storage medium and %1$@ files …"
+          }
+        }
+      }
+    },
+    "copy.loading.search.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deine %1$@ Speichermedien und %2$@ Dateien werden durchsucht …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Searching your %1$@ storage media and %2$@ files …"
+          }
+        }
+      }
+    },
+    "copy.medium.files_count_one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 file"
+          }
+        }
+      }
+    },
+    "copy.notice.favorites_online_one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Medium „%1$@“ mit 1 Favoriten ist online."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” with 1 Favorite is online."
+          }
+        }
+      }
+    },
+    "copy.search.no_results.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchbegriff ändern oder Filter entfernen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try a different search term or remove filters."
+          }
+        }
+      }
+    },
+    "copy.search.no_results.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Suchergebnisse"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No results"
+          }
+        }
+      }
+    },
+    "copy.settings.notices.text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro Ereignis einzeln wählbar. Systemmeldungen umfassen Hinweise zu Fehlern und zu abgelaufenen Pausen. „Vollständig indiziert“ erscheint nur, wenn der Scan länger als 59 Sekunden gedauert hat (auch bei einem Abgleich oder „Neu indizieren“). Ist „Mitteilungen aktivieren“ aus, sind die Ereignisse deaktiviert. Beim ersten Start fragt macOS einmalig, ob Mitteilungen erlaubt werden. Wurde das abgelehnt, lässt es sich nur in den macOS-Systemeinstellungen unter „Mitteilungen“ ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose each event individually. System messages cover errors and ended pauses. “Fully indexed” only appears if the scan took longer than 59 seconds (also when syncing or re-indexing). If “Enable notifications” is off, the events are turned off. On first launch, macOS asks once whether to allow notifications. If you declined, you can only change this in macOS System Settings under “Notifications”."
           }
         }
       }

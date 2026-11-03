@@ -25,7 +25,6 @@ enum AppWindowPresenter {
     /// Rückfrage-Panels je `AppState`-Instanz (bug.0.3.9.005 c): in der App genau eins je Art; Tests mit eigener
     /// Instanz sehen und schließen nie das Panel eines anderen Tests.
     private static var replaceMediumPanels: [ObjectIdentifier: NSPanel] = [:]
-    private static var ignoreConfirmPanels: [ObjectIdentifier: NSPanel] = [:]
     private static var windowDelegates: [ObjectIdentifier: PresenterWindowDelegate] = [:]
 
     #if DEBUG
@@ -245,9 +244,7 @@ enum AppWindowPresenter {
     /// sichtbares Panel stehen.
     static func closePromptPanels(for appState: AppState? = nil) {
         let key = appState.map(ObjectIdentifier.init)
-        let panels = [replaceMediumPanels, ignoreConfirmPanels].flatMap { panels in
-            panels.filter { key == nil || $0.key == key }.map(\.value)
-        }
+        let panels = replaceMediumPanels.filter { key == nil || $0.key == key }.map(\.value)
         for panel in panels {
             panel.orderOut(nil)
             panel.contentView = nil
@@ -294,43 +291,6 @@ enum AppWindowPresenter {
         }
         bringForward(panel, placement: .centered, appState: appState, kind: "ersetzen")
     }
-
-    /// Rückfrage vor dem Ignorieren vieler Ziele (bug.0.4.035), gleiches Panel wie die Medium-Rückfrage.
-    static func openIgnoreConfirmation(appState: AppState, placement requested: PromptPanelPlacement = .centered) {
-        guard appState.ignoreConfirmationPrompt != nil else { return }
-        let placement = effectivePlacement(requested)
-        let key = ObjectIdentifier(appState)
-        // bug.0.4.209: schon offen → den Fokus nicht neu anfordern.
-        guard ignoreConfirmPanels[key] == nil else { return }
-        let hosting = NSHostingView(
-            rootView: IgnoreConfirmDialogWindowHost(onDone: { ignoreConfirmPanels[key]?.close() })
-                .environment(appState)
-        )
-        let panel = DialogPanel(
-            contentRect: NSRect(origin: .zero, size: hosting.fittingSize),
-            styleMask: [.borderless],
-            backing: .buffered,
-            defer: false
-        )
-        configureDialogPanel(panel)
-        panel.contentView = hosting
-        hosting.wantsLayer = true
-        hosting.layer?.backgroundColor = NSColor.clear.cgColor
-        register(panel) { [weak appState] in
-            ignoreConfirmPanels[key] = nil
-            appState?.ignoreConfirmationPrompt = nil
-        }
-        ignoreConfirmPanels[key] = panel
-        place(panel, placement: placement)
-        show(panel, placement: placement, appState: appState, kind: "ignorieren")
-    }
-
-    #if DEBUG
-    /// Offenes Ignorier-Panel dieser Instanz (Tests, bug.0.3.9.005 c).
-    static func ignoreConfirmationPanel(for appState: AppState) -> NSPanel? {
-        ignoreConfirmPanels[ObjectIdentifier(appState)]
-    }
-    #endif
 
     #if DEBUG
     /// Offenes Panel „Ersetzt dieses Medium?“ dieser Instanz (Tests, bug.0.3.9.005 c).
@@ -451,6 +411,9 @@ enum AppWindowPresenter {
         panel.contentView = hosting
         hosting.wantsLayer = true
         hosting.layer?.backgroundColor = NSColor.clear.cgColor
+        // bug.0.4.3.001: Responder auf dem Inhalt wie bei den übrigen Dialogen (`show`); sonst wählt AppKit beim
+        // Key-Werden das erste fokussierbare Element („Für dieses Medium merken“) und zeichnet den Fokusrahmen.
+        panel.makeFirstResponder(hosting)
         return panel
     }
 

@@ -65,7 +65,7 @@ struct PendingRuleResultsTests {
         try #require(app.favoriteObjects.count == SearchIndex.pageLimit)
         try #require(app.favoriteItemCount == 640)
         await rig.store.setReconcileBatchDelay(.milliseconds(600))
-        app.requestIgnore(hidden, targetCount: 1)
+        app.toggleIgnoredPatterns(hidden)
         try #require(app.isRuleReconcileQueueActive)
         var seen: [Int?] = [app.favoriteItemCount]
         // Neuladen der Seite während der Warteschlange (wie nach einem Favoriten-Umschalten).
@@ -88,7 +88,7 @@ struct PendingRuleResultsTests {
         await app.reloadFavorites()
         try #require(app.favoriteItemCount == 3)
         await rig.store.setReconcileBatchDelay(.milliseconds(300))
-        app.requestIgnore(["weg.tmp"], targetCount: 1)
+        app.toggleIgnoredPatterns(["weg.tmp"])
         #expect(app.favoriteItemCount == 2)
         await app.reloadFavorites()
         #expect(app.favoriteItemCount == 2)
@@ -105,7 +105,7 @@ struct PendingRuleResultsTests {
         await app.runSearch()
         try #require(app.searchMatch.items.count == 3)
         await rig.store.setReconcileBatchDelay(.milliseconds(300))
-        app.requestIgnore(["weg-1.tmp"], targetCount: 1)
+        app.toggleIgnoredPatterns(["weg-1.tmp"])
         try #require(app.isRuleReconcileQueueActive)
         #expect(!app.searchMatch.items.contains { $0.name == "weg-1.tmp" }, "nicht an Ort und Stelle ausgeblendet")
         // Neue Seite (anderer Sortierklick) während der Warteschlange.
@@ -133,7 +133,7 @@ struct PendingRuleResultsTests {
         let names = { app.popoverResults.groups.flatMap(\.hits).map(\.title) }
         try #require(await waitUntil { names().count == 2 }, "Popover-Treffer: \(names())")
         await rig.store.setReconcileBatchDelay(.milliseconds(400))
-        app.requestIgnore(["weg-1.tmp"], targetCount: 1)
+        app.toggleIgnoredPatterns(["weg-1.tmp"])
         try #require(app.isRuleReconcileQueueActive)
         #expect(!names().contains("weg-1.tmp"), "Popover-Treffer nicht an Ort und Stelle ausgeblendet")
         // Neue Eingabe während der Warteschlange.
