@@ -123,7 +123,7 @@ Zu 0.4.1 gehören außerdem `todo.0.4.021` (Download-Seite mit Anleitung), der A
 
 | Kennung | Inhalt |
 |---|---|
-| `todo.0.5.003` | **Leere Spalte bei aktivem Filter (Nutzer 26.10., Abnahmerunde):** Ein Ordner, in dem der aktive Filter alles ausblendet, zeigt in der Spaltenansicht weder Inhalt noch Ladeanzeige noch Hinweis (Beispiel: großer Ordner auf „Daten“, Filter aktiv). Kein Fehler, das Verhalten ist richtig. Im neuen Layout einen Hinweis vorsehen, etwa „Filter aktiv – n Einträge ausgeblendet“ mit „Filter zurücksetzen“. Text und Gestaltung im Layout. |
+| ~~`todo.0.5.003`~~ | **Entfällt, aufgegangen in Layout 07.02.04 „Keine passenden Objekte“ (Paket 61, `todo.0.4.3.016`).** **Leere Spalte bei aktivem Filter (Nutzer 26.10., Abnahmerunde):** Ein Ordner, in dem der aktive Filter alles ausblendet, zeigt in der Spaltenansicht weder Inhalt noch Ladeanzeige noch Hinweis (Beispiel: großer Ordner auf „Daten“, Filter aktiv). Kein Fehler, das Verhalten ist richtig. Im neuen Layout einen Hinweis vorsehen, etwa „Filter aktiv – n Einträge ausgeblendet“ mit „Filter zurücksetzen“. Text und Gestaltung im Layout. |
 
 ### 0.5 bis 1.0 (Entwürfe, jede Funktion vor dem Start einzeln besprechen; Details ROADMAP)
 

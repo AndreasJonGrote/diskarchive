@@ -8,7 +8,7 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md). Pfade relativ
 - **Nicht in 0.4.3** (bleiben in der App verborgen, auch wenn das Layout sie zeigt): Reiter „Systeminformationen“ (05.04, ohne Zielversion) und „Lizenz“ (05.05–05.07, ab 1.0); Schalter „Metadaten laden“ und „Vorschaubilder erzeugen“ (05.01, ab 0.5/0.6); Metadaten-Felder, Vorschau und die Zustände 07.04.10–13 (ab 0.5/0.6).
 - Sabotage-Patch (Regel 9) je Verhaltensänderung. Läufe per `Werkzeuge/pruefung.sh schnell …` (ohne `S=`), kein Git. **Vor „Bereit zur Prüfung“** alle Suites mit `Column`, `Settings`, `Registry`, `Filter`, `Detail`, `Folder`, `Pixel`, `Layout` oder `L10n` im Namen.
 
-**Reihenfolge (HALT am Ende):** `todo.0.4.3.016` → `todo.0.4.3.017` → `todo.0.4.3.018` → `todo.0.4.3.019`. **HALT.**
+**Reihenfolge (HALT am Ende):** `todo.0.4.3.016` → `todo.0.4.3.017` → `todo.0.4.3.018` → `todo.0.4.3.019` → `todo.0.4.3.023`. **HALT.**
 
 ## Aufgaben
 
@@ -37,4 +37,14 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md). Pfade relativ
   - Archivo aus `Werkzeuge/fonts/archivo/Archivo-Variable.ttf` ins Bundle aufnehmen (mit `OFL.txt`), beim Start registrieren. Überall, wo das Layout Archivo setzt (Titel von Kacheln und Fenstern, 17 pt / 800 laut 19; weitere Stellen laut Layout), Archivo statt System-Fett. Fehlt die Schrift zur Laufzeit, Rückfall auf System-Fett.
   - „Belegt“ (06.01) und Dialog 16.02 „Auswerfen abgelehnt“ mit Text aus 20 und Knopf „Erneut versuchen“ (wirft erneut aus) statt der vorläufigen Fassung aus Paket 59.
   - **Test:** Schrift registriert und an den Titeln verwendet; 16.02 mit Aktion. Sabotage-Patch für „Erneut versuchen“.
+  - **Status:**
+
+- **todo.0.4.3.023 — Kleintexte, Einzahl, Tooltips (Host 03.11., Rest aus dem Layout-Abgleich, E6):**
+  - **Medium-Suche (07.03):** über den Treffern Kopf „{1} TREFFER“ (Großbuchstaben wie „ALLE SPEICHERMEDIEN“), Suchbegriff im Namen fett.
+  - **Kontextmenü (12):** bei Ordnern „Ordnernamen ignorieren“, bei Dateien „Dateinamen ignorieren“ (heute immer „Dateinamen …“).
+  - **Einzahl laut 20** überall, wo eine Zahl vor einem Wort steht: „1 Datei“, „1 Objekt“, „1 Speichermedium“, „1 Favorit“, „1 Ergebnis anzeigen“, „noch 1 Tag“ usw. (`.xcstrings`-Pluralformen oder eigener Schlüssel, wie im Projekt üblich).
+  - **Datumsregel (19)** für „Zuletzt gesehen“/„Zuletzt indiziert“ an allen Stellen gleich, inkl. „vor {1} Monaten“.
+  - **Tooltips laut 19** („Tooltips und Einzahl“) an Werkzeugleiste, Filterleiste (Verknüpfung „Oder“/„Und“), Chips und Knöpfen; fehlt einer in 20, „Frage:“.
+  - `copy.settings.notices.text` stimmt jetzt mit 20 überein → aus `openQuestions` nehmen.
+  - **Test:** Einzahl/Mehrzahl je Stelle (1 und 2), Menüpunkt je Objektart, Treffer-Kopf. Kein Sabotage-Patch nötig (nur Texte).
   - **Status:**

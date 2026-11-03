@@ -328,8 +328,8 @@
    },
    {
     "de": "Erneut versuchen",
-    "en": "Try again",
-    "neu": false
+    "en": "Try Again",
+    "neu": true
    },
    {
     "de": "Zur neuen Version",
@@ -1766,11 +1766,6 @@
    {
     "de": "„{1}“ konnte nicht ausgeworfen werden, weil ein anderes Programm es gerade benutzt. Schließe dort geöffnete Dateien und versuche es erneut.",
     "en": "“{1}” couldn’t be ejected because another app is using it. Close any open files on it and try again.",
-    "neu": true
-   },
-   {
-    "de": "Erneut versuchen",
-    "en": "Try Again",
     "neu": true
    }
   ]

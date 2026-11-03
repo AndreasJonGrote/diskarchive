@@ -3,7 +3,7 @@
 Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md). Pfade relativ zu `claude/`; Code, `layout/`, `Werkzeuge/` im Hauptverzeichnis. **Drittes von sechs Paketen für 0.4.3: Erkennung und Popover.** Vorlage: Layout 00 („Anschließen und Erkennen“, „Status“), 01, 02 (02.01–02.03), 03 (alle Varianten, 03.09–03.11), 04 (Chip „Wird geprüft“, 04.01a), 19. Konzept: `konzept/medien.md`, `konzept/lauf-lebenszyklus.md`.
 
 **Für dieses Paket gilt:**
-- **Texte nur aus `layout/App-Layout 20 Texte.json`** (DE/EN); die 3 Schlüssel mit `pendingPackage = 60` in `LayoutCopyTests` hier erledigen, dazu `copy.a11y.overview` → „Zur Übersicht“ aus 20 (aus `openQuestions` nehmen). Fehlt ein Text: „Frage:“ (Regel 2).
+- **Texte nur aus `layout/App-Layout 20 Texte.json`** (DE/EN); die 3 Schlüssel mit `pendingPackage = 60` in `LayoutCopyTests` hier erledigen, dazu `copy.a11y.overview` → „Zur Übersicht“ aus 20 (aus `openQuestions` nehmen). **Layout 03.11. (5):** `copy.action.retry` englisch „Try Again“ statt „Try again“ (sonst wird `LayoutCopyTests` rot). Fehlt ein Text: „Frage:“ (Regel 2).
 - **Icons** nur aus `Werkzeuge/phosphor/` (Regel 4a). **Maße und Farben** aus dem Layout; Fade erst am Ende.
 - **Die Lauf-Regeln bleiben** (`konzept/lauf-lebenszyklus.md`, Fenster dort „bewusst offen“). Dieses Paket ändert, was angezeigt wird, nicht wann ein Lauf startet oder endet. Braucht ein Zustand eine neue Information aus dem Lauf, „Frage:“ statt Umbau.
 - Sabotage-Patch (Regel 9) je Verhaltensänderung. Läufe per `Werkzeuge/pruefung.sh schnell …` (ohne `S=`), kein Git. **Vor „Bereit zur Prüfung“** alle Suites mit `Popover`, `MenuBar`, `Dashboard`, `NewMedium`, `Replace`, `Prompt`, `Recognition`, `Medium` oder `Pixel` im Namen laufen lassen (Lehre aus Paket 59).

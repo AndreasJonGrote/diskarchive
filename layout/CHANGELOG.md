@@ -2,6 +2,11 @@
 
 Neueste Einträge oben. Datei: `App: Layout.dc.html`, sofern nicht anders angegeben. Seit 2026-10-31 aufgeteilt in `App-Layout 00-03 …` bis `App-Layout 18 …`, Gesamtansicht in `App-Layout Gesamt.dc.html`.
 
+## 2026-11-03 (5)
+
+- 20 Texte: „Erneut versuchen“ stand doppelt (04 „Try again“, 16 „Try Again“). Nur noch in 04, englisch „Try Again“ (Knopf, macOS-Großschreibung), als „neu“ markiert; Eintrag in 16 entfernt.
+- 350 Texte, davon 134 „neu“; jeder deutsche Text steht genau einmal.
+
 ## 2026-11-03 (4)
 
 - 16.02 „Unerwarteter Fehler – Auswerfen abgelehnt“ neu (hell und dunkel, Aufbau wie 16): „Schließen“ und „Erneut versuchen“.
