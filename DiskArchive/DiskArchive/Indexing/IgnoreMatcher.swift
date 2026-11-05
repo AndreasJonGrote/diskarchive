@@ -156,4 +156,7 @@ nonisolated enum ScanHalt: Sendable, Equatable {
 nonisolated enum IndexRunPhase: Sendable, Equatable {
     case counting
     case indexing
+    /// todo.0.4.3.013: nur Anzeige – gespeichert „wird indiziert“, aber noch kein Lauf aktiv (Wiedererkennen); der Lauf
+    /// meldet seine Phase selbst, sobald er läuft.
+    case awaitingRun
 }

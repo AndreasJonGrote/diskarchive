@@ -1,0 +1,12 @@
+# Test: StoreLoadingViewTests/spinnerTextGapAndPopoverHeight(appearance:)
+--- a/DiskArchive/DiskArchive/Views/StoreLoadingView.swift
++++ b/DiskArchive/DiskArchive/Views/StoreLoadingView.swift
+@@ -12,7 +12,7 @@
+     var inPopover = false
+ 
+     /// Layout 07.02.08: Spinner 20 (Strich 2,5), 10 darunter der Text 12 halbfett.
+-    static let spacing: CGFloat = 10
++    static let spacing: CGFloat = 8
+ 
+     var body: some View {
+         VStack(spacing: Self.spacing) {

@@ -32,6 +32,9 @@ struct StatusChip: View {
             if appState.globalAutoIndexPaused, medium.indexStatus == .indexing || appState.hasLiveProgress(medium.id) {
                 Image(systemName: "pause.fill")
                     .font(.system(size: 7, weight: .bold))
+            } else if kind.pulse {
+                // todo.0.4.3.013: „Wird geprüft“ – pulsierender grüner Punkt.
+                PulsingDot(color: color, size: 7)
             } else if kind.spinner {
                 IndexingSpinnerRing()
                     .scaleEffect(0.65)
@@ -82,6 +85,7 @@ enum MediumChip {
         var offlineGray: Bool
         var error: Bool
         var spinner: Bool
+        var pulse: Bool = false
     }
 
     static func presentation(
@@ -92,11 +96,19 @@ enum MediumChip {
         let connected = medium.connectionStatus == .connected
         let percent = IndexProgress.percent(displayedFraction ?? medium.indexProgressFraction)
         let stillShowing = displayedFraction != nil
+        // todo.0.4.3.013 (Layout 04): neu oder wieder angeschlossen, vor dem Start bzw. beim Zählen – ohne Prozent.
+        if medium.isChecking(paused: globalAutoIndexPaused) {
+            return Presentation(text: LayoutCopy.chipChecking, dashed: true, offlineGray: false, error: false, spinner: false, pulse: true)
+        }
         if !medium.hasIndex {
+            // Korrektur K1 (Paket 60): Ablehnung gewinnt immer, auch während eines Laufs.
             if medium.decision.refusesIndexing {
                 return Presentation(text: LayoutCopy.chipNotAllowed, dashed: false, offlineGray: true, error: false, spinner: false)
             }
-            return Presentation(text: LayoutCopy.chipPending, dashed: true, offlineGray: false, error: false, spinner: false)
+            // todo.0.4.3.013 (Layout 04): nach „Wird geprüft“ folgt „{n} % indiziert“, auch bevor erste Einträge stehen.
+            if !(connected && medium.indexStatus == .indexing) {
+                return Presentation(text: LayoutCopy.chipPending, dashed: true, offlineGray: false, error: false, spinner: false)
+            }
         }
         if medium.indexStatus == .error {
             return Presentation(

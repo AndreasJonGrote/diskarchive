@@ -121,8 +121,13 @@ nonisolated enum LayoutCopy {
     static func searchFilterDeselectMatching(_ term: String) -> String { L10n.format("copy.search.filter_deselect_matching", term) }
     /// Popover-Suche: Gruppenüberschriften (bug.0.4.058).
     static var popoverGroupMedia: String { L10n.string("copy.popover_search.group.media") }
-    static var popoverGroupFiles: String { L10n.string("copy.popover_search.group.files") }
-    static var popoverGroupFolders: String { L10n.string("copy.popover_search.group.folders") }
+    /// todo.0.4.3.014: „Dateien“/„Ordner“ aus Sektion 20, als Gruppenkopf in Großbuchstaben (Layout 03).
+    static var popoverGroupFiles: String { files.uppercased(with: L10n.locale()) }
+    /// Korrektur K2 (Paket 60, Host): Gruppe in der Mehrzahl wie „FILES“ – „Ordner“ in 20 ist der Filtertyp (Einzahl
+    /// „Folder“), daher eigener Schlüssel.
+    static var popoverGroupFolders: String {
+        L10n.string("copy.popover_search.group.folders").uppercased(with: L10n.locale())
+    }
     /// Menüleiste, Ruhezustand: Abschnittsüberschrift (bug.0.4.058).
     static var menuConnectedHeader: String { L10n.string("copy.menu.connected") }
     /// Suchfilter: Gruppenüberschriften (bug.0.4.058).

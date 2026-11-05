@@ -12,8 +12,12 @@ struct MenuBarPopoverSearchContent: View {
 
     var body: some View {
         let results = appState.popoverResults
+        let phase = appState.popoverSearchPhase
 
-        if let scrollHeight = MenuBarPopoverLayout.searchScrollAreaHeight(
+        // todo.0.4.3.014: ohne Treffer erst warten (vorige Treffer bleiben), dann Hinweis bzw. „Keine Suchergebnisse“.
+        if results.groups.isEmpty || phase == .hint {
+            PopoverSearchStateView(phase: results.groups.isEmpty && phase == .settled ? .settled : phase)
+        } else if let scrollHeight = MenuBarPopoverLayout.searchScrollAreaHeight(
             groups: results.groups,
             totalCount: results.totalCount
         ) {
@@ -41,19 +45,57 @@ struct MenuBarPopoverSearchContent: View {
                 }
             }
 
-            if results.totalCount == 0 {
-                // bug.0.4.060: eine Zeile mit Verlauf statt „…“ (zentraler Baustein), passt in die feste Höhe
-                // aus `MenuBarPopoverLayout.searchContentHeight`.
-                FadeMaskText(
-                    text: LayoutCopy.popoverNoHits(query.trimmingCharacters(in: .whitespacesAndNewlines)),
-                    applyFadeMask: true,
-                    font: .system(size: 12.5),
-                    foreground: DesignColor.text.opacity(0.55)
-                )
-            }
         }
         .padding(.horizontal, MenuBarPopoverLayout.searchHorizontalPadding)
         .padding(.vertical, MenuBarPopoverLayout.searchVerticalPadding)
+    }
+}
+
+/// todo.0.4.3.014 (Layout 03.03/03.04): Fläche statt Treffern – Suche dauert länger (blauer Spinner, Umfang) oder kein
+/// Ergebnis (Lupe, „Keine Suchergebnisse“, „Suchbegriff ändern.“). Mindesthöhe 180, Fläche 5 % Textfarbe.
+struct PopoverSearchStateView: View {
+    @Environment(AppState.self) private var appState
+    let phase: PopoverSearchPhase
+
+    var body: some View {
+        VStack(spacing: 10) {
+            switch phase {
+            case .hint:
+                IndexingSpinnerRing(color: DesignColor.filterSearch, lineWidth: 3)
+                    .padding(1.5)
+                    .frame(width: 32, height: 32)
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(DesignColor.text.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            case .settled:
+                Image("IconMagnifyingGlass")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+                    .foregroundStyle(DesignColor.filterSearch)
+                Text(LayoutCopy.searchNoResultsTitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(DesignColor.text.opacity(0.7))
+                Text(LayoutCopy.popoverNoResultsMessage)
+                    .font(.system(size: 12))
+                    .foregroundStyle(DesignColor.text.opacity(0.55))
+                    .multilineTextAlignment(.center)
+            case .idle, .pending:
+                EmptyView()
+            }
+        }
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, minHeight: MenuBarPopoverLayout.searchStateHeight)
+        .background(DesignColor.text.opacity(0.05))
+    }
+
+    /// Umfang wie im Fenster: alle indizierten Medien und ihre Dateien (Einzahl laut 20).
+    private var title: String {
+        let media = appState.indexedMedia
+        return LayoutCopy.loadingSearchTitle(media: media.count, files: media.reduce(0) { $0 + $1.fileCount })
     }
 }
 

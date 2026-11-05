@@ -327,6 +327,7 @@ extension AppState {
         favoriteRowIDs = []
         cancelPopoverSearch()
         popoverResults = PopoverSearchResults()
+        popoverSearchPhase = popoverSearchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .idle : .settled
         searchMatch = SearchMatch()
         searchState.submittedQuery = ""
         detailMediumID = nil
@@ -414,8 +415,9 @@ extension AppState {
 
     /// bug.0.4.236 (Konzept `medien.md`, Liste „Angeschlossen“): Einstiegskachel, Ansicht und Höhe – nur angeschlossene
     /// Medien mit „Indizieren: Ja“; unentschiedene und abgelehnte fehlen.
+    /// todo.0.4.3.013: auch unentschiedene Medien („Entscheidung ausstehend“, Layout 03); abgelehnte nicht.
     var popoverConnectedMedia: [Medium] {
-        connectedMedia.filter { $0.decision == .index }
+        connectedMedia.filter { $0.decision == .index || $0.decision == .undecided }
     }
 
     /// Leertext der Einstiegskachel: angeschlossen, aber keins mit „Ja“ → eigener Text (bug.0.4.236).

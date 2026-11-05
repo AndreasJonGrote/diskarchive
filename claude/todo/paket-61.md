@@ -1,9 +1,9 @@
-# Paket 61 — Zielversion 0.4.3 (vorbereitet 03.11.2026; freigegeben, sobald Paket 60 abgenommen ist)
+# Paket 61 — Zielversion 0.4.3 (freigegeben 03.11.2026)
 
 Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md). Pfade relativ zu `claude/`; Code, `layout/`, `Werkzeuge/` im Hauptverzeichnis. **Viertes von sechs Paketen für 0.4.3: Spaltenansicht, Einstellungen, Schrift.** Vorlage: Layout 05 (05.01–05.03, 05.08, 05.08a, 05.10), 07 (07.01–07.03), 08 (08.01–08.03), 19 („Kernkonzept“, „Tooltips und Einzahl“, Dateidetails, Tabellen-Regel). Nutzerentscheidungen: Backlog 0.4.3.
 
 **Für dieses Paket gilt:**
-- **Texte nur aus `layout/App-Layout 20 Texte.json`**; die 14 Schlüssel mit `pendingPackage = 61` und die vorläufigen Texte aus Paket 59 (`copy.medium.used` → „Belegt“, `copy.eject.failed` → Text aus 16.02 mit Knopf „Erneut versuchen“) sowie `copy.settings.unreadable.notice` auf 20 bringen und aus `pendingPackage`/`openQuestions` nehmen.
+- **Texte nur aus `layout/App-Layout 20 Texte.json`**; alle Schlüssel mit `pendingPackage = 61` und die vorläufigen Texte aus Paket 59 (`copy.medium.used` → „Belegt“, `copy.eject.failed` → Text aus 16.02 mit Knopf „Erneut versuchen“) sowie `copy.settings.unreadable.notice` auf 20 bringen und aus `pendingPackage`/`openQuestions` nehmen.
 - **Icons** aus `Werkzeuge/phosphor/`, **Schrift** aus `Werkzeuge/fonts/archivo/` (Regel 4a). Maße und Farben aus dem Layout; Fade erst am Ende.
 - **Nicht in 0.4.3** (bleiben in der App verborgen, auch wenn das Layout sie zeigt): Reiter „Systeminformationen“ (05.04, ohne Zielversion) und „Lizenz“ (05.05–05.07, ab 1.0); Schalter „Metadaten laden“ und „Vorschaubilder erzeugen“ (05.01, ab 0.5/0.6); Metadaten-Felder, Vorschau und die Zustände 07.04.10–13 (ab 0.5/0.6).
 - Sabotage-Patch (Regel 9) je Verhaltensänderung. Läufe per `Werkzeuge/pruefung.sh schnell …` (ohne `S=`), kein Git. **Vor „Bereit zur Prüfung“** alle Suites mit `Column`, `Settings`, `Registry`, `Filter`, `Detail`, `Folder`, `Pixel`, `Layout` oder `L10n` im Namen.

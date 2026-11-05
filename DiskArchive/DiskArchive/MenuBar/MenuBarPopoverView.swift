@@ -43,14 +43,11 @@ struct MenuBarPopoverView: View {
 
     @ViewBuilder
     private var popoverContent: some View {
-        if appState.isStoreLoading {
-            StoreLoadingView()
-        } else {
-            popoverBody(
-                searchText: appState.popoverSearchTextBinding,
-                isPaused: appState.globalAutoIndexPausedBinding
-            )
-        }
+        // todo.0.4.3.015 (Layout 03.11): Kopf und Fuß bleiben, nur die Medienliste wird zum Spinner (`idleContent`).
+        popoverBody(
+            searchText: appState.popoverSearchTextBinding,
+            isPaused: appState.globalAutoIndexPausedBinding
+        )
     }
 
     private func requestPopoverLayoutUpdate() {
@@ -98,7 +95,29 @@ struct MenuBarPopoverView: View {
 
     // MARK: - Idle
 
+    @ViewBuilder
     private var idleContent: some View {
+        if appState.isStoreLoading {
+            StoreLoadingView(inPopover: true)
+        } else if appState.popoverConnectedMedia.isEmpty {
+            // todo.0.4.3.014 (Layout 03.09/03.10): Fläche mit schwarzem Medien-Icon statt der Liste.
+            VStack(spacing: 10) {
+                HardDrivesGlyph(size: 32)
+                Text(appState.popoverConnectedEmptyText)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(DesignColor.text.opacity(0.7))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 24)
+            .padding(.horizontal, 16)
+            .frame(maxWidth: .infinity, minHeight: MenuBarPopoverLayout.searchStateHeight)
+            .background(DesignColor.text.opacity(0.05))
+        } else {
+            connectedList
+        }
+    }
+
+    private var connectedList: some View {
         VStack(alignment: .leading, spacing: 0) {
             sectionHeader(LayoutCopy.menuConnectedHeader)
                 .padding(.horizontal, MenuBarPopoverLayout.idleContentHorizontalInset)
@@ -146,7 +165,8 @@ struct MenuBarPopoverView: View {
     @ViewBuilder
     private var searchResultsFooter: some View {
         let total = appState.popoverResults.totalCount
-        if total > 0 {
+        // todo.0.4.3.014: während des Hinweises „Suche läuft“ keine alte Zahl.
+        if total > 0, appState.popoverSearchPhase != .hint {
             MenuBarPopoverActionFooter {
                 popoverCompactSecondaryButton(
                     total == 1 ? LayoutCopy.menuShowOneResult : LayoutCopy.menuShowAllResults(total)

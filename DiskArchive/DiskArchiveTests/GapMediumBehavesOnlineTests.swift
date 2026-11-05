@@ -104,13 +104,13 @@ struct GapMediumBehavesOnlineTests {
         #expect(medium.occupancyLabel(showAbsolute: false) != nil, "Belegung fehlt")
         #expect(medium.dashboardMetaLine == .lastSeen(occupancy: medium.occupancyLabel(showAbsolute: medium.showAbsoluteCapacity)),
                 "Karte zeigt „erneut versuchen“ statt der Belegung")
-        #expect(medium.menuBarSecondaryLine == IndexedDateFormatting.lastIndexedLine(date: medium.lastIndexActivityAt ?? medium.lastIndexedAt))
+        #expect(medium.popoverStatusLine(paused: false, hasProgress: false) == .lastIndexed(medium.lastIndexedValue))
 
         var denied = medium
         denied.hasIndexGaps = false
         // bug.0.4.3.002: „Kein Zugriff …“ entfällt – Kachel normale Zeile und Link, Popover „Speichermedium fehlerhaft“.
         #expect(denied.dashboardSpecLine == denied.specLine)
-        #expect(denied.menuBarSecondaryLine == LayoutCopy.mediumHasErrors)
+        #expect(denied.popoverStatusLine(paused: false, hasProgress: false) == .hasErrors)
         #expect(denied.occupancyLabel(showAbsolute: false) == nil)
         #expect(denied.dashboardMetaLine == .retry)
     }

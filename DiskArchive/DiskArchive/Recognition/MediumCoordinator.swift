@@ -717,7 +717,12 @@ final class MediumCoordinator {
     }
 
     private func publish(_ stored: StoredMedium, connection: ConnectionStatus) {
-        let medium = stored.asMedium(connection: connection)
+        var medium = stored.asMedium(connection: connection)
+        // todo.0.4.3.013: gespeichert „wird indiziert“, aber kein Lauf aktiv → „Wird geprüft“ (`awaitingRun`) statt des
+        // gespeicherten Prozentwerts (kein kurzer Sprung auf 99 % beim Wiedererkennen). Ein laufender Lauf meldet
+        // seine Phase selbst.
+        let notRunning = medium.indexStatus == .indexing && isIndexingActive?(medium.id) != true
+        if notRunning { medium.indexRunPhase = .awaitingRun }
         if appState.medium(with: medium.id) == nil {
             appState.media.append(medium)
         } else {
@@ -748,6 +753,7 @@ final class MediumCoordinator {
                     current.showAbsoluteCapacity = medium.showAbsoluteCapacity
                     current.isFavorite = medium.isFavorite
                 }
+                if notRunning { current.indexRunPhase = .awaitingRun }
                 if medium.indexStatus == .indexing {
                     current.indexingProgress = progress
                 } else {

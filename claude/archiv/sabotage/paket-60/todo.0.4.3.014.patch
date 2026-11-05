@@ -1,0 +1,11 @@
+# Test: PopoverSearchStateTests/resultArrivesOnlyAfterTheSearchThenSettled()
+--- a/DiskArchive/DiskArchive/App/AppState+IndexChanges.swift
++++ b/DiskArchive/DiskArchive/App/AppState+IndexChanges.swift
+@@ -423,7 +423,6 @@
+             } while self.isRuleReconcileQueueActive
+             guard let request = page.pendingCount else {
+                 self.popoverResults = page.results
+-                self.popoverSearchPhase = .settled
+                 NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
+                 return
+             }

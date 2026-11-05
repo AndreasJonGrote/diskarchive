@@ -390,13 +390,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Übersicht"
+            "value" : "Zur Übersicht"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Overview"
+            "value" : "Back to Overview"
           }
         }
       }
@@ -498,7 +498,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Try again"
+            "value" : "Try Again"
           }
         }
       }
@@ -1456,40 +1456,6 @@
         }
       }
     },
-    "copy.date.today" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "heute"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "today"
-          }
-        }
-      }
-    },
-    "copy.date.yesterday" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "gestern"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "yesterday"
-          }
-        }
-      }
-    },
     "copy.empty.no_favorites.message" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2059,40 +2025,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%1$@” could not be indexed"
-          }
-        }
-      }
-    },
-    "copy.indexed.line" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuletzt indiziert: %1$@, %2$@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last indexed: %1$@, %2$@"
-          }
-        }
-      }
-    },
-    "copy.indexed.never" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Zuletzt indiziert: —"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Last indexed: —"
           }
         }
       }
@@ -3050,40 +2982,6 @@
         }
       }
     },
-    "copy.popover_search.group.files" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "DATEIEN"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FILES"
-          }
-        }
-      }
-    },
-    "copy.popover_search.group.folders" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ORDNER"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "FOLDERS"
-          }
-        }
-      }
-    },
     "copy.popover_search.group.media" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3403,23 +3301,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Search objects…"
-          }
-        }
-      }
-    },
-    "copy.search.popover_no_hits" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Keine Treffer für „%1$@“"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No matches for “%1$@”"
           }
         }
       }
@@ -4814,6 +4695,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "“%1$@” couldn’t be ejected because another app is using it."
+          }
+        }
+      }
+    },
+    "copy.chip.checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird geprüft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking"
+          }
+        }
+      }
+    },
+    "copy.medium.checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speichermedium wird geprüft"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking storage medium"
+          }
+        }
+      }
+    },
+    "copy.popover_search.no_results.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Suchbegriff ändern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try a different search term."
+          }
+        }
+      }
+    },
+    "copy.popover_search.group.folders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordner"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folders"
           }
         }
       }

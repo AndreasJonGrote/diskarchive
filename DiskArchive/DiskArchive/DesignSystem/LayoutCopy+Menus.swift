@@ -38,6 +38,9 @@ nonisolated extension LayoutCopy {
     static var failureUnreadableFolders: String { L10n.string("copy.failure.unreadable_folders") }
     static var chipNotAllowed: String { L10n.string("copy.chip.not_allowed") }
     static var chipPending: String { L10n.string("copy.chip.pending") }
+    /// todo.0.4.3.013: Chip und Popover-Zeile „Wird geprüft“ (Layout 03, 04).
+    static var chipChecking: String { L10n.string("copy.chip.checking") }
+    static var mediumChecking: String { L10n.string("copy.medium.checking") }
     static var chipError: String { L10n.string("copy.chip.error") }
     static var chipErrorOffline: String { L10n.string("copy.chip.error_offline") }
     static var chipOffline: String { L10n.string("copy.chip.offline") }
@@ -68,10 +71,6 @@ nonisolated extension LayoutCopy {
     static func objectMany(_ a0: String) -> String { L10n.format("copy.object.many", a0) }
     static func objectFiltered(_ a0: String, _ a1: String) -> String { L10n.format("copy.object.filtered", a0, a1) }
     static func columnSelectedOf(_ a0: Int, _ a1: Int) -> String { L10n.format("copy.column.selected_of", a0, a1) }
-    static var indexedNever: String { L10n.string("copy.indexed.never") }
-    static func indexedLine(_ a0: String, _ a1: String) -> String { L10n.format("copy.indexed.line", a0, a1) }
-    static var dateToday: String { L10n.string("copy.date.today") }
-    static var dateYesterday: String { L10n.string("copy.date.yesterday") }
     static var searchPlaceholderObjects: String { L10n.string("copy.search.placeholder_objects") }
     static var searchPlaceholderMedium: String { L10n.string("copy.search.placeholder_medium") }
     static var searchPlaceholderExtension: String { L10n.string("copy.search.placeholder_extension") }
@@ -100,7 +99,8 @@ nonisolated extension LayoutCopy {
     /// todo.0.4.3.005: Suche leer, ein Leerzustand für Suchbegriff und Filter.
     static var searchNoResultsTitle: String { L10n.string("copy.search.no_results.title") }
     static var searchNoResultsMessage: String { L10n.string("copy.search.no_results.message") }
-    static func popoverNoHits(_ a0: String) -> String { L10n.format("copy.search.popover_no_hits", a0) }
+    /// todo.0.4.3.014 (Layout 03.04): Popover ohne Treffer.
+    static var popoverNoResultsMessage: String { L10n.string("copy.popover_search.no_results.message") }
     static var resetAllFiltersHelp: String { L10n.string("copy.filter.reset_all") }
     static var filterLinkedWithAnd: String { L10n.string("copy.filter.linked_with_and") }
     static var filterLinkWithAnd: String { L10n.string("copy.filter.link_with_and") }

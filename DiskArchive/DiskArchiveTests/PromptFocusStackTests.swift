@@ -150,6 +150,24 @@ struct PromptFocusStackTests {
         }
     }
 
+    /// todo.0.4.3.013: Klick auf „Entscheidung ausstehend“ im Popover öffnet den Dialog genau dieses Mediums – es liegt
+    /// vorn, auch wenn es das ältere ist. Gegenprobe: ohne Angabe liegt das neuere vorn.
+    @Test func decisionPendingOpensTheDialogOfThatMedium() throws {
+        let rig = try Self.rig()
+        defer { rig.close() }
+        rig.app.enqueueNewMediumDecision(rig.ids[0])
+        rig.app.enqueueNewMediumDecision(rig.ids[1])
+        AppWindowPresenter.syncNewMediumPanels(appState: rig.app)
+        let before = Self.frontToBack(rig, [rig.ids[0], rig.ids[1]])
+        let olderBefore = try #require(before[0]), newerBefore = try #require(before[1])
+        #expect(newerBefore < olderBefore, "Gegenprobe: das neuere liegt nicht vorn (\(before))")
+
+        AppWindowPresenter.openNewMedium(appState: rig.app, front: rig.ids[0])
+        let after = Self.frontToBack(rig, [rig.ids[0], rig.ids[1]])
+        let older = try #require(after[0]), newer = try #require(after[1])
+        #expect(older < newer, "Dialog des gewählten Mediums liegt nicht vorn (\(after))")
+    }
+
     /// 223: Zwei Medien im selben Abgleich → das neuere liegt vor dem älteren.
     @Test func newestInFrontWhenTwoComeTogether() throws {
         let rig = try Self.rig()

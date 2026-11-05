@@ -227,6 +227,11 @@ final class AppState {
     /// todo.0.4.042: Anfrage, zu der die sichtbaren Treffer gehören (`nil` = noch keine Suche abgeschlossen).
     var shownSearch: SearchCountRequest?
     var popoverGeneration = 0
+    /// todo.0.4.3.014 (Layout 03.03/03.04): Stand der Popover-Suche – erst warten, nach 1 s der Hinweis, „Keine
+    /// Suchergebnisse“ erst nach fertiger Suche.
+    var popoverSearchPhase: PopoverSearchPhase = .idle
+    @ObservationIgnored var popoverSearchHintTask: Task<Void, Never>?
+    @ObservationIgnored var popoverSearchHintTiming: DelayedLoadingTiming = .standard
     /// bug.0.4.039: laufende Popover-Suche (Seite) und nachgereichte Zahl; neue Eingabe bricht beide ab.
     @ObservationIgnored var popoverSearchTask: Task<Void, Never>?
     @ObservationIgnored var popoverCountTask: Task<Void, Never>?

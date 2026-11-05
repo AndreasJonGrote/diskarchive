@@ -166,7 +166,7 @@ enum AppWindowPresenter {
     /// Pro unentschiedenem oder erneut gefragtem Medium (todo.0.4.026) ein Panel, gestapelt nach Layout 02 (todo.0.4.048).
     /// Lage über `appState.promptPanelPlacement` (bug.0.4.117): `nil` = kein Panel, `.offscreen` (Tests)
     /// außerhalb des Bildschirms und nie Key.
-    static func syncNewMediumPanels(appState: AppState, revealDismissed: Bool = false) {
+    static func syncNewMediumPanels(appState: AppState, revealDismissed: Bool = false, front: UUID? = nil) {
         guard let placement = newMediumPanelPlacement(for: appState) else { return }
         let key = ObjectIdentifier(appState)
         let activeIDs = appState.pendingNewMediumDecisionIDs.filter { id in
@@ -191,7 +191,11 @@ enum AppWindowPresenter {
 
         // bug.0.4.209: nach vorn und Fokus nur, wenn ein Panel neu erscheint (oder der Nutzer den Dialog selbst öffnet);
         // ein schon offenes wird nur verschoben.
-        let shown = revealDismissed ? activeIDs : appeared
+        var shown = revealDismissed ? activeIDs : appeared
+        // todo.0.4.3.013: der Nutzer öffnet den Dialog eines bestimmten Mediums – dieser kommt nach vorn.
+        if let front, let index = shown.firstIndex(of: front) {
+            shown.append(shown.remove(at: index))
+        }
         for id in shown.dropLast() {
             newMediumPanels[key]?[id]?.orderFrontRegardless()
         }
@@ -200,9 +204,9 @@ enum AppWindowPresenter {
         }
     }
 
-    static func openNewMedium(appState: AppState) {
+    static func openNewMedium(appState: AppState, front: UUID? = nil) {
         guard appState.hasPendingNewMediumDecisions else { return }
-        syncNewMediumPanels(appState: appState, revealDismissed: true)
+        syncNewMediumPanels(appState: appState, revealDismissed: true, front: front)
     }
 
     /// bug.0.4.221: Reaktion der Menüleiste auf geänderten Zustand (jede Änderung an `media`, z. B. ein Prozentschritt

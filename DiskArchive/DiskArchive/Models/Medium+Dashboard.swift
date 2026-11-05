@@ -26,24 +26,33 @@ extension Medium {
         indexStatus == .indexing || hasCompleteIndexExceptGaps
     }
 
-    /// Menüleiste, zweite Zeile einer Medium-Zeile (aus `MenuBarConnectedMediumRow`, bug.0.4.200 testbar).
-    var menuBarSecondaryLine: String {
+    /// todo.0.4.3.013 (Layout 00, 03, 04): „Wird geprüft“ – angeschlossen, „Indizieren“ entschieden, und entweder ein
+    /// neues Medium wartet auf den Start (`paused` = es startet keiner) oder der Lauf zählt noch ohne Prozentangabe.
+    /// Ein gespeichertes „wird indiziert“ ohne laufenden Lauf setzt der Coordinator auf `.awaitingRun` – so zeigt das
+    /// Wiedererkennen nie einen alten Prozentwert (kein Sprung auf 99 %).
+    func isChecking(paused: Bool) -> Bool {
+        // In der Pause startet bzw. zählt keiner: dort Pause-Icon und Prozent wie bisher.
+        guard connectionStatus == .connected, decision == .index, !paused, !autoIndexPaused else { return false }
+        if indexStatus == .indexing {
+            return indexRunPhase == .awaitingRun || (indexRunPhase == .counting && indexingProgress == 0)
+        }
+        return indexStatus == .pending && !hasIndex
+    }
+
+    /// Menüleiste, zweite Zeile einer Medium-Zeile (Layout 03). `hasProgress` = ein Lauf zeigt Fortschritt.
+    func popoverStatusLine(paused: Bool, hasProgress: Bool) -> PopoverStatusLine {
+        if isChecking(paused: paused) { return .checking }
+        if hasProgress { return .progress }
         switch indexStatus {
         case .indexed:
-            IndexedDateFormatting.lastIndexedLine(date: lastIndexActivityAt ?? lastIndexedAt)
+            return .lastIndexed(lastIndexedValue)
         case .error:
-            // bug.0.4.3.002: statt „Kein Zugriff …“ der Text aus 03/20.
-            hasIndexGaps
-                ? IndexedDateFormatting.lastIndexedLine(date: lastIndexActivityAt ?? lastIndexedAt)
-                : LayoutCopy.mediumHasErrors
+            // bug.0.4.3.002: statt „Kein Zugriff …“ der rote Punkt mit „Speichermedium fehlerhaft“.
+            return hasIndexGaps ? .lastIndexed(lastIndexedValue) : .hasErrors
         case .pending:
-            if decision == .undecided {
-                LayoutCopy.mediumDecisionPending
-            } else {
-                LayoutCopy.indexingInProgress
-            }
+            return decision == .undecided ? .decisionPending : .text(LayoutCopy.indexingInProgress)
         case .indexing:
-            ""
+            return .progress
         }
     }
 
@@ -96,4 +105,19 @@ extension Medium {
 enum DashboardMetaLine: Equatable {
     case retry
     case lastSeen(occupancy: String?)
+}
+
+/// todo.0.4.3.013/014 (Layout 03): zweite Zeile einer Medium-Zeile im Popover.
+enum PopoverStatusLine: Equatable {
+    /// Balken; rechts Spinner (Pause-Icon) und Prozent.
+    case progress
+    /// Pulsierender Punkt: grün „Speichermedium wird geprüft“.
+    case checking
+    /// Pulsierender Punkt: gelb „Entscheidung ausstehend“; Klick öffnet den Erkennungs-Dialog dieses Mediums.
+    case decisionPending
+    /// Pulsierender Punkt: rot „Speichermedium fehlerhaft“.
+    case hasErrors
+    /// Uhr-Icon und Datum („heute, 09:14“).
+    case lastIndexed(String)
+    case text(String)
 }

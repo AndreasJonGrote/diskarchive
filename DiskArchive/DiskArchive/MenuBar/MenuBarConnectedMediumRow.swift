@@ -32,7 +32,9 @@ struct MenuBarConnectedMediumRow: View {
     }
 
     private func row(at date: Date) -> some View {
-        let fraction = appState.displayedProgress(medium.id, now: date)
+        // todo.0.4.3.013: „Wird geprüft“ zeigt keinen Prozentwert, auch keinen gespeicherten.
+        let checking = medium.isChecking(paused: appState.globalAutoIndexPaused)
+        let fraction = checking ? nil : appState.displayedProgress(medium.id, now: date)
         let canShowReindex = medium.decision == .index && reindexAllowed
         let reservesTrailingSlot = fraction != nil || (rowHovered && fraction == nil && canShowReindex)
         return HStack(spacing: 0) {
@@ -75,28 +77,60 @@ struct MenuBarConnectedMediumRow: View {
                 suffix: medium.listLabel.original
             )
 
-            ZStack(alignment: .leading) {
-                Text(verbatim: "Ag")
+            // Die versteckte Zeile gibt die Höhe vor; jeder Zustand liegt darüber (die Zeile springt nie).
+            Text(verbatim: "Ag")
+                .font(.system(size: 11))
+                .hidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .leading) {
+                switch medium.popoverStatusLine(paused: appState.globalAutoIndexPaused, hasProgress: fraction != nil) {
+                case .progress:
+                    IndexingProgressBar(progress: fraction ?? 0)
+                case .checking:
+                    statusDot(DesignColor.stateOnline, LayoutCopy.mediumChecking)
+                case .decisionPending:
+                    statusDot(DesignColor.stateIgnored, LayoutCopy.mediumDecisionPending)
+                case .hasErrors:
+                    statusDot(DesignColor.stateError, LayoutCopy.mediumHasErrors)
+                case .lastIndexed(let date):
+                    // todo.0.4.3.014 (Layout 03): Uhr-Icon und Datum statt „Zuletzt indiziert: …“.
+                    HStack(spacing: 4) {
+                        Image("IconClock")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 12, height: 12)
+                        Text(date)
+                            .lineLimit(1)
+                    }
                     .font(.system(size: 11))
-                    .hidden()
-                if let fraction {
-                    IndexingProgressBar(progress: fraction)
-                } else {
-                    Text(medium.menuBarSecondaryLine)
+                    .foregroundStyle(DesignColor.text.opacity(0.55))
+                case .text(let text):
+                    Text(text)
                         .font(.system(size: 11))
                         .foregroundStyle(DesignColor.text.opacity(0.55))
                         .lineLimit(1)
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+                }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// todo.0.4.3.013 (Layout 03): pulsierender Punkt 8 pt, Abstand 6, Text 11 pt leise.
+    private func statusDot(_ color: Color, _ text: String) -> some View {
+        HStack(spacing: 6) {
+            PulsingDot(color: color, size: 8)
+            Text(text)
+                .lineLimit(1)
+        }
+        .font(.system(size: 11))
+        .foregroundStyle(DesignColor.text.opacity(0.55))
     }
 
     @ViewBuilder
     private func trailingSlot(fraction: Double?) -> some View {
         if let fraction {
-            indexingToggle(fraction: fraction)
+            indexingChip(fraction: fraction)
         } else if rowHovered, medium.decision == .index {
             MenuBarGhostButton(title: LayoutCopy.reindex, isEnabled: reindexAllowed) {
                 appState.reindexMedium(id: medium.id)
@@ -104,40 +138,26 @@ struct MenuBarConnectedMediumRow: View {
         }
     }
 
-    private func indexingToggle(fraction: Double) -> some View {
-        Button {
-            appState.updateMedium(id: medium.id, persist: true) { $0.showAbsoluteCapacity.toggle() }
-        } label: {
-            HStack(spacing: 5) {
-                if appState.globalAutoIndexPaused {
-                    Image(systemName: "pause.fill")
-                        .font(.system(size: 9, weight: .bold))
-                        .frame(width: 11, height: 11)
-                } else {
-                    IndexingSpinnerRing(color: DesignColor.control, lineWidth: 2)
-                        .frame(width: 11, height: 11)
-                }
-                Text(indexingProgressLabel(fraction: fraction))
-                    .font(.system(size: 11))
-                    .dashedUnderline()
+    /// todo.0.4.3.014 (Layout 03): nur während eines Laufs – Spinner (in der Pause das Pause-Icon) und Prozent; der
+    /// Umschalter zwischen Bytes und Prozent entfällt.
+    private func indexingChip(fraction: Double) -> some View {
+        HStack(spacing: 6) {
+            if appState.globalAutoIndexPaused {
+                Image(systemName: "pause.fill")
+                    .font(.system(size: 9, weight: .bold))
+                    .frame(width: 11, height: 11)
+            } else {
+                IndexingSpinnerRing(color: DesignColor.control, lineWidth: 2)
+                    .frame(width: 11, height: 11)
             }
-            .foregroundStyle(DesignColor.control)
+            Text(indexingProgressLabel(fraction: fraction))
+                .font(.system(size: 11))
         }
-        .buttonStyle(.plainFullHit)
-        .pointerCursor()
+        .foregroundStyle(DesignColor.control)
     }
 
     func indexingProgressLabel(fraction: Double) -> String {
-        if medium.showAbsoluteCapacity {
-            let total = medium.capacityTotalBytes
-            let done = Int64((fraction * Double(total)).rounded())
-            return "\(Self.byteLabel(done)) / \(Self.byteLabel(total))"
-        }
-        return "\(IndexProgress.percent(fraction)) %"
-    }
-
-    private static func byteLabel(_ count: Int64) -> String {
-        ByteCountFormatter.storage.string(fromByteCount: count)
+        "\(IndexProgress.percent(fraction)) %"
     }
 
     private func rowPrimaryTap() {
@@ -147,9 +167,10 @@ struct MenuBarConnectedMediumRow: View {
             return
         }
         // todo.0.4.026: auch ein erneut gefragtes Medium öffnet zuerst den Erkennungs-Dialog.
+        // todo.0.4.3.013: „Entscheidung ausstehend“ öffnet den Dialog genau dieses Mediums (vorne).
         if medium.decision == .undecided || appState.needsNewMediumDialog(medium.id) {
             appState.enqueueNewMediumDecision(medium.id)
-            AppWindowPresenter.openNewMedium(appState: appState)
+            AppWindowPresenter.openNewMedium(appState: appState, front: medium.id)
             return
         }
         openColumnBrowserFromPopover()

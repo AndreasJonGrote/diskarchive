@@ -72,7 +72,11 @@ enum MenuBarPopoverLayout {
     }
 
     static func idleFullHeight(media: [Medium]) -> CGFloat {
-        headerHeight
+        // todo.0.4.3.014 (Layout 03.09/03.10): ohne angeschlossene Medien die Fläche statt Überschrift und Liste.
+        if media.isEmpty {
+            return headerHeight + searchStateHeight + footerAutoIndexHeight + footerOpenAppHeight
+        }
+        return headerHeight
             + contentTopPadding
             + sectionLabelHeight
             + idleRowsHeight(media: media)
@@ -81,9 +85,12 @@ enum MenuBarPopoverLayout {
             + footerOpenAppHeight
     }
 
-    static func searchContentHeight(groups: [PopoverSearchGroup]) -> CGFloat {
-        guard !groups.isEmpty else {
-            return searchVerticalPadding * 2 + 20
+    /// todo.0.4.3.014 (Layout 03.03/03.04): Mindesthöhe der Fläche „Suche läuft“ / „Keine Suchergebnisse“.
+    static let searchStateHeight: CGFloat = 180
+
+    static func searchContentHeight(groups: [PopoverSearchGroup], phase: PopoverSearchPhase = .settled) -> CGFloat {
+        guard !groups.isEmpty, phase != .hint else {
+            return searchStateHeight
         }
 
         var height = searchVerticalPadding * 2
@@ -112,9 +119,9 @@ enum MenuBarPopoverLayout {
         totalCount > 0 ? footerOpenAppHeight : 0
     }
 
-    static func searchFullHeight(groups: [PopoverSearchGroup], totalCount: Int) -> CGFloat {
+    static func searchFullHeight(groups: [PopoverSearchGroup], totalCount: Int, phase: PopoverSearchPhase = .settled) -> CGFloat {
         headerHeight
-            + searchContentHeight(groups: groups)
+            + searchContentHeight(groups: groups, phase: phase)
             + searchActionFooterHeight(totalCount: totalCount)
     }
 
@@ -125,7 +132,8 @@ enum MenuBarPopoverLayout {
         let raw = searching
             ? searchFullHeight(
                 groups: appState.popoverResults.groups,
-                totalCount: appState.popoverResults.totalCount
+                totalCount: appState.popoverSearchPhase == .hint ? 0 : appState.popoverResults.totalCount,
+                phase: appState.popoverSearchPhase
             )
             : idleFullHeight(media: appState.popoverConnectedMedia)
         if searching {

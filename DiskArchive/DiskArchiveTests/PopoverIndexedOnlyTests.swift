@@ -62,10 +62,11 @@ struct PopoverIndexedOnlyTests {
     @Test func listAndHeightShowOnlyIndexedMedia() async throws {
         let all = AppState()
         all.media = fourConnected()
-        #expect(all.popoverConnectedMedia.map(\.name) == ["Ja fertig", "Ja Lauf"], "Liste: \(all.popoverConnectedMedia.map(\.name))")
+        // todo.0.4.3.013 (Layout 03): unentschiedene Medien stehen mit „Entscheidung ausstehend“ in der Liste; abgelehnte nicht.
+        #expect(all.popoverConnectedMedia.map(\.name) == ["Ja fertig", "Ja Lauf", "Offen"], "Liste: \(all.popoverConnectedMedia.map(\.name))")
 
         let onlyYes = AppState()
-        onlyYes.media = Array(fourConnected().prefix(2))
+        onlyYes.media = [fourConnected()[0], fourConnected()[1], fourConnected()[3]]
         let twoRows = MenuBarPopoverLayout.corePanelHeight(appState: onlyYes)
         let fourYes = AppState()
         fourYes.media = fourConnected().map { medium in
@@ -74,16 +75,16 @@ struct PopoverIndexedOnlyTests {
             return yes
         }
         try #require(twoRows != MenuBarPopoverLayout.corePanelHeight(appState: fourYes), "Voraussetzung: vier Zeilen sind höher als zwei")
-        #expect(MenuBarPopoverLayout.corePanelHeight(appState: all) == twoRows, "Höhe nicht für zwei Zeilen")
+        #expect(MenuBarPopoverLayout.corePanelHeight(appState: all) == twoRows, "Höhe nicht für drei Zeilen")
 
-        // Ansicht: ohne Spinner (gleiches Bild bei jedem Zeichnen) – Ja, Nein, offen sieht aus wie Ja allein.
+        // Ansicht: ohne Spinner (gleiches Bild bei jedem Zeichnen) – Ja und Nein sieht aus wie Ja allein.
         let mixed = AppState()
-        mixed.media = [fourConnected()[0], fourConnected()[2], fourConnected()[3]]
+        mixed.media = [fourConnected()[0], fourConnected()[2]]
         let yesAlone = AppState()
         yesAlone.media = [fourConnected()[0]]
         let mixedImage = try #require(await rendered(mixed))
         let aloneImage = try #require(await rendered(yesAlone))
-        #expect(mixedImage == aloneImage, "Ansicht zeigt abgelehnte oder unentschiedene Medien")
+        #expect(mixedImage == aloneImage, "Ansicht zeigt abgelehnte Medien")
     }
 
     @Test func emptyTextDependsOnWhatIsConnected() {

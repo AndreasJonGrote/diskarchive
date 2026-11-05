@@ -124,13 +124,9 @@ struct LayoutCopyTests {
     /// Schlüssel, deren Text erst ein späteres Paket von 0.4.3 bringt (Schlüssel → Paket); jedes Paket leert seinen Teil.
     private var pendingPackage: [String: Int] {
         [
-            // 60: Popover-Suche, -Leerzustände, Status („Zuletzt indiziert: …“ steht nur noch im Popover, Paket 59)
-            "copy.indexed.line": 60, "copy.indexed.never": 60,
-            "copy.popover_search.group.files": 60, "copy.popover_search.group.folders": 60,
-            "copy.search.popover_no_hits": 60,
             // 61: Spaltenansicht-Zustände, Detail-Labels, Einstellungen Dateien & Ordner
             "copy.column.detail.last_seen": 61, "copy.column.detail.modified": 61, "copy.column.detail.size": 61,
-            "copy.column.detail.total_size": 61, "copy.date.today": 61, "copy.column.filter.reset": 61,
+            "copy.column.detail.total_size": 61, "copy.column.filter.reset": 61,
             "copy.column.folder_not_indexed_title": 61, "copy.folder.change_exclusions": 61,
             "copy.folder.excluded": 61, "copy.folder.unreadable": 61,
             "copy.settings.artifacts.text": 61, "copy.settings.exclude.text": 61, "copy.settings.hidden.text": 61,
@@ -146,8 +142,6 @@ struct LayoutCopyTests {
         [
             // Reiter „Speichermedien“ der Einstellungen: in 20 nur „SPEICHERMEDIEN“ (Überschrift)
             "copy.settings.tab.media",
-            // Bedienhilfe-Name der Übersicht in der Werkzeugleiste: in 20 nur „Zur Übersicht“ (neu)
-            "copy.a11y.overview",
             // Hinweis „Einstellungen konnten nicht gelesen werden …“: nicht in 20
             "copy.settings.unreadable.notice",
             // Deutsch ohne den Satz „Alle Mitteilungstexte und Bedingungen: 18.“ (Verweis auf die Layout-Sektion)
@@ -158,6 +152,9 @@ struct LayoutCopyTests {
             "copy.medium.indexed_value",
             // Auswerfen abgelehnt (Dialog 16): Beschreibung fehlt in 20, Vorschlag Host (todo.0.4.3.011)
             "copy.eject.failed",
+            // Popover-Gruppe „ORDNER“/„FOLDERS“: „Ordner“ in 20 ist der Filtertyp (Einzahl „Folder“), die Gruppe steht in
+            // der Mehrzahl wie „FILES“ (Entscheidung Host, Korrektur K2 Paket 60)
+            "copy.popover_search.group.folders",
         ]
     }
 

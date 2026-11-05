@@ -75,14 +75,18 @@ struct MenuBarRowHeightTests {
         return CGFloat(last + 1) / scale
     }
 
+    /// Oberste Tinte im Bereich des Namens (x 48–200, ohne rechte Spalte mit Spinner und Prozent). todo.0.4.3.014: eine
+    /// einzelne Spalte traf die zweite Zeile (Uhr-Icon 12 pt gegen Balken 4 pt), nicht den Namen.
     private func firstInkRow(_ bitmap: NSBitmapImageRep, from: CGFloat, until: CGFloat) -> CGFloat {
         let scale = CGFloat(bitmap.pixelsWide) / bitmap.size.width
         let ground = srgb(PixelProbe.color(in: bitmap, at: CGPoint(x: 52, y: from + 2)))
         let start = Int(from * scale)
         let end = Int(until * scale)
         for y in start..<max(start, end) {
-            let color = srgb(PixelProbe.color(in: bitmap, at: CGPoint(x: 52, y: CGFloat(y) / scale)))
-            if !near(color, ground) { return CGFloat(y) / scale }
+            for x in stride(from: CGFloat(48), through: 200, by: 1) {
+                let color = srgb(PixelProbe.color(in: bitmap, at: CGPoint(x: x, y: CGFloat(y) / scale)))
+                if !near(color, ground) { return CGFloat(y) / scale }
+            }
         }
         return from
     }

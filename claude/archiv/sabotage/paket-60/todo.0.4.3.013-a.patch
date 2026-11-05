@@ -1,0 +1,12 @@
+# Test: MediumCheckingTests/reconnectedMediumNeverShowsTheStoredPercent()
+--- a/DiskArchive/DiskArchive/Models/Medium+Dashboard.swift
++++ b/DiskArchive/DiskArchive/Models/Medium+Dashboard.swift
+@@ -34,7 +34,7 @@
+         // In der Pause startet bzw. zählt keiner: dort Pause-Icon und Prozent wie bisher.
+         guard connectionStatus == .connected, decision == .index, !paused, !autoIndexPaused else { return false }
+         if indexStatus == .indexing {
+-            return indexRunPhase == .awaitingRun || (indexRunPhase == .counting && indexingProgress == 0)
++            return indexRunPhase == .counting && indexingProgress == 0
+         }
+         return indexStatus == .pending && !hasIndex
+     }

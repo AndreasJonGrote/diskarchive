@@ -1,0 +1,14 @@
+# Test: WindowTestGroup/PromptFocusStackTests/decisionPendingOpensTheDialogOfThatMedium()
+--- a/DiskArchive/DiskArchive/App/AppWindowPresenter.swift
++++ b/DiskArchive/DiskArchive/App/AppWindowPresenter.swift
+@@ -193,9 +193,7 @@
+         // ein schon offenes wird nur verschoben.
+         var shown = revealDismissed ? activeIDs : appeared
+         // todo.0.4.3.013: der Nutzer öffnet den Dialog eines bestimmten Mediums – dieser kommt nach vorn.
+-        if let front, let index = shown.firstIndex(of: front) {
+-            shown.append(shown.remove(at: index))
+-        }
++        _ = front
+         for id in shown.dropLast() {
+             newMediumPanels[key]?[id]?.orderFrontRegardless()
+         }

@@ -41,7 +41,8 @@ struct DashboardTileTests {
             let error = Self.medium(.error)
             #expect(error.dashboardSpecLine == error.specLine, "„Kein Zugriff …“ statt der Zeile")
             #expect(error.dashboardMetaLine == .retry)
-            #expect(error.menuBarSecondaryLine == "Speichermedium fehlerhaft")
+            #expect(error.popoverStatusLine(paused: false, hasProgress: false) == .hasErrors)
+            #expect(LayoutCopy.mediumHasErrors == "Speichermedium fehlerhaft")
 
             let gap = Self.medium(.error, gaps: true)
             #expect(gap.dashboardMetaLine == .lastSeen(occupancy: "92 %"))

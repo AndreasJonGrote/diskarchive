@@ -36,9 +36,11 @@ import Testing
         #expect(MenuBarPopoverLayout.searchContentHeight(groups: [group]) == expected)
     }
 
+    /// todo.0.4.3.014 (Layout 03.03/03.04): ohne Treffer die Fläche von 180 pt (früher eine Zeile, unter der
+    /// Mindesthöhe); die Suche wird weiter nicht auf die Mindesthöhe der Ruheansicht gehoben.
     @Test func searchPanelHeightIsNotFlooredToMinimum() {
         let short = MenuBarPopoverLayout.searchFullHeight(groups: [], totalCount: 0)
-        #expect(short < MenuBarPopoverLayout.panelMinHeight)
+        #expect(short == MenuBarPopoverLayout.headerHeight + MenuBarPopoverLayout.searchStateHeight)
     }
 
     @Test func openAppFooterHeightMatchesLayout() {

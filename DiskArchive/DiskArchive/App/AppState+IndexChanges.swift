@@ -393,8 +393,18 @@ extension AppState {
         // Leeres Feld (auch nach dem X): keine Suche, auch nicht über Filter der Hauptsuche.
         if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             popoverResults = PopoverSearchResults()
+            popoverSearchPhase = .idle
             NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
             return
+        }
+        // todo.0.4.3.014: bis das Ergebnis da ist „wartet“; nach der Verzögerung wie im Fenster der Hinweis.
+        popoverSearchPhase = .pending
+        let delay = popoverSearchHintTiming.delayBeforeHint
+        popoverSearchHintTask = Task { [weak self] in
+            try? await Task.sleep(for: delay)
+            guard !Task.isCancelled, let self, generation == self.popoverGeneration, self.popoverSearchPhase == .pending else { return }
+            self.popoverSearchPhase = .hint
+            NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
         }
         let debounce = popoverSearchDebounce
         popoverSearchTask = Task { [weak self] in
@@ -413,6 +423,7 @@ extension AppState {
             } while self.isRuleReconcileQueueActive
             guard let request = page.pendingCount else {
                 self.popoverResults = page.results
+                self.popoverSearchPhase = .settled
                 NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
                 return
             }
@@ -425,6 +436,7 @@ extension AppState {
                 var early = pendingPage
                 early.totalCount = known
                 self.popoverResults = early
+                self.popoverSearchPhase = .settled
                 NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
             }
             let mediumCount = page.mediumCount
@@ -441,6 +453,7 @@ extension AppState {
                 final.totalCount = mediumCount + counted
                 final.isCountPending = false
                 self.popoverResults = final
+                self.popoverSearchPhase = .settled
                 NotificationCenter.default.post(name: .menuBarPopoverLayoutInvalidated, object: nil)
             }
         }
@@ -449,6 +462,8 @@ extension AppState {
     func cancelPopoverSearch() {
         popoverSearchTask?.cancel()
         popoverSearchTask = nil
+        popoverSearchHintTask?.cancel()
+        popoverSearchHintTask = nil
         popoverCountTask?.cancel()
         popoverCountTask = nil
     }
@@ -736,4 +751,16 @@ extension AppState {
         }
     }
 
+}
+
+/// todo.0.4.3.014: Stand der Popover-Suche.
+enum PopoverSearchPhase: Equatable {
+    /// Feld leer.
+    case idle
+    /// Suche läuft, noch kein Hinweis (vorige Treffer bleiben stehen).
+    case pending
+    /// Suche dauert länger: Spinner mit dem Umfang (Layout 03.03).
+    case hint
+    /// Ergebnis da; ohne Treffer „Keine Suchergebnisse“ (03.04).
+    case settled
 }

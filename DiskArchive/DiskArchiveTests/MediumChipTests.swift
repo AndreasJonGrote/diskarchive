@@ -18,6 +18,8 @@ struct MediumChipTests {
         "Fehler, offline",
         "Ausstehend",
         "Nicht erlaubt",
+        // todo.0.4.3.013 (Layout 04): neu, „Indizieren“ entschieden, vor dem Start.
+        "Wird geprüft",
     ]
 
     @Test func chipTextsMatchAllowlistPattern() {
