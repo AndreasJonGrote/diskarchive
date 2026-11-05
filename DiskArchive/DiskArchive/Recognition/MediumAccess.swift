@@ -64,6 +64,8 @@ nonisolated struct ListedDirectoryEntry: Sendable, Equatable {
     var modifiedAt: Date?
     var fileID: Int64?
     var linkCount: Int? = nil
+    /// todo.0.4.3.024: Erstellungsdatum (`ATTR_CMN_CRTIME` bzw. `creationDate`); `nil` = unbekannt.
+    var createdAt: Date? = nil
 }
 
 enum MediumAccessResult: Sendable, Equatable {

@@ -23,7 +23,7 @@ struct UnexpectedErrorDialog: View {
                 .foregroundStyle(DesignColor.stateError)
 
             Text(LayoutCopy.unexpectedErrorTitle)
-                .font(.system(size: 16, weight: .bold))
+                .font(DesignFont.heading(size: 16))
                 .foregroundStyle(DesignColor.text)
 
             Text(notice.message)

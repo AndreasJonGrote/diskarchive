@@ -1,0 +1,12 @@
+# Test: CreationDateTests/scanReadsTheCreationDate()
+--- a/DiskArchive/DiskArchive/Indexing/BulkDirectoryReader.swift
++++ b/DiskArchive/DiskArchive/Indexing/BulkDirectoryReader.swift
+@@ -313,7 +313,7 @@
+                 let crNsec = load(Int64.self, at: offset + 8)
+             else { return nil }
+             if commonReturned & attrgroupBit(ATTR_CMN_CRTIME) != 0 {
+-                createdAt = Date(timeIntervalSince1970: TimeInterval(crSec) + TimeInterval(crNsec) / 1_000_000_000)
++                _ = (crSec, crNsec)
+             }
+             offset += 16
+ 

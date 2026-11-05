@@ -1,3 +1,2 @@
-Rolle: Worker. Lies `AGENTS.md` im Hauptverzeichnis, dann `claude/AGENTS.md`, `claude/todo/regeln.md` und `claude/todo/paket-61.md`; setze die Aufgaben der Reihe nach um (016 → 017 → 018 → 019 → 023).
-Texte nur aus `layout/App-Layout 20 Texte.json`, Icons nur aus `Werkzeuge/phosphor/`, Schrift aus `Werkzeuge/fonts/archivo/`, Maße aus dem Layout (05, 07, 08, 19). Systeminformationen, Lizenz, Metadaten und Vorschau bleiben verborgen.
-Vor „Bereit zur Prüfung“ die im Paket genannten Suites laufen lassen; zum Schluss einmal `Werkzeuge/pruefung.sh voll` (ohne `S=`), kein Git. Am Ende Status im Paket-File, „Bereit zur Prüfung“, diese Datei durch „Erledigt: … Offen: … HALT“ ersetzen. HALT.
+Rolle: Worker. Lies `AGENTS.md` im Hauptverzeichnis, dann `claude/AGENTS.md`, `claude/todo/regeln.md` und in `claude/todo/paket-62.md` den Abschnitt „Korrektur Host 05.11.“; setze K1 um (nur Tests, Wartezeiten auf 20 s).
+Danach einmal `Werkzeuge/pruefung.sh voll` (ohne `S=`), kein Git. Am Ende „Status K1“ im Paket-File, „Bereit zur Prüfung“, diese Datei durch „Erledigt: … Offen: … HALT“ ersetzen. HALT.

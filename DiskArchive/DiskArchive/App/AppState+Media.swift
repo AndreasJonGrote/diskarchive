@@ -153,7 +153,14 @@ extension AppState {
             try await ejectVolume(path)
         } catch {
             DiskArchiveLog.shared.record(.medium, .error, "eject failed \(DiskArchiveLog.errorSummary(error))")
-            unexpectedError = UnexpectedErrorNotice(message: LayoutCopy.ejectFailed(name: medium.shownName))
+            // todo.0.4.3.019 (Layout 16.02): Text aus 20, „Erneut versuchen“ wirft dasselbe Medium noch einmal aus.
+            unexpectedError = UnexpectedErrorNotice(
+                message: LayoutCopy.ejectFailed(name: medium.shownName),
+                actionTitle: LayoutCopy.retry,
+                action: { [weak self] in
+                    Task { await self?.ejectMedium(id: id) }
+                }
+            )
         }
     }
 
@@ -363,15 +370,26 @@ extension AppState {
         SystemNotice.post(body: LayoutCopy.noticeDefaultsApplied, settings: appSettings)
     }
 
+    /// todo.0.4.3.021 (Layout 16, 18 Nr. 12): Datenbank beim Start nicht zu öffnen → Dialog 16 „Unerwarteter Fehler“ mit
+    /// Text aus 18 und „Erneut versuchen“ (statt eines eigenen Dialogs); die Mitteilung kommt aus `AppDelegate`.
     func reportIndexStoreOpenFailure() {
         indexStoreOpenFailed = true
         storeReady = false
-        indexStoreOpenFailureAlert = true
+        let notice = UnexpectedErrorNotice(
+            message: LayoutCopy.storeOpenFailedBody,
+            actionTitle: LayoutCopy.retry,
+            action: { [weak self] in self?.onRetryIndexStoreOpen?() }
+        )
+        storeOpenFailureNoticeID = notice.id
+        unexpectedError = notice
     }
 
     func clearIndexStoreOpenFailure() {
         indexStoreOpenFailed = false
-        indexStoreOpenFailureAlert = false
+        if let id = storeOpenFailureNoticeID, unexpectedError?.id == id {
+            unexpectedError = nil
+        }
+        storeOpenFailureNoticeID = nil
     }
 
     /// Menüleisten-Status-Badge (Mockup Sektion 01 / Aufgabe 19.3).

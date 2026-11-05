@@ -2,7 +2,9 @@
 //  ColumnStatusIconTests.swift
 //  DiskArchiveTests
 //
-//  Aufgabe 164: Spinner 20 pt, Warnkreis rund, Abstand zum Titel 10 pt.
+//  Aufgabe 164: Spinner 20 pt, Abstand zum Titel.
+//  todo.0.4.3.016 (Layout 07.02): Der Warnkreis entfällt (ausgeschlossen = Auge, gelb). Alle Zustände haben einen
+//  Aufbau – Icon-Kasten 20 pt, 10 pt bis zur Titelzeile –, der Titel steht also in jedem Zustand gleich hoch.
 //
 
 import AppKit
@@ -24,13 +26,14 @@ struct ColumnStatusIconTests {
         )
         #expect(abs(loading.diameter - 20) <= 1, "Laden \(loading.diameter)")
         #expect(abs(pending.diameter - 20) <= 1, "Indiziert \(pending.diameter)")
-        #expect(abs(warning.width - warning.height) <= 1, "Kreis \(warning.width) x \(warning.height)")
-        #expect(abs(loading.gap - 10) <= 1, "Abstand Laden \(loading.gap)")
-        #expect(abs(pending.gap - 10) <= 1, "Abstand Indiziert \(pending.gap)")
-        #expect(abs(warning.gap - 10) <= 1, "Abstand Kreis \(warning.gap)")
+        // Icon oben bündig (Innenabstand 4 pt), Titel 30 pt darunter plus Oberlänge der Titelzeile, in jedem Zustand gleich.
+        #expect(abs(loading.top - pending.top) <= 0.5, "Icon oben \(loading.top)/\(pending.top)")
+        #expect(abs(loading.titleTop - pending.titleTop) <= 1, "Titel Laden \(loading.titleTop), Indiziert \(pending.titleTop)")
+        #expect(abs(warning.titleTop - pending.titleTop) <= 1, "Titel Ausgeschlossen \(warning.titleTop), Indiziert \(pending.titleTop)")
+        #expect(pending.gap >= 10 && pending.gap <= 14, "Abstand Indiziert \(pending.gap)")
     }
 
-    private func metrics<V: View>(_ view: V, size: CGSize) async -> (diameter: CGFloat, width: CGFloat, height: CGFloat, gap: CGFloat) {
+    private func metrics<V: View>(_ view: V, size: CGSize) async -> (diameter: CGFloat, width: CGFloat, height: CGFloat, gap: CGFloat, top: CGFloat, titleTop: CGFloat) {
         // Der Ring dreht sich mit der Uhrzeit: ohne festen Winkel hängt seine Umrissbreite vom Zeitpunkt ab (Aufgabe 222).
         let bitmap = await PixelProbe.render(
             view.environment(\.spinnerFrozenAngle, 0).background(Color.white), size: size, appearance: .aqua
@@ -81,7 +84,7 @@ struct ColumnStatusIconTests {
             scan += 1
         }
         let gap = CGFloat(title - (maxY + 1)) / scale
-        return (max(width, height), width, height, gap)
+        return (max(width, height), width, height, gap, CGFloat(minY) / scale, CGFloat(title) / scale)
     }
 
     private func near(_ color: NSColor, _ other: NSColor) -> Bool {

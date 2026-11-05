@@ -10,6 +10,8 @@ import Foundation
 
 nonisolated extension LayoutCopy {
     static var tableStatus: String { L10n.string("copy.table.column.status") }
+    /// todo.0.4.3.018: Spalte der Tabelle „Speichermedien“.
+    static var registryLastSeen: String { L10n.string("copy.medium.last_seen") }
     static var contextShowContent: String { L10n.string("copy.context.show_content") }
     static var contextDetails: String { L10n.string("copy.context.details") }
     static var contextSetName: String { L10n.string("copy.context.set_name") }
@@ -18,13 +20,33 @@ nonisolated extension LayoutCopy {
     static var contextSearchName: String { L10n.string("copy.context.search_name") }
     static var contextSearchExtension: String { L10n.string("copy.context.search_extension") }
     static var contextIgnoreName: String { L10n.string("copy.context.ignore_name") }
+    static var contextIgnoreFolderName: String { L10n.string("copy.context.ignore_folder_name") }
+
+    /// todo.0.4.3.023 (Layout 12): bei Ordnern „Ordnernamen ignorieren“, sonst „Dateinamen ignorieren“ (Mehrfachauswahl:
+    /// „Ordnernamen …“ nur, wenn alle Ordner sind).
+    static func contextIgnoreName(for kinds: [ObjectContextTarget.Kind]) -> String {
+        let allFolders = !kinds.isEmpty && kinds.allSatisfy { kind in
+            if case .folder = kind { return true }
+            return false
+        }
+        return allFolders ? contextIgnoreFolderName : contextIgnoreName
+    }
     static var contextIgnoreType: String { L10n.string("copy.context.ignore_type") }
     static var menuBarShowApp: String { L10n.string("copy.menubar.show_app") }
     static var menuBarLaunchAtLogin: String { L10n.string("copy.menubar.launch_at_login") }
     static var menuBarQuit: String { L10n.string("copy.menubar.quit") }
     static var menuBarAbout: String { L10n.string("copy.menubar.about") }
+    /// todo.0.4.3.001 (Layout 17): Versionszeile im Fenster „Über Disk Archive“.
+    static func aboutVersionBeta(_ version: String) -> String { L10n.format("copy.about.version_beta", version) }
+    static var aboutVersion: String { L10n.string("copy.about.version") }
     static var appMenuSettings: String { L10n.string("copy.appmenu.settings") }
-    static func noticeIndexedComplete(_ a0: String, _ a1: String) -> String { L10n.format("copy.notice.indexed_complete", a0, a1) }
+    /// todo.0.4.3.023: Einzahl „1 Objekt“ aus den Teilen von Sektion 20 (wie `loadingTitle`).
+    static func noticeIndexedComplete(_ name: String, count: Int) -> String {
+        let number = DisplayNumberFormat.groupedInteger(count)
+        let sentence = L10n.format("copy.notice.indexed_complete", name, number)
+        guard count == 1 else { return sentence }
+        return sentence.replacingOccurrences(of: objectMany(number), with: objectOne)
+    }
     /// todo.0.4.3.005: Einzahl „mit 1 Favoriten“ eigener Text (Sektion 18/20).
     static func noticeFavoritesOnline(name: String, count: Int) -> String {
         count == 1 ? L10n.format("copy.notice.favorites_online_one", name)
@@ -113,6 +135,8 @@ nonisolated extension LayoutCopy {
     static var folderUnreadable: String { L10n.string("copy.folder.unreadable") }
     static var folderExcluded: String { L10n.string("copy.folder.excluded") }
     static var folderChangeExclusions: String { L10n.string("copy.folder.change_exclusions") }
+    static var folderExcludedBody: String { L10n.string("copy.folder.excluded_body") }
+    static var folderUnreadableBody: String { L10n.string("copy.folder.unreadable_body") }
     static var noticeForgetAll: String { L10n.string("copy.notice.forget_all") }
     static var noticePrune: String { L10n.string("copy.notice.prune") }
     static var noticeDefaultsApplied: String { L10n.string("copy.notice.defaults_applied") }

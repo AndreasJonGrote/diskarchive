@@ -115,7 +115,8 @@ enum VersionCheckCoordinator {
             apiVersion: response?.version,
             settings: settings,
             isFreshInstall: fresh,
-            buildDate: AppVersion.currentBuildDate()
+            buildDate: AppVersion.currentBuildDate(),
+            urgentUpdate: response?.urgentUpdate ?? false
         )
         if databaseWasNewThisLaunch == nil { freshInstallForVersionCheck = false }
         if response != nil {

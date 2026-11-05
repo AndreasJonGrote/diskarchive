@@ -1,0 +1,12 @@
+# Test: ArchivoFontTests/archivoIsBundledAndRegisteredWithWeight800()
+--- a/DiskArchive/DiskArchive/DesignSystem/DesignFont.swift
++++ b/DiskArchive/DiskArchive/DesignSystem/DesignFont.swift
+@@ -14,7 +14,7 @@
+ enum DesignFont {
+     /// Benannte Instanz der variablen Schrift mit Gewicht 800.
+     static let headingName = "ArchivoRoman-ExtraBold"
+-    static let fileName = "Archivo-Variable"
++    static let fileName = "Archivo-Fehlt"
+ 
+     /// Registriert die Schrift einmal je Prozess; `true`, wenn sie danach verfügbar ist.
+     @discardableResult

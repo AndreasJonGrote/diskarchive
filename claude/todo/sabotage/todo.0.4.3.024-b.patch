@@ -1,0 +1,12 @@
+# Test: CreationDateTests/storedAfterScanAndOldEntriesStayEmpty()
+--- a/DiskArchive/DiskArchive/Storage/V3/DirectoryWriterV3.swift
++++ b/DiskArchive/DiskArchive/Storage/V3/DirectoryWriterV3.swift
+@@ -1185,7 +1185,7 @@
+                     createdAt = COALESCE(excluded.createdAt, item_details.createdAt)
+                 """,
+             // todo.0.4.3.024: Erstellungsdatum; ohne gelesenen Wert bleibt der gespeicherte.
+-            arguments: [itemID, entry.sizeBytes, entry.isPackage, entry.createdAt.map(SchemaTime.seconds)]
++            arguments: [itemID, entry.sizeBytes, entry.isPackage, Int64?.none]
+         )
+     }
+ 

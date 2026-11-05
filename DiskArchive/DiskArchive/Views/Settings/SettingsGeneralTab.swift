@@ -31,6 +31,7 @@ struct SettingsGeneralTab: View {
                     DesignDivider()
                     notificationsSection(settings: settings)
                 case .files:
+                    SettingsFilesNotice()
                     scanDepthSection(settings: settings)
                         .id(SettingsScrollTarget.scanDepth)
                     DesignDivider()
@@ -81,7 +82,7 @@ struct SettingsGeneralTab: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Toggle(LayoutCopy.autostartToggle, isOn: Binding(
                     get: { launchAtLogin != .off },
                     set: { enabled in
@@ -104,16 +105,8 @@ struct SettingsGeneralTab: View {
                 .font(.system(size: 12.5, weight: .semibold))
                 .tint(DesignColor.control)
 
-                if launchAtLogin == .requiresApproval {
-                    Button {
-                        LaunchAtLogin.openSystemSettings()
-                    } label: {
-                        Text(LayoutCopy.openSystemSettingsForPermission)
-                            .foregroundStyle(DesignColor.stateIgnored)
-                    }
-                    .buttonStyle(.plainFullHit)
-                    .font(.system(size: 11.5))
-                    .pointerCursor()
+                if AutostartApprovalLink.isShown(for: launchAtLogin) {
+                    AutostartApprovalLink { LaunchAtLogin.openSystemSettings() }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -458,5 +451,59 @@ struct SettingsLanguageSection: View {
             SettingsLanguagePicker(selection: $selection, isOpen: $isOpen)
         }
         .zIndex(isOpen ? 10 : 0)
+    }
+}
+
+/// todo.0.4.3.018 (Layout 05.01): Hinweis über volle Breite – `info` 16 pt, 12 pt Abstand, Text 12 pt, Zeilenhöhe 1,5,
+/// Fläche 5 % Textfarbe, Radius md, Innenabstand 12/16 pt.
+struct SettingsFilesNotice: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image("IconInfo")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 16, height: 16)
+                .frame(height: 18)
+            Text(LayoutCopy.settingsFilesNotice)
+                .font(.system(size: 12))
+                .lineSpacing(12 * 1.5 - 14.3)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .foregroundStyle(DesignColor.text)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(DesignColor.text.opacity(0.05), in: RoundedRectangle(cornerRadius: DesignRadius.md))
+    }
+}
+
+/// todo.0.4.3.018 (Layout 05.08a): Autostart „Freigabe nötig“ – gelber Link 12 pt halbfett, unterstrichen, 24 pt eingerückt
+/// (unter dem Text der Checkbox), beim Hover dunkler; öffnet Systemeinstellungen › Anmeldeobjekte.
+struct AutostartApprovalLink: View {
+    let action: () -> Void
+    @State private var isHovered = false
+
+    /// Nur wenn macOS die Anmeldung erst nach Bestätigung erlaubt.
+    static func isShown(for state: LaunchAtLogin.State) -> Bool {
+        state == .requiresApproval
+    }
+
+    /// Layout `#EDA12D`, Hover `#d18a1c`.
+    static let color = Color(red: 237 / 255, green: 161 / 255, blue: 45 / 255)
+    static let hoverColor = Color(red: 209 / 255, green: 138 / 255, blue: 28 / 255)
+
+    var body: some View {
+        Button(action: action) {
+            Text(LayoutCopy.openSystemSettingsForPermission)
+                .font(.system(size: 12, weight: .semibold))
+                .underline()
+                .foregroundStyle(isHovered ? Self.hoverColor : Self.color)
+        }
+        .buttonStyle(.plainFullHit)
+        .padding(.leading, 24)
+        .pointerCursor()
+        .onHover { isHovered = $0 }
     }
 }

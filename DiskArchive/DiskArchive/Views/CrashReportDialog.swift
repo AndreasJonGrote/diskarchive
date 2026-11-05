@@ -19,10 +19,11 @@ struct CrashReportDialog: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 30, height: 30)
-                .foregroundStyle(DesignColor.text)
+                // todo.0.4.3.021 (Layout 15): Icon rot.
+                .foregroundStyle(DesignColor.stateError)
 
             Text(LayoutCopy.crashTitle)
-                .font(.system(size: 16, weight: .bold))
+                .font(DesignFont.heading(size: 16))
                 .foregroundStyle(DesignColor.text)
 
             Text(LayoutCopy.crashBody)

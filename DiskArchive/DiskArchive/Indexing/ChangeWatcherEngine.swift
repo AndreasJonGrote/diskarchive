@@ -277,7 +277,8 @@ actor ChangeWatcherEngine {
             isPackage: entry.isPackage && !entry.isSymbolicLink,
             sizeBytes: asFile && !entry.isPackage && !entry.isSymbolicLink ? entry.fileSize : nil,
             modifiedAt: entry.modifiedAt,
-            fileID: FileIdentity.scannedFileID(entry.fileID)
+            fileID: FileIdentity.scannedFileID(entry.fileID),
+            createdAt: entry.createdAt
         )
     }
 }

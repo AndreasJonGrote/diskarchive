@@ -20,6 +20,8 @@ struct IndexedItem: Identifiable, Hashable {
     let parentPath: [String]
     let modifiedAt: Date?
     let sizeBytes: Int64?
+    /// todo.0.4.3.024: Erstellungsdatum aus dem Index (`nil` = unbekannt, Altbestand).
+    var createdAt: Date?
     var listedAt: Date?
     var unreadable: Bool = false
     var isFavorite: Bool = false
@@ -99,6 +101,7 @@ struct IndexedItem: Identifiable, Hashable {
         self.parentPath = resolvedParent
         self.modifiedAt = stored.modifiedAt
         self.sizeBytes = stored.sizeBytes
+        self.createdAt = stored.createdAt
         self.listedAt = stored.listedAt
         self.unreadable = stored.unreadable
         self.isFavorite = stored.isFavorite

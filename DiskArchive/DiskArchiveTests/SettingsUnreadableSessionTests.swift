@@ -147,7 +147,8 @@ struct SettingsUnreadableNoticeTests {
         #expect(await same(bannerPixel(app, appearance: appearance), expected), "Hinweis fehlt")
         #expect(
             LayoutCopy.settingsUnreadableNotice.contains("nicht gespeichert")
-                || LayoutCopy.settingsUnreadableNotice.contains("not be saved")
+                // todo.0.4.3.018: englischer Text aus 20 („won’t be saved“).
+                || LayoutCopy.settingsUnreadableNotice.contains("won’t be saved")
         )
     }
 }

@@ -1,0 +1,12 @@
+# Test: UrgentUpdateTests/rememberedUrgentVersionShowsAtLaunch()
+--- a/DiskArchive/DiskArchive/App/VersionLockEvaluator.swift
++++ b/DiskArchive/DiskArchive/App/VersionLockEvaluator.swift
+@@ -157,7 +157,7 @@
+         // Ohne Antwort gilt die zuletzt gemeldete dringende Version (Dialog auch beim Start).
+         let urgentTarget: AppVersion? = apiVersion != nil
+             ? (urgentUpdate ? apiVersion : nil)
+-            : settings.urgentUpdateVersion.flatMap(AppVersion.parse)
++            : nil
+         if let apiVersion {
+             mutations.setUrgentUpdateVersion = urgentUpdate ? apiVersion.displayString : ""
+         }

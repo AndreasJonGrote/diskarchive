@@ -21,6 +21,8 @@ struct DiskArchiveApp: App {
     private let appState = AppDelegateBridge.appState
 
     init() {
+        // todo.0.4.3.019: Archivo (Titel) für den Prozess registrieren, bevor das erste Fenster zeichnet.
+        DesignFont.registerBundledFonts()
         let bundleID = Bundle.main.bundleIdentifier ?? ""
         let running = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
             .map(\.processIdentifier)

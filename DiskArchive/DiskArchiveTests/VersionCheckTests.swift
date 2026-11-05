@@ -188,7 +188,8 @@ struct VersionCheckTests {
         )
         appState.applyVersionLockEvaluation(eval)
         #expect(!appState.featureAccess.canWriteIndex)
-        #expect(appState.versionLockBannerText() == LayoutCopy.versionLockBannerApiOffline)
+        // todo.0.4.3.020: roter Banner „Lizenzserver nicht erreichbar“ statt des alten Texts.
+        #expect(appState.readOnlyBanner() == .licenseServerUnreachable)
     }
 
     private func makeStoreURL() throws -> URL {

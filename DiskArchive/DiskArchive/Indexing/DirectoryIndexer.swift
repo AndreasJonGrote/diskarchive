@@ -907,7 +907,8 @@ nonisolated struct DirectoryIndexer: Sendable {
                 sizeBytes: asFile && !entry.isPackage && !entry.isSymbolicLink ? entry.fileSize : nil,
                 modifiedAt: entry.modifiedAt,
                 fileID: FileIdentity.scannedFileID(entry.fileID),
-                linkCount: duplicateFileID ? 2 : entry.linkCount
+                linkCount: duplicateFileID ? 2 : entry.linkCount,
+                createdAt: entry.createdAt
             )
         }
     }

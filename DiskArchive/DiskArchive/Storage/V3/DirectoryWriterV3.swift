@@ -1180,10 +1180,12 @@ nonisolated final class DirectoryWriterV3 {
     private func writeDetails(itemID: Int64, _ entry: ScannedEntry) throws {
         try db.execute(
             sql: """
-                INSERT INTO item_details (itemID, sizeBytes, isPackage) VALUES (?, ?, ?)
-                ON CONFLICT(itemID) DO UPDATE SET sizeBytes = excluded.sizeBytes, isPackage = excluded.isPackage
+                INSERT INTO item_details (itemID, sizeBytes, isPackage, createdAt) VALUES (?, ?, ?, ?)
+                ON CONFLICT(itemID) DO UPDATE SET sizeBytes = excluded.sizeBytes, isPackage = excluded.isPackage,
+                    createdAt = COALESCE(excluded.createdAt, item_details.createdAt)
                 """,
-            arguments: [itemID, entry.sizeBytes, entry.isPackage]
+            // todo.0.4.3.024: Erstellungsdatum; ohne gelesenen Wert bleibt der gespeicherte.
+            arguments: [itemID, entry.sizeBytes, entry.isPackage, entry.createdAt.map(SchemaTime.seconds)]
         )
     }
 

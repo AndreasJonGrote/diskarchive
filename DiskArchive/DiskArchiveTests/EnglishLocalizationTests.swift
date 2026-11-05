@@ -61,7 +61,8 @@ struct EnglishLocalizationTests {
             #expect(LayoutCopy.loadingOneMoment == "Einen Moment bitte.")
             #expect(LayoutCopy.searchNoResultsTitle == "Keine Suchergebnisse")
             #expect(LayoutCopy.mediumFilterCount(2, 5) == "2 von 5 Medien")
-            #expect(LayoutCopy.folderChangeExclusions == "Ausschlüsse ändern")
+            // todo.0.4.3.016: Link aus 07.02.06 (Sektion 20).
+            #expect(LayoutCopy.folderChangeExclusions == "Einstellungen öffnen")
         }
         L10n.$languageOverride.withValue(.english) {
             #expect(LayoutCopy.loadingSearchTitle(media: 12, files: 48_230) == "Searching your 12 storage media and 48,230 files …")
@@ -69,7 +70,7 @@ struct EnglishLocalizationTests {
             #expect(LayoutCopy.loadingOneMoment == "One moment, please.")
             #expect(LayoutCopy.searchNoResultsTitle == "No results")
             #expect(LayoutCopy.mediumFilterCount(2, 5) == "2 of 5 media")
-            #expect(LayoutCopy.folderChangeExclusions == "Change Exclusions")
+            #expect(LayoutCopy.folderChangeExclusions == "Open Settings")
             #expect(LayoutCopy.noticePrune == "Index cleaned up.")
         }
     }

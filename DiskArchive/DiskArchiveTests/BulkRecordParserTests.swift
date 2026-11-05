@@ -16,6 +16,9 @@ import Testing
 private struct BulkRecordBuilder {
     var name = "datei.bin"
     var objType: UInt32 = 1 // VREG
+    /// todo.0.4.3.024: Erstellungsdatum (CRTIME) steht vor MODTIME.
+    var crSeconds: Int64 = 1_600_000_000
+    var crNanoseconds: Int64 = 250_000_000
     var modSeconds: Int64 = 1_700_000_000
     var modNanoseconds: Int64 = 500_000_000
     var fileID: UInt64 = 4_242
@@ -23,7 +26,7 @@ private struct BulkRecordBuilder {
     var dataLength: UInt64 = 123_456
     /// Gesetzte Bits in `ATTR_CMN_RETURNED_ATTRS` (gepackt werden immer alle angeforderten Attribute).
     var commonValid: UInt32 = UInt32(bitPattern: ATTR_CMN_NAME) | UInt32(bitPattern: ATTR_CMN_OBJTYPE)
-        | UInt32(bitPattern: ATTR_CMN_MODTIME) | UInt32(bitPattern: ATTR_CMN_FILEID)
+        | UInt32(bitPattern: ATTR_CMN_CRTIME) | UInt32(bitPattern: ATTR_CMN_MODTIME) | UInt32(bitPattern: ATTR_CMN_FILEID)
     var fileValid: UInt32 = UInt32(bitPattern: ATTR_FILE_LINKCOUNT) | UInt32(bitPattern: ATTR_FILE_DATALENGTH)
     var fullMetadata = true
     /// Ordner kommen ohne Dateiattribute: `fileReturned` 0, kein LINKCOUNT/DATALENGTH im Datensatz.
@@ -45,6 +48,8 @@ private struct BulkRecordBuilder {
         put(UInt32(name.utf8.count + 1))
         put(objType)
         if fullMetadata {
+            put(crSeconds)
+            put(crNanoseconds)
             put(modSeconds)
             put(modNanoseconds)
             put(fileID)

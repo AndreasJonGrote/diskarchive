@@ -17,6 +17,8 @@ nonisolated enum VersionCheckEndpoint {
 
 nonisolated struct VersionCheckResponse: Equatable, Sendable {
     var version: AppVersion
+    /// todo.0.4.3.002: `"urgent-update": true` – Vergleich der ganzen Version, Dialog immer.
+    var urgentUpdate: Bool = false
 }
 
 nonisolated enum VersionCheckClient {
@@ -35,12 +37,18 @@ nonisolated enum VersionCheckClient {
         do {
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return (nil, false) }
-            guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let raw = object["version"] as? String,
-                  let version = AppVersion.parse(raw) else { return (nil, false) }
-            return (VersionCheckResponse(version: version), false)
+            return (Self.response(from: data), false)
         } catch {
             return (nil, (error as? URLError)?.code == .notConnectedToInternet)
         }
+    }
+
+    /// Antwort des Lizenzservers: `version` (Pflicht), `"urgent-update"` (todo.0.4.3.002, fehlt = `false`); unbekannte
+    /// Felder zählen nicht.
+    static func response(from data: Data) -> VersionCheckResponse? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let raw = object["version"] as? String,
+              let version = AppVersion.parse(raw) else { return nil }
+        return VersionCheckResponse(version: version, urgentUpdate: object["urgent-update"] as? Bool ?? false)
     }
 }

@@ -1,0 +1,11 @@
+# Test: UrgentUpdateTests/responseReadsTheUrgentField()
+--- a/DiskArchive/DiskArchive/App/VersionCheckClient.swift
++++ b/DiskArchive/DiskArchive/App/VersionCheckClient.swift
+@@ -49,6 +49,6 @@
+         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let raw = object["version"] as? String,
+               let version = AppVersion.parse(raw) else { return nil }
+-        return VersionCheckResponse(version: version, urgentUpdate: object["urgent-update"] as? Bool ?? false)
++        return VersionCheckResponse(version: version, urgentUpdate: false)
+     }
+ }

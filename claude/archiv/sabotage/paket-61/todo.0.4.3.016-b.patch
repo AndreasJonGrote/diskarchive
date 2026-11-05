@@ -1,0 +1,12 @@
+# Test: WindowTestGroup/ColumnFilterWindowTests/selectedQuietFolderStaysGreyAndThePathAboveIsBlue()
+--- a/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnBrowserView.swift
++++ b/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnBrowserView.swift
+@@ -756,7 +756,7 @@
+                             resolveTargets: { clicked in
+                                 contextTargets(for: clicked, column: column, medium: medium)
+                             },
+-                            selectionFill: quiet ? DesignColor.text
++                            selectionFill: quiet ? DesignColor.filterSearch
+                                 : filterActive ? DesignColor.filterSearch : DesignColor.sidebarActiveBackground,
+                             onSelect: { select(item: item, column: column) }
+                         )

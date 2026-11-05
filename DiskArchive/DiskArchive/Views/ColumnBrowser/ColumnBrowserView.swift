@@ -171,7 +171,7 @@ struct ColumnBrowserView: View {
             ColumnBrowserPathFooter(
                 sidebarWidth: appState.columnBrowserState.sidebarWidth,
                 freeCapacityLabel: medium?.freeOfTotalLabel ?? "",
-                pathLabel: columnBrowserPathLabel(medium: medium),
+                pathParts: columnBrowserPathParts(medium: medium),
                 objectCountLabel: objectCountLabel
             )
         }
@@ -287,7 +287,37 @@ struct ColumnBrowserView: View {
                 .padding(.top, 12)
                 .padding(.bottom, 8)
 
-            Text(LayoutCopy.columnAllMediaHeading)
+            if filteredMedia.isEmpty, !sidebarMediumFilter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // todo.0.4.3.016 (Layout 07.03.02): kein Treffer – Medien-Icon 28 pt und Titel mittig, ohne Überschrift.
+                MediumSearchNoResults()
+            } else {
+                sidebarMediaList(selectedMedium: selectedMedium)
+            }
+        }
+        .frame(width: appState.columnBrowserState.sidebarWidth)
+        .clipped()
+        // bug.0.4.219: eine Fläche für Seitenleiste, Offline-Leiste und Detailspalte (Katalog „Seitenleiste“).
+        .background(DesignColor.toolbar)
+        .overlay(alignment: .trailing) {
+            HStack(spacing: 0) {
+                ColumnResizeHandle(
+                    committedWidth: sidebarWidthBinding,
+                    onPreviewWidthChange: { _ in },
+                    minWidth: ColumnBrowserState.sidebarWidthRange.lowerBound,
+                    maxWidth: ColumnBrowserState.sidebarWidthRange.upperBound
+                )
+                Rectangle()
+                    .fill(DesignColor.divider)
+                    .frame(width: DesignBorder.width)
+                    .shadow(color: DesignColor.shadow.opacity(0.16), radius: 5, x: -2)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func sidebarMediaList(selectedMedium: Medium?) -> some View {
+            // todo.0.4.3.023 (Layout 07.03.02): bei Suche „{1} TREFFER“ statt „ALLE SPEICHERMEDIEN“.
+            Text(MediumSearchHeading.title(query: sidebarMediumFilter, matches: filteredMedia.count))
                 .font(.system(size: 10, weight: .semibold))
                 .kerning(0.8)
                 .foregroundStyle(DesignColor.text.opacity(0.45))
@@ -310,6 +340,7 @@ struct ColumnBrowserView: View {
                             fadeTitleWhenSelected: true,
                             fadeTitleOnOverflow: true,
                             contextTarget: sidebarContextTarget(for: medium),
+                            highlight: sidebarMediumFilter,
                             onSelect: { selectMedium(medium.id) }
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -320,25 +351,6 @@ struct ColumnBrowserView: View {
                 .padding(.horizontal, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-        }
-        .frame(width: appState.columnBrowserState.sidebarWidth)
-        .clipped()
-        // bug.0.4.219: eine Fläche für Seitenleiste, Offline-Leiste und Detailspalte (Katalog „Seitenleiste“).
-        .background(DesignColor.toolbar)
-        .overlay(alignment: .trailing) {
-            HStack(spacing: 0) {
-                ColumnResizeHandle(
-                    committedWidth: sidebarWidthBinding,
-                    onPreviewWidthChange: { _ in },
-                    minWidth: ColumnBrowserState.sidebarWidthRange.lowerBound,
-                    maxWidth: ColumnBrowserState.sidebarWidthRange.upperBound
-                )
-                Rectangle()
-                    .fill(DesignColor.divider)
-                    .frame(width: DesignBorder.width)
-                    .shadow(color: DesignColor.shadow.opacity(0.16), radius: 5, x: -2)
-            }
-        }
     }
 
     private func sidebarContextTarget(for medium: Medium) -> ObjectContextTarget? {
@@ -694,18 +706,19 @@ struct ColumnBrowserView: View {
             ColumnBrowserColumnHeader(title: header, showsLoadingContents: false)
 
             Group {
+                // todo.0.4.3.016: alle Statusflächen mit demselben Abstand wie 07.02.04 (Spalte 6/4, Fläche 10/4).
                 if case .uncapturedStatus(let folderID) = column.special {
                     uncapturedStatusPanel(medium: medium, folderID: folderID)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                        .padding(.horizontal, 6)
+                        .padding(.top, 4)
                 } else if pendingContents {
                     FolderPendingIndexingHint()
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                        .padding(.horizontal, 6)
+                        .padding(.top, 4)
                 } else if let loadError = appState.indexRepository.folderLoadError(mediumID: medium.id, path: column.path) {
                     FolderContentsLoadErrorHint(message: loadError)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                        .padding(.horizontal, 6)
+                        .padding(.top, 4)
                 } else if let filterStatus {
                     ColumnFilterStatusPanel(kind: filterStatus) {
                         appState.resetColumnObjectFilters()
@@ -729,7 +742,7 @@ struct ColumnBrowserView: View {
                         onLoadingHintVisible: { visible in
                             publishLoadingHint(visible, medium: medium, path: column.path)
                         },
-                        hintInsets: EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16),
+                        hintInsets: EdgeInsets(top: 4, leading: 6, bottom: 0, trailing: 6),
                         scrollTarget: scrollTarget(for: column)
                     ) { item in
                         let openState = rowOpenState(item: item, columnIndex: column.columnIndex, medium: medium)
@@ -926,78 +939,68 @@ struct ColumnBrowserView: View {
         return max(DesignSpacing.columnBrowserDetailWidth, remaining)
     }
 
+    /// todo.0.4.3.017 (Layout 07.01.01, 07.03.05): Spalte 12 pt, Innenabstand 16 pt; Icon 26 pt, Name halbfett direkt
+    /// darunter (8 pt), Label links (60 %) und Wert rechts (Textfarbe), Zeilenhöhe 1,45 ohne Zusatzabstand; „Im Finder
+    /// anzeigen“ (nur online) 12 pt darunter.
     private func detailColumn(medium: Medium, width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(LayoutCopy.columnDetailHeading)
                 .font(.system(size: 10, weight: .semibold))
                 .kerning(0.8)
                 .foregroundStyle(DesignColor.text.opacity(0.45))
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
+                .padding(.bottom, 12)
 
             if let many = multipleSelectionItems(for: medium) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Image("FileTypeFiles")
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 26, height: 26)
-                        .foregroundStyle(DesignColor.text)
-                    Text(ColumnSizeSummary.objectLine(count: many.count))
-                        .font(.system(size: 13, weight: .semibold))
-                    Text(LayoutCopy.columnDetailTotalSize(
-                        ByteCountFormatter.storage.string(fromByteCount: ColumnSizeSummary.totalBytes(many))
-                    ))
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(DesignColor.text.opacity(0.6))
+                detailHeader(
+                    icon: Image("FileTypeFiles").renderingMode(.template).resizable().scaledToFit()
+                        .frame(width: 26, height: 26).foregroundStyle(DesignColor.text),
+                    name: ColumnSizeSummary.objectLine(count: many.count)
+                )
+                ColumnDetailFactsGrid(facts: ColumnDetailFacts.multiple(many, medium: medium))
+                // todo.0.4.3.024: wie bei einer Datei, nur online; markiert alle gewählten Objekte.
+                if medium.connectionStatus == .connected {
+                    ColumnDetailLink(title: LayoutCopy.revealInFinder) {
+                        appState.revealInFinder(many.map { .fromIndexedItem($0, medium: medium) })
+                    }
+                    .padding(.top, 12)
                 }
-                .padding(.horizontal, 16)
             } else if let file = selectedDetailFile(for: medium) {
-                VStack(alignment: .leading, spacing: 8) {
-                    FileTypeIcon(
+                detailHeader(
+                    icon: FileTypeIcon(
                         kind: file.fileKind,
                         size: 26,
                         color: iconColor(item: file, openState: rowOpenState(item: file, columnIndex: file.parentPath.count, medium: medium))
-                    )
-                    Text(file.name)
-                        .font(.system(size: 13, weight: .semibold))
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    VStack(alignment: .leading, spacing: 5) {
-                        if let modified = file.modifiedAt {
-                            Text(LayoutCopy.columnDetailModified(
-                                IndexedDateFormatting.abbreviatedDay(modified)
-                            ))
-                        }
-                        if let size = file.sizeBytes {
-                            Text(LayoutCopy.columnDetailSize(
-                                ByteCountFormatter.storage.string(fromByteCount: size)
-                            ))
-                        }
-                        // „Zuletzt gesehen“ ist der Zeitpunkt des Mediums, nicht der einzelnen Datei (Aufgabe 233).
-                        if let seen = ColumnDetailText.lastSeen(medium: medium) {
-                            Text(seen)
-                        }
+                    ),
+                    name: file.name
+                )
+                ColumnDetailFactsGrid(facts: ColumnDetailFacts.file(file, medium: medium))
+                if medium.connectionStatus == .connected {
+                    ColumnDetailLink(title: LayoutCopy.revealInFinder) {
+                        appState.revealInFinder(.fromIndexedItem(file, medium: medium))
                     }
-                    .font(.system(size: 12.5))
-                    .foregroundStyle(DesignColor.text.opacity(0.6))
-
-                    if medium.connectionStatus == .connected {
-                        RevealInFinderButton {
-                            appState.revealInFinder(.fromIndexedItem(file, medium: medium))
-                        }
-                        .padding(.top, 8)
-                    }
+                    .padding(.top, 12)
                 }
-                .padding(.horizontal, 16)
             }
 
             Spacer(minLength: 0)
         }
+        .font(.system(size: 12))
+        .padding(16)
         .frame(width: width, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .top)
         .background(DesignColor.toolbar)
+    }
+
+    private func detailHeader(icon: some View, name: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            icon
+                .padding(.leading, -3)
+            Text(name)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(DesignColor.text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.bottom, 8)
     }
 
     private func selectMedium(_ id: UUID) {
@@ -1040,8 +1043,8 @@ struct ColumnBrowserView: View {
         return selectedUncapturedFolderItem(for: medium, id: id)
     }
 
-    private func columnBrowserPathLabel(medium: Medium?) -> String {
-        guard let medium else { return "" }
+    private func columnBrowserPathParts(medium: Medium?) -> [String] {
+        guard let medium else { return [] }
         var parts = [medium.shownName]
         parts += appState.columnBrowserState.pathStack
         if let file = selectedDetailFile(for: medium) {
@@ -1049,7 +1052,7 @@ struct ColumnBrowserView: View {
         } else if let folder = selectedUncapturedFolderItem(for: medium) {
             parts.append(folder.name)
         }
-        return parts.joined(separator: " › ")
+        return parts
     }
 
     private func columnHeaderBase(medium: Medium, column: ColumnBrowserFolderColumn) -> String {
@@ -1190,9 +1193,97 @@ enum ColumnBrowserFiltering {
 
 /// Texte der Detailspalte, die aus dem Medium kommen (testbar ohne Fenster).
 enum ColumnDetailText {
-    /// „Zuletzt gesehen: …“ mit dem Datum, an dem das Medium zuletzt gesehen wurde.
-    static func lastSeen(medium: Medium) -> String? {
-        medium.lastSeenAt.map { LayoutCopy.columnDetailLastSeen(IndexedDateFormatting.abbreviatedDay($0)) }
+    /// todo.0.4.3.017: Wert zu „Zuletzt gesehen“ – online „jetzt“, sonst Datumsregel aus 19 (wie Kachel und Einstellungen).
+    /// Offline ohne bekanntes Datum keine Zeile.
+    static func lastSeen(medium: Medium, now: Date = .now) -> String? {
+        guard medium.connectionStatus == .connected || medium.lastSeenAt != nil else { return nil }
+        return medium.lastSeenDescription(now: now)
+    }
+}
+
+/// todo.0.4.3.017 (Layout 07.01.01, 07.03.05): Zeilen „Label – Wert“ der Detailspalte. Unbekannte Werte „—“ wie im Layout.
+struct ColumnDetailFact: Equatable {
+    let label: String
+    let value: String
+}
+
+enum ColumnDetailFacts {
+    static let unknown = "—"
+
+    /// Einzelne Datei: Erstellt, Geändert, Größe, Zuletzt gesehen.
+    static func file(_ item: IndexedItem, medium: Medium, now: Date = .now) -> [ColumnDetailFact] {
+        var facts = [
+            // todo.0.4.3.024: Erstellungsdatum aus dem Index; Altbestand ohne Wert „—“.
+            ColumnDetailFact(
+                label: LayoutCopy.columnDetailCreated,
+                value: item.createdAt.map(IndexedDateFormatting.abbreviatedDay) ?? unknown
+            ),
+            ColumnDetailFact(
+                label: LayoutCopy.columnDetailModified,
+                value: item.modifiedAt.map(IndexedDateFormatting.abbreviatedDay) ?? unknown
+            ),
+            ColumnDetailFact(
+                label: LayoutCopy.columnDetailSize,
+                value: item.sizeBytes.map { ByteCountFormatter.storage.string(fromByteCount: $0) } ?? unknown
+            ),
+        ]
+        if let seen = ColumnDetailText.lastSeen(medium: medium, now: now) {
+            facts.append(ColumnDetailFact(label: LayoutCopy.columnDetailLastSeen, value: seen))
+        }
+        return facts
+    }
+
+    /// Mehrfachauswahl: Einzelwerte „—“, dazu „Größe gesamt“.
+    static func multiple(_ items: [IndexedItem], medium: Medium, now: Date = .now) -> [ColumnDetailFact] {
+        var facts = [
+            ColumnDetailFact(label: LayoutCopy.columnDetailCreated, value: unknown),
+            ColumnDetailFact(label: LayoutCopy.columnDetailModified, value: unknown),
+            ColumnDetailFact(label: LayoutCopy.columnDetailSize, value: unknown),
+            ColumnDetailFact(
+                label: LayoutCopy.columnDetailTotalSize,
+                value: ByteCountFormatter.storage.string(fromByteCount: ColumnSizeSummary.totalBytes(items))
+            ),
+        ]
+        if let seen = ColumnDetailText.lastSeen(medium: medium, now: now) {
+            facts.append(ColumnDetailFact(label: LayoutCopy.columnDetailLastSeen, value: seen))
+        }
+        return facts
+    }
+}
+
+/// Raster der Detailspalte: Label 60 %, Wert in Textfarbe, 8 pt Spaltenabstand, Zeilenhöhe 1,45 (12 pt → 17,4 pt).
+struct ColumnDetailFactsGrid: View {
+    let facts: [ColumnDetailFact]
+
+    var body: some View {
+        Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 0) {
+            ForEach(Array(facts.enumerated()), id: \.offset) { _, fact in
+                GridRow {
+                    Text(fact.label)
+                        .foregroundStyle(DesignColor.text.opacity(0.6))
+                    Text(fact.value)
+                        .foregroundStyle(DesignColor.text)
+                }
+                .lineLimit(1)
+                .frame(height: 12 * 1.45)
+            }
+        }
+        .font(.system(size: 12))
+    }
+}
+
+/// Link der Detailspalte (Layout: 12 pt halbfett, Textfarbe, unterstrichen).
+struct ColumnDetailLink: View {
+    let title: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(title, action: action)
+            .buttonStyle(.plainFullHit)
+            .font(.system(size: 12, weight: .semibold))
+            .underline()
+            .foregroundStyle(DesignColor.text)
+            .pointerCursor()
     }
 }
 
@@ -1337,5 +1428,36 @@ private struct UserScrollObserver: NSViewRepresentable {
         }
 
         override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+}
+
+/// todo.0.4.3.016 (Layout 07.03.02): Medium-Suche ohne Treffer – `hard-drives` 28 pt in Textfarbe, darunter (8 pt) der Titel
+/// 12 pt halbfett, beides mittig in der Seitenleiste.
+struct MediumSearchNoResults: View {
+    var body: some View {
+        VStack(spacing: 8) {
+            Image("MenuBarHardDrives")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 28, height: 28)
+                .foregroundStyle(DesignColor.text)
+            Text(LayoutCopy.columnMediaSearchNoResults)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(DesignColor.text)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// todo.0.4.3.023 (Layout 07.03.02): Kopf der Medienliste.
+enum MediumSearchHeading {
+    static func title(query: String, matches: Int) -> String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? LayoutCopy.columnAllMediaHeading
+            : LayoutCopy.columnMediaSearchMatches(matches)
     }
 }

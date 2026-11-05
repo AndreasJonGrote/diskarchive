@@ -92,6 +92,16 @@ extension Medium {
             from: calendar.startOfDay(for: lastSeenAt),
             to: calendar.startOfDay(for: now)
         ).day ?? 0
+        // todo.0.4.3.023 (Datumsregel, Layout 03/04): ab zwei vollen Monaten „vor {1} Monaten“ („vor 34 Tagen“ bleibt
+        // Tage; „vor 1 Monat“ gibt es in 20 nicht), sonst ab 2 Tagen „vor {1} Tagen“.
+        let months = calendar.dateComponents(
+            [.month],
+            from: calendar.startOfDay(for: lastSeenAt),
+            to: calendar.startOfDay(for: now)
+        ).month ?? 0
+        if months >= 2 {
+            return L10n.format("copy.dashboard.last_seen.months_ago", months, language: language)
+        }
         if days >= 2 {
             return L10n.format("copy.dashboard.last_seen.days_ago", days, language: language)
         }

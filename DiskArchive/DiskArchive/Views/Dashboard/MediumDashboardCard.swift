@@ -39,7 +39,7 @@ struct MediumDashboardCard: View {
                 FadeMaskText(
                     text: medium.shownName,
                     applyFadeMask: true,
-                    font: .system(size: 17, weight: .bold)
+                    font: DesignFont.heading(size: 17)
                 )
                 if medium.customName != nil {
                     FadeMaskText(

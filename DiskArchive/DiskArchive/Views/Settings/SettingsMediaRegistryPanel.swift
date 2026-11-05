@@ -27,7 +27,7 @@ struct SettingsMediaRegistryPanel: View {
     }
 
     private var registryTable: some View {
-        let rows = sorted(appState.registryMedia.filter { filter.matches($0) })
+        let rows = sort.sorted(appState.registryMedia.filter { filter.matches($0) })
 
         return VStack(spacing: 0) {
             filterChipRow
@@ -84,6 +84,10 @@ struct SettingsMediaRegistryPanel: View {
                 .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
                 .padding(.trailing, 6)
 
+            sortHeader(LayoutCopy.registryLastSeen, column: .lastSeen, alignment: .trailing)
+                .frame(width: RegistryTableLayout.lastSeenWidth, alignment: .trailing)
+                .padding(.trailing, 10)
+
             sortHeader(LayoutCopy.index, column: .indexing, alignment: .trailing)
                 .frame(width: RegistryTableLayout.indexingWidth, alignment: .trailing)
 
@@ -91,7 +95,7 @@ struct SettingsMediaRegistryPanel: View {
                 .frame(width: RegistryTableLayout.detailActionWidth, height: 1)
         }
         .padding(.horizontal, RegistryTableLayout.horizontalPadding)
-        .padding(.vertical, 10)
+        .padding(.vertical, DesignTable.verticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DesignColor.text.opacity(0.05))
     }
@@ -107,16 +111,4 @@ struct SettingsMediaRegistryPanel: View {
         }
     }
 
-    private func sorted(_ media: [Medium]) -> [Medium] {
-        media.sorted { lhs, rhs in
-            let ordered: Bool
-            switch sort.column {
-            case .name:
-                ordered = lhs.shownName.localizedCaseInsensitiveCompare(rhs.shownName) == .orderedAscending
-            case .indexing:
-                ordered = lhs.allowIndexing && !rhs.allowIndexing
-            }
-            return sort.ascending ? ordered : !ordered
-        }
-    }
 }

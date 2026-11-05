@@ -1,0 +1,11 @@
+# Test: SettingsFilesAndRegistryTests/filesTabStartsWithTheNoticeArea()
+--- a/DiskArchive/DiskArchive/Views/Settings/SettingsGeneralTab.swift
++++ b/DiskArchive/DiskArchive/Views/Settings/SettingsGeneralTab.swift
+@@ -31,7 +31,6 @@
+                     DesignDivider()
+                     notificationsSection(settings: settings)
+                 case .files:
+-                    SettingsFilesNotice()
+                     scanDepthSection(settings: settings)
+                         .id(SettingsScrollTarget.scanDepth)
+                     DesignDivider()

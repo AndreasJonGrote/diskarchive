@@ -1,0 +1,12 @@
+# Test: CreationDateTests/multipleSelectionRevealsAllOnlyWhenOnline()
+--- a/DiskArchive/DiskArchive/App/AppState.swift
++++ b/DiskArchive/DiskArchive/App/AppState.swift
+@@ -538,7 +538,7 @@
+                 urls.filter { exists($0.path) }
+             }.value
+             guard !chosen.isEmpty, let self else { return }
+-            self.finderRevealOpenMany(chosen)
++            self.finderRevealOpenMany(Array(chosen.prefix(1)))
+         }
+     }
+ 

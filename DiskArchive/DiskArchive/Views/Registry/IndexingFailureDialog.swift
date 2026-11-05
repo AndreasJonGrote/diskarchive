@@ -19,7 +19,7 @@ struct IndexingFailureDialog: View {
                 .foregroundStyle(DesignColor.text)
 
             Text(LayoutCopy.indexFailedTitle(name: notice.name))
-                .font(.system(size: 16, weight: .bold))
+                .font(DesignFont.heading(size: 16))
                 .foregroundStyle(DesignColor.text)
 
             Text(LayoutCopy.indexFailedBody)

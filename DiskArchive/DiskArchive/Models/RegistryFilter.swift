@@ -38,10 +38,33 @@ enum RegistryFilter: String, CaseIterable, Identifiable {
 
 enum RegistrySortColumn: String, CaseIterable {
     case name
+    /// todo.0.4.3.018 (Layout 05.02): „Zuletzt gesehen“ – angeschlossene zuerst („jetzt“), dann jüngstes Datum zuerst.
+    case lastSeen
     case indexing
 }
 
 struct RegistrySortState: Equatable {
     var column: RegistrySortColumn = .name
     var ascending: Bool = true
+
+    func sorted(_ media: [Medium]) -> [Medium] {
+        media.sorted { lhs, rhs in
+            let ordered: Bool
+            switch column {
+            case .name:
+                ordered = lhs.shownName.localizedCaseInsensitiveCompare(rhs.shownName) == .orderedAscending
+            case .lastSeen:
+                ordered = Self.seenRank(lhs) > Self.seenRank(rhs)
+            case .indexing:
+                ordered = lhs.allowIndexing && !rhs.allowIndexing
+            }
+            return ascending ? ordered : !ordered
+        }
+    }
+
+    /// Angeschlossen = jetzt (größter Wert), ohne Datum ganz hinten.
+    private static func seenRank(_ medium: Medium) -> Double {
+        if medium.connectionStatus == .connected { return .greatestFiniteMagnitude }
+        return medium.lastSeenAt?.timeIntervalSinceReferenceDate ?? -.greatestFiniteMagnitude
+    }
 }

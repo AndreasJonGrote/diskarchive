@@ -1,0 +1,13 @@
+# Test: ColumnDetailFactsTests/singleFileShowsLabelsInOrderAndNowWhenOnline()
+--- a/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnBrowserView.swift
++++ b/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnBrowserView.swift
+@@ -1215,9 +1215,6 @@
+                 value: item.sizeBytes.map { ByteCountFormatter.storage.string(fromByteCount: $0) } ?? unknown
+             ),
+         ]
+-        if let seen = ColumnDetailText.lastSeen(medium: medium, now: now) {
+-            facts.append(ColumnDetailFact(label: LayoutCopy.columnDetailLastSeen, value: seen))
+-        }
+         return facts
+     }
+ 

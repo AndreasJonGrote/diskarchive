@@ -23,27 +23,13 @@ struct UpdateAvailableDialog: View {
                 .foregroundStyle(DesignColor.text)
 
             Text(LayoutCopy.updateAvailableTitle)
-                .font(.system(size: 16, weight: .bold))
+                .font(DesignFont.heading(size: 16))
                 .foregroundStyle(DesignColor.text)
 
             Text(LayoutCopy.updateAvailableText)
                 .font(.system(size: 13))
                 .foregroundStyle(DesignColor.text.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
-
-            if notice.offer.showBetaCountdown {
-                Text(LayoutCopy.updateAvailableBetaCountdown)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(DesignColor.text)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if let banner = appState.versionLockBannerText() {
-                Text(banner)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(DesignColor.text)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
 
             // todo.0.4.047: der Haken ist die Einstellung „Auf Updates hinweisen“ (gespeichert beim Schließen).
             Toggle(isOn: Binding(

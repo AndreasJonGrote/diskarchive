@@ -1,0 +1,12 @@
+# Test: DetailLastSeenTests/detailColumnShowsTheLastSeenDateOfTheMedium(), ColumnDetailFactsTests/singleFileShowsLabelsInOrderAndNowWhenOnline()
+--- a/DiskArchive/DiskArchive/Models/Medium+Dashboard.swift
++++ b/DiskArchive/DiskArchive/Models/Medium+Dashboard.swift
+@@ -99,7 +99,7 @@
+             from: calendar.startOfDay(for: lastSeenAt),
+             to: calendar.startOfDay(for: now)
+         ).month ?? 0
+-        if months >= 2 {
++        if months >= 2, false {
+             return L10n.format("copy.dashboard.last_seen.months_ago", months, language: language)
+         }
+         if days >= 2 {

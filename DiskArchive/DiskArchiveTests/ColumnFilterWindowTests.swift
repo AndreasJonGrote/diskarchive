@@ -213,6 +213,43 @@ struct ColumnFilterWindowTests {
         #expect(rowInk != nil, "Inhalt von „F“ nicht sichtbar")
     }
 
+    // todo.0.4.3.016 (Layout 08.02, Nutzer 01.11.): Der markierte Ordner ohne Treffer („X“) bleibt grau, auch als
+    // Auswahl; der Pfad darüber („A“, mit Treffer) ist blau.
+    @Test func selectedQuietFolderStaysGreyAndThePathAboveIsBlue() async throws {
+        let opened = try await Self.open(path: ["A", "X"])
+        defer { opened.close() }
+        let app = opened.app
+        app.searchState.filters.fileTypes = [.image]
+        let key = try #require(opened.key())
+        try #require(await waitUntil { app.columnFilterFolderHits(for: key) != nil }, "Treffermenge fehlt")
+        try #require(await Self.waitForBlue(opened.session, in: opened.columnRange(2)) != nil, "Status in der Spalte von „X“ fehlt")
+        await PixelProbe.settleOpenWindow(opened.session)
+
+        /// Farben der Auswahlfläche in einer Spalte (Mitte zwischen Icon und Rand, Zeilen unter der Kopfzeile).
+        func selectionSamples(_ column: ClosedRange<CGFloat>) -> [NSColor] {
+            let bitmap = opened.session.bitmap()
+            var samples: [NSColor] = []
+            var y: CGFloat = 110
+            while y < 260 {
+                if let sample = PixelProbe.color(in: bitmap, at: CGPoint(x: column.lowerBound + 120, y: y)).usingColorSpace(.sRGB) {
+                    samples.append(sample)
+                }
+                y += 1
+            }
+            return samples
+        }
+        func isBlue(_ color: NSColor) -> Bool { color.blueComponent - color.redComponent > 0.3 && color.blueComponent > 0.6 }
+        func isGrey(_ color: NSColor) -> Bool {
+            abs(color.redComponent - color.greenComponent) < 0.04 && abs(color.greenComponent - color.blueComponent) < 0.04
+                && color.redComponent > 0.45 && color.redComponent < 0.8
+        }
+        let pathRow = selectionSamples(opened.columnRange(0))
+        #expect(pathRow.contains(where: isBlue), "Pfad „A“ nicht blau")
+        let quietRow = selectionSamples(opened.columnRange(1))
+        #expect(!quietRow.contains(where: isBlue), "Auswahl „X“ blau statt grau")
+        #expect(quietRow.filter(isGrey).count >= 12, "Auswahl „X“ nicht grau")
+    }
+
     // Gegenprobe 4 (Selbstprüfung): tiefer Pfad unter einem leisen Ordner (G/H) – nur ein Status, rechts davon nichts.
     @Test func deepPathUnderAQuietFolderShowsOneStatus() async throws {
         let rig = try await ColumnFilterTreeRig.make(Self.tree + [.folder("G", [.folder("H", [.file("notiz.txt")])])])

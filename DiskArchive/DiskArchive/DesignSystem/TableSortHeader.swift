@@ -32,7 +32,9 @@ struct TableSortHeader: View {
 
     static func label(_ title: String, isActive: Bool) -> some View {
         Text(title)
-            .font(.system(size: 12, weight: isActive ? .bold : .regular))
-            .foregroundStyle(isActive ? DesignColor.control : DesignColor.text.opacity(0.55))
+            // todo.0.4.3.018 (Layout 05.02, 19): Kopf 11 pt fett, aktive Spalte in Textfarbe (schwarz), sonst leise; keine
+            // Sortierpfeile.
+            .font(.system(size: DesignTable.headerFont, weight: .bold))
+            .foregroundStyle(isActive ? DesignColor.text : DesignColor.text.opacity(DesignTable.quietOpacity))
     }
 }

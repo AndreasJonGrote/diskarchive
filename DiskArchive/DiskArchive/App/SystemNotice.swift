@@ -161,8 +161,7 @@ enum SystemNotice {
         settings: AppSettings
     ) {
         guard durationSeconds > NoticeCopy.minimumVisibleSeconds else { return }
-        let count = DisplayNumberFormat.groupedInteger(objectCount)
-        let body = LayoutCopy.noticeIndexedComplete(name, count)
+        let body = LayoutCopy.noticeIndexedComplete(name, count: objectCount)
         post(body: body, settings: settings, event: .indexed, kind: "indexed")
     }
 

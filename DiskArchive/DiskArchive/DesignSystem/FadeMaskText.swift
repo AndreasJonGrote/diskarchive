@@ -25,6 +25,8 @@ struct FadeMaskText: View {
     /// lang, verschwindet er ganz (Layout 19).
     var suffix: String?
     var suffixOpacity: Double = 0.55
+    /// todo.0.4.3.023 (Layout 07.03.02): Suchbegriff im Namen fett.
+    var highlight: String?
 
     @State private var intrinsicWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
@@ -92,8 +94,33 @@ struct FadeMaskText: View {
 
     private var composed: Text {
         let color = isLightOnDark ? DesignColor.onSelection : foreground
-        let main = Text(text).foregroundStyle(color)
+        let main = HighlightedName.segments(text, term: highlight)
+            .reduce(Text(verbatim: "")) { result, segment in
+                result + (segment.isMatch ? Text(verbatim: segment.text).fontWeight(.bold) : Text(verbatim: segment.text))
+            }
+            .foregroundStyle(color)
         guard let suffix else { return main }
         return main + Text(verbatim: " · \(suffix)").fontWeight(.regular).foregroundStyle(color.opacity(suffixOpacity))
+    }
+}
+
+/// todo.0.4.3.023: Teile eines Namens, der erste Treffer des Suchbegriffs (Groß-/Kleinschreibung und Akzente egal)
+/// als eigener Teil.
+enum HighlightedName {
+    struct Segment: Equatable {
+        let text: String
+        let isMatch: Bool
+    }
+
+    static func segments(_ text: String, term: String?) -> [Segment] {
+        let trimmed = term?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty,
+              let range = text.range(of: trimmed, options: [.caseInsensitive, .diacriticInsensitive])
+        else { return [Segment(text: text, isMatch: false)] }
+        return [
+            Segment(text: String(text[..<range.lowerBound]), isMatch: false),
+            Segment(text: String(text[range]), isMatch: true),
+            Segment(text: String(text[range.upperBound...]), isMatch: false),
+        ].filter { !$0.text.isEmpty }
     }
 }

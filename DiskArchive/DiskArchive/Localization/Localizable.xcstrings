@@ -115,13 +115,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Filter zurücksetzen"
+            "value" : "Alle Filter zurücksetzen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reset filter"
+            "value" : "Reset All Filters"
           }
         }
       }
@@ -917,13 +917,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zuletzt gesehen: %1$@"
+            "value" : "Zuletzt gesehen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Last seen: %1$@"
+            "value" : "Last seen"
           }
         }
       }
@@ -934,13 +934,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geändert: %1$@"
+            "value" : "Geändert"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Modified: %1$@"
+            "value" : "Modified"
           }
         }
       }
@@ -951,13 +951,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Größe: %1$@"
+            "value" : "Größe"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Size: %1$@"
+            "value" : "Size"
           }
         }
       }
@@ -968,13 +968,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Größe gesamt: %1$@"
+            "value" : "Größe gesamt"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Total size: %1$@"
+            "value" : "Total size"
           }
         }
       }
@@ -1019,13 +1019,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inhalt wird nicht indiziert"
+            "value" : "Inhalt nicht erfasst"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contents are not indexed"
+            "value" : "Content not indexed"
           }
         }
       }
@@ -1751,13 +1751,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ausschlüsse ändern"
+            "value" : "Einstellungen öffnen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Change Exclusions"
+            "value" : "Open Settings"
           }
         }
       }
@@ -1768,13 +1768,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ordner ist ausgeschlossen"
+            "value" : "Ordner ausgeschlossen"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Folder is excluded"
+            "value" : "Folder excluded"
           }
         }
       }
@@ -1785,13 +1785,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inhalt konnte nicht gelesen werden"
+            "value" : "Ordner nicht lesbar"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contents could not be read"
+            "value" : "Folder not readable"
           }
         }
       }
@@ -1830,38 +1830,6 @@
         }
       }
     },
-    "copy.update.available.beta_countdown" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Betaphase ist beendet. Diese App-Version wird in sieben Tagen gesperrt — danach ist der Index nur noch lesbar."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The beta period has ended. This app version will lock in seven days — after that, the index is read-only."
-          }
-        }
-      }
-    },
-    "copy.version_lock.banner.beta" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Betaphase beendet — der Index ist gesperrt (nur lesen)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Beta ended — the index is locked (read-only)."
-          }
-        }
-      }
-    },
     "copy.settings.unreadable.notice" : {
       "localizations" : {
         "de" : {
@@ -1873,39 +1841,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Settings could not be read – changes will not be saved."
-          }
-        }
-      }
-    },
-    "copy.version_lock.banner.api" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die App konnte die Versionsserver länger als einen Monat nicht erreichen — der Index ist gesperrt (nur lesen)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The app could not reach the version server for over a month — the index is locked (read-only)."
-          }
-        }
-      }
-    },
-    "copy.version_lock.banner.build" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dieser Build ist abgelaufen — der Index ist gesperrt (nur lesen)."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This build has expired — the index is locked (read-only)."
+            "value" : "Settings couldn’t be read – changes won’t be saved."
           }
         }
       }
@@ -3396,13 +3332,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ignoriert temporäre Dateien, Backups, Systemreste und Ordner mit generischen Programmbibliotheken. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
+            "value" : "Ignoriert temporäre Dateien, Backups, Systemreste und Ordner mit generischen Programmbibliotheken."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ignores temporary files, backups, system clutter, and generic library folders. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains reappears; the rest is added on the next scan."
+            "value" : "Skips temporary files, backups, system leftovers and folders with generic code libraries."
           }
         }
       }
@@ -3566,13 +3502,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Namen, Endungen oder Ordner, die auf keinem Speichermedium indiziert werden. Lässt sich auch per Rechtsklick auf ein Objekt setzen. Bereits erfasste Treffer verschwinden sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ im Tab „Erweitert“. Wird ein Chip entfernt, erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
+            "value" : "Namen, Endungen oder Ordner, die auf keinem Speichermedium indiziert werden. Lässt sich auch per Rechtsklick auf ein Objekt setzen."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Names, extensions, or folders never indexed on any volume. Can also be set via right-click. Matches already indexed disappear from view and are removed from the index after 1 hour, or immediately via “Clean up index now” in Advanced. Removing a chip shows what remains; the rest is added on the next scan."
+            "value" : "Names, extensions or folders that are never indexed on any storage medium. You can also set this by right-clicking an item."
           }
         }
       }
@@ -3617,13 +3553,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Schließt versteckte Systemdateien und -ordner vom Index aus. Beim Einschalten verschwinden sie sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Beim Ausschalten erscheint, was noch im Index ist; der Rest kommt beim nächsten Scan dazu."
+            "value" : "Schließt versteckte Systemdateien und -ordner vom Index aus."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Excludes hidden system files and folders from the index. When enabled they disappear from view and are removed after 1 hour, or immediately via “Clean up index now” (Advanced). When disabled, what remains in the index reappears; the rest is added on the next scan."
+            "value" : "Keeps hidden system files and folders out of the index."
           }
         }
       }
@@ -4178,13 +4114,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wie viele Ordnerebenen unterhalb des Wurzelverzeichnisses eines Speichermediums durchsucht werden. „5+“ durchsucht uneingeschränkt alles. Wird die Tiefe verringert, verschwinden tiefere Ebenen sofort aus der Ansicht und werden nach 1 Stunde aus dem Index gelöscht, sofort über „Index jetzt bereinigen“ (Erweitert). Wird sie erhöht, erscheint, was noch im Index ist; fehlende Ebenen kommen beim nächsten Scan dazu."
+            "value" : "Wie viele Ordnerebenen unterhalb des Wurzelverzeichnisses eines Speichermediums durchsucht werden. „5+“ durchsucht uneingeschränkt alles."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "How many folder levels below each volume root are scanned. “5+” scans without limit. Lowering depth hides deeper levels immediately and removes them from the index after 1 hour, or immediately via “Clean up index now” (Advanced). Raising depth shows what remains in the index; missing levels are added on the next scan."
+            "value" : "How many folder levels below the top of a storage medium are scanned. “5+” scans everything."
           }
         }
       }
@@ -4688,13 +4624,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "„%1$@“ konnte nicht ausgeworfen werden. Ein anderes Programm benutzt es gerade."
+            "value" : "„%1$@“ konnte nicht ausgeworfen werden, weil ein anderes Programm es gerade benutzt. Schließe dort geöffnete Dateien und versuche es erneut."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "“%1$@” couldn’t be ejected because another app is using it."
+            "value" : "“%1$@” couldn’t be ejected because another app is using it. Close any open files on it and try again."
           }
         }
       }
@@ -4763,6 +4699,329 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Folders"
+          }
+        }
+      }
+    },
+    "copy.folder.excluded_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieser Ordner wurde ausgeschlossen. Sein Inhalt wird daher nicht indiziert."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder was excluded, so its content isn’t indexed."
+          }
+        }
+      }
+    },
+    "copy.folder.unreadable_body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Inhalt dieses Ordners konnte beim Indizieren nicht gelesen werden."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This folder’s content couldn’t be read during indexing."
+          }
+        }
+      }
+    },
+    "copy.column.media_search.no_results" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kein Speichermedium mit diesem Namen bekannt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No storage medium with this name"
+          }
+        }
+      }
+    },
+    "copy.column.detail.created" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellt"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Created"
+          }
+        }
+      }
+    },
+    "copy.dashboard.last_seen.months_ago" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vor %lld Monaten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld months ago"
+          }
+        }
+      }
+    },
+    "copy.settings.files.notice" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was durch eine Änderung auf dieser Seite wegfällt – Ordnerebenen, Dateien, Metadaten oder Vorschaubilder –, verschwindet sofort aus der Ansicht und wird nach 1 Stunde aus dem Index gelöscht. Wird eine Änderung zurückgenommen, erscheint sofort wieder, was noch im Index ist; alles andere kommt mit dem nächsten Scan."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anything a change on this page removes – folder levels, files, metadata or previews – disappears from view right away and is deleted from the index after 1 hour. If you undo a change, whatever is still in the index reappears right away; everything else returns with the next scan."
+          }
+        }
+      }
+    },
+    "copy.context.ignore_folder_name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordnernamen ignorieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore Folder Name"
+          }
+        }
+      }
+    },
+    "copy.column.media_search.matches" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld TREFFER"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld MATCHES"
+          }
+        }
+      }
+    },
+    "copy.banner.beta_notice.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Betaphase von Disk Archive wurde beendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Disk Archive beta has ended."
+          }
+        }
+      }
+    },
+    "copy.banner.beta_notice.days" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst Disk Archive noch %lld Tage nutzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can use Disk Archive for %lld more days."
+          }
+        }
+      }
+    },
+    "copy.banner.beta_notice.one_day" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Du kannst Disk Archive noch 1 Tag nutzen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You can use Disk Archive for 1 more day."
+          }
+        }
+      }
+    },
+    "copy.banner.read_only.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive befindet sich im Nur-Lesen-Modus."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disk Archive is in read-only mode."
+          }
+        }
+      }
+    },
+    "copy.banner.read_only.beta" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Betaphase ist beendet. Du kannst dein Archiv benutzen, aber nicht aktualisieren oder erweitern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The beta has ended. You can use your archive, but not update or expand it."
+          }
+        }
+      }
+    },
+    "copy.banner.read_only.build" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Version ist abgelaufen. Du kannst dein Archiv benutzen, aber nicht aktualisieren oder erweitern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This version has expired. You can use your archive, but not update or expand it."
+          }
+        }
+      }
+    },
+    "copy.banner.read_only.license_server" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Lizenzserver war seit einem Monat nicht erreichbar. Du kannst dein Archiv benutzen, aber nicht aktualisieren oder erweitern."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The license server hasn’t been reachable for a month. You can use your archive, but not update or expand it."
+          }
+        }
+      }
+    },
+    "copy.banner.check_now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jetzt prüfen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check Now"
+          }
+        }
+      }
+    },
+    "copy.banner.checking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versionsprüfung …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking version …"
+          }
+        }
+      }
+    },
+    "copy.about.version_beta" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ (Beta)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %@ (Beta)"
+          }
+        }
+      }
+    },
+    "copy.about.version" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version"
           }
         }
       }

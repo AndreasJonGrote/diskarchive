@@ -62,7 +62,7 @@ struct NewMediumDetectedDialog: View {
             MediumTypeIcon(type: medium.type, size: 30)
 
             Text(LayoutCopy.newMediumTitle)
-                .font(.system(size: 16, weight: .bold))
+                .font(DesignFont.heading(size: 16))
 
             Text(bodyText)
                 .font(.system(size: 13))

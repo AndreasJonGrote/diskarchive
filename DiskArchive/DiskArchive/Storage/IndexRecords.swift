@@ -77,6 +77,8 @@ nonisolated struct ScannedEntry: Sendable, Equatable {
     var fileID: String?
     /// Hardlink-Zähler aus Bulk-Lesen (`ATTR_FILE_LINKCOUNT`); `nil` = unbekannt.
     var linkCount: Int? = nil
+    /// todo.0.4.3.024: Erstellungsdatum der Datei (`item_details.createdAt`).
+    var createdAt: Date? = nil
 }
 
 /// Wie stark ein gespeichertes Medium zu einem angeschlossenen Volume passt.
@@ -269,4 +271,6 @@ nonisolated struct StoredItem: Sendable, Equatable, Identifiable {
     var isFavorite: Bool
     var listedAt: Date?
     var unreadable: Bool = false
+    /// todo.0.4.3.024: Erstellungsdatum (`item_details.createdAt`), `nil` bei Altbestand.
+    var createdAt: Date? = nil
 }

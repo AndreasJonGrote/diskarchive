@@ -42,7 +42,7 @@ struct ReplaceMediumDialog: View {
     static func text(_ prompt: ReplaceMediumPrompt) -> some View {
         VStack(alignment: .leading, spacing: spacing) {
             Text(LayoutCopy.replaceMediumTitle(name: prompt.name))
-                .font(.system(size: 16, weight: .bold))
+                .font(DesignFont.heading(size: 16))
                 .foregroundStyle(DesignColor.text)
                 .fixedSize(horizontal: false, vertical: true)
 

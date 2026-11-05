@@ -124,6 +124,8 @@ struct MainWindowToolbar: View {
         }
         .buttonStyle(.plainFullHit)
         .pointerCursor()
+        // todo.0.4.3.023 (Layout 19 „Tooltips“): Tooltip = Beschriftung aus 20.
+        .help(accessibilityLabel)
         .accessibilityLabel(accessibilityLabel)
     }
 
@@ -145,6 +147,7 @@ struct MainWindowToolbar: View {
         .buttonStyle(.plainFullHit)
         .disabled(!isEnabled)
         .pointerCursor(isEnabled)
+        .help(accessibilityLabel)
         .accessibilityLabel(accessibilityLabel)
     }
 }

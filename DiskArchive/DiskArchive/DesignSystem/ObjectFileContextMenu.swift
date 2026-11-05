@@ -117,7 +117,7 @@ private func contextMenuGroups(
         [
             ContextMenuEntry(
                 id: "ignoreName",
-                title: LayoutCopy.contextIgnoreName,
+                title: LayoutCopy.contextIgnoreName(for: [target.kind]),
                 icon: "IconProhibit",
                 iconColor: ignoresName ? DesignColor.stateError : nil,
                 checkColor: ignoresName ? DesignColor.stateError : nil,
@@ -172,7 +172,7 @@ func multipleContextMenuGroups(_ targets: [ObjectContextTarget], appState: AppSt
         [
             ContextMenuEntry(
                 id: "ignoreName",
-                title: LayoutCopy.contextIgnoreName,
+                title: LayoutCopy.contextIgnoreName(for: targets.map(\.kind)),
                 icon: "IconProhibit",
                 iconColor: plan.ignoreNameChecked ? DesignColor.stateError : nil,
                 checkColor: plan.ignoreNameChecked ? DesignColor.stateError : nil

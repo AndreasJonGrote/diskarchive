@@ -16,10 +16,11 @@ extension AppState {
         let wasLocked = versionLockState.isLocked
         versionLockState = evaluation.lockState
         versionLockBannerVisible = evaluation.showLockBanner
+        betaNoticeDeadline = evaluation.betaNoticeDeadline
         // todo.0.4.047: Mit „Auf Updates hinweisen“ aus erscheint kein Updatedialog – außer Beta-Countdown oder Sperre
         // (die erscheinen immer). Der Haken im Dialog gilt bis zum Schließen; ein neuer Stand behält ihn.
         if let offer = evaluation.updateOffer,
-           appSettings.notifyAboutUpdates || offer.showBetaCountdown || evaluation.showLockBanner {
+           appSettings.notifyAboutUpdates || offer.showBetaCountdown || offer.urgent || evaluation.showLockBanner {
             let notify = updateNotice?.notifyAboutUpdates ?? appSettings.notifyAboutUpdates
             updateNotice = UpdateNotice(offer: offer, notifyAboutUpdates: notify)
         } else {
@@ -46,17 +47,89 @@ extension AppState {
         openExternalURL(AppLinks.websiteURL)
     }
 
-    func versionLockBannerText() -> String? {
-        guard versionLockBannerVisible else { return nil }
+    /// todo.0.4.3.020 (Layout 04.03a–04.06): Banner zwischen Werkzeugleiste und Inhalt. Rot (Sperre) gewinnt vor Gelb;
+    /// gelb nur, solange die Beta-Frist läuft. Während des Update-Dialogs keiner (der Banner folgt ihm).
+    func readOnlyBanner(now: Date = .now) -> ReadOnlyBanner? {
+        guard updateNotice == nil else { return nil }
         switch versionLockState {
+        case .locked(let reason):
+            guard versionLockBannerVisible else { return nil }
+            switch reason {
+            case .betaExpired: return .betaExpired
+            case .buildExpired: return .buildExpired
+            case .apiUnreachable: return licenseServerCheckInProgress ? .checking : .licenseServerUnreachable
+            }
         case .unlocked:
-            return nil
-        case .locked(.betaExpired):
-            return LayoutCopy.versionLockBannerBetaEnded
-        case .locked(.apiUnreachable):
-            return LayoutCopy.versionLockBannerApiOffline
-        case .locked(.buildExpired):
-            return LayoutCopy.versionLockBannerBuildExpired
+            guard let deadline = betaNoticeDeadline, now < deadline else { return nil }
+            let days = Int((deadline.timeIntervalSince(now) / 86_400).rounded(.up))
+            return .betaNotice(daysLeft: max(1, days))
+        }
+    }
+
+    /// todo.0.4.3.020 (Layout 04.04/04.05): „Jetzt prüfen“ – Spinner, bis die Antwort da ist. Antwortet der Lizenzserver,
+    /// wertet `VersionCheckCoordinator` neu aus (Banner weg, neue Version meldet der Update-Dialog); sonst bleibt rot.
+    func checkLicenseServerNow() {
+        guard !licenseServerCheckInProgress, let check = onCheckLicenseServerNow else { return }
+        DiskArchiveLog.shared.ui("license server check now")
+        licenseServerCheckInProgress = true
+        Task { [weak self] in
+            _ = await check()
+            self?.licenseServerCheckInProgress = false
+        }
+    }
+}
+
+/// todo.0.4.3.020: Inhalt des Banners je Zustand (Layout 04.05).
+enum ReadOnlyBanner: Equatable {
+    case betaNotice(daysLeft: Int)
+    case betaExpired
+    case buildExpired
+    case licenseServerUnreachable
+    case checking
+
+    enum Action: Equatable {
+        case website
+        case checkNow
+    }
+
+    /// Gelb = Hinweis, Rot = Sperre.
+    var isLock: Bool {
+        if case .betaNotice = self { return false }
+        return true
+    }
+
+    var iconAsset: String? {
+        switch self {
+        case .betaNotice: "IconBannerWarning"
+        case .betaExpired, .buildExpired: "IconLockSimple"
+        case .licenseServerUnreachable: "IconWifiSlash"
+        case .checking: nil
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .betaNotice: LayoutCopy.bannerBetaNoticeTitle
+        case .betaExpired, .buildExpired, .licenseServerUnreachable: LayoutCopy.bannerReadOnlyTitle
+        case .checking: LayoutCopy.bannerChecking
+        }
+    }
+
+    var info: String? {
+        switch self {
+        case .betaNotice(let days): LayoutCopy.bannerBetaNoticeDays(days)
+        case .betaExpired: LayoutCopy.bannerReadOnlyBeta
+        case .buildExpired: LayoutCopy.bannerReadOnlyBuild
+        case .licenseServerUnreachable: LayoutCopy.bannerReadOnlyLicenseServer
+        case .checking: nil
+        }
+    }
+
+    var action: (title: String, kind: Action)? {
+        switch self {
+        case .betaNotice, .betaExpired, .buildExpired: (LayoutCopy.updateAvailableDownload, .website)
+        case .licenseServerUnreachable: (LayoutCopy.bannerCheckNow, .checkNow)
+        case .checking: nil
         }
     }
 }

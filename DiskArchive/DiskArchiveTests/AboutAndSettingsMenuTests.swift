@@ -25,18 +25,34 @@ struct AboutAndSettingsMenuTests {
         #expect(items.filter { !$0.isSeparatorItem }.allSatisfy { $0.action != nil && $0.target != nil })
     }
 
+    /// todo.0.4.3.001 (Layout 17): eigenes Fenster statt des Standardfensters – Version aus dem Bundle, Datum, Link.
     @Test func aboutContentComesFromTheBundleAndLinksToTheWebsite() throws {
         let content = AboutPanel.content()
-        #expect(content.version == "0.4.2")
+        let bundleVersion = try #require(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+        #expect(content.version == bundleVersion, "immer die laufende Version")
         #expect(Int(content.build).map { $0 > 1 } == true)
         #expect(content.link == "https://diskarchive.app")
+        #expect(content.buildDate != nil, "Datum aus dem Build")
+        #expect(content.name == "Disk Archive")
+        L10n.$languageOverride.withValue(.german) {
+            #expect(AboutPanel.versionLine("0.4.3") == "Version 0.4.3 (Beta)")
+            #expect(AboutPanel.versionLine("1.0") == "Version 1.0")
+            let date = Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 10, day: 9, hour: 12))
+            #expect(AboutPanel.dateLine(date) == "9. Oktober 2026")
+        }
+        #expect(AboutPanel.linkTitle(content.link) == "diskarchive.app")
+    }
 
-        let options = AboutPanel.options()
-        #expect(options[.applicationVersion] as? String == content.version)
-        #expect(options[.version] as? String == content.build)
-        let credits = try #require(options[.credits] as? NSAttributedString)
-        let link = credits.attribute(.link, at: 0, effectiveRange: nil) as? URL
-        #expect(link?.absoluteString == "https://diskarchive.app")
+    /// Nur der rote Punkt schließt (Minimieren und Zoomen ausgeblendet); kein Standard-„Über“-Fenster mehr.
+    @Test func aboutWindowHasOnlyTheCloseButton() {
+        let window = AboutPanel.makeWindow(content: AboutPanel.content())
+        defer { window.close() }
+        #expect(window.styleMask.contains(.closable))
+        #expect(!window.styleMask.contains(.miniaturizable) && !window.styleMask.contains(.resizable))
+        #expect(window.standardWindowButton(.closeButton)?.isHidden == false)
+        #expect(window.standardWindowButton(.miniaturizeButton)?.isHidden ?? true)
+        #expect(window.standardWindowButton(.zoomButton)?.isHidden ?? true)
+        #expect(window.contentView?.frame.size == AboutView.size)
     }
 
     @Test func settingsCommandOpensTheSettingsDestination() {

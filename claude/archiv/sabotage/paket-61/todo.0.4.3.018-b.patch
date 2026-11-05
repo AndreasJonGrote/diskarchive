@@ -1,0 +1,12 @@
+# Test: SettingsFilesAndRegistryTests/lastSeenColumnSortsConnectedFirstThenNewest()
+--- a/DiskArchive/DiskArchive/Models/RegistryFilter.swift
++++ b/DiskArchive/DiskArchive/Models/RegistryFilter.swift
+@@ -54,7 +54,7 @@
+             case .name:
+                 ordered = lhs.shownName.localizedCaseInsensitiveCompare(rhs.shownName) == .orderedAscending
+             case .lastSeen:
+-                ordered = Self.seenRank(lhs) > Self.seenRank(rhs)
++                ordered = Self.seenRank(lhs) < Self.seenRank(rhs)
+             case .indexing:
+                 ordered = lhs.allowIndexing && !rhs.allowIndexing
+             }

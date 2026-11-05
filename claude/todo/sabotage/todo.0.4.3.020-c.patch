@@ -1,0 +1,11 @@
+# Test: ReadOnlyBannerTests/betaNoticeCountsDownAndRedWins()
+--- a/DiskArchive/DiskArchive/App/AppState+VersionLock.swift
++++ b/DiskArchive/DiskArchive/App/AppState+VersionLock.swift
+@@ -50,7 +50,6 @@
+     /// todo.0.4.3.020 (Layout 04.03a–04.06): Banner zwischen Werkzeugleiste und Inhalt. Rot (Sperre) gewinnt vor Gelb;
+     /// gelb nur, solange die Beta-Frist läuft. Während des Update-Dialogs keiner (der Banner folgt ihm).
+     func readOnlyBanner(now: Date = .now) -> ReadOnlyBanner? {
+-        guard updateNotice == nil else { return nil }
+         switch versionLockState {
+         case .locked(let reason):
+             guard versionLockBannerVisible else { return nil }

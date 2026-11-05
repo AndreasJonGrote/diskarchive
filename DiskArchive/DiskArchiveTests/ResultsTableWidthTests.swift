@@ -146,7 +146,8 @@ struct ResultsTableWidthTests {
     func aNameThatFitsIsNotTruncated(style: NSScroller.Style, width: CGFloat) async throws {
         let (bitmap, session) = try await render(width: width, style: style)
         defer { session.close() }
-        let font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        // todo.0.4.3.018 (Layout 19): Tabellenzeilen 14 pt.
+        let font = NSFont.systemFont(ofSize: DesignTable.rowFont, weight: .semibold)
         let textWidth = (longName as NSString).size(withAttributes: [.font: font]).width
         let columns = ObjectTableColumns(totalWidth: contentWidth(window: width, style: style))
         try #require(columns.name > textWidth + 8, "Testname passt nicht in die Spalte")

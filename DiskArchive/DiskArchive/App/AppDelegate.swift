@@ -89,6 +89,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         observeSleep(appState)
         MenuBarController.shared.install(appState: appState)
+        // todo.0.4.3.020: „Jetzt prüfen“ im roten Banner (Lizenzserver nicht erreichbar).
+        appState.onCheckLicenseServerNow = { await IssueReporter.shared.checkVersionNow() }
         appState.onRetryIndexStoreOpen = { [weak self] in
             ArchiveDatabase.shared.retryOpen()
             self?.startMediumRecognition()

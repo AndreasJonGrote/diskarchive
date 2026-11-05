@@ -1,0 +1,12 @@
+# Test: MediumEjectTests/refusalOffersTryAgainWhichEjectsAgain()
+--- a/DiskArchive/DiskArchive/App/AppState+Media.swift
++++ b/DiskArchive/DiskArchive/App/AppState+Media.swift
+@@ -156,7 +156,7 @@
+             // todo.0.4.3.019 (Layout 16.02): Text aus 20, „Erneut versuchen“ wirft dasselbe Medium noch einmal aus.
+             unexpectedError = UnexpectedErrorNotice(
+                 message: LayoutCopy.ejectFailed(name: medium.shownName),
+-                actionTitle: LayoutCopy.retry,
++                actionTitle: nil,
+                 action: { [weak self] in
+                     Task { await self?.ejectMedium(id: id) }
+                 }

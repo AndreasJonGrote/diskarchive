@@ -121,7 +121,7 @@ extension IndexStoreV3 {
 
     nonisolated static let columnChildRowSelect = """
         SELECT i.id, i.parentID, i.name, i.isFolder, i.depth, i.status, i.modifiedAt, i.fileID,
-               i.listedAt, i.unreadable, e.ext AS ext, d.sizeBytes AS sizeBytes, d.isPackage AS isPackage,
+               i.listedAt, i.unreadable, e.ext AS ext, d.sizeBytes AS sizeBytes, d.isPackage AS isPackage, d.createdAt AS createdAt,
                (f.itemID IS NOT NULL) AS isFavorite
         FROM items i
         LEFT JOIN extensions e ON e.id = i.extID
@@ -218,7 +218,8 @@ extension IndexStoreV3 {
                 path: base + name + (isFolder ? "/" : ""),
                 isFavorite: row["isFavorite"],
                 listedAt: listed.map(SchemaTime.date),
-                unreadable: row["unreadable"]
+                unreadable: row["unreadable"],
+                createdAt: (row["createdAt"] as Int64?).map(SchemaTime.date)
             )
         }
     }
@@ -649,7 +650,7 @@ extension IndexStoreV3 {
                 db,
                 sql: """
                     SELECT i.id, i.parentID, i.name, i.isFolder, i.depth, i.status, i.modifiedAt, i.fileID,
-                           i.listedAt, i.unreadable, e.ext AS ext, d.sizeBytes AS sizeBytes, d.isPackage AS isPackage,
+                           i.listedAt, i.unreadable, e.ext AS ext, d.sizeBytes AS sizeBytes, d.isPackage AS isPackage, d.createdAt AS createdAt,
                            s.uuid AS storageUUID, (f.itemID IS NOT NULL) AS isFavorite
                     FROM items i
                     JOIN storages s ON s.id = i.storageID
@@ -701,7 +702,8 @@ extension IndexStoreV3 {
                 path: base + name + (isFolder ? "/" : ""),
                 isFavorite: row["isFavorite"],
                 listedAt: listed.map(SchemaTime.date),
-                unreadable: row["unreadable"]
+                unreadable: row["unreadable"],
+                createdAt: (row["createdAt"] as Int64?).map(SchemaTime.date)
             )
         }
     }

@@ -34,6 +34,8 @@ struct ColumnBrowserRow: View {
     var resolveTargets: ((ObjectContextTarget) -> [ObjectContextTarget])?
     /// todo.0.4.2.003: Fläche der Auswahl (mit Filter blau, leiser Ordner in Textfarbe).
     var selectionFill: Color = DesignColor.sidebarActiveBackground
+    /// todo.0.4.3.023: Suchbegriff der Medium-Suche, im Namen fett.
+    var highlight: String?
     var onSelect: () -> Void
 
     var body: some View {
@@ -48,7 +50,8 @@ struct ColumnBrowserRow: View {
                     applyFadeMask: fadeTitleOnOverflow || (fadeTitleWhenSelected && isSelected),
                     font: titleFont,
                     suffix: titleSuffix,
-                    suffixOpacity: 0.7
+                    suffixOpacity: 0.7,
+                    highlight: highlight
                 )
             }
         }

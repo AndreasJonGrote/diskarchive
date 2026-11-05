@@ -69,6 +69,29 @@ struct MediumEjectTests {
         #expect(app.medium(with: id)?.connectionStatus == .connected, "Medium gilt nach Ablehnung als ausgeworfen")
     }
 
+    /// todo.0.4.3.019 (Layout 16.02): Text aus 20 und „Erneut versuchen“, das dasselbe Medium noch einmal auswirft.
+    @Test func refusalOffersTryAgainWhichEjectsAgain() async throws {
+        let (app, id) = Self.app(connected: true)
+        var ejects = 0
+        app.ejectVolume = { _ in
+            ejects += 1
+            if ejects == 1 { throw Refused() }
+        }
+        await app.ejectMedium(id: id)
+        let notice = try #require(app.unexpectedError, "Dialog 16 fehlt")
+        L10n.$languageOverride.withValue(.german) {
+            #expect(LayoutCopy.ejectFailed(name: "Studio Backup")
+                == "„Studio Backup“ konnte nicht ausgeworfen werden, weil ein anderes Programm es gerade benutzt. Schließe dort geöffnete Dateien und versuche es erneut.")
+            #expect(LayoutCopy.retry == "Erneut versuchen")
+        }
+        #expect(notice.actionTitle == LayoutCopy.retry)
+        let action = try #require(notice.action, "Knopf „Erneut versuchen“ fehlt")
+        app.unexpectedError = nil
+        action()
+        #expect(await waitUntil(timeout: 5) { ejects == 2 }, "nicht erneut ausgeworfen")
+        #expect(app.unexpectedError == nil, "Dialog nach erfolgreichem zweiten Versuch")
+    }
+
     /// Kein Knopf in Seitenleisten und Medienspalten: nur Kachel und Tabelle „Speichermedien“ nutzen `EjectButton`.
     @Test func ejectButtonOnlyInTileAndTable() throws {
         let app = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()

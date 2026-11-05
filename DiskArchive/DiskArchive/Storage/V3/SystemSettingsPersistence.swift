@@ -18,6 +18,8 @@ nonisolated enum SystemSettingsKey {
     static let highestSeenAt = "highestSeenAt"
     /// todo.0.4.028: Zeitpunkt des letzten eingereihten Versions-Checks (Kalenderzeit, `date`).
     static let lastVersionCheckAt = "lastVersionCheckAt"
+    /// todo.0.4.3.002: Version aus der letzten Antwort mit `"urgent-update": true` (`value`; leer = keine).
+    static let urgentUpdateVersion = "urgentUpdateVersion"
 }
 
 nonisolated enum FirstRunMarker {
@@ -33,6 +35,8 @@ nonisolated struct SystemSettingsSnapshot: Equatable, Sendable {
     /// `true`, wenn beim ersten Start keine Datenbank da war (README: frische Installation).
     var firstRunFresh: Bool = false
     var highestSeenAt: Date? = nil
+    /// todo.0.4.3.002: gemeldete Version des letzten dringenden Updates (bis zur nächsten Antwort).
+    var urgentUpdateVersion: String? = nil
 }
 
 nonisolated enum SystemSettingsPersistence {
@@ -43,7 +47,8 @@ nonisolated enum SystemSettingsPersistence {
             lockedVersion: try readValue(db, key: SystemSettingsKey.lockedVersion),
             firstRunAt: try readDate(db, key: SystemSettingsKey.firstRunAt),
             firstRunFresh: try readValue(db, key: SystemSettingsKey.firstRunAt) == FirstRunMarker.fresh,
-            highestSeenAt: try readDate(db, key: SystemSettingsKey.highestSeenAt)
+            highestSeenAt: try readDate(db, key: SystemSettingsKey.highestSeenAt),
+            urgentUpdateVersion: try readValue(db, key: SystemSettingsKey.urgentUpdateVersion).flatMap { $0.isEmpty ? nil : $0 }
         )
     }
 
@@ -93,6 +98,11 @@ nonisolated enum SystemSettingsPersistence {
 
     static func writeLockedVersion(_ db: Database, version: String) throws {
         try writeValue(db, key: SystemSettingsKey.lockedVersion, value: version)
+    }
+
+    /// todo.0.4.3.002: leer = kein dringendes Update gemeldet.
+    static func writeUrgentUpdateVersion(_ db: Database, version: String) throws {
+        try writeValue(db, key: SystemSettingsKey.urgentUpdateVersion, value: version)
     }
 
     private static func readValue(_ db: Database, key: String) throws -> String? {

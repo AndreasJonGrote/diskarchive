@@ -1,0 +1,12 @@
+# Test: ErrorDialogsAndNoticesTests/crashReportIconIsRed()
+--- a/DiskArchive/DiskArchive/Views/CrashReportDialog.swift
++++ b/DiskArchive/DiskArchive/Views/CrashReportDialog.swift
+@@ -20,7 +20,7 @@
+                 .scaledToFit()
+                 .frame(width: 30, height: 30)
+                 // todo.0.4.3.021 (Layout 15): Icon rot.
+-                .foregroundStyle(DesignColor.stateError)
++                .foregroundStyle(DesignColor.text)
+ 
+             Text(LayoutCopy.crashTitle)
+                 .font(DesignFont.heading(size: 16))

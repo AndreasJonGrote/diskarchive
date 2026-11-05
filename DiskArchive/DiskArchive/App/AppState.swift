@@ -110,6 +110,12 @@ final class AppState {
     }
     var versionLockState: VersionLockState = .unlocked
     var versionLockBannerVisible = false
+    /// todo.0.4.3.020 (Layout 04.03a): Ende der Beta-Frist, solange sie läuft.
+    var betaNoticeDeadline: Date?
+    /// todo.0.4.3.020 (Layout 04.05): „Jetzt prüfen“ läuft – Spinner und „Versionsprüfung …“.
+    var licenseServerCheckInProgress = false
+    /// „Jetzt prüfen“: sofortige Versionsprüfung, `true`, wenn der Lizenzserver antwortete (Produkt: `IssueReporter`).
+    @ObservationIgnored var onCheckLicenseServerNow: (() async -> Bool)?
     var updateNotice: UpdateNotice?
     @ObservationIgnored var onVersionLockEngaged: (() -> Void)?
     /// bug.0.4.063: Übergang gesperrt → entsperrt (LiveWiring nimmt Überwachung und Indizierung wieder auf).
@@ -118,7 +124,8 @@ final class AppState {
     @ObservationIgnored var onVersionCheckEvaluationApplied: (() -> Void)?
     /// Index konnte nicht geöffnet werden (82).
     var indexStoreOpenFailed = false
-    var indexStoreOpenFailureAlert = false
+    /// todo.0.4.3.021: Dialog 16 der nicht zu öffnenden Datenbank (nur ihn schließt `clearIndexStoreOpenFailure`).
+    @ObservationIgnored var storeOpenFailureNoticeID: UUID?
     var onRetryIndexStoreOpen: (() -> Void)?
     var globalAutoIndexPaused: Bool = false {
         didSet {
@@ -509,6 +516,31 @@ final class AppState {
     @ObservationIgnored var finderRevealFileExists: @Sendable (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }
     /// Öffnet den Finder (main). Tests ersetzen es, damit kein Finder-Fenster aufgeht.
     @ObservationIgnored var finderRevealOpen: (URL) -> Void = { NSWorkspace.shared.activateFileViewerSelecting([$0]) }
+    /// todo.0.4.3.024: mehrere Objekte auf einmal im Finder markieren. Tests ersetzen es.
+    @ObservationIgnored var finderRevealOpenMany: ([URL]) -> Void = { NSWorkspace.shared.activateFileViewerSelecting($0) }
+
+    /// todo.0.4.3.024 (Layout 07.03.05): „Im Finder anzeigen“ bei Mehrfachauswahl – nur online, markiert alle
+    /// gewählten Objekte, die es auf dem Medium noch gibt (Prüfung im Hintergrund wie bei einem Objekt).
+    @discardableResult
+    func revealInFinder(_ targets: [ObjectContextTarget]) -> Task<Void, Never>? {
+        guard targets.count > 1 else { return targets.first.flatMap { revealInFinder($0) } }
+        DiskArchiveLog.shared.ui("revealInFinder count=\(targets.count)")
+        let urls = targets.compactMap { target -> URL? in
+            guard isMediumOnline(target.mediumID) else { return nil }
+            return FinderReveal.url(
+                mountPath: mountPath?(target.mediumID), itemPath: target.itemPath, kindIsMedium: target.kind == .medium
+            )
+        }
+        guard !urls.isEmpty else { return nil }
+        let exists = finderRevealFileExists
+        return Task { [weak self] in
+            let chosen = await Task.detached(priority: .userInitiated) {
+                urls.filter { exists($0.path) }
+            }.value
+            guard !chosen.isEmpty, let self else { return }
+            self.finderRevealOpenMany(chosen)
+        }
+    }
 
     /// „Im Finder anzeigen“ (Detail-Spalte + Kontextmenü): `NSWorkspace.shared.activateFileViewerSelecting(_:)`.
     /// bug.0.4.062 (REPORT 132): `fileExists` auf dem Medium nicht synchron auf main (langsame oder hängende Platte).

@@ -26,7 +26,7 @@ struct RegistryTableRow: View {
                     FadeMaskText(
                         text: medium.listLabel.name,
                         applyFadeMask: true,
-                        font: .system(size: 13, weight: .semibold),
+                        font: .system(size: DesignTable.rowFont, weight: .semibold),
                         suffix: medium.listLabel.original
                     )
                     .help(medium.listLabel.original.map { "\(medium.listLabel.name) · \($0)" } ?? "")
@@ -45,6 +45,14 @@ struct RegistryTableRow: View {
             }
             .frame(width: RegistryTableLayout.statusWidth, alignment: .trailing)
             .padding(.trailing, 6)
+
+            // todo.0.4.3.018 (Layout 05.02): „Zuletzt gesehen“ rechtsbündig, 13 pt leise, Datumsregel aus 19.
+            Text(medium.lastSeenDescription())
+                .font(.system(size: DesignTable.dateFont))
+                .foregroundStyle(DesignColor.text.opacity(DesignTable.quietOpacity))
+                .lineLimit(1)
+                .frame(width: RegistryTableLayout.lastSeenWidth, alignment: .trailing)
+                .padding(.trailing, 10)
 
             allowIndexingGroup
                 .frame(width: RegistryTableLayout.indexingWidth, alignment: .trailing)
@@ -66,7 +74,7 @@ struct RegistryTableRow: View {
             .frame(width: RegistryTableLayout.detailActionWidth, alignment: .trailing)
             .help(LayoutCopy.showDetailsHelp)
         }
-        .font(.system(size: 13))
+        .font(.system(size: DesignTable.rowFont))
         .padding(.horizontal, RegistryTableLayout.horizontalPadding)
         .padding(.vertical, RegistryTableLayout.rowVerticalPadding)
         .opacity(rowOpacity)

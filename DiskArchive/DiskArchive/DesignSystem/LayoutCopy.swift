@@ -73,6 +73,8 @@ nonisolated enum LayoutCopy {
 
     static var scanDepthTitle: String { L10n.string("copy.settings.scan_depth.title") }
     static var scanDepthText: String { L10n.string("copy.settings.scan_depth.text") }
+    /// todo.0.4.3.018 (Layout 05.01): Hinweisfläche oben auf „Dateien & Ordner“.
+    static var settingsFilesNotice: String { L10n.string("copy.settings.files.notice") }
     static var depthLabel: String { L10n.string("copy.settings.scan_depth.label") }
     static var exampleHeading: String { L10n.string("copy.settings.scan_depth.example_heading") }
     static var diskCrumb: String { L10n.string("copy.settings.scan_depth.disk_crumb") }
@@ -140,23 +142,16 @@ nonisolated enum LayoutCopy {
 
     static var columnAllMediaHeading: String { L10n.string("copy.column.all_media_heading") }
     static var columnOfflineBanner: String { L10n.string("copy.column.offline_banner") }
+    static var columnMediaSearchNoResults: String { L10n.string("copy.column.media_search.no_results") }
+    static func columnMediaSearchMatches(_ count: Int) -> String { L10n.format("copy.column.media_search.matches", count) }
     static var columnDetailHeading: String { L10n.string("copy.column.detail_heading") }
 
-    static func columnDetailTotalSize(_ formatted: String) -> String {
-        L10n.format("copy.column.detail.total_size", formatted)
-    }
-
-    static func columnDetailModified(_ formatted: String) -> String {
-        L10n.format("copy.column.detail.modified", formatted)
-    }
-
-    static func columnDetailSize(_ formatted: String) -> String {
-        L10n.format("copy.column.detail.size", formatted)
-    }
-
-    static func columnDetailLastSeen(_ formatted: String) -> String {
-        L10n.format("copy.column.detail.last_seen", formatted)
-    }
+    /// todo.0.4.3.017: Labels der Detailspalte (Wert rechts daneben).
+    static var columnDetailCreated: String { L10n.string("copy.column.detail.created") }
+    static var columnDetailModified: String { L10n.string("copy.column.detail.modified") }
+    static var columnDetailSize: String { L10n.string("copy.column.detail.size") }
+    static var columnDetailTotalSize: String { L10n.string("copy.column.detail.total_size") }
+    static var columnDetailLastSeen: String { L10n.string("copy.column.detail.last_seen") }
 
     static var a11yOverview: String { L10n.string("copy.a11y.overview") }
     static var a11yFavorites: String { L10n.string("copy.a11y.favorites") }
@@ -192,7 +187,7 @@ nonisolated enum LayoutCopy {
     /// todo.0.4.3.005: Vorschau = Text der echten Mitteilung mit den Beispielen aus Layout 05 („Masterarbeit Backup“,
     /// 48.210 Objekte; „Unterwegs“ mit 1 Favoriten).
     static var previewIndexed: String {
-        noticeIndexedComplete("Masterarbeit Backup", DisplayNumberFormat.groupedInteger(48_210))
+        noticeIndexedComplete("Masterarbeit Backup", count: 48_210)
     }
 
     static var previewFavorites: String { noticeFavoritesOnline(name: "Unterwegs", count: 1) }
@@ -269,10 +264,17 @@ nonisolated enum LayoutCopy {
     static var updatesText: String { L10n.string("copy.settings.updates.text") }
     static var updatesToggle: String { L10n.string("copy.settings.updates.toggle") }
     static var updateAvailableDownload: String { L10n.string("copy.update.available.download") }
-    static var updateAvailableBetaCountdown: String { L10n.string("copy.update.available.beta_countdown") }
-    static var versionLockBannerBetaEnded: String { L10n.string("copy.version_lock.banner.beta") }
-    static var versionLockBannerApiOffline: String { L10n.string("copy.version_lock.banner.api") }
-    static var versionLockBannerBuildExpired: String { L10n.string("copy.version_lock.banner.build") }
+    /// todo.0.4.3.020 (Layout 04.03a–04.05): Banner im Nur-Lesen-Modus.
+    static var bannerBetaNoticeTitle: String { L10n.string("copy.banner.beta_notice.title") }
+    static func bannerBetaNoticeDays(_ days: Int) -> String {
+        days == 1 ? L10n.string("copy.banner.beta_notice.one_day") : L10n.format("copy.banner.beta_notice.days", days)
+    }
+    static var bannerReadOnlyTitle: String { L10n.string("copy.banner.read_only.title") }
+    static var bannerReadOnlyBeta: String { L10n.string("copy.banner.read_only.beta") }
+    static var bannerReadOnlyBuild: String { L10n.string("copy.banner.read_only.build") }
+    static var bannerReadOnlyLicenseServer: String { L10n.string("copy.banner.read_only.license_server") }
+    static var bannerCheckNow: String { L10n.string("copy.banner.check_now") }
+    static var bannerChecking: String { L10n.string("copy.banner.checking") }
 
     static func pausedFor(_ span: String) -> String {
         L10n.format("copy.menu.paused_for", span)

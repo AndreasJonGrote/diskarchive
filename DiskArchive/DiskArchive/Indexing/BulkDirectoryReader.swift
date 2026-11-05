@@ -209,7 +209,7 @@ nonisolated enum BulkDirectoryReader {
         switch mode {
         case .fullMetadata:
             attrList.commonattr = attrBit(ATTR_CMN_RETURNED_ATTRS) | attrBit(ATTR_CMN_NAME)
-                | attrBit(ATTR_CMN_OBJTYPE) | attrBit(ATTR_CMN_FILEID) | attrBit(ATTR_CMN_MODTIME)
+                | attrBit(ATTR_CMN_OBJTYPE) | attrBit(ATTR_CMN_FILEID) | attrBit(ATTR_CMN_CRTIME) | attrBit(ATTR_CMN_MODTIME)
             attrList.fileattr = attrBit(ATTR_FILE_DATALENGTH) | attrBit(ATTR_FILE_LINKCOUNT)
         case .nameAndTypeOnly:
             attrList.commonattr = attrBit(ATTR_CMN_RETURNED_ATTRS) | attrBit(ATTR_CMN_NAME) | attrBit(ATTR_CMN_OBJTYPE)
@@ -262,7 +262,7 @@ nonisolated enum BulkDirectoryReader {
     /// Ein Datensatz von `getattrlistbulk` (ohne den Rest des Puffers). bug.0.4.055 (REPORT 96): Mit
     /// `FSOPT_PACK_INVAL_ATTRS` steht jedes angeforderte Attribut im Puffer, auch ein ungültiges (Platzhalter).
     /// Der Offset rückt deshalb immer um die Attributgröße vor; der Wert zählt nur bei gesetztem Bit in
-    /// `ATTR_CMN_RETURNED_ATTRS`. Reihenfolge = Reihenfolge der Bits (man getattrlist): NAME, OBJTYPE, MODTIME,
+    /// `ATTR_CMN_RETURNED_ATTRS`. Reihenfolge = Reihenfolge der Bits (man getattrlist): NAME, OBJTYPE, CRTIME, MODTIME,
     /// FILEID, dann LINKCOUNT vor DATALENGTH. Ordner (und andere Nicht-Dateien) kommen ohne Dateiattribute:
     /// `fileReturned` ist 0 und der Datensatz endet nach FILEID (danach folgt nur noch der Name), er ist also kürzer.
     /// Intern statt privat, damit Tests synthetische Puffer prüfen.
@@ -301,11 +301,22 @@ nonisolated enum BulkDirectoryReader {
         let objType = commonReturned & attrgroupBit(ATTR_CMN_OBJTYPE) != 0 ? objTypeRaw : 0
         offset += MemoryLayout<UInt32>.size
 
+        var createdAt: Date?
         var modifiedAt: Date?
         var fileID: Int64?
         var dataLength: UInt64 = 0
         var linkCount: Int?
         if mode == .fullMetadata {
+            // todo.0.4.3.024: CRTIME steht vor MODTIME (Bit 0x200 vor 0x400).
+            guard
+                let crSec = load(Int64.self, at: offset),
+                let crNsec = load(Int64.self, at: offset + 8)
+            else { return nil }
+            if commonReturned & attrgroupBit(ATTR_CMN_CRTIME) != 0 {
+                createdAt = Date(timeIntervalSince1970: TimeInterval(crSec) + TimeInterval(crNsec) / 1_000_000_000)
+            }
+            offset += 16
+
             guard
                 let sec = load(Int64.self, at: offset),
                 let nsec = load(Int64.self, at: offset + 8)
@@ -363,7 +374,8 @@ nonisolated enum BulkDirectoryReader {
             fileSize: fileSize,
             modifiedAt: modifiedAt,
             fileID: isSymlink ? nil : fileID,
-            linkCount: isSymlink ? nil : linkCount
+            linkCount: isSymlink ? nil : linkCount,
+            createdAt: createdAt
         )
     }
 
@@ -440,16 +452,19 @@ nonisolated enum BulkDirectoryReader {
             var isHidden = name.hasPrefix(".")
             var fileSize: Int64?
             var modifiedAt: Date?
+            var createdAt: Date?
             var isPackage = false
             if isDirectory {
-                if let values = try? child.resourceValues(forKeys: [.isPackageKey, .isHiddenKey, .contentModificationDateKey]) {
+                if let values = try? child.resourceValues(forKeys: [.isPackageKey, .isHiddenKey, .contentModificationDateKey, .creationDateKey]) {
                     isPackage = values.isPackage == true
                     if values.isHidden == true { isHidden = true }
                     modifiedAt = values.contentModificationDate
+                    createdAt = values.creationDate
                 }
-            } else if let values = try? child.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isHiddenKey]) {
+            } else if let values = try? child.resourceValues(forKeys: [.fileSizeKey, .contentModificationDateKey, .isHiddenKey, .creationDateKey]) {
                 fileSize = values.fileSize.map(Int64.init)
                 modifiedAt = values.contentModificationDate
+                createdAt = values.creationDate
                 if values.isHidden == true { isHidden = true }
             }
             entries.append(
@@ -461,7 +476,8 @@ nonisolated enum BulkDirectoryReader {
                     isHidden: isHidden,
                     fileSize: fileSize,
                     modifiedAt: modifiedAt,
-                    fileID: Int64(statInfo.st_ino)
+                    fileID: Int64(statInfo.st_ino),
+                    createdAt: createdAt
                 )
             )
         }

@@ -1,0 +1,11 @@
+# Test: AboutAndSettingsMenuTests/aboutWindowHasOnlyTheCloseButton()
+--- a/DiskArchive/DiskArchive/App/AboutPanel.swift
++++ b/DiskArchive/DiskArchive/App/AboutPanel.swift
+@@ -80,7 +80,6 @@
+         window.titlebarAppearsTransparent = true
+         window.isMovableByWindowBackground = true
+         window.appearance = NSAppearance(named: .darkAqua)
+-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
+         window.standardWindowButton(.zoomButton)?.isHidden = true
+         window.title = LayoutCopy.menuBarAbout
+         window.contentView = NSHostingView(rootView: AboutView(content: content))

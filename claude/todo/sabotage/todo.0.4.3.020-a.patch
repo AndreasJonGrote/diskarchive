@@ -1,0 +1,12 @@
+# Test: ReadOnlyBannerTests/betaNoticeCountsDownAndRedWins()
+--- a/DiskArchive/DiskArchive/App/AppState+VersionLock.swift
++++ b/DiskArchive/DiskArchive/App/AppState+VersionLock.swift
+@@ -61,7 +61,7 @@
+             }
+         case .unlocked:
+             guard let deadline = betaNoticeDeadline, now < deadline else { return nil }
+-            let days = Int((deadline.timeIntervalSince(now) / 86_400).rounded(.up))
++            let days = Int((deadline.timeIntervalSince(now) / 86_400).rounded(.down))
+             return .betaNotice(daysLeft: max(1, days))
+         }
+     }

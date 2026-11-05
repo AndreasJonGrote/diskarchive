@@ -43,10 +43,11 @@ struct LayoutCopyTests {
         let wanted = [
             "ALLE SPEICHERMEDIEN",
             "DETAIL",
-            "Größe gesamt:",
-            "Geändert:",
-            "Größe:",
-            "Zuletzt gesehen:",
+            // todo.0.4.3.017: Labels ohne Doppelpunkt (Wert rechts daneben).
+            "Größe gesamt",
+            "Geändert",
+            "Größe",
+            "Zuletzt gesehen",
             "Filter",
         ]
         let missing = wanted.filter { !catalogGerman.contains($0) }
@@ -123,18 +124,8 @@ struct LayoutCopyTests {
 
     /// Schlüssel, deren Text erst ein späteres Paket von 0.4.3 bringt (Schlüssel → Paket); jedes Paket leert seinen Teil.
     private var pendingPackage: [String: Int] {
-        [
-            // 61: Spaltenansicht-Zustände, Detail-Labels, Einstellungen Dateien & Ordner
-            "copy.column.detail.last_seen": 61, "copy.column.detail.modified": 61, "copy.column.detail.size": 61,
-            "copy.column.detail.total_size": 61, "copy.column.filter.reset": 61,
-            "copy.column.folder_not_indexed_title": 61, "copy.folder.change_exclusions": 61,
-            "copy.folder.excluded": 61, "copy.folder.unreadable": 61,
-            "copy.settings.artifacts.text": 61, "copy.settings.exclude.text": 61, "copy.settings.hidden.text": 61,
-            "copy.settings.scan_depth.text": 61,
-            // 62: Banner, Update-Countdown, Fehlerdialoge, Über
-            "copy.update.available.beta_countdown": 62, "copy.version_lock.banner.api": 62,
-            "copy.version_lock.banner.beta": 62, "copy.version_lock.banner.build": 62, "copy.menubar.about": 62,
-        ]
+        // Ziel von 0.4.3 erreicht (Paket 62): kein Text wartet mehr auf ein Paket.
+        [:]
     }
 
     /// Schlüssel ohne Text in 20 bzw. mit Layout-Querverweis: Frage an den Host (Regel 2), Text bleibt.
@@ -142,19 +133,13 @@ struct LayoutCopyTests {
         [
             // Reiter „Speichermedien“ der Einstellungen: in 20 nur „SPEICHERMEDIEN“ (Überschrift)
             "copy.settings.tab.media",
-            // Hinweis „Einstellungen konnten nicht gelesen werden …“: nicht in 20
-            "copy.settings.unreadable.notice",
-            // Deutsch ohne den Satz „Alle Mitteilungstexte und Bedingungen: 18.“ (Verweis auf die Layout-Sektion)
-            "copy.settings.notices.text",
-            // Details-Fenster (06.01): Fläche „Belegt“ – in 20 nur klein „belegt“/„used“ (Kachel)
-            "copy.medium.used",
             // Details-Fenster (06.01): Wert „86 %“ / „86%“ – Zahlformat, in 20 nur „{1} % indiziert“
             "copy.medium.indexed_value",
-            // Auswerfen abgelehnt (Dialog 16): Beschreibung fehlt in 20, Vorschlag Host (todo.0.4.3.011)
-            "copy.eject.failed",
             // Popover-Gruppe „ORDNER“/„FOLDERS“: „Ordner“ in 20 ist der Filtertyp (Einzahl „Folder“), die Gruppe steht in
             // der Mehrzahl wie „FILES“ (Entscheidung Host, Korrektur K2 Paket 60)
             "copy.popover_search.group.folders",
+            // Menüpunkt „Über Disk Archive“: in 20 nur Titel der Sektion 17, keine Textzeile (todo.0.4.3.001)
+            "copy.menubar.about",
         ]
     }
 

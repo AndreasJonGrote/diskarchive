@@ -540,6 +540,21 @@ nonisolated final class IssueReporter: @unchecked Sendable {
         await VersionCheckCoordinator.handleAPIResult(response, appState: AppDelegateBridge.appState, store: store, now: now)
     }
 
+    /// todo.0.4.3.020 (Layout 04.04/04.05): „Jetzt prüfen“ – sofort, ohne Warteschlange und 24-h-Abstand; `true`, wenn
+    /// der Lizenzserver antwortete (dann wertet `VersionCheckCoordinator` wie nach jeder Antwort neu aus).
+    func checkVersionNow() async -> Bool {
+        let url = VersionCheckEndpoint.url
+        guard IssueEndpointPolicy.allows(url, release: releaseBuild) else { return false }
+        let outcome = await VersionCheckClient.fetchOutcome(session: session, url: url)
+        guard let response = outcome.response else {
+            log("version check now failed")
+            return false
+        }
+        log("version check now ok")
+        await Self.applyVersionCheck(response, now: now())
+        return true
+    }
+
     private func sendVersionCheck(row: ApiQueueRow, pool: DatabasePool) async {
         let url = VersionCheckEndpoint.url
         guard IssueEndpointPolicy.allows(url, release: releaseBuild) else { return }

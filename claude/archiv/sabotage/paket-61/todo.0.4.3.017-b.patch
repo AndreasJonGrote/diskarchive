@@ -1,0 +1,11 @@
+# Test: ColumnDetailFactsTests/longFooterPathStaysInsideItsWidth()
+--- a/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnBrowserPathFooter.swift
++++ b/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnBrowserPathFooter.swift
+@@ -62,7 +62,6 @@
+             HStack(spacing: 4) {
+                 segments(split.head, trailingCaret: !split.tail.isEmpty)
+                     .fixedSize()
+-                    .frame(minWidth: 0, alignment: .leading)
+                     .clipped()
+                     .mask(fadeMask(trailing: true))
+                     .layoutPriority(0)

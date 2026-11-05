@@ -1,0 +1,11 @@
+# Test: ReadOnlyBannerTests/checkNowShowsSpinnerThenEitherClearsOrReturnsToRed()
+--- a/DiskArchive/DiskArchive/App/AppState+VersionLock.swift
++++ b/DiskArchive/DiskArchive/App/AppState+VersionLock.swift
+@@ -74,7 +74,6 @@
+         licenseServerCheckInProgress = true
+         Task { [weak self] in
+             _ = await check()
+-            self?.licenseServerCheckInProgress = false
+         }
+     }
+ }

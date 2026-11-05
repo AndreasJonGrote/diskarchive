@@ -20,8 +20,12 @@ struct MainWindowHostView: View {
         ZStack {
             MainWindowScreenScaffold {
                 VStack(spacing: 0) {
-                    if let banner = appState.versionLockBannerText(), appState.updateNotice == nil {
-                        versionLockBanner(banner)
+                    // todo.0.4.3.020 (Layout 04.03a–04.06): fester Banner zwischen Werkzeugleiste und Inhalt; die Frist
+                    // zählt minütlich herunter.
+                    TimelineView(.everyMinute) { context in
+                        if let banner = appState.readOnlyBanner(now: context.date) {
+                            ReadOnlyBannerView(banner: banner)
+                        }
                     }
                     if appState.isStoreLoading {
                         StoreLoadingView()
@@ -62,16 +66,6 @@ struct MainWindowHostView: View {
                 IndexingFailureDialog(notice: failure)
             }
 
-            if appState.indexStoreOpenFailureAlert {
-                Color.black.opacity(0.08)
-                    .ignoresSafeArea()
-                    .onTapGesture {
-                        appState.indexStoreOpenFailureAlert = false
-                    }
-
-                StoreOpenFailureDialog()
-            }
-
             // todo.0.4.3.011 (Layout 16): „Unerwarteter Fehler“ (z. B. Auswerfen abgelehnt).
             if let error = appState.unexpectedError {
                 Color.black.opacity(0.08)
@@ -83,10 +77,6 @@ struct MainWindowHostView: View {
                 UnexpectedErrorDialog(notice: error)
             }
         }
-    }
-
-    private func versionLockBanner(_ text: String) -> some View {
-        WarningBanner(text: text)
     }
 
     @ViewBuilder

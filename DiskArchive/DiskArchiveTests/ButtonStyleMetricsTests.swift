@@ -83,7 +83,8 @@ import Testing
                 files: [
                     "Views/CrashReportDialog.swift",
                     "Views/Registry/IndexingFailureDialog.swift",
-                    "Views/Registry/StoreOpenFailureDialog.swift",
+                    // todo.0.4.3.021: Datenbankfehler nutzt Dialog 16.
+                    "Views/Registry/UnexpectedErrorDialog.swift",
                 ],
                 expectedTokens: [
                     "PrimaryButtonStyle(size: .dialog)",

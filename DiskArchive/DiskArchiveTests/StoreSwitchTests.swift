@@ -236,21 +236,24 @@ extension MeasurementTestGroup {
         func noon(_ year: Int, _ month: Int, _ day: Int) throws -> Date {
             try #require(Calendar.current.date(from: DateComponents(year: year, month: month, day: day, hour: 12)))
         }
+        // todo.0.4.3.017: Label „Zuletzt gesehen“ steht links, der Wert folgt der Datumsregel aus 19 in der App-Sprache.
+        medium.connectionStatus = .offline
         medium.lastSeenAt = try noon(2023, 11, 14)
+        let now = try noon(2024, 2, 14)
         let expected: [AppDisplayLanguage: String] = [
-            .german: "Zuletzt gesehen: 14. Nov. 2023",
-            .english: "Last seen: Nov 14, 2023",
+            .german: "vor 3 Monaten",
+            .english: "3 months ago",
         ]
         for (language, text) in expected {
             L10n.$languageOverride.withValue(language) {
-                #expect(ColumnDetailText.lastSeen(medium: medium) == text)
+                #expect(ColumnDetailText.lastSeen(medium: medium, now: now) == text)
             }
         }
         medium.lastSeenAt = nil
         #expect(ColumnDetailText.lastSeen(medium: medium) == nil)
-        medium.lastSeenAt = try noon(2023, 12, 24)
+        medium.connectionStatus = .connected
         L10n.$languageOverride.withValue(.german) {
-            #expect(ColumnDetailText.lastSeen(medium: medium)?.contains("24. Dez. 2023") == true)
+            #expect(ColumnDetailText.lastSeen(medium: medium) == "jetzt")
         }
     }
 }

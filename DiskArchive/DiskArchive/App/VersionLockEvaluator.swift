@@ -19,6 +19,8 @@ nonisolated struct VersionLockSettingsMutations: Equatable, Sendable {
     var setHighestSeenAt: Date? = nil
     /// `true` nach einer API-Antwort: `highestSeenAt` wird überschrieben (eine einmal vorgestellte Uhr sperrt nicht dauerhaft).
     var overwriteHighestSeenAt: Bool = false
+    /// todo.0.4.3.002: nach jeder API-Antwort – gemeldete Version bei `"urgent-update": true`, sonst leer.
+    var setUrgentUpdateVersion: String? = nil
 
     /// Nur die Uhr-Werte (dürfen auch ohne API-Antwort gespeichert werden).
     var clockOnly: VersionLockSettingsMutations {
@@ -37,6 +39,8 @@ nonisolated struct VersionLockEvaluation: Equatable, Sendable {
     var updateOffer: UpdateOffer?
     var showLockBanner: Bool
     var mutations: VersionLockSettingsMutations
+    /// todo.0.4.3.020 (Layout 04.03a): Ende der 7-Tage-Frist, solange sie läuft (gelber Banner zählt herunter).
+    var betaNoticeDeadline: Date? = nil
 }
 
 nonisolated enum VersionLockEvaluator {
@@ -59,6 +63,7 @@ nonisolated enum VersionLockEvaluator {
         settings: SystemSettingsSnapshot,
         isFreshInstall: Bool,
         buildDate: Date?,
+        urgentUpdate: Bool = false,
         calendar: Calendar = .current
     ) -> VersionLockEvaluation {
         var mutations = VersionLockSettingsMutations()
@@ -148,13 +153,37 @@ nonisolated enum VersionLockEvaluator {
             }
         }
 
+        // todo.0.4.3.002 (Konzept `datenbank.md` „Netz (API)“): dringendes Update – ganze Version `x.x.x`, Dialog immer.
+        // Ohne Antwort gilt die zuletzt gemeldete dringende Version (Dialog auch beim Start).
+        let urgentTarget: AppVersion? = apiVersion != nil
+            ? (urgentUpdate ? apiVersion : nil)
+            : settings.urgentUpdateVersion.flatMap(AppVersion.parse)
+        if let apiVersion {
+            mutations.setUrgentUpdateVersion = urgentUpdate ? apiVersion.displayString : ""
+        }
+        if let urgentTarget, appVersion.compareFull(to: urgentTarget) == .orderedAscending {
+            updateOffer = UpdateOffer(
+                currentDisplay: appVersion.displayString,
+                targetDisplay: urgentTarget.displayString,
+                targetMajorMinor: urgentTarget,
+                showBetaCountdown: updateOffer?.showBetaCountdown ?? betaPathActive,
+                urgent: true
+            )
+        }
+
         let showLockBanner = lockReason != nil
+        // todo.0.4.3.020: nur Anzeige – die Frist selbst prüft der Block oben (unverändert).
+        let noticedAt = settings.betaExpiryNoticedAt ?? mutations.setBetaExpiryNoticedAt
+        let betaNoticeDeadline = appVersion.isBeta && lockReason == nil
+            ? noticedAt.flatMap { calendar.date(byAdding: .day, value: betaGraceDays, to: $0) }
+            : nil
 
         return VersionLockEvaluation(
             lockState: lockState,
             updateOffer: updateOffer,
             showLockBanner: showLockBanner,
-            mutations: mutations
+            mutations: mutations,
+            betaNoticeDeadline: betaNoticeDeadline
         )
     }
 
@@ -188,6 +217,9 @@ nonisolated enum VersionLockEvaluator {
             }
             if let version = mutations.setLockedVersion {
                 try SystemSettingsPersistence.writeLockedVersion(db, version: version)
+            }
+            if let version = mutations.setUrgentUpdateVersion {
+                try SystemSettingsPersistence.writeUrgentUpdateVersion(db, version: version)
             }
             if let at = mutations.setFirstRunAt {
                 try SystemSettingsPersistence.writeFirstRunIfMissing(db, at: at, fresh: mutations.firstRunFresh)

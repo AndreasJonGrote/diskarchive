@@ -28,6 +28,8 @@ nonisolated struct UpdateOffer: Equatable, Sendable {
     var targetDisplay: String
     var targetMajorMinor: AppVersion
     var showBetaCountdown: Bool
+    /// todo.0.4.3.002: dringendes Update – erscheint auch bei „Auf Updates hinweisen: Aus“.
+    var urgent: Bool = false
 }
 
 nonisolated struct FeatureAccess: Equatable, Sendable {

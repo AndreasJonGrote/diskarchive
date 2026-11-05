@@ -1,0 +1,12 @@
+# Test: ColumnFolderStatusTests/eachStateHasItsTitleIconAndLink()
+--- a/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnFolderStatusPanels.swift
++++ b/DiskArchive/DiskArchive/Views/ColumnBrowser/ColumnFolderStatusPanels.swift
+@@ -115,7 +115,7 @@
+         case .indexing: .spinner(online: true)
+         case .loading: .spinner(online: false)
+         case .scanDepth: .glyph(asset: "IconFolderDuotone", red: false)
+-        case .excluded: .glyph(asset: "IconEyeSlash", red: false)
++        case .excluded: .glyph(asset: "IconWarningCircle", red: false)
+         case .unreadable: .glyph(asset: "IconWarningBold", red: true)
+         }
+     }

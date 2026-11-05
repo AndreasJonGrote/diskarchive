@@ -1,0 +1,11 @@
+# Test: ErrorDialogsAndNoticesTests/unavailableDatabaseUsesDialogSixteenWithRetry()
+--- a/DiskArchive/DiskArchive/App/AppState+Media.swift
++++ b/DiskArchive/DiskArchive/App/AppState+Media.swift
+@@ -381,7 +381,6 @@
+             action: { [weak self] in self?.onRetryIndexStoreOpen?() }
+         )
+         storeOpenFailureNoticeID = notice.id
+-        unexpectedError = notice
+     }
+ 
+     func clearIndexStoreOpenFailure() {

@@ -202,7 +202,7 @@ private struct ObjectResultsTableHeader: View {
             header(LayoutCopy.tableStatus, column: .status, alignment: .trailing).frame(width: ObjectTableColumns.status, alignment: .trailing)
         }
         .padding(.horizontal, ObjectTableColumns.horizontalPadding)
-        .padding(.vertical, 10)
+        .padding(.vertical, DesignTable.verticalPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(DesignColor.neutral100)
     }
@@ -272,7 +272,8 @@ private struct ObjectResultRow: View, Equatable {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(result.date.map(IndexedDateFormatting.abbreviatedDay) ?? "—")
-                    .foregroundStyle(DesignColor.text.opacity(0.55))
+                    .font(.system(size: DesignTable.dateFont))
+                    .foregroundStyle(DesignColor.text.opacity(DesignTable.quietOpacity))
                     .lineLimit(1)
                     .frame(width: ObjectTableColumns.date, alignment: .leading)
 
@@ -283,7 +284,7 @@ private struct ObjectResultRow: View, Equatable {
                             FadeMaskText(
                                 text: mediumCell.label.name,
                                 applyFadeMask: true,
-                                font: .system(size: 13),
+                                font: .system(size: DesignTable.rowFont),
                                 suffix: mediumCell.label.original
                             )
                         }
@@ -302,9 +303,9 @@ private struct ObjectResultRow: View, Equatable {
                 ObjectRowOnlineStatusChip(isOnline: isOnline)
                     .frame(width: ObjectTableColumns.status, alignment: .trailing)
             }
-            .font(.system(size: 13))
+            .font(.system(size: DesignTable.rowFont))
             .padding(.horizontal, ObjectTableColumns.horizontalPadding)
-            .padding(.vertical, 10)
+            .padding(.vertical, DesignTable.verticalPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(isHovered ? DesignColor.neutral100 : Color.clear)
         }

@@ -253,7 +253,7 @@ struct MediumDetailName: View {
     @Environment(AppState.self) private var appState
     let medium: Medium
 
-    private static let font = Font.system(size: 17, weight: .bold)
+    private static let font = DesignFont.heading(size: 17)
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -313,7 +313,7 @@ struct MediumDetailNameEditor: View {
         HStack(spacing: 6) {
             TextField("", text: $text)
                 .textFieldStyle(.plain)
-                .font(.system(size: 17, weight: .bold))
+                .font(DesignFont.heading(size: 17))
                 .lineLimit(1)
                 .padding(.horizontal, 6)
                 .frame(height: 28)
