@@ -1,2 +1,1 @@
-Rolle: Worker. Lies `AGENTS.md` im Hauptverzeichnis, dann `claude/AGENTS.md`, `claude/todo/regeln.md` und in `claude/todo/paket-62.md` den Abschnitt „Korrektur Host 05.11.“; setze K1 um (nur Tests, Wartezeiten auf 20 s).
-Danach einmal `Werkzeuge/pruefung.sh voll` (ohne `S=`), kein Git. Am Ende „Status K1“ im Paket-File, „Bereit zur Prüfung“, diese Datei durch „Erledigt: … Offen: … HALT“ ersetzen. HALT.
+Kein Auftrag (Host 06.11.): Paket 62 ist abgenommen. Paket 63 wird freigegeben, sobald der Nutzertest bestanden ist und der Host das DMG-Bild erneuert hat. HALT.

@@ -13,4 +13,5 @@ Index: [TODO.md](../TODO.md). Regeln: [todo/regeln.md](regeln.md). **Letztes Pak
 - **todo.0.4.3.022 — Version 0.4.3 und DMG:**
   - `MARKETING_VERSION` an allen Stellen in `DiskArchive/DiskArchive.xcodeproj/project.pbxproj` auf `0.4.3` (`CURRENT_PROJECT_VERSION` bleibt 1); Tests, die die eigene Version prüfen (`BundleVersionTests`, `AboutAndSettingsMenuTests` u. a.), auf 0.4.3; feste Beispielwerte ohne Bundle so lassen.
   - Danach `Werkzeuge/dmg-erstellen.sh` (Skript unverändert): `builds/Disk-Archive-0.4.3.dmg` und `builds/Disk Archive 0.4.3.app`, die 0.4.2-Dateien in `builds/` werden dabei gelöscht. Im Status Größe, Volume-Name, `CFBundleShortVersionString` der App im DMG, Schlusszeile.
+  - **Dazu (Host 06.11., Stufe 3 aus Paket 62):** `MediumEjectTests.refusalOffersTryAgainWhichEjectsAgain` wartet mit `waitUntil(timeout: 5)` und fiel unter Parallellast einmal rot; auf `timeout: 20` anheben (Helfer nicht ändern). Zum Schluss einmal `Werkzeuge/pruefung.sh voll` (ohne `S=`).
   - **Status:**

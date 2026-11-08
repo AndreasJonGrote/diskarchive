@@ -60,4 +60,16 @@ Ergebnis: Debug/Release 0 Warnungen, seriell 1337/1337, Parallel 1 und 3 grün, 
 
 - **K1 — `ReadOnlyBannerTests.checkNowShowsSpinnerThenEitherClearsOrReturnsToRed` rot unter Last** (Parallel 2: `waitUntil(timeout: 5) { !app.licenseServerCheckInProgress }`). Eigener Test des Pakets; `waitUntil` prüft nach Ablauf nicht noch einmal, unter Hauptthread-Last reichen 5 s nicht. **Soll:** beide Wartestellen `timeout: 20` (wie Paket 60, K4); Helfer nicht ändern. Alle in diesem Paket neuen oder geänderten Tests auf `waitUntil` mit weniger als 20 s prüfen und ebenso anheben. Verhalten der App unverändert, kein Sabotage-Patch.
 - Danach einmal `Werkzeuge/pruefung.sh voll` (ohne `S=`); erst bei Grün „Bereit zur Prüfung“.
-- **Status K1:**
+- **Status K1:** Umgesetzt: `ReadOnlyBannerTests` beide Wartestellen `timeout: 20`; sonst keine kürzeren `waitUntil` in Tests des Pakets. Gezielt grün (6/6).
+  Gesamtlauf 00:25–01:03: seriell 1337/1337, Parallel 2 und 3 grün, Release/Debug 0 Warnungen, Sabotage 12/12 rot ✓, 0 Absturzberichte, Nutzer-App aktuell und signiert. **Parallel 1 rot (1):** `MediumEjectTests.refusalOffersTryAgainWhichEjectsAgain` (`waitUntil(timeout: 5)`, Paket 61, in Paket 62 unverändert) – nicht angefasst, außerhalb K1.
+  (Erster Lauf 14:31 verworfen: Mac ab 14:46 zugeklappt im Schlaf, Parallel 1–3 rot.)
+  Frage: Soll ich diesen Test ebenso auf 20 s anheben und neu laufen lassen? K1 selbst Bereit zur Prüfung.
+
+## Abnahme Host 06.11. (Gesamtläufe 12:13–12:49 und 00:25–01:03)
+
+- Diff gelesen: Nur-Lesen-Banner `ReadOnlyBannerView` (gelb mit Frist, rot für Beta beendet, Version abgelaufen, Lizenzserver mit „Jetzt prüfen“), Sperrregeln unverändert; `"urgent-update"` mit Vergleich der ganzen Version, Dialog auch bei „Aus“ und nach „Schließen“, gemerkt in `settings` für den Start; eigenes Fenster „Über Disk Archive“ (Link „diskarchive.app“ wie Layout 17); „Index-Datenbank nicht verfügbar“ als Dialog 16, Absturzbericht-Icon rot, 14 und 18 geprüft ohne Abweichung; Erstellungsdatum aus `ATTR_CMN_CRTIME`/`creationDate` in die schon vorhandene Spalte `item_details.createdAt`, „Im Finder anzeigen“ bei Mehrfachauswahl. Nichts Wesentliches.
+- Lauf 12:13–12:49: seriell 1337/1337, Parallel 2 rot im eigenen Test (K1). Lauf 00:25–01:03 nach K1: Debug und Release 0 Warnungen, seriell 1337/1337, Parallel 2 und 3 grün, Sabotage 12/12 rot ✓, keine `.ips`, App des Nutzers aktuell und signiert, Version 0.4.2.
+- **Stufe 3:** Parallel 1 rot in `MediumEjectTests.refusalOffersTryAgainWhichEjectsAgain` (`waitUntil(timeout: 5)`, aus Paket 61, außerhalb des Diffs). Dasselbe Muster wie K1 (Helfer prüft nach Ablauf nicht noch einmal), App unberührt. Anheben auf 20 s in Paket 63.
+- `pendingPackage` leer; `openQuestions` mit `copy.menubar.about` (in 20 nur Sektionstitel).
+- Nutzer 05.11.: Archivo bleibt auf Titel beschränkt; die Layout-Dateien laden weiter aus dem Netz („so lassen“).
+- Nachtest des Nutzers: siehe Checkliste Paket 62 (Banner nur per Testzustand, Über-Fenster, Erstellungsdatum nach neuem Scan, Mehrfachauswahl im Finder, Datenbankfehler nicht nachstellen).
