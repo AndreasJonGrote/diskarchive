@@ -4,7 +4,7 @@
 
 ## Stand
 
-- **0.4.3:** Pakete 57–62 abgenommen (zuletzt 62 am 06.11., Gesamtlauf 00:25–01:03). Übrig ist nur **Paket 63** (Version 0.4.3, DMG; [claude/todo/paket-63.md](claude/todo/paket-63.md)), noch nicht freigegeben.
+- **0.4.3:** Pakete 57–62 abgenommen (zuletzt 62 am 06.11., Gesamtlauf 00:25–01:03). Übrig ist nur **Paket 63** (seit 12.11. zuerst `bug.0.4.3.004`: Absturz bei jedem Start nach dem Anmelden, dann Version 0.4.3 und DMG; [claude/todo/paket-63.md](claude/todo/paket-63.md)), noch nicht freigegeben.
 - `claude/PROMPT.md`: „Kein Auftrag“. `claude/todo/sabotage/` gibt es nicht (alle Patches unter `claude/archiv/sabotage/paket-NN/`).
 - App des Nutzers: gebaut im Gesamtlauf 06.11. (Stand Paket 62, Versionsnummer noch 0.4.2).
 - **0.5 (Metadaten):** Entwurf [claude/todo/plan-0.5.md](claude/todo/plan-0.5.md), Pakete 64–67 vorgeschlagen, nicht freigegeben. Entschieden 05.11.: parallel lesen, Balken „Metadaten“ nur lesbare Formate, „Nach Updates suchen“ erst mit Layout. **Offen:** Ja des Nutzers zur Suche in Metadaten (angezeigte Werte plus Suchwörter „16:9“, „4K“, „HDR“ …, Frage 1 im Plan).
